@@ -48,12 +48,14 @@ def norm_show(e):
             "show_title": s.get("title", ""), "season": ep.get("season", ""),
             "episode_number": ep.get("number", ""), "network": s.get("network", "")}
 
-def fetch_cast(entries):
+def fetch_cast_and_studios(entries):
     show_slugs = set(); movie_slugs = set()
     for e in entries:
         if e["trakt_slug"]:
             (movie_slugs if e["type"] == "movie" else show_slugs).add(e["trakt_slug"])
     people = defaultdict(lambda: {"name": "", "gender": None, "titles": set()})
+    studios = Counter()  # studio name -> episode/movie count
+    slug_studio = {}  # slug -> primary studio name
     total = len(show_slugs) + len(movie_slugs); done = 0
     for slugs, kind in [(show_slugs, "shows"), (movie_slugs, "movies")]:
         for slug in slugs:
@@ -67,13 +69,22 @@ def fetch_cast(entries):
                             if p.get("gender") is not None: people[pid]["gender"] = p.get("gender")
                             people[pid]["titles"].add(slug)
             except: pass
+            # Fetch studios
+            try:
+                r2 = requests.get(f"{BASE_URL}/{kind}/{slug}/studios", headers=HEADERS, timeout=5)
+                if r2.status_code == 200:
+                    st = r2.json()
+                    if st:
+                        slug_studio[slug] = st[0]["name"]
+            except: pass
             done += 1
-            if done % 100 == 0: print(f"  cast: {done}/{total}")
+            if done % 100 == 0: print(f"  cast+studios: {done}/{total}")
             time.sleep(0.12)
-    print(f"  people: {len(people)}")
-    return {pid: {"name": i["name"], "gender": i["gender"], "titles": list(i["titles"])} for pid, i in people.items()}
+    print(f"  people: {len(people)}, studios: {len(slug_studio)}")
+    people_out = {pid: {"name": i["name"], "gender": i["gender"], "titles": list(i["titles"])} for pid, i in people.items()}
+    return people_out, slug_studio
 
-def build_data(entries, people, headshots, posters):
+def build_data(entries, people, headshots, posters, slug_studio):
     # Titles
     tw = defaultdict(lambda: {"type":"","title":"","year":"","eby":defaultdict(int),"total":0,"runtime":0})
     for e in entries:
@@ -136,6 +147,7 @@ def build_data(entries, people, headshots, posters):
     dwc = Counter(); dwn = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"]
     hod = defaultdict(lambda: defaultdict(int))  # hour of day by year
     net_counter = Counter()
+    studio_counter = Counter()
     recent_all = []  # full list for year filtering
 
     for e in entries:
@@ -150,6 +162,8 @@ def build_data(entries, people, headshots, posters):
                 if e["type"] == "movie": genre_movie[gs] += 1
                 else: genre_show[gs] += 1
         if e["network"]: net_counter[e["network"]] += 1
+        st = slug_studio.get(e["trakt_slug"])
+        if st: studio_counter[st] += 1
         try:
             dt = datetime.fromisoformat(e["watched_at"].replace("Z", "+00:00"))
             dwc[dwn[dt.weekday()]] += 1
@@ -202,6 +216,7 @@ def build_data(entries, people, headshots, posters):
             "hod": {str(h): hod_all.get(h, 0) for h in range(24)},
             "hod_y": hod_by_year,
             "net": [{"network": n, "count": c} for n, c in net_counter.most_common(25)],
+            "stu": [{"studio": s, "count": c} for s, c in studio_counter.most_common(25)],
             "r": recent_all,
         }
     }
@@ -216,8 +231,8 @@ entries = [norm_movie(e) for e in raw_movies] + [norm_show(e) for e in raw_shows
 entries.sort(key=lambda x: x["watched_at"], reverse=True)
 print(f"  Total: {len(entries)} entries")
 
-print("\n[2/3] Fetching cast...")
-people = fetch_cast(entries)
+print("\n[2/3] Fetching cast + studios...")
+people, slug_studio = fetch_cast_and_studios(entries)
 
 # Save people and entries for other scripts
 os.makedirs("data", exist_ok=True)
@@ -242,7 +257,7 @@ if os.path.exists("data/posters.json"):
     with open("data/posters.json") as f: ps = json.load(f)
 
 print(f"\n[3/3] Building dashboard ({len(entries)} entries, {len(people)} people, {len(hs)} headshots, {len(ps)} posters)...")
-data = build_data(entries, people, hs, ps)
+data = build_data(entries, people, hs, ps, slug_studio)
 
 data_str = json.dumps(data, separators=(',', ':'), ensure_ascii=False)
 with open("templates/dashboard.html") as f:
@@ -253,5 +268,5 @@ with open("index.html", "w") as f:
 
 print(f"  index.html: {len(html)//1024}KB")
 print(f"  Actors: {len(data['a'])}, Actresses: {len(data['x'])}")
-print(f"  Networks: {len(data['c']['net'])}")
+print(f"  Networks: {len(data['c']['net'])}, Studios: {len(data['c']['stu'])}")
 print("Done!")
