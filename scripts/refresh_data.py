@@ -147,7 +147,9 @@ def build_data(entries, people, headshots, posters, slug_studio):
     dwc = Counter(); dwn = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"]
     hod = defaultdict(lambda: defaultdict(int))  # hour of day by year
     net_counter = Counter()
+    net_by_year = defaultdict(Counter)
     studio_counter = Counter()
+    studio_by_year = defaultdict(Counter)
     recent_all = []  # full list for year filtering
 
     for e in entries:
@@ -161,9 +163,13 @@ def build_data(entries, people, headshots, posters, slug_studio):
                 gs = g.strip()
                 if e["type"] == "movie": genre_movie[gs] += 1
                 else: genre_show[gs] += 1
-        if e["network"]: net_counter[e["network"]] += 1
+        if e["network"]:
+            net_counter[e["network"]] += 1
+            net_by_year[y][e["network"]] += 1
         st = slug_studio.get(e["trakt_slug"])
-        if st: studio_counter[st] += 1
+        if st:
+            studio_counter[st] += 1
+            studio_by_year[y][st] += 1
         try:
             dt = datetime.fromisoformat(e["watched_at"].replace("Z", "+00:00"))
             dwc[dwn[dt.weekday()]] += 1
@@ -216,7 +222,9 @@ def build_data(entries, people, headshots, posters, slug_studio):
             "hod": {str(h): hod_all.get(h, 0) for h in range(24)},
             "hod_y": hod_by_year,
             "net": [{"network": n, "count": c} for n, c in net_counter.most_common(25)],
+            "net_y": {y: [{"network": n, "count": c} for n, c in ct.most_common(25)] for y, ct in net_by_year.items()},
             "stu": [{"studio": s, "count": c} for s, c in studio_counter.most_common(25)],
+            "stu_y": {y: [{"studio": s, "count": c} for s, c in ct.most_common(25)] for y, ct in studio_by_year.items()},
             "r": recent_all,
         }
     }
