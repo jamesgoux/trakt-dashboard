@@ -14,7 +14,7 @@ body{background:var(--bg);color:var(--tx);font-family:-apple-system,BlinkMacSyst
 .dash{max-width:1400px;margin:0 auto;padding:0 16px 16px}
 .fbar{padding:12px 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:20px}
 .fbar h1{font-size:20px;font-weight:700}.fbar h1 span{color:var(--ac)}
-.fctrls{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.fctrls{display:flex;align-items:center;gap:8px;flex-wrap:nowrap}
 .fbtn{background:var(--sf);border:1px solid rgba(255,255,255,.1);color:var(--tx);border-radius:8px;padding:10px 16px;font-size:14px;cursor:pointer;-webkit-tap-highlight-color:transparent;min-height:44px}
 .fbtn:active{background:#222}
 .fbtn select{background:transparent;color:var(--tx);border:none;font-size:14px;cursor:pointer;-webkit-appearance:none;appearance:none;padding-right:4px}
@@ -68,11 +68,11 @@ body{overflow-x:hidden}
 .fbar{padding:10px 12px}
 .fbar h1{font-size:16px}
 .fbar{gap:6px}
-.fctrls{gap:5px}
-.fbtn{padding:6px 10px;font-size:12px;min-height:38px}
-.fbtn select{font-size:12px}
-.fbtn label{font-size:9px}
-.rbtn{padding:6px 10px;font-size:14px;min-height:38px}
+.fctrls{gap:4px;flex-wrap:nowrap}
+.fbtn{padding:5px 8px;font-size:11px;min-height:34px}
+.fbtn select{font-size:11px}
+.fbtn label{font-size:8px;margin-bottom:1px}
+.rbtn{padding:5px 8px;font-size:13px;min-height:34px}
 }
 </style></head><body>
 <div class="fbar">
