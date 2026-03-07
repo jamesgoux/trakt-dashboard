@@ -244,6 +244,46 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
     for yr in ttw_by_year:
         ttw_by_year[yr].sort(key=lambda x: x["avg"])
 
+    # Content vintage: count unique titles by their release year (not watch year)
+    vintage_movies = Counter()  # release_year -> count of unique movie titles
+    vintage_shows = Counter()   # release_year -> count of unique show titles
+    vintage_seen = set()
+    for e in entries:
+        ry = str(e.get("year", ""))
+        if not ry or not e["trakt_slug"]: continue
+        wy = e["watched_at"][:4] if e["watched_at"] else ""
+        # Only count if watched in filtered year (or all)
+        vkey = (e["trakt_slug"], wy)
+        if vkey not in vintage_seen:
+            vintage_seen.add(vkey)
+            if e["type"] == "movie":
+                vintage_movies[ry] += 1
+            elif e["show_title"]:
+                vintage_shows[ry] += 1
+
+    # Build vintage data grouped by decade for cleaner display
+    all_vy = sorted(set(list(vintage_movies) + list(vintage_shows)))
+    vintage_data = [{"yr": y, "m": vintage_movies.get(y, 0), "s": vintage_shows.get(y, 0)} for y in all_vy if int(y) >= 1980]
+
+    # Also per watch-year
+    vintage_by_wy = defaultdict(lambda: {"movies": Counter(), "shows": Counter(), "seen": set()})
+    for e in entries:
+        ry = str(e.get("year", ""))
+        if not ry or not e["trakt_slug"] or not e["watched_at"]: continue
+        wy = e["watched_at"][:4]
+        vkey = (e["trakt_slug"], wy)
+        if vkey not in vintage_by_wy[wy]["seen"]:
+            vintage_by_wy[wy]["seen"].add(vkey)
+            if e["type"] == "movie":
+                vintage_by_wy[wy]["movies"][ry] += 1
+            elif e["show_title"]:
+                vintage_by_wy[wy]["shows"][ry] += 1
+
+    vintage_by_year = {}
+    for wy, data in vintage_by_wy.items():
+        all_y = sorted(set(list(data["movies"]) + list(data["shows"])))
+        vintage_by_year[wy] = [{"yr": y, "m": data["movies"].get(y, 0), "s": data["shows"].get(y, 0)} for y in all_y if int(y) >= 1980]
+
     # Movie year data
     myd = defaultdict(lambda: {"name": "", "yr": "", "rt": 0, "yd": defaultdict(int)})
     for e in entries:
@@ -406,6 +446,8 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
             "r": recent_all,
             "ttw": ttw_all[:25],
             "ttw_y": {y: v[:25] for y, v in ttw_by_year.items()},
+            "vy": vintage_data,
+            "vy_y": vintage_by_year,
         }
     }
 

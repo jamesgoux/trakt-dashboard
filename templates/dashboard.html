@@ -80,7 +80,7 @@ body{overflow-x:hidden}
 <div class="fctrls">
 <div class="fbtn"><label>Type</label><select id="gs"><option value="all">Both</option><option value="movie">Movies</option><option value="show">Shows</option></select></div>
 <div class="fbtn"><label>Year</label><select id="ys"><option value="all">All Time</option></select></div>
-<div class="fbtn"><label>Jump</label><select id="jmp" onchange="if(this.value){document.getElementById(this.value).scrollIntoView({behavior:'smooth',block:'start'});this.value=''}"><option value="">...</option><option value="sec-act">🎭 Actors</option><option value="sec-crew">🎬 Directors/Writers</option><option value="sec-shows">📺 Shows</option><option value="sec-ttw">⏱️ Time to Watch</option><option value="sec-mov">🎞️ Movies</option><option value="sec-tl">📊 Timeline</option><option value="sec-meta">🎯 Genres/Networks/Studios</option><option value="sec-geo">🌍 Countries/Languages</option><option value="sec-time">📅 Day/Time/Yearly</option><option value="sec-rec">👁️ Recent</option></select></div>
+<div class="fbtn"><label>Jump</label><select id="jmp" onchange="if(this.value){document.getElementById(this.value).scrollIntoView({behavior:'smooth',block:'start'});this.value=''}"><option value="">...</option><option value="sec-act">🎭 Actors</option><option value="sec-crew">🎬 Directors/Writers</option><option value="sec-shows">📺 Shows</option><option value="sec-ttw">⏱️ Time to Watch</option><option value="sec-mov">🎞️ Movies</option><option value="sec-tl">📊 Timeline</option><option value="sec-meta">🎯 Genres/Networks/Studios</option><option value="sec-geo">🌍 Countries/Languages</option><option value="sec-vy">📅 Release Years</option><option value="sec-time">📅 Day/Time/Yearly</option><option value="sec-rec">👁️ Recent</option></select></div>
 <button class="rbtn" onclick="location.reload()">&#x21bb;</button>
 </div>
 </div>
@@ -117,6 +117,10 @@ body{overflow-x:hidden}
 <div class="g2">
 <div id="sec-geo" class="cd s-e"><h3><span class="i">🌍</span>Countries</h3><div id="ctryc" style="height:320px"></div></div>
 <div class="cd s-e"><h3><span class="i">💬</span>Languages</h3><div id="langc" style="height:320px"></div></div>
+</div>
+<div class="g3">
+<div class="g2">
+<div id="sec-vy" class="cd fw s-t"><h3><span class="i">📅</span>Content Release Years</h3><div id="vyc" style="height:300px"></div></div>
 </div>
 <div class="g3">
 <div id="sec-time" class="cd s-t"><h3><span class="i">📅</span>Day of Week</h3><div id="dwc" style="height:280px"></div></div>
@@ -231,6 +235,15 @@ function baseCharts(){
   c3b.setOption({tooltip:{trigger:'axis',axisPointer:{type:'shadow'},...tt,formatter:function(p){var n=p[0].name;var img=LO[n]?'<img src="'+LO[n]+'" style="height:18px;vertical-align:middle;margin-right:4px">':'';var vals=p.map(function(s){return s.marker+s.seriesName+': '+s.value}).join('<br/>');return img+'<b>'+n+'</b><br/>'+vals}},legend:{data:ct==='all'?['Movies','Shows']:[],right:10,top:0,textStyle:{color:'#999'}},grid:{left:gl(140),right:20,top:ct==='all'?30:8,bottom:8},xAxis:{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},yAxis:{type:'category',data:sd2.map(function(d){return d.n}),axisLabel:{color:'#ccc',fontSize:10},axisLine:{lineStyle:{color:'#333'}}},series:stuSeries});
 
   addClick(c3b,document.getElementById('stuc'),'stu',sd2);
+
+  // Content vintage (release years)
+  var vyd=cy!=='all'&&D.c.vy_y&&D.c.vy_y[cy]?D.c.vy_y[cy]:(D.c.vy||[]);
+  var c10=echarts.init(document.getElementById('vyc'));
+  var vySeries=[];
+  if(ct!=='movie')vySeries.push({name:'Shows',type:'bar',stack:'t',data:vyd.map(function(d){return d.s}),itemStyle:{color:'#60a5fa'},barMaxWidth:cy==='all'?4:12});
+  if(ct!=='show')vySeries.push({name:'Movies',type:'bar',stack:'t',data:vyd.map(function(d){return d.m}),itemStyle:{color:'#e94560'},barMaxWidth:cy==='all'?4:12});
+  c10.setOption({tooltip:{trigger:'axis',...tt},legend:{data:ct==='all'?['Shows','Movies']:[],right:10,top:0,textStyle:{color:'#999'}},grid:{left:50,right:20,top:36,bottom:30},xAxis:{type:'category',data:vyd.map(function(d){return d.yr}),axisLabel:{color:'#666',interval:cy==='all'?4:0,rotate:45,fontSize:10},axisLine:{lineStyle:{color:'#333'}}},yAxis:{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},series:vySeries});
+  ch.push(c10);
 
   // Day of week
   var dwC=['#60a5fa','#a78bfa','#4ade80','#fb923c','#e94560','#60a5fa','#a78bfa'];
