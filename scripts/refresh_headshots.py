@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
 """
-Incrementally fetch headshot images + show/movie posters.
-Prioritizes actors from recently-watched content.
-Saves progress every 200 items.
+Image backfill script — fetches posters, logos, and headshots from TMDB.
+
+Priority order: posters → logos → actors → directors → writers
+Within each: most recently watched content first.
+Goal: complete coverage for recent watches before older ones.
+
+Budget per run: ~1000 TMDB requests total (respects rate limits).
 """
 
 import os, json, time, re, requests
@@ -10,8 +14,9 @@ import os, json, time, re, requests
 CLIENT_ID = os.environ.get("TRAKT_CLIENT_ID")
 BASE_URL = "https://api.trakt.tv"
 HEADERS = {"Content-Type": "application/json", "trakt-api-version": "2", "trakt-api-key": CLIENT_ID}
-MAX_HEADSHOTS = 800
-MAX_POSTERS = 200
+
+# Total budget per run — split across categories
+TOTAL_BUDGET = 1000
 
 if not CLIENT_ID:
     print("ERROR: Set TRAKT_CLIENT_ID"); exit(1)
@@ -27,7 +32,6 @@ def save_json(path, data):
     with open(path, "w") as f: json.dump(data, f, separators=(',', ':'))
 
 def fetch_tmdb_image(tmdb_url):
-    """Scrape TMDB page for primary image."""
     try:
         r = requests.get(tmdb_url, timeout=5, headers={"User-Agent": "Mozilla/5.0"})
         if r.status_code == 200:
@@ -37,175 +41,196 @@ def fetch_tmdb_image(tmdb_url):
     except: pass
     return None
 
-# ============================================================
-# HEADSHOTS
-# ============================================================
-def refresh_headshots():
-    hs = load_json("data/headshots.json")
-    people = load_json("data/people.json")
-    directors = load_json("data/directors.json")
-    writers = load_json("data/writers.json")
-    slug_recency = load_json("data/slug_recency.json")
-
-    # Combine all people sources: actors + directors + writers
-    all_people = {}
-    for src in [people, directors, writers]:
-        for slug, info in src.items():
-            if slug not in all_people:
-                all_people[slug] = info
-
-    if not all_people:
-        print("  No people data. Run refresh_data.py first."); return
-
-    # Score each person by most recent title they appeared in
-    def person_recency(slug):
-        titles = all_people.get(slug, {}).get("titles", [])
-        return max((slug_recency.get(t, 0) for t in titles), default=0)
-
-    # People needing headshots, sorted by recency (newest first)
-    need = [(slug, info) for slug, info in all_people.items() if info["name"] not in hs]
-    need.sort(key=lambda x: person_recency(x[0]), reverse=True)
-    need = need[:MAX_HEADSHOTS]
-
-    print(f"\n=== Headshots: {len(hs)} cached, {len(need)} to fetch ===")
-    if not need: print("  All up to date!"); return
-
-    count = 0
-    for i, (slug, info) in enumerate(need):
-        try:
-            r1 = requests.get(f"{BASE_URL}/people/{slug}?extended=full", headers=HEADERS, timeout=5)
-            if r1.status_code == 200:
-                tmdb_id = r1.json().get("ids", {}).get("tmdb")
-                if tmdb_id:
-                    hash = fetch_tmdb_image(f"https://www.themoviedb.org/person/{tmdb_id}")
-                    if hash:
-                        hs[info["name"]] = f"https://image.tmdb.org/t/p/w185/{hash}"
-                        count += 1
-        except: pass
-        if (i+1) % 200 == 0:
-            print(f"  {i+1}/{len(need)} processed, {count} found")
-            save_json("data/headshots.json", hs)
-        time.sleep(0.1)
-
-    save_json("data/headshots.json", hs)
-    print(f"  +{count} new headshots, {len(hs)} total")
+def fetch_tmdb_png(tmdb_url):
+    try:
+        r = requests.get(tmdb_url, timeout=5, headers={"User-Agent": "Mozilla/5.0"})
+        if r.status_code == 200:
+            imgs = re.findall(r'https://image\.tmdb\.org/t/p/[^"\']+\.png', r.text)
+            if imgs:
+                return imgs[0]
+    except: pass
+    return None
 
 # ============================================================
-# POSTERS (show/movie cover images)
+# POSTERS (show/movie cover images) — PRIORITY 1
 # ============================================================
-def refresh_posters():
+def fetch_posters(budget):
     ps = load_json("data/posters.json")
     slug_recency = load_json("data/slug_recency.json")
 
-    # Get all unique show/movie slugs from people's titles
-    people = load_json("data/people.json")
-    all_slugs = set()
-    for info in people.values():
-        all_slugs.update(info.get("titles", []))
-
-    # Also include slugs from recency data
-    all_slugs.update(slug_recency.keys())
-
-    # Filter to those without posters, prioritize recent
-    need = [(s, slug_recency.get(s, 0)) for s in all_slugs if s and s not in ps]
+    # All slugs needing posters, sorted by most recent watch
+    need = [(s, yr) for s, yr in slug_recency.items() if s and s not in ps]
     need.sort(key=lambda x: x[1], reverse=True)
-    need = need[:MAX_POSTERS]
+    need = need[:budget]
 
-    print(f"\n=== Posters: {len(ps)} cached, {len(need)} to fetch ===")
-    if not need: print("  All up to date!"); return
+    print(f"\n[1/5] Posters: {len(ps)} cached, {len(need)} to fetch")
+    if not need: return 0
 
-    count = 0
+    count = 0; used = 0
     for i, (slug, _) in enumerate(need):
-        # Try as show first, then movie
         for kind in ["tv", "movie"]:
             try:
-                # Get TMDB ID from Trakt
                 trakt_kind = "shows" if kind == "tv" else "movies"
                 r1 = requests.get(f"{BASE_URL}/{trakt_kind}/{slug}", headers=HEADERS, timeout=5)
+                used += 1
                 if r1.status_code == 200:
                     tmdb_id = r1.json().get("ids", {}).get("tmdb")
                     if tmdb_id:
-                        hash = fetch_tmdb_image(f"https://www.themoviedb.org/{kind}/{tmdb_id}")
-                        if hash:
-                            ps[slug] = f"https://image.tmdb.org/t/p/w185/{hash}"
-                            count += 1
-                            break
+                        h = fetch_tmdb_image(f"https://www.themoviedb.org/{kind}/{tmdb_id}")
+                        used += 1
+                        if h:
+                            ps[slug] = f"https://image.tmdb.org/t/p/w185/{h}"
+                            count += 1; break
             except: pass
             time.sleep(0.08)
-
         if (i+1) % 50 == 0:
-            print(f"  {i+1}/{len(need)} processed, {count} found")
+            print(f"  {i+1}/{len(need)}, {count} found")
             save_json("data/posters.json", ps)
         time.sleep(0.08)
 
     save_json("data/posters.json", ps)
-    print(f"  +{count} new posters, {len(ps)} total")
+    print(f"  +{count} posters ({len(ps)} total), {used} requests")
+    return used
 
 # ============================================================
-# LOGOS (network/studio logos from TMDB)
+# LOGOS (studio/network) — PRIORITY 2
 # ============================================================
-def refresh_logos():
+def fetch_logos(budget):
     logos = load_json("data/logos.json")
+    studios_raw = load_json("data/studios.json")
     slug_recency = load_json("data/slug_recency.json")
 
-    # Get unique studios from studios.json
-    studios_raw = load_json("data/studios.json")
-    # Flatten: collect all studio names
-    all_studio_names = set()
+    # Score each studio by most recent title it appears on
+    studio_recency = {}
     for slug, names in studios_raw.items():
-        if isinstance(names, list):
-            all_studio_names.update(names)
-        else:
-            all_studio_names.add(names)
+        yr = slug_recency.get(slug, 0)
+        ns = names if isinstance(names, list) else [names]
+        for n in ns:
+            studio_recency[n] = max(studio_recency.get(n, 0), yr)
 
-    # Studios needing logos
-    need_stu = [n for n in all_studio_names if n not in logos][:100]
+    need = [(n, yr) for n, yr in studio_recency.items() if n not in logos]
+    need.sort(key=lambda x: x[1], reverse=True)
+    need = need[:budget]
 
-    print(f"\n=== Logos: {len(logos)} cached, {len(need_stu)} studios to fetch ===")
-    if not need_stu:
-        print("  All up to date!"); return
+    print(f"\n[2/5] Logos: {len(logos)} cached, {len(need)} to fetch")
+    if not need: return 0
 
-    count = 0
-    for i, name in enumerate(need_stu):
-        # Find TMDB ID via Trakt
-        # Search studios.json for a slug that has this studio, then look up via Trakt
+    count = 0; used = 0
+    for i, (name, _) in enumerate(need):
         found_slug = None
         for slug, names in studios_raw.items():
             ns = names if isinstance(names, list) else [names]
             if name in ns:
                 found_slug = slug; break
         if not found_slug: continue
-
         try:
-            # Try as movie first, then show
             for kind in ["movies", "shows"]:
                 r = requests.get(f"{BASE_URL}/{kind}/{found_slug}/studios", headers=HEADERS, timeout=5)
+                used += 1
                 if r.status_code == 200:
                     for s in r.json():
                         if s["name"] == name:
                             tmdb_id = s["ids"].get("tmdb")
                             if tmdb_id:
-                                # Scrape TMDB company page for logo
-                                hash = fetch_tmdb_image(f"https://www.themoviedb.org/company/{tmdb_id}")
-                                if hash:
-                                    logos[name] = f"https://image.tmdb.org/t/p/h30/{hash}"
+                                img = fetch_tmdb_png(f"https://www.themoviedb.org/company/{tmdb_id}")
+                                used += 1
+                                if img:
+                                    logos[name] = img
                                     count += 1
                             break
                     if name in logos: break
         except: pass
-
         if (i+1) % 20 == 0:
-            print(f"  {i+1}/{len(need_stu)} processed, {count} found")
+            print(f"  {i+1}/{len(need)}, {count} found")
             save_json("data/logos.json", logos)
         time.sleep(0.15)
 
     save_json("data/logos.json", logos)
-    print(f"  +{count} new logos, {len(logos)} total")
+    print(f"  +{count} logos ({len(logos)} total), {used} requests")
+    return used
 
+# ============================================================
+# HEADSHOTS (actors, directors, writers) — PRIORITY 3/4/5
+# ============================================================
+def fetch_headshots_for(label, priority, source_files, budget):
+    hs = load_json("data/headshots.json")
+    slug_recency = load_json("data/slug_recency.json")
 
-# ---- Main ----
-print("=== Image Refresh ===")
-refresh_headshots()
-refresh_posters()
-refresh_logos()
-print("\nDone!")
+    # Combine sources
+    all_people = {}
+    for src_file in source_files:
+        src = load_json(src_file)
+        for slug, info in src.items():
+            if slug not in all_people:
+                all_people[slug] = info
+
+    def person_recency(slug):
+        titles = all_people.get(slug, {}).get("titles", [])
+        return max((slug_recency.get(t, 0) for t in titles), default=0)
+
+    need = [(slug, info) for slug, info in all_people.items() if info["name"] not in hs]
+    need.sort(key=lambda x: person_recency(x[0]), reverse=True)
+    need = need[:budget]
+
+    print(f"\n[{priority}/5] {label}: {sum(1 for p in all_people.values() if p['name'] in hs)} cached, {len(need)} to fetch")
+    if not need: return 0
+
+    count = 0; used = 0
+    for i, (slug, info) in enumerate(need):
+        try:
+            r1 = requests.get(f"{BASE_URL}/people/{slug}?extended=full", headers=HEADERS, timeout=5)
+            used += 1
+            if r1.status_code == 200:
+                tmdb_id = r1.json().get("ids", {}).get("tmdb")
+                if tmdb_id:
+                    h = fetch_tmdb_image(f"https://www.themoviedb.org/person/{tmdb_id}")
+                    used += 1
+                    if h:
+                        hs[info["name"]] = f"https://image.tmdb.org/t/p/w185/{h}"
+                        count += 1
+        except: pass
+        if (i+1) % 200 == 0:
+            print(f"  {i+1}/{len(need)}, {count} found")
+            save_json("data/headshots.json", hs)
+        time.sleep(0.1)
+
+    save_json("data/headshots.json", hs)
+    print(f"  +{count} {label.lower()} ({len(hs)} total headshots), {used} requests")
+    return used
+
+# ============================================================
+# MAIN — allocate budget across categories
+# ============================================================
+print("=== Iris Image Backfill ===")
+print(f"Budget: {TOTAL_BUDGET} requests\n")
+
+remaining = TOTAL_BUDGET
+
+# 1. Posters (20% of budget)
+used = fetch_posters(min(200, remaining))
+remaining -= used
+
+# 2. Logos (10% of budget)
+used = fetch_logos(min(100, remaining))
+remaining -= used
+
+# 3. Actors (40% of remaining)
+actor_budget = min(remaining * 40 // 100, remaining)
+used = fetch_headshots_for("Actors", 3, ["data/people.json"], actor_budget // 2)  # 2 requests per person
+remaining -= used
+
+# 4. Directors (20% of remaining)
+dir_budget = min(remaining * 50 // 100, remaining)
+used = fetch_headshots_for("Directors", 4, ["data/directors.json"], dir_budget // 2)
+remaining -= used
+
+# 5. Writers (rest)
+used = fetch_headshots_for("Writers", 5, ["data/writers.json"], remaining // 2)
+
+# Summary
+hs = load_json("data/headshots.json")
+ps = load_json("data/posters.json")
+lg = load_json("data/logos.json")
+print(f"\n=== Summary ===")
+print(f"Headshots: {len(hs)}, Posters: {len(ps)}, Logos: {len(lg)}")
+print("Done!")
