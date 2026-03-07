@@ -236,18 +236,27 @@ function baseCharts(){
     gtWrap.style.display='';
     var gt=D.c.gt;
     var gtColors=['#e94560','#60a5fa','#a78bfa','#fb923c','#4ade80','#f472b6','#38bdf8','#fbbf24'];
-    var gtSeries=gt.genres.map(function(g,i){return{name:g,type:'line',stack:'pct',areaStyle:{opacity:0.7},emphasis:{focus:'series'},data:gt.data[g],smooth:true,lineStyle:{width:0},itemStyle:{color:gtColors[i%gtColors.length]}}});
+    // Zero out 2016 and compute percentages for 100% stacked
+    var gtYears=gt.years.slice();
+    var yi2016=gtYears.indexOf('2016');
+    // Pre-compute totals per year
+    var gtTotals=gtYears.map(function(y,i){
+      if(y==='2016')return 0;
+      var t=0;gt.genres.forEach(function(g){t+=gt.data[g][i]});return t});
+    var gtSeries=gt.genres.map(function(g,i){return{name:g,type:'line',stack:'pct',areaStyle:{opacity:0.7},emphasis:{focus:'series'},
+      data:gtYears.map(function(y,j){if(y==='2016')return 0;return gtTotals[j]>0?Math.round(gt.data[g][j]/gtTotals[j]*1000)/10:0}),
+      smooth:true,lineStyle:{width:0},itemStyle:{color:gtColors[i%gtColors.length]}}});
     var cgt=echarts.init(document.getElementById('gtc'));
     cgt.setOption({tooltip:{trigger:'axis',axisPointer:{type:'cross'},...tt,formatter:function(params){
-      // Calculate percentages
-      var total=0;params.forEach(function(p){total+=p.value});
-      var h='<b>'+params[0].axisValue+'</b><br/>';
-      params.forEach(function(p){var pct=total>0?Math.round(p.value/total*100):0;h+=p.marker+' '+p.seriesName+': '+pct+'% ('+p.value+')<br/>'});
+      var h='<b>'+params[0].axisValue+'</b>';
+      if(params[0].axisValue==='2016'){return h+'<br/>Zeroed (outlier)'}
+      h+='<br/>';
+      params.forEach(function(p){h+=p.marker+' '+p.seriesName+': '+p.value+'%<br/>'});
       return h}},
       legend:{data:gt.genres,top:0,textStyle:{color:'#999',fontSize:10},type:'scroll'},
       grid:{left:50,right:20,top:40,bottom:30},
-      xAxis:{type:'category',data:gt.years,axisLabel:{color:'#666'},axisLine:{lineStyle:{color:'#333'}},boundaryGap:false},
-      yAxis:{type:'value',axisLabel:{color:'#666',formatter:function(v){return v}},splitLine:{lineStyle:{color:'#222'}},max:function(val){return val.max}},
+      xAxis:{type:'category',data:gtYears,axisLabel:{color:'#666'},axisLine:{lineStyle:{color:'#333'}},boundaryGap:false},
+      yAxis:{type:'value',axisLabel:{color:'#666',formatter:function(v){return v+'%'}},splitLine:{lineStyle:{color:'#222'}},max:100,min:0},
       series:gtSeries});
     ch.push(cgt);
   } else {
