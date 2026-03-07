@@ -85,7 +85,7 @@ body{overflow-x:hidden}
 <div class="fctrls">
 <div class="fbtn"><label>Type</label><select id="gs"><option value="all">Both</option><option value="movie">Movies</option><option value="show">Shows</option></select></div>
 <div class="fbtn"><label>Year</label><select id="ys"><option value="all">All Time</option></select></div>
-<div class="fbtn"><label>Jump</label><select id="jmp" onchange="if(this.value){document.getElementById(this.value).scrollIntoView({behavior:'smooth',block:'start'});this.value=''}"><option value="">...</option><option value="sec-act">🎭 Actors</option><option value="sec-crew">🎬 Directors/Writers</option><option value="sec-shows">📺 Shows</option><option value="sec-ttw">⏱️ Time to Watch</option><option value="sec-mov">🎞️ Movies</option><option value="sec-tl">📊 Timeline</option><option value="sec-meta">🎯 Genres/Trends</option><option value="sec-geo">🌍 Countries/Languages</option><option value="sec-vy">📅 Release Years</option><option value="sec-time">📅 Day/Time/Yearly</option><option value="sec-how">🖥️ How I Watch</option><option value="sec-ratings">⭐ Ratings</option><option value="sec-first">🌅 First Watches</option><option value="sec-rec">👁️ Last Watches</option></select></div>
+<div class="fbtn"><label>Jump</label><select id="jmp" onchange="if(this.value){document.getElementById(this.value).scrollIntoView({behavior:'smooth',block:'start'});this.value=''}"><option value="">...</option><option value="sec-act">🎭 Actors</option><option value="sec-crew">🎬 Directors/Writers</option><option value="sec-shows">📺 Shows</option><option value="sec-ttw">⏱️ Time to Watch</option><option value="sec-mov">🎞️ Movies</option><option value="sec-tl">📊 Timeline</option><option value="sec-meta">🎯 Genres/Trends</option><option value="sec-geo">🌍 Countries/Languages</option><option value="sec-vy">📅 Release Years</option><option value="sec-time">📅 Day/Time/Yearly</option><option value="sec-how">🖥️ How I Watch</option><option value="sec-con">🎸 Concerts</option><option value="sec-ratings">⭐ Ratings</option><option value="sec-first">🌅 First Watches</option><option value="sec-rec">👁️ Last Watches</option></select></div>
 <button class="rbtn" onclick="location.reload()">&#x21bb;</button>
 </div>
 </div>
@@ -147,6 +147,10 @@ body{overflow-x:hidden}
 <div class="g2">
 <div class="cd s-g"><h3><span class="i">📺</span>Streaming Services</h3><div id="strc" style="height:280px"></div></div>
 <div class="cd s-g"><h3><span class="i">📱</span>Devices &amp; Formats</h3><div id="devc" style="height:280px"></div></div>
+</div>
+<div class="g2" id="con-wrap" style="display:none">
+<div id="sec-con" class="cd s-g"><h3><span class="i">🎸</span>Concerts Attended</h3><div id="conc" style="height:280px"></div></div>
+<div class="cd s-g"><h3><span class="i">🎤</span>Most Seen Artists</h3><div class="stb" id="con-artists" style="font-size:12px"></div></div>
 </div>
 <div class="g2">
 <div id="sec-ratings" class="cd s-g"><h3><span class="i">⭐</span>My Ratings (Letterboxd)</h3><div id="lbc" style="height:280px"></div></div>
@@ -603,6 +607,18 @@ function renderLetterboxd(){
   });
 }
 
+function renderConcerts(){
+  var con=D.con;var wrap=document.getElementById('con-wrap');
+  if(!con||!con.total){wrap.style.display='none';return}
+  wrap.style.display='';
+  var yrs=(con.years||[]);if(cy!=='all')yrs=yrs.filter(function(y){return y.yr===cy});
+  var cChart=echarts.init(document.getElementById('conc'));
+  if(yrs.length===0){document.getElementById('conc').innerHTML='<div style="text-align:center;color:var(--t2);padding:40px">No concerts'+(cy!=='all'?' in '+cy:'')+'</div>'}
+  else{cChart.setOption({tooltip:{trigger:mob?'item':'axis',axisPointer:{type:'shadow'},...tt,formatter:function(p){return'<b>'+tp(p).name+'</b><br/>'+tp(p).value+' concerts'}},grid:{left:50,right:20,top:30,bottom:24},title:{text:con.total+' concerts, '+con.songs+' songs',left:'center',top:0,textStyle:{color:'#999',fontSize:11,fontWeight:'normal'}},xAxis:{type:'category',data:yrs.map(function(y){return y.yr}),axisLabel:{color:'#ccc'},axisLine:{lineStyle:{color:'#333'}}},yAxis:{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},series:[{type:'bar',data:yrs.map(function(y){return{value:y.c,itemStyle:{color:LG('#0f3460','#fb923c')}}}),barMaxWidth:30}]});ch.push(cChart)}
+  var aEl=document.getElementById('con-artists');var artists=con.artists||[];
+  if(artists.length){var h='<table><thead><tr><th>#</th><th>Artist</th><th>Shows</th></tr></thead><tbody>';artists.forEach(function(a,i){h+='<tr><td style="color:var(--t2);font-size:10px">'+(i+1)+'</td><td style="font-weight:600">'+a.n+'</td><td class="nm nm-o">'+a.c+'</td></tr>'});h+='</tbody></table>';aEl.innerHTML=h}
+}
+
 function renderStatus(){
   var total_people=D.a.length+D.x.length;
   var hs_count=Object.keys(D.hs||{}).length;
@@ -611,7 +627,7 @@ function renderStatus(){
   el.innerHTML='<span>Actors: '+total_people+'</span><span>Headshots: '+hs_count+'</span><span>Posters: '+ps_count+'</span><span>Updated: __BUILD_TIME__</span>';
 }
 
-function render(){ch.forEach(function(c){try{c.dispose()}catch(e){}});ch=[];stats();ptbl('atb',D.a);ptbl('xtb',D.x);ptbl('dtb',D.d||[]);ptbl('wtb',D.w||[]);showCharts();movieCharts();renderPosters();baseCharts();renderLetterboxd();renderStatus()}
+function render(){ch.forEach(function(c){try{c.dispose()}catch(e){}});ch=[];stats();ptbl('atb',D.a);ptbl('xtb',D.x);ptbl('dtb',D.d||[]);ptbl('wtb',D.w||[]);showCharts();movieCharts();renderPosters();baseCharts();renderLetterboxd();renderConcerts();renderStatus()}
 window.addEventListener('resize',function(){mob=window.innerWidth<768;ch.forEach(function(c){try{c.resize()}catch(e){}})});
 window.addEventListener('hashchange',function(){readHash();render()});
 render();

@@ -631,6 +631,9 @@ if os.path.exists("data/logos.json"):
 lb = {}
 if os.path.exists("data/letterboxd.json"):
     with open("data/letterboxd.json") as f: lb = json.load(f)
+concerts = []
+if os.path.exists("data/setlist.json"):
+    with open("data/setlist.json") as f: concerts = json.load(f)
 
 print(f"\n[3/3] Building dashboard ({len(entries)} entries, {len(people)} people, {len(hs)} headshots, {len(ps)} posters)...")
 data = build_data(entries, people, hs, ps, slug_studios, directors_raw, writers_raw)
@@ -827,6 +830,22 @@ data["lb"] = {
     "myh": my_rated_high,
     "myl": my_rated_low,
 }
+
+# Concert data from setlist.fm
+from collections import Counter as Ctr2
+if concerts:
+    ca = Ctr2(c["artist"] for c in concerts)
+    cv = Ctr2(f"{c['venue']}, {c['city']}" for c in concerts if c["venue"])
+    cy2 = Ctr2(c["year"] for c in concerts)
+    data["con"] = {
+        "total": len(concerts), "songs": sum(c["song_count"] for c in concerts),
+        "artists": [{"n": a, "c": c} for a, c in ca.most_common(25)],
+        "venues": [{"n": v, "c": c} for v, c in cv.most_common(25)],
+        "years": [{"yr": y, "c": c} for y, c in sorted(cy2.items())],
+        "recent": [{"artist": c["artist"], "venue": c["venue"], "city": c["city"],
+                    "date": c["date"], "yr": c["year"], "tour": c["tour"],
+                    "songs": c["song_count"]} for c in concerts[:20]],
+    }
 
 data_str = json.dumps(data, separators=(',', ':'), ensure_ascii=False)
 with open("templates/dashboard.html") as f:

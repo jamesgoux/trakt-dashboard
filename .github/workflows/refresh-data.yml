@@ -24,6 +24,11 @@ jobs:
       - name: Refresh Letterboxd
         run: python scripts/refresh_letterboxd.py
 
+      - name: Refresh Concerts
+        env:
+          SETLIST_FM_API_KEY: ${{ secrets.SETLIST_FM_API_KEY }}
+        run: python scripts/refresh_setlist.py
+
       - name: Refresh Trakt data
         env:
           TRAKT_CLIENT_ID: ${{ secrets.TRAKT_CLIENT_ID }}
