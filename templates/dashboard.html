@@ -1,6 +1,9 @@
 <!DOCTYPE html>
 <html lang="en"><head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0f0f0f">
 <title>Trakt Dashboard</title>
 <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
 <style>
@@ -56,6 +59,7 @@ body{padding:10px;overflow-x:hidden}
 <div class="ctrls">
 <div class="gtog"><label>Genre</label><select id="gs"><option value="all">Both</option><option value="movie">Movies</option><option value="show">Shows</option></select></div>
 <div class="yf"><label>Year</label><select id="ys"><option value="all">All Time</option></select></div>
+<button id="rbtn" onclick="location.reload()" style="background:none;border:1px solid rgba(255,255,255,.1);color:var(--t2);border-radius:8px;padding:6px 12px;font-size:12px;cursor:pointer">&#x21bb; Refresh</button>
 </div>
 </div>
 <div class="sg" id="st"></div>
