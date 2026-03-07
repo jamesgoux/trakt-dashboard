@@ -834,6 +834,20 @@ data["lb"] = {
 # Concert data from setlist.fm
 from collections import Counter as Ctr2
 if concerts:
+    # Deduplicate concerts: group by date+venue to count real events (not per-artist)
+    event_key = lambda c: f"{c['date']}|{c['venue']}"
+    unique_events = {}
+    for c in concerts:
+        ek = event_key(c)
+        if ek not in unique_events:
+            unique_events[ek] = {"date": c["date"], "year": c["year"], "venue": c["venue"], "city": c["city"], "artists": [], "songs": 0}
+        unique_events[ek]["artists"].append(c["artist"])
+        unique_events[ek]["songs"] += c["song_count"]
+
+    real_concert_count = len(unique_events)
+    total_songs = sum(e["songs"] for e in unique_events.values())
+
+    # Artist counts: 1 per artist per concert (not per setlist)
     ca = Ctr2(c["artist"] for c in concerts)
     ca_songs = defaultdict(int)
     ca_song_list = defaultdict(lambda: Ctr2())
@@ -841,10 +855,19 @@ if concerts:
         ca_songs[c["artist"]] += c["song_count"]
         for s in c.get("songs", []):
             if s: ca_song_list[c["artist"]][s] += 1
-    cv = Ctr2(f"{c['venue']}, {c['city']}" for c in concerts if c["venue"])
-    cy2 = Ctr2(c["year"] for c in concerts)
+
+    # Venue counts: per unique event, not per setlist
+    cv = Ctr2()
+    for e in unique_events.values():
+        if e["venue"]:
+            cv[f"{e['venue']}, {e['city']}"] += 1
+
+    # Year counts: per unique event
+    cy2 = Ctr2()
     cy2_songs = defaultdict(int)
-    for c in concerts: cy2_songs[c["year"]] += c["song_count"]
+    for e in unique_events.values():
+        cy2[e["year"]] += 1
+        cy2_songs[e["year"]] += e["songs"]
     # Album breakdown per artist
     ca_albums = defaultdict(Counter)
     for c in concerts:
@@ -857,7 +880,7 @@ if concerts:
         albums = [{"n":a,"c":ct} for a,ct in ca_albums[artist].most_common()]
         artist_detail[artist] = {"songs":[{"n":s,"c":ct} for s,ct in ca_song_list[artist].most_common(20)],"top":[{"n":s,"c":ct} for s,ct in top_songs[:15]],"albums":albums}
     data["con"] = {
-        "total": len(concerts), "songs": sum(c["song_count"] for c in concerts),
+        "total": real_concert_count, "songs": total_songs,
         "artists": [{"n": a, "c": c, "s": ca_songs[a]} for a, c in ca.most_common(25)],
         "adetail": artist_detail,
         "venues": [{"n": v, "c": c} for v, c in cv.most_common(25)],
