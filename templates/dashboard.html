@@ -85,7 +85,7 @@ body{overflow-x:hidden}
 <div class="fctrls">
 <div class="fbtn"><label>Type</label><select id="gs"><option value="all">Both</option><option value="movie">Movies</option><option value="show">Shows</option></select></div>
 <div class="fbtn"><label>Year</label><select id="ys"><option value="all">All Time</option></select></div>
-<div class="fbtn"><label>Jump</label><select id="jmp" onchange="if(this.value){document.getElementById(this.value).scrollIntoView({behavior:'smooth',block:'start'});this.value=''}"><option value="">...</option><option value="sec-act">🎭 Actors</option><option value="sec-crew">🎬 Directors/Writers</option><option value="sec-shows">📺 Shows</option><option value="sec-ttw">⏱️ Time to Watch</option><option value="sec-mov">🎞️ Movies</option><option value="sec-tl">📊 Timeline</option><option value="sec-meta">🎯 Genres/Trends</option><option value="sec-geo">🌍 Countries/Languages</option><option value="sec-vy">📅 Release Years</option><option value="sec-time">📅 Day/Time/Yearly</option><option value="sec-lb">⭐ Letterboxd</option><option value="sec-ratings">🏆 Ratings</option><option value="sec-rec">👁️ Recent</option></select></div>
+<div class="fbtn"><label>Jump</label><select id="jmp" onchange="if(this.value){document.getElementById(this.value).scrollIntoView({behavior:'smooth',block:'start'});this.value=''}"><option value="">...</option><option value="sec-act">🎭 Actors</option><option value="sec-crew">🎬 Directors/Writers</option><option value="sec-shows">📺 Shows</option><option value="sec-ttw">⏱️ Time to Watch</option><option value="sec-mov">🎞️ Movies</option><option value="sec-tl">📊 Timeline</option><option value="sec-meta">🎯 Genres/Trends</option><option value="sec-geo">🌍 Countries/Languages</option><option value="sec-vy">📅 Release Years</option><option value="sec-time">📅 Day/Time/Yearly</option><option value="sec-how">🎬 How I Watch</option><option value="sec-ratings">⭐ Ratings</option><option value="sec-rec">👁️ Recent</option></select></div>
 <button class="rbtn" onclick="location.reload()">&#x21bb;</button>
 </div>
 </div>
@@ -138,29 +138,27 @@ body{overflow-x:hidden}
 <div class="cd s-t"><h3><span class="i">📈</span>Yearly Watch Count</h3><div id="yrc" style="height:280px"></div></div>
 </div>
 <div class="g2">
-<div class="cd s-g" id="sec-lb"><h3><span class="i">⭐</span>My Ratings (Letterboxd)</h3><div id="lbc" style="height:280px"></div></div>
-<div class="cd s-g"><h3><span class="i">👥</span>Watched With</h3><div id="pplc" style="height:280px"></div></div>
-</div>
-<div class="g2">
-<div id="sec-ratings" class="cd s-g"><h3><span class="i">🏆</span>My Highest Rated Movies</h3><div class="stb" id="myh-list"></div></div>
-<div class="cd s-m"><h3><span class="i">💎</span>Highest Rated Movies (Community)</h3><div class="stb" id="mch-list"></div></div>
-</div>
-<div class="g2">
-<div class="cd s-s"><h3><span class="i">📺</span>Highest Rated TV (Trakt)</h3><div class="stb" id="sch-list"></div></div>
-<div class="cd s-g"><h3><span class="i">👎</span>My Lowest Rated Movies</h3><div class="stb" id="myl-list"></div></div>
-</div>
-<div class="g2">
-<div class="cd s-s"><h3><span class="i">📉</span>Lowest Rated TV (Trakt)</h3><div class="stb" id="scl-list"></div></div>
-<div class="cd s-m"><h3><span class="i">📉</span>Lowest Rated Movies (Community)</h3><div class="stb" id="mcl-list"></div></div>
-</div>
-<div class="g2">
-</div>
-<div class="g2">
+<div id="sec-how" class="cd s-g"><h3><span class="i">👥</span>Watched With</h3><div id="pplc" style="height:280px"></div></div>
 <div class="cd s-g"><h3><span class="i">🏠</span>Where I Watch <span class="vtog" style="float:right"><button class="vb vb-on lb-loc" data-v="simple">Home/Theater</button><button class="vb lb-loc" data-v="detail">All Locations</button></span></h3><div id="locc" style="height:280px"></div></div>
-<div class="cd s-g"><h3><span class="i">📺</span>Streaming Services</h3><div id="strc" style="height:280px"></div></div>
 </div>
 <div class="g2">
+<div class="cd s-g"><h3><span class="i">📺</span>Streaming Services</h3><div id="strc" style="height:280px"></div></div>
 <div class="cd s-g"><h3><span class="i">📱</span>Devices &amp; Formats</h3><div id="devc" style="height:280px"></div></div>
+</div>
+<div class="g2">
+<div id="sec-ratings" class="cd s-g"><h3><span class="i">⭐</span>My Ratings (Letterboxd)</h3><div id="lbc" style="height:280px"></div></div>
+<div class="cd s-g"><h3><span class="i">🏆</span>My Highest Rated Movies</h3><div class="stb" id="myh-list"></div></div>
+</div>
+<div class="g2">
+<div class="cd s-m"><h3><span class="i">💎</span>Highest Rated Movies (Community)</h3><div class="stb" id="mch-list"></div></div>
+<div class="cd s-s"><h3><span class="i">📺</span>Highest Rated TV (Trakt)</h3><div class="stb" id="sch-list"></div></div>
+</div>
+<div class="g2">
+<div class="cd s-g"><h3><span class="i">👎</span>My Lowest Rated Movies</h3><div class="stb" id="myl-list"></div></div>
+<div class="cd s-s"><h3><span class="i">📉</span>Lowest Rated TV (Trakt)</h3><div class="stb" id="scl-list"></div></div>
+</div>
+<div class="g2">
+<div class="cd s-m"><h3><span class="i">📉</span>Lowest Rated Movies (Community)</h3><div class="stb" id="mcl-list"></div></div>
 </div>
 <div class="g2">
 <div id="sec-rec" class="cd fw s-r"><h3><span class="i">👁️</span>Recently Watched</h3><table><thead><tr><th>Title</th><th>Type</th><th>Date</th></tr></thead><tbody id="rtb"></tbody></table></div>
