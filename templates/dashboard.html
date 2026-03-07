@@ -51,7 +51,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
 .poster-item span{display:block;font-size:10px;color:var(--t2);margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .dr td{padding:4px 8px;background:rgba(15,52,96,.15)!important}
 .dr table{font-size:11px}.dr table td{padding:3px 6px;border:none}
-.vtog{float:right;display:inline-flex;gap:2px}
+.vtog{display:inline-flex;gap:2px}
 .vb{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:var(--t2);border-radius:4px;padding:2px 8px;font-size:10px;cursor:pointer}
 .vb:active,.vb-on{background:var(--ac);color:#fff;border-color:var(--ac)}
 .chart-detail{background:rgba(15,52,96,.2);border-radius:8px;padding:10px;margin-top:8px;max-height:200px;overflow-y:auto;font-size:12px}
@@ -123,7 +123,7 @@ body{overflow-x:hidden}
 </div>
 <div class="g3">
 <div class="g2">
-<div id="sec-vy" class="cd fw s-t"><h3><span class="i">📅</span>Content Release Years <span class="vtog"><button class="vb vb-on" data-v="year">Year</button><button class="vb" data-v="decade">Decade</button><button class="vb" data-v="pie">New vs Old</button></span></h3><div id="vyc" style="height:300px"></div></div>
+<div id="sec-vy" class="cd fw s-t"><h3><span class="i">📅</span>Content Release Years</h3><div class="vtog" style="margin:-6px 0 8px 0"><button class="vb vb-on" data-v="year">Year</button><button class="vb" data-v="decade">Decade</button><button class="vb" data-v="pie">New vs Old</button></div><div id="vyc" style="height:300px"></div></div>
 </div>
 <div class="g3">
 <div id="sec-time" class="cd s-t"><h3><span class="i">📅</span>Day of Week</h3><div id="dwc" style="height:280px"></div></div>
