@@ -85,7 +85,7 @@ body{overflow-x:hidden}
 <div class="fctrls">
 <div class="fbtn"><label>Type</label><select id="gs"><option value="all">Both</option><option value="movie">Movies</option><option value="show">Shows</option></select></div>
 <div class="fbtn"><label>Year</label><select id="ys"><option value="all">All Time</option></select></div>
-<div class="fbtn"><label>Jump</label><select id="jmp" onchange="if(this.value){document.getElementById(this.value).scrollIntoView({behavior:'smooth',block:'start'});this.value=''}"><option value="">...</option><option value="sec-act">🎭 Actors</option><option value="sec-crew">🎬 Directors/Writers</option><option value="sec-shows">📺 Shows</option><option value="sec-ttw">⏱️ Time to Watch</option><option value="sec-mov">🎞️ Movies</option><option value="sec-tl">📊 Timeline</option><option value="sec-meta">🎯 Genres/Trends</option><option value="sec-geo">🌍 Countries/Languages</option><option value="sec-vy">📅 Release Years</option><option value="sec-time">📅 Day/Time/Yearly</option><option value="sec-how">🎬 How I Watch</option><option value="sec-ratings">⭐ Ratings</option><option value="sec-first">🌅 First Watches</option><option value="sec-rec">👁️ Recent</option></select></div>
+<div class="fbtn"><label>Jump</label><select id="jmp" onchange="if(this.value){document.getElementById(this.value).scrollIntoView({behavior:'smooth',block:'start'});this.value=''}"><option value="">...</option><option value="sec-act">🎭 Actors</option><option value="sec-crew">🎬 Directors/Writers</option><option value="sec-shows">📺 Shows</option><option value="sec-ttw">⏱️ Time to Watch</option><option value="sec-mov">🎞️ Movies</option><option value="sec-tl">📊 Timeline</option><option value="sec-meta">🎯 Genres/Trends</option><option value="sec-geo">🌍 Countries/Languages</option><option value="sec-vy">📅 Release Years</option><option value="sec-time">📅 Day/Time/Yearly</option><option value="sec-how">🎬 How I Watch</option><option value="sec-ratings">⭐ Ratings</option><option value="sec-first">🌅 First Watches</option><option value="sec-rec">👁️ Last Watches</option></select></div>
 <button class="rbtn" onclick="location.reload()">&#x21bb;</button>
 </div>
 </div>
@@ -164,7 +164,7 @@ body{overflow-x:hidden}
 <div class="cd fw s-r" id="sec-first"><h3><span class="i">🌅</span>First Watches</h3><table><thead><tr><th>Title</th><th>Type</th><th>Date</th></tr></thead><tbody id="ftb"></tbody></table></div>
 </div>
 <div class="g2">
-<div id="sec-rec" class="cd fw s-r"><h3><span class="i">👁️</span>Recently Watched</h3><table><thead><tr><th>Title</th><th>Type</th><th>Date</th></tr></thead><tbody id="rtb"></tbody></table></div>
+<div id="sec-rec" class="cd fw s-r"><h3><span class="i">👁️</span>Last Watches</h3><table><thead><tr><th>Title</th><th>Type</th><th>Date</th></tr></thead><tbody id="rtb"></tbody></table></div>
 </div>
 <div class="cd fw s-g" style="margin-top:14px">
 <h3><span class="i">📤</span>Update Letterboxd Tags</h3>
@@ -418,12 +418,12 @@ function baseCharts(){
 
   // First watches - filtered
   var ft=document.getElementById('ftb');ft.innerHTML='';
-  var firsts=(D.c.f||[]).filter(function(r){return(cy==='all'||r.yr===cy)&&tmatch(r.type)}).slice(0,10);
+  var firsts=(D.c.f||[]).filter(function(r){return(cy==='all'||r.yr===cy)&&tmatch(r.type)}).slice(0,5);
   firsts.forEach(function(r){var t=r.type==='episode'?r.title+' '+r.detail:r.title;ft.innerHTML+='<tr><td style="font-weight:600">'+t+'</td><td><span class="badge '+(r.type==='movie'?'b-m':'b-e')+'">'+r.type+'</span></td><td style="color:var(--t2)">'+r.watched_at+'</td></tr>'});
 
   // Recently watched - filtered
   var rt=document.getElementById('rtb');rt.innerHTML='';
-  var recs=(D.c.r||[]).filter(function(r){return(cy==='all'||r.yr===cy)&&tmatch(r.type)}).slice(0,20);
+  var recs=(D.c.r||[]).filter(function(r){return(cy==='all'||r.yr===cy)&&tmatch(r.type)}).slice(0,5);
   recs.forEach(function(r){var t=r.type==='episode'?r.title+' '+r.detail:r.title;rt.innerHTML+='<tr><td style="font-weight:600">'+t+'</td><td><span class="badge '+(r.type==='movie'?'b-m':'b-e')+'">'+r.type+'</span></td><td style="color:var(--t2)">'+r.watched_at+'</td></tr>'});
 
   // Countries & Languages

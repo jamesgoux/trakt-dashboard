@@ -382,18 +382,23 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
             "yr": e["watched_at"][:4] if e["watched_at"] else ""
         })
 
-    # First watches: earliest entries
+    # First watches: earliest entries per year (so year filter works)
     first_all = []
     sorted_oldest = sorted(entries, key=lambda x: x["watched_at"])
-    for e in sorted_oldest[:200]:
+    first_by_year = defaultdict(list)
+    for e in sorted_oldest:
         if not e["watched_at"]: continue
-        first_all.append({
-            "type": e["type"],
-            "title": e["show_title"] or e["title"],
-            "detail": f"S{e['season']}E{e['episode_number']}" if e["type"] == "episode" else str(e["year"]),
-            "watched_at": e["watched_at"][:10],
-            "yr": e["watched_at"][:4] if e["watched_at"] else ""
-        })
+        yr = e["watched_at"][:4]
+        if len(first_by_year[yr]) < 10:
+            entry = {
+                "type": e["type"],
+                "title": e["show_title"] or e["title"],
+                "detail": f"S{e['season']}E{e['episode_number']}" if e["type"] == "episode" else str(e["year"]),
+                "watched_at": e["watched_at"][:10],
+                "yr": yr
+            }
+            first_by_year[yr].append(entry)
+            first_all.append(entry)
 
     ml = [e for e in entries if e["type"] == "movie"]
     el = [e for e in entries if e["type"] == "episode"]
