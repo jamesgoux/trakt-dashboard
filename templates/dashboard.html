@@ -285,13 +285,7 @@ function baseCharts(){
   if(D.c.gt){
     gtWrap.style.display='';
     var gt=D.c.gt;
-    // Genre color+emoji map - consistent everywhere
-    var GC={'comedy':'#fbbf24','drama':'#e94560','fantasy':'#a78bfa','adventure':'#4ade80','action':'#fb923c','crime':'#94a3b8','science-fiction':'#38bdf8','mystery':'#8b5cf6',
-      'animation':'#f472b6','family':'#34d399','superhero':'#60a5fa','thriller':'#ef4444','romance':'#ec4899','horror':'#991b1b','musical':'#d946ef','documentary':'#6b7280',
-      'western':'#b45309','war':'#78716c','history':'#a16207','reality':'#0891b2','talk-show':'#7c3aed','children':'#2dd4bf','food':'#84cc16','sport':'#0ea5e9'};
-    var GE={'comedy':'😂','drama':'🎭','fantasy':'🧙','adventure':'🗺️','action':'💥','crime':'🔪','science-fiction':'🚀','mystery':'🔍',
-      'animation':'✨','family':'👨‍👩‍👧','superhero':'🦸','thriller':'😰','romance':'❤️','horror':'👻','musical':'🎵','documentary':'📹',
-      'western':'🤠','war':'⚔️','history':'📜','reality':'📺','talk-show':'🎙️','children':'🧸','food':'🍽️','sport':'⚽'};
+    var gtColors=gt.genres.map(function(g){return GC[g.toLowerCase()]||'#666'});
     var gtColors=gt.genres.map(function(g){return GC[g.toLowerCase()]||'#666'});
     var cgt=echarts.init(document.getElementById('gtc'));
 
