@@ -74,47 +74,48 @@ body{overflow-x:hidden}
 <div class="fctrls">
 <div class="fbtn"><label>Type</label><select id="gs"><option value="all">Both</option><option value="movie">Movies</option><option value="show">Shows</option></select></div>
 <div class="fbtn"><label>Year</label><select id="ys"><option value="all">All Time</option></select></div>
+<div class="fbtn"><label>Jump</label><select id="jmp" onchange="if(this.value){document.getElementById(this.value).scrollIntoView({behavior:'smooth',block:'start'});this.value=''}"><option value="">...</option><option value="sec-act">🎭 Actors</option><option value="sec-crew">🎬 Directors/Writers</option><option value="sec-shows">📺 Shows</option><option value="sec-mov">🎞️ Movies</option><option value="sec-tl">📊 Timeline</option><option value="sec-meta">🎯 Genres/Networks/Studios</option><option value="sec-geo">🌍 Countries/Languages</option><option value="sec-time">📅 Day/Time/Yearly</option><option value="sec-rec">👁️ Recent</option></select></div>
 <button class="rbtn" onclick="location.reload()">&#x21bb;</button>
 </div>
 </div>
 <div class="dash">
 <div class="sg" id="st"></div>
 <div class="g2">
-<div class="cd s-a"><h3><span class="i">🎭</span>Most Watched Actors</h3><div class="stb"><table><thead><tr><th>#</th><th>Actor</th><th>Mov</th><th>Show</th><th>Total</th></tr></thead><tbody id="atb"></tbody></table></div></div>
+<div id="sec-act" class="cd s-a"><h3><span class="i">🎭</span>Most Watched Actors</h3><div class="stb"><table><thead><tr><th>#</th><th>Actor</th><th>Mov</th><th>Show</th><th>Total</th></tr></thead><tbody id="atb"></tbody></table></div></div>
 <div class="cd s-a"><h3><span class="i">🎭</span>Most Watched Actresses</h3><div class="stb"><table><thead><tr><th>#</th><th>Actress</th><th>Mov</th><th>Show</th><th>Total</th></tr></thead><tbody id="xtb"></tbody></table></div></div>
 </div>
 <div class="g2">
-<div class="cd s-c"><h3><span class="i">🎬</span>Most Watched Directors</h3><div class="stb"><table><thead><tr><th>#</th><th>Director</th><th>Mov</th><th>Show</th><th>Total</th></tr></thead><tbody id="dtb"></tbody></table></div></div>
+<div id="sec-crew" class="cd s-c"><h3><span class="i">🎬</span>Most Watched Directors</h3><div class="stb"><table><thead><tr><th>#</th><th>Director</th><th>Mov</th><th>Show</th><th>Total</th></tr></thead><tbody id="dtb"></tbody></table></div></div>
 <div class="cd s-c"><h3><span class="i">✍️</span>Most Watched Writers</h3><div class="stb"><table><thead><tr><th>#</th><th>Writer</th><th>Mov</th><th>Show</th><th>Total</th></tr></thead><tbody id="wtb"></tbody></table></div></div>
 </div>
 <div class="g2">
-<div class="cd s-s"><h3 id="sdh"><span class="i">📺</span>Top Shows by Duration</h3><div id="sdc" style="height:520px"></div></div>
+<div id="sec-shows" class="cd s-s"><h3 id="sdh"><span class="i">📺</span>Top Shows by Duration</h3><div id="sdc" style="height:520px"></div></div>
 <div class="cd s-s"><h3 id="seh"><span class="i">📺</span>Top Shows by Episodes</h3><div id="sec" style="height:520px"></div></div>
 </div>
 <div class="g2">
 <div class="cd fw" id="poster-section" style="display:none"><h3>Top Shows</h3><div id="poster-grid" style="display:flex;flex-wrap:wrap;gap:10px;overflow-x:auto"></div></div>
-<div class="cd s-m"><h3 id="mdh"><span class="i">🎞️</span>Movies by Watch Time</h3><div id="mdc" style="height:340px"></div></div>
+<div id="sec-mov" class="cd s-m"><h3 id="mdh"><span class="i">🎞️</span>Movies by Watch Time</h3><div id="mdc" style="height:340px"></div></div>
 <div class="cd s-m"><h3 id="mrh"><span class="i">🔁</span>Most Rewatched</h3><div id="mrc" style="height:340px"></div></div>
 </div>
 <div class="g2">
-<div class="cd fw s-t"><h3><span class="i">📊</span>Monthly Activity</h3><div id="tlc" style="height:280px"></div></div>
+<div id="sec-tl" class="cd fw s-t"><h3><span class="i">📊</span>Monthly Activity</h3><div id="tlc" style="height:280px"></div></div>
 </div>
 <div class="g3">
-<div class="cd s-g"><h3 id="gnh"><span class="i">🎯</span>Genres</h3><div id="gnc" style="height:360px"></div></div>
+<div id="sec-meta" class="cd s-g"><h3 id="gnh"><span class="i">🎯</span>Genres</h3><div id="gnc" style="height:360px"></div></div>
 <div class="cd s-n"><h3><span class="i">📡</span>Top Networks</h3><div id="netc" style="height:360px"></div></div>
 <div class="cd s-u"><h3><span class="i">🏢</span>Top Studios</h3><div id="stuc" style="height:360px"></div></div>
 </div>
 <div class="g2">
-<div class="cd s-e"><h3><span class="i">🌍</span>Countries</h3><div id="ctryc" style="height:320px"></div></div>
+<div id="sec-geo" class="cd s-e"><h3><span class="i">🌍</span>Countries</h3><div id="ctryc" style="height:320px"></div></div>
 <div class="cd s-e"><h3><span class="i">💬</span>Languages</h3><div id="langc" style="height:320px"></div></div>
 </div>
 <div class="g3">
-<div class="cd s-t"><h3><span class="i">📅</span>Day of Week</h3><div id="dwc" style="height:280px"></div></div>
+<div id="sec-time" class="cd s-t"><h3><span class="i">📅</span>Day of Week</h3><div id="dwc" style="height:280px"></div></div>
 <div class="cd s-t"><h3><span class="i">🕐</span>Time of Day</h3><div id="hodc" style="height:280px"></div></div>
 <div class="cd s-t"><h3><span class="i">📈</span>Yearly Watch Count</h3><div id="yrc" style="height:280px"></div></div>
 </div>
 <div class="g2">
-<div class="cd fw s-r"><h3><span class="i">👁️</span>Recently Watched</h3><table><thead><tr><th>Title</th><th>Type</th><th>Date</th></tr></thead><tbody id="rtb"></tbody></table></div>
+<div id="sec-rec" class="cd fw s-r"><h3><span class="i">👁️</span>Recently Watched</h3><table><thead><tr><th>Title</th><th>Type</th><th>Date</th></tr></thead><tbody id="rtb"></tbody></table></div>
 </div>
 <div class="status" id="status"></div>
 </div>
