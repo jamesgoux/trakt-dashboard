@@ -423,7 +423,7 @@ function baseCharts(){
 
   // Recently watched - filtered
   var rt=document.getElementById('rtb');rt.innerHTML='';
-  var recs=(D.c.r||[]).filter(function(r){return(cy==='all'||r.yr===cy)&&tmatch(r.type)}).slice(0,5);
+  var recs=(D.c.r||[]).filter(function(r){return(cy==='all'||r.yr===cy)&&tmatch(r.type)}).slice(0,5).reverse();
   recs.forEach(function(r){var t=r.type==='episode'?r.title+' '+r.detail:r.title;rt.innerHTML+='<tr><td style="font-weight:600">'+t+'</td><td><span class="badge '+(r.type==='movie'?'b-m':'b-e')+'">'+r.type+'</span></td><td style="color:var(--t2)">'+r.watched_at+'</td></tr>'});
 
   // Countries & Languages
