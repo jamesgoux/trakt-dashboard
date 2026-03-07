@@ -717,6 +717,10 @@ def categorize_tags(lb_data, tag_cats):
                 cat_titles["loc"]["theater"].append(item)
             if t in travel_set:
                 cat_titles["loc"]["travel"].append(item)
+            # People: track titles per person
+            if t.startswith("with ") or t in people_set:
+                display = t.replace("with ", "").strip()
+                cat_titles["people"][display].append(item)
 
     # Deduplicate by title
     ct_out = {}

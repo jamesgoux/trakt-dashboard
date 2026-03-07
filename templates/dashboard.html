@@ -532,7 +532,7 @@ function renderLetterboxd(){
   var strColors=['#e94560','#60a5fa','#a78bfa','#fb923c','#4ade80','#f472b6','#38bdf8','#fbbf24'];
   var devColors=['#60a5fa','#a78bfa','#fb923c','#4ade80','#e94560','#f472b6','#38bdf8','#fbbf24'];
 
-  renderTagChart('pplc',tags.people||{},pplColors,'Watched With',null);
+  renderTagChart('pplc',tags.people||{},pplColors,'Watched With','people');
   window._locMode=window._locMode||'simple';
   var locDetailColors=['#4ade80','#e94560','#60a5fa','#fb923c','#a78bfa','#f472b6','#38bdf8','#fbbf24','#34d399','#f87171','#818cf8','#22d3ee'];
   var locData=window._locMode==='detail'?(tags.locd||tags.loc||{}):(tags.loc||{});
