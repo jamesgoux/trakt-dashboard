@@ -85,7 +85,7 @@ body{overflow-x:hidden}
 <div class="fctrls">
 <div class="fbtn"><label>Type</label><select id="gs"><option value="all">Both</option><option value="movie">Movies</option><option value="show">Shows</option></select></div>
 <div class="fbtn"><label>Year</label><select id="ys"><option value="all">All Time</option></select></div>
-<div class="fbtn"><label>Jump</label><select id="jmp" onchange="if(this.value){document.getElementById(this.value).scrollIntoView({behavior:'smooth',block:'start'});this.value=''}"><option value="">...</option><option value="sec-act">🎭 Actors</option><option value="sec-crew">🎬 Directors/Writers</option><option value="sec-shows">📺 Shows</option><option value="sec-ttw">⏱️ Time to Watch</option><option value="sec-mov">🎞️ Movies</option><option value="sec-tl">📊 Timeline</option><option value="sec-meta">🎯 Genres/Trends</option><option value="sec-geo">🌍 Countries/Languages</option><option value="sec-vy">📅 Release Years</option><option value="sec-time">📅 Day/Time/Yearly</option><option value="sec-how">🖥️ How I Watch</option><option value="sec-con">🎸 Concerts</option><option value="sec-ratings">⭐ Ratings</option><option value="sec-first">🌅 First Watches</option><option value="sec-rec">👁️ Last Watches</option></select></div>
+<div class="fbtn"><label>Jump</label><select id="jmp" onchange="if(this.value){document.getElementById(this.value).scrollIntoView({behavior:'smooth',block:'start'});this.value=''}"><option value="">...</option><option value="sec-act">🎭 Actors</option><option value="sec-crew">🎬 Directors/Writers</option><option value="sec-shows">📺 Top Shows</option><option value="sec-ttw">⏱️ Time to Watch</option><option value="sec-mov">🎞️ Movies</option><option value="sec-tl">📊 Timeline</option><option value="sec-meta">🎯 Genres/Trends</option><option value="sec-geo">🌍 Countries/Languages</option><option value="sec-vy">📅 Release Years</option><option value="sec-time">📅 Day/Time/Yearly</option><option value="sec-how">🖥️ How I Watch</option><option value="sec-con">🎸 Concerts</option><option value="sec-ratings">⭐ Ratings</option><option value="sec-first">🌅 First Watches</option><option value="sec-rec">👁️ Last Watches</option></select></div>
 <button class="rbtn" onclick="location.reload()">&#x21bb;</button>
 </div>
 </div>
@@ -99,24 +99,37 @@ body{overflow-x:hidden}
 <div id="sec-crew" class="cd s-c"><h3><span class="i">🎬</span>Most Watched Directors</h3><div class="stb"><table><thead><tr><th>#</th><th>Director</th><th>Mov</th><th>Show</th><th>Total</th></tr></thead><tbody id="dtb"></tbody></table></div></div>
 <div class="cd s-c"><h3><span class="i">✍️</span>Most Watched Writers</h3><div class="stb"><table><thead><tr><th>#</th><th>Writer</th><th>Mov</th><th>Show</th><th>Total</th></tr></thead><tbody id="wtb"></tbody></table></div></div>
 </div>
+<!-- TOP SHOWS POSTERS -->
 <div class="g2">
-<div id="sec-shows" class="cd s-s"><h3 id="sdh"><span class="i">📺</span>Top Shows by Duration</h3><div id="sdc" style="height:520px"></div></div>
+<div id="sec-shows" class="cd fw s-s"><h3><span class="i">📺</span>Top Shows <span class="vtog" style="float:right"><button class="vb vb-on show-sort" data-v="eps">By Episodes</button><button class="vb show-sort" data-v="dur">By Duration</button></span></h3><div id="poster-grid" style="display:flex;flex-wrap:wrap;gap:10px;overflow-x:auto;padding:4px 0"></div></div>
+</div>
+<!-- SHOWS CHARTS -->
+<div class="g2">
+<div class="cd s-s"><h3 id="sdh"><span class="i">📺</span>Top Shows by Duration</h3><div id="sdc" style="height:520px"></div></div>
 <div class="cd s-s"><h3 id="seh"><span class="i">📺</span>Top Shows by Episodes</h3><div id="sec" style="height:520px"></div></div>
 </div>
+<!-- TTW + CATCH-UP -->
 <div class="g2">
 <div id="sec-ttw" class="cd fw s-s"><h3><span class="i">⏱️</span>Time to Watch (avg days after air)</h3><div id="ttwc" style="height:400px"></div></div>
 </div>
 <div class="g2">
 <div class="cd fw s-s"><h3><span class="i">📚</span>Catch-Up Shows (watched 1+ years after air)</h3><div id="cupc" style="height:400px"></div></div>
 </div>
+<!-- MOVIES -->
 <div class="g2">
-<div class="cd fw" id="poster-section" style="display:none"><h3>Top Shows</h3><div id="poster-grid" style="display:flex;flex-wrap:wrap;gap:10px;overflow-x:auto"></div></div>
 <div id="sec-mov" class="cd s-m"><h3 id="mdh"><span class="i">🎞️</span>Movies by Watch Time</h3><div id="mdc" style="height:340px"></div></div>
 <div class="cd s-m" id="mrc-card"><h3 id="mrh"><span class="i">🔁</span>Most Rewatched</h3><div id="mrc" style="height:340px"></div></div>
 </div>
+<!-- TIME SECTION: Monthly + Day/Time/Yearly -->
 <div class="g2">
 <div id="sec-tl" class="cd fw s-t"><h3><span class="i">📊</span>Monthly Activity</h3><div id="tlc" style="height:280px"></div></div>
 </div>
+<div class="g3">
+<div id="sec-time" class="cd s-t"><h3><span class="i">📅</span>Day of Week</h3><div id="dwc" style="height:280px"></div></div>
+<div class="cd s-t"><h3><span class="i">🕐</span>Time of Day</h3><div id="hodc" style="height:280px"></div></div>
+<div class="cd s-t"><h3><span class="i">📈</span>Yearly Watch Count</h3><div id="yrc" style="height:280px"></div></div>
+</div>
+<!-- GENRES + NETWORKS + STUDIOS -->
 <div class="g3">
 <div id="sec-meta" class="cd s-g"><h3 id="gnh"><span class="i">🎯</span>Genres</h3><div id="gnc" style="height:360px"></div></div>
 </div>
@@ -127,19 +140,16 @@ body{overflow-x:hidden}
 <div class="cd s-n"><h3><span class="i">📡</span>Top Networks</h3><div id="netc" style="height:360px"></div></div>
 <div class="cd s-u"><h3><span class="i">🏢</span>Top Studios</h3><div id="stuc" style="height:360px"></div></div>
 </div>
+<!-- GEO -->
 <div class="g2">
 <div id="sec-geo" class="cd s-e"><h3><span class="i">🌍</span>Countries</h3><div id="ctryc" style="height:320px"></div></div>
 <div class="cd s-e"><h3><span class="i">💬</span>Languages</h3><div id="langc" style="height:320px"></div></div>
 </div>
-<div class="g3">
+<!-- RELEASE YEARS -->
 <div class="g2">
 <div id="sec-vy" class="cd fw s-t"><h3><span class="i">📅</span>Content Release Years</h3><div class="vtog" style="margin:-6px 0 8px 0"><button class="vb vb-on" data-v="year">Year</button><button class="vb" data-v="decade">Decade</button><button class="vb" data-v="pie">New vs Old</button></div><div id="vyc" style="height:300px"></div></div>
 </div>
-<div class="g3">
-<div id="sec-time" class="cd s-t"><h3><span class="i">📅</span>Day of Week</h3><div id="dwc" style="height:280px"></div></div>
-<div class="cd s-t"><h3><span class="i">🕐</span>Time of Day</h3><div id="hodc" style="height:280px"></div></div>
-<div class="cd s-t"><h3><span class="i">📈</span>Yearly Watch Count</h3><div id="yrc" style="height:280px"></div></div>
-</div>
+<!-- HOW I WATCH (own section) -->
 <div class="g2">
 <div id="sec-how" class="cd s-g"><h3><span class="i">👥</span>Watched With</h3><div id="pplc" style="height:280px"></div></div>
 <div class="cd s-g"><h3><span class="i">🏠</span>Where I Watch <span class="vtog" style="float:right"><button class="vb vb-on lb-loc" data-v="simple">Home/Theater</button><button class="vb lb-loc" data-v="detail">All Locations</button></span></h3><div id="locc" style="height:280px"></div></div>
@@ -148,30 +158,31 @@ body{overflow-x:hidden}
 <div class="cd s-g"><h3><span class="i">📺</span>Streaming Services</h3><div id="strc" style="height:280px"></div></div>
 <div class="cd s-g"><h3><span class="i">📱</span>Devices &amp; Formats</h3><div id="devc" style="height:280px"></div></div>
 </div>
-<div class="g2" id="con-wrap" style="display:none">
-<div id="sec-con" class="cd s-g"><h3><span class="i">🎸</span>Concerts Attended</h3><div id="conc" style="height:280px"></div></div>
-<div class="cd s-g"><h3><span class="i">🎤</span>Most Seen Artists</h3><div class="stb" id="con-artists" style="font-size:12px"></div></div>
-</div>
+<!-- RATINGS (own section: graph → highest → lowest) -->
 <div class="g2">
-<div id="sec-ratings" class="cd s-g"><h3><span class="i">⭐</span>My Ratings (Letterboxd)</h3><div id="lbc" style="height:280px"></div></div>
+<div id="sec-ratings" class="cd fw s-g"><h3><span class="i">⭐</span>My Ratings (Letterboxd)</h3><div id="lbc" style="height:280px"></div></div>
+</div>
+<div class="g3">
 <div class="cd s-g"><h3><span class="i">🏆</span>My Highest Rated Movies (Letterboxd)</h3><div class="stb" id="myh-list" style="font-size:12px"></div></div>
-</div>
-<div class="g2">
 <div class="cd s-m"><h3><span class="i">💎</span>Highest Rated Movies (Trakt Community)</h3><div class="stb" id="mch-list" style="font-size:12px"></div></div>
 <div class="cd s-s"><h3><span class="i">📺</span>Highest Rated TV (Trakt Community)</h3><div class="stb" id="sch-list" style="font-size:12px"></div></div>
 </div>
-<div class="g2">
+<div class="g3">
 <div class="cd s-g"><h3><span class="i">👎</span>My Lowest Rated Movies (Letterboxd)</h3><div class="stb" id="myl-list"></div></div>
 <div class="cd s-m"><h3><span class="i">📉</span>Lowest Rated Movies (Trakt Community)</h3><div class="stb" id="mcl-list"></div></div>
-</div>
-<div class="g2">
 <div class="cd s-s"><h3><span class="i">📉</span>Lowest Rated TV (Trakt Community)</h3><div class="stb" id="scl-list"></div></div>
 </div>
+<!-- FIRST + LAST WATCHES -->
 <div class="g2">
 <div class="cd fw s-r" id="sec-first"><h3><span class="i">🌅</span>First Watches</h3><table><thead><tr><th>Title</th><th>Type</th><th>Date</th></tr></thead><tbody id="ftb"></tbody></table></div>
 </div>
 <div class="g2">
 <div id="sec-rec" class="cd fw s-r"><h3><span class="i">👁️</span>Last Watches</h3><table><thead><tr><th>Title</th><th>Type</th><th>Date</th></tr></thead><tbody id="rtb"></tbody></table></div>
+</div>
+<!-- CONCERTS (bottom) -->
+<div class="g2" id="con-wrap" style="display:none">
+<div id="sec-con" class="cd s-g"><h3><span class="i">🎸</span>Concerts Attended</h3><div id="conc" style="height:280px"></div></div>
+<div class="cd s-g"><h3><span class="i">🎤</span>Most Seen Artists</h3><div class="stb" id="con-artists" style="font-size:12px"></div></div>
 </div>
 <div class="cd fw s-g" style="margin-top:14px">
 <h3><span class="i">📤</span>Update Letterboxd Tags</h3>
@@ -465,12 +476,33 @@ function baseCharts(){
 }
 
 function renderPosters(){
-  var PS=D.ps||{};var grid=document.getElementById('poster-grid');var sec=document.getElementById('poster-section');
-  var shows=[];SYD.forEach(function(s){var e=0;if(cy==='all'){Object.values(s.yd).forEach(function(d){e+=d.e})}else if(s.yd[cy]){e=s.yd[cy].e}if(e>0)shows.push({n:s.n,e:e})});
-  shows.sort(function(a,b){return b.e-a.e});
-  var items=[];shows.forEach(function(s){for(var slug in PS){if(PS[slug]&&items.length<20){var sn=s.n.toLowerCase().replace(/[^a-z0-9]/g,'-');if(slug.indexOf(sn.substring(0,10))>=0||sn.indexOf(slug.substring(0,10))>=0){items.push({n:s.n,img:PS[slug]});break}}}});
-  if(items.length>0){sec.style.display='';grid.innerHTML='';items.forEach(function(i){grid.innerHTML+='<div class="poster-item"><img src="'+i.img+'" loading="lazy" alt=""><span>'+i.n+'</span></div>'})}
-  else{sec.style.display='none'}
+  var PS=D.ps||{};var grid=document.getElementById('poster-grid');
+  window._showSort=window._showSort||'eps';
+  var shows=[];SYD.forEach(function(s){
+    var e=0,m=0;
+    if(cy==='all'){Object.values(s.yd).forEach(function(d){e+=d.e;m+=d.m})}
+    else if(s.yd[cy]){e=s.yd[cy].e;m=s.yd[cy].m}
+    if(e>0)shows.push({n:s.n,e:e,h:Math.round(m/60*10)/10})
+  });
+  shows.sort(function(a,b){return window._showSort==='dur'?(b.h-a.h):(b.e-a.e)});
+  var top=shows.slice(0,20);
+  grid.innerHTML='';
+  top.forEach(function(s,i){
+    var slug=s.n.toLowerCase().replace(/[^a-z0-9]/g,'-');
+    var img=null;
+    for(var k in PS){if(k.indexOf(slug.substring(0,10))>=0||slug.indexOf(k.substring(0,10))>=0){img=PS[k];break}}
+    var label=window._showSort==='dur'?s.h+'h':s.e+' eps';
+    grid.innerHTML+='<div class="poster-item">'+(img?'<img src="'+img+'" loading="lazy" alt="">':'<div style="width:100px;height:150px;background:#222;border-radius:6px;display:flex;align-items:center;justify-content:center;color:var(--t2);font-size:10px">'+s.n.substring(0,15)+'</div>')+'<span>'+(i+1)+'. '+s.n+'</span><span style="font-size:9px;color:var(--t2)">'+label+'</span></div>';
+  });
+  // Toggle handlers
+  document.querySelectorAll('.show-sort').forEach(function(btn){
+    btn.onclick=function(){
+      document.querySelectorAll('.show-sort').forEach(function(b){b.classList.remove('vb-on')});
+      btn.classList.add('vb-on');
+      window._showSort=btn.dataset.v;
+      renderPosters();
+    };
+  });
 }
 
 function renderLetterboxd(){
