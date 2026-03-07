@@ -37,7 +37,8 @@ def norm_movie(e):
             "year": m.get("year", ""), "runtime": m.get("runtime", ""),
             "genres": ", ".join(m.get("genres", [])), "trakt_slug": ids.get("slug", ""),
             "tmdb_id": ids.get("tmdb", ""),
-            "show_title": "", "season": "", "episode_number": "", "network": ""}
+            "show_title": "", "season": "", "episode_number": "", "network": "",
+            "country": m.get("country", ""), "language": m.get("language", "")}
 
 def norm_show(e):
     s = e.get("show", {}); ep = e.get("episode", {}); ids = s.get("ids", {})
@@ -46,7 +47,8 @@ def norm_show(e):
             "genres": ", ".join(s.get("genres", [])), "trakt_slug": ids.get("slug", ""),
             "tmdb_id": ids.get("tmdb", ""),
             "show_title": s.get("title", ""), "season": ep.get("season", ""),
-            "episode_number": ep.get("number", ""), "network": s.get("network", "")}
+            "episode_number": ep.get("number", ""), "network": s.get("network", ""),
+            "country": s.get("country", ""), "language": s.get("language", "")}
 
 def fetch_cast_and_studios(entries):
     show_slugs = set(); movie_slugs = set()
@@ -63,11 +65,14 @@ def fetch_cast_and_studios(entries):
             people[pid]["gender"] = info["gender"]
             people[pid]["titles"] = set(info.get("titles", []))
         print(f"  Loaded {len(existing)} existing people (merging)")
-    # Merge with existing studios too
-    slug_studio = {}
+    # Merge with existing studios too - now stores LIST of studios per slug
+    slug_studios = {}  # slug -> [studio1, studio2, ...]
     if os.path.exists("data/studios.json"):
         with open("data/studios.json") as f:
-            slug_studio = json.load(f)
+            raw = json.load(f)
+        # Migrate old format (string) to new (list)
+        for k, v in raw.items():
+            slug_studios[k] = v if isinstance(v, list) else [v]
     total = len(show_slugs) + len(movie_slugs); done = 0
     for slugs, kind in [(show_slugs, "shows"), (movie_slugs, "movies")]:
         for slug in slugs:
@@ -81,26 +86,30 @@ def fetch_cast_and_studios(entries):
                             if p.get("gender") is not None: people[pid]["gender"] = p.get("gender")
                             people[pid]["titles"].add(slug)
             except: pass
-            # Fetch studios
+            # Fetch studios (store ALL, not just first)
             try:
                 r2 = requests.get(f"{BASE_URL}/{kind}/{slug}/studios", headers=HEADERS, timeout=5)
                 if r2.status_code == 200:
                     st = r2.json()
                     if st:
-                        slug_studio[slug] = st[0]["name"]
+                        names = [s["name"] for s in st]
+                        # Merge: keep any existing studios + new ones
+                        existing = set(slug_studios.get(slug, []))
+                        existing.update(names)
+                        slug_studios[slug] = list(existing)
             except: pass
             done += 1
             if done % 100 == 0: print(f"  cast+studios: {done}/{total}")
             time.sleep(0.12)
-    print(f"  people: {len(people)}, studios: {len(slug_studio)}")
+    print(f"  people: {len(people)}, studios: {len(slug_studios)}")
     people_out = {pid: {"name": i["name"], "gender": i["gender"], "titles": list(i["titles"])} for pid, i in people.items()}
     # Save studios persistently
     os.makedirs("data", exist_ok=True)
     with open("data/studios.json", "w") as f:
-        json.dump(slug_studio, f, separators=(',', ':'))
-    return people_out, slug_studio
+        json.dump(slug_studios, f, separators=(',', ':'))
+    return people_out, slug_studios
 
-def build_data(entries, people, headshots, posters, slug_studio):
+def build_data(entries, people, headshots, posters, slug_studios):
     # Titles
     tw = defaultdict(lambda: {"type":"","title":"","year":"","eby":defaultdict(int),"total":0,"runtime":0})
     for e in entries:
@@ -173,6 +182,10 @@ def build_data(entries, people, headshots, posters, slug_studio):
     # Track which slug+year combos we've already counted for title-based counting
     seen_net = set()
     seen_stu = set()
+    ctry_counter = Counter()
+    ctry_counter_y = defaultdict(Counter)
+    lang_counter = Counter()
+    lang_counter_y = defaultdict(Counter)
     recent_all = []
 
     for e in entries:
@@ -195,17 +208,32 @@ def build_data(entries, people, headshots, posters, slug_studio):
                 net_shows[e["network"]] += 1
                 net_shows_y[y][e["network"]] += 1
             # Movies don't typically have networks but just in case
-        # Studios: count unique titles
-        st = slug_studio.get(slug)
+        # Studios: count unique titles under EACH studio
+        stu_list = slug_studios.get(slug, [])
         stu_key = (slug, y)
-        if st and stu_key not in seen_stu:
+        if stu_list and stu_key not in seen_stu:
             seen_stu.add(stu_key)
-            if e["type"] == "movie":
-                stu_movies[st] += 1
-                stu_movies_y[y][st] += 1
-            else:
-                stu_shows[st] += 1
-                stu_shows_y[y][st] += 1
+            title_name = e["show_title"] or e["title"]
+            for st in stu_list:
+                if e["type"] == "movie":
+                    stu_movies[st] += 1
+                    stu_movies_y[y][st] += 1
+                else:
+                    stu_shows[st] += 1
+                    stu_shows_y[y][st] += 1
+        # Country and language: count unique titles
+        ctry = e.get("country", "")
+        lang = e.get("language", "")
+        ctry_key = (slug, y, "c")
+        lang_key = (slug, y, "l")
+        if ctry and ctry_key not in seen_stu:
+            seen_stu.add(ctry_key)
+            ctry_counter[ctry] += 1
+            ctry_counter_y[y][ctry] += 1
+        if lang and lang_key not in seen_stu:
+            seen_stu.add(lang_key)
+            lang_counter[lang] += 1
+            lang_counter_y[y][lang] += 1
         try:
             dt = datetime.fromisoformat(e["watched_at"].replace("Z", "+00:00"))
             dwc[dwn[dt.weekday()]] += 1
@@ -261,6 +289,10 @@ def build_data(entries, people, headshots, posters, slug_studio):
             "net_y": {y: [{"n": n, "s": ct[n]} for n in sorted(ct, key=ct.get, reverse=True)[:25]] for y, ct in net_shows_y.items()},
             "stu": [{"n": s, "m": stu_movies[s], "s": stu_shows[s]} for s in sorted(set(list(stu_movies)+list(stu_shows)), key=lambda x: stu_movies[x]+stu_shows[x], reverse=True)[:25]],
             "stu_y": {y: [{"n": s, "m": stu_movies_y[y][s], "s": stu_shows_y[y][s]} for s in sorted(set(list(stu_movies_y[y])+list(stu_shows_y[y])), key=lambda x: stu_movies_y[y][x]+stu_shows_y[y][x], reverse=True)[:25]] for y in set(list(stu_movies_y)+list(stu_shows_y))},
+            "ctry": [{"n": c, "count": n} for c, n in ctry_counter.most_common(20)],
+            "ctry_y": {y: [{"n": c, "count": n} for c, n in ct.most_common(20)] for y, ct in ctry_counter_y.items()},
+            "lang": [{"n": l, "count": n} for l, n in lang_counter.most_common(20)],
+            "lang_y": {y: [{"n": l, "count": n} for l, n in ct.most_common(20)] for y, ct in lang_counter_y.items()},
             "r": recent_all,
         }
     }
@@ -276,7 +308,7 @@ entries.sort(key=lambda x: x["watched_at"], reverse=True)
 print(f"  Total: {len(entries)} entries")
 
 print("\n[2/3] Fetching cast + studios...")
-people, slug_studio = fetch_cast_and_studios(entries)
+people, slug_studios = fetch_cast_and_studios(entries)
 
 # Save people and entries for other scripts
 os.makedirs("data", exist_ok=True)
@@ -301,7 +333,7 @@ if os.path.exists("data/posters.json"):
     with open("data/posters.json") as f: ps = json.load(f)
 
 print(f"\n[3/3] Building dashboard ({len(entries)} entries, {len(people)} people, {len(hs)} headshots, {len(ps)} posters)...")
-data = build_data(entries, people, hs, ps, slug_studio)
+data = build_data(entries, people, hs, ps, slug_studios)
 
 data_str = json.dumps(data, separators=(',', ':'), ensure_ascii=False)
 with open("templates/dashboard.html") as f:
