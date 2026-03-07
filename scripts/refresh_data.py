@@ -57,6 +57,15 @@ def fetch_cast_and_studios(entries):
             (movie_slugs if e["type"] == "movie" else show_slugs).add(e["trakt_slug"])
     # MERGE with existing people data so we never lose actors
     people = defaultdict(lambda: {"name": "", "gender": None, "titles": set()})
+    directors = defaultdict(lambda: {"name": "", "titles": set()})
+    writers = defaultdict(lambda: {"name": "", "titles": set()})
+    # Load existing crew data
+    for crew_file, crew_dict in [("data/directors.json", directors), ("data/writers.json", writers)]:
+        if os.path.exists(crew_file):
+            with open(crew_file) as f:
+                for pid, info in json.load(f).items():
+                    crew_dict[pid]["name"] = info["name"]
+                    crew_dict[pid]["titles"] = set(info.get("titles", []))
     if os.path.exists("data/people.json"):
         with open("data/people.json") as f:
             existing = json.load(f)
@@ -85,6 +94,24 @@ def fetch_cast_and_studios(entries):
                             people[pid]["name"] = p.get("name", "")
                             if p.get("gender") is not None: people[pid]["gender"] = p.get("gender")
                             people[pid]["titles"].add(slug)
+                    # Also extract directors and writers from crew
+                    crew = r.json().get("crew", {})
+                    dir_roles = {"Director", "Co-Director"}
+                    wr_roles = {"Writer", "Screenplay", "Author", "Original Story", "Story"}
+                    for cp in crew.get("directing", []):
+                        jobs = set(cp.get("jobs", []))
+                        if jobs & dir_roles:
+                            pid2 = cp.get("person", {}).get("ids", {}).get("slug", "")
+                            if pid2:
+                                directors[pid2]["name"] = cp["person"].get("name", "")
+                                directors[pid2]["titles"].add(slug)
+                    for cp in crew.get("writing", []):
+                        jobs = set(cp.get("jobs", []))
+                        if jobs & wr_roles:
+                            pid2 = cp.get("person", {}).get("ids", {}).get("slug", "")
+                            if pid2:
+                                writers[pid2]["name"] = cp["person"].get("name", "")
+                                writers[pid2]["titles"].add(slug)
             except: pass
             # Fetch studios (store ALL, not just first)
             try:
@@ -101,15 +128,21 @@ def fetch_cast_and_studios(entries):
             done += 1
             if done % 100 == 0: print(f"  cast+studios: {done}/{total}")
             time.sleep(0.12)
-    print(f"  people: {len(people)}, studios: {len(slug_studios)}")
+    print(f"  people: {len(people)}, studios: {len(slug_studios)}, directors: {len(directors)}, writers: {len(writers)}")
     people_out = {pid: {"name": i["name"], "gender": i["gender"], "titles": list(i["titles"])} for pid, i in people.items()}
-    # Save studios persistently
+    dir_out = {pid: {"name": i["name"], "titles": list(i["titles"])} for pid, i in directors.items()}
+    wr_out = {pid: {"name": i["name"], "titles": list(i["titles"])} for pid, i in writers.items()}
+    # Save persistently
     os.makedirs("data", exist_ok=True)
     with open("data/studios.json", "w") as f:
         json.dump(slug_studios, f, separators=(',', ':'))
-    return people_out, slug_studios
+    with open("data/directors.json", "w") as f:
+        json.dump(dir_out, f, separators=(',', ':'))
+    with open("data/writers.json", "w") as f:
+        json.dump(wr_out, f, separators=(',', ':'))
+    return people_out, slug_studios, dir_out, wr_out
 
-def build_data(entries, people, headshots, posters, slug_studios):
+def build_data(entries, people, headshots, posters, slug_studios, directors_raw, writers_raw):
     # Per-slug metadata for clickable charts
     slug_meta = {}
     for e in entries:
@@ -271,9 +304,27 @@ def build_data(entries, people, headshots, posters, slug_studios):
             hod_all[h] += c
     hod_by_year = {y: dict(d) for y, d in hod.items()}
 
+    # Build director/writer lists with title indices
+    def build_crew(crew_raw):
+        cl = []
+        for pid, info in crew_raw.items():
+            tis = []; mc = sc = 0
+            for ts in info["titles"]:
+                for pre, typ in [("movie:", "movie"), ("show:", "show")]:
+                    k = pre + ts
+                    if k in ti: tis.append(ti[k]); mc += (1 if typ == "movie" else 0); sc += (1 if typ == "show" else 0)
+            if mc + sc >= 2:
+                cl.append({"n": info["name"], "m": mc, "s": sc, "tt": mc + sc, "ti": tis})
+        cl.sort(key=lambda x: x["tt"], reverse=True)
+        return cl
+
+    dir_list = build_crew(directors_raw)
+    wr_list = build_crew(writers_raw)
+
     return {
         "a": [p for p in pd if p["g"] == "m"],
         "x": [p for p in pd if p["g"] == "f"],
+        "d": dir_list, "w": wr_list,
         "tl": tl, "hs": headshots, "ps": posters, "sm": slug_meta,
         "syd": [{"n": i["name"], "net": i["net"],
                  "yd": {y: {"e": d["e"], "m": d["m"]} for y, d in i["yd"].items()}}
@@ -324,12 +375,12 @@ os.makedirs("data", exist_ok=True)
 # Cast+studios: only on full refresh (FULL_REFRESH=1) or when no people.json exists
 do_cast = os.environ.get("FULL_REFRESH") == "1" or not os.path.exists("data/people.json")
 if do_cast:
-    print("\n[2/3] Fetching cast + studios...")
-    people, slug_studios = fetch_cast_and_studios(entries)
+    print("\n[2/3] Fetching cast + studios + crew...")
+    people, slug_studios, directors_raw, writers_raw = fetch_cast_and_studios(entries)
     with open("data/people.json", "w") as f:
         json.dump(people, f, separators=(',', ':'))
 else:
-    print("\n[2/3] Using cached cast + studios (set FULL_REFRESH=1 to re-fetch)")
+    print("\n[2/3] Using cached cast + studios + crew (set FULL_REFRESH=1 to re-fetch)")
     with open("data/people.json") as f:
         people = json.load(f)
     slug_studios = {}
@@ -338,6 +389,12 @@ else:
             raw = json.load(f)
         for k, v in raw.items():
             slug_studios[k] = v if isinstance(v, list) else [v]
+    directors_raw = {}
+    if os.path.exists("data/directors.json"):
+        with open("data/directors.json") as f: directors_raw = json.load(f)
+    writers_raw = {}
+    if os.path.exists("data/writers.json"):
+        with open("data/writers.json") as f: writers_raw = json.load(f)
 
 # Save entry slugs with last watched year for headshot priority
 slug_recency = {}
@@ -357,7 +414,7 @@ if os.path.exists("data/posters.json"):
     with open("data/posters.json") as f: ps = json.load(f)
 
 print(f"\n[3/3] Building dashboard ({len(entries)} entries, {len(people)} people, {len(hs)} headshots, {len(ps)} posters)...")
-data = build_data(entries, people, hs, ps, slug_studios)
+data = build_data(entries, people, hs, ps, slug_studios, directors_raw, writers_raw)
 
 data_str = json.dumps(data, separators=(',', ':'), ensure_ascii=False)
 with open("templates/dashboard.html") as f:
