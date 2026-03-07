@@ -270,6 +270,24 @@ function baseCharts(){
       c10.setOption({tooltip:{trigger:'axis',...tt},legend:{data:ct==='all'?['Shows','Movies']:[],right:10,top:0,textStyle:{color:'#999'}},grid:{left:50,right:20,top:36,bottom:30},xAxis:{type:'category',data:vyd.map(function(d){return d.yr}),axisLabel:{color:'#666',interval:cy==='all'?4:0,rotate:45,fontSize:10},axisLine:{lineStyle:{color:'#333'}}},yAxis:{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},series:vySeries});
       c10.on('click',function(p){showDetail(vyEl,'vy',vyd[p.dataIndex]?vyd[p.dataIndex].yr:p.name)});
     }
+    if(vyMode==='decade'){
+      c10.on('click',function(p){
+        // Show all titles from the clicked decade
+        var dec=p.name.replace('s','');var yr0=parseInt(dec);
+        var el2=document.createElement('div');el2.className='chart-detail';
+        var ex=vyEl.parentElement.querySelector('.chart-detail');if(ex)ex.remove();
+        var titles=[];
+        for(var y=yr0;y<yr0+10;y++){
+          var found=findTitles('vy',String(y));
+          titles=titles.concat(found);
+        }
+        titles.sort(function(a,b){return b.ct-a.ct});
+        if(!titles.length)return;
+        var h='<span class="cd-close" onclick="this.parentElement.remove()">✕</span><b>'+p.name+' ('+titles.length+')</b>';
+        titles.slice(0,30).forEach(function(t){h+='<div class="cd-item"><span><span class="badge '+(t.type==='movie'?'b-m':'b-e')+'">'+t.type+'</span> '+t.t+'</span><span class="nm '+(t.type==='show'?'nm-b':'nm-a')+'">'+(t.type==='show'?t.ct+' eps':(t.ct>1?t.ct+'x':''))+'</span></div>'});
+        el2.innerHTML=h;vyEl.parentElement.appendChild(el2);
+      });
+    }
   }
   renderVintage();
 
