@@ -21,6 +21,9 @@ jobs:
       - name: Install dependencies
         run: pip install requests
 
+      - name: Refresh Letterboxd
+        run: python scripts/refresh_letterboxd.py
+
       - name: Refresh Trakt data
         env:
           TRAKT_CLIENT_ID: ${{ secrets.TRAKT_CLIENT_ID }}

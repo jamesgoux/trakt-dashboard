@@ -539,10 +539,39 @@ if os.path.exists("data/posters.json"):
 logos = {}
 if os.path.exists("data/logos.json"):
     with open("data/logos.json") as f: logos = json.load(f)
+lb = {}
+if os.path.exists("data/letterboxd.json"):
+    with open("data/letterboxd.json") as f: lb = json.load(f)
 
 print(f"\n[3/3] Building dashboard ({len(entries)} entries, {len(people)} people, {len(hs)} headshots, {len(ps)} posters)...")
 data = build_data(entries, people, hs, ps, slug_studios, directors_raw, writers_raw)
 data["lg"] = logos  # studio/network logos
+
+# Letterboxd data: match to Trakt entries via TMDB ID, build rating distribution + tag cloud
+lb_ratings = {}  # tmdb_id -> {rating, liked, tags}
+lb_tags = Counter()
+lb_rating_dist = Counter()  # rating -> count
+for key, entry in lb.items():
+    tmdb_id = entry.get("tmdb_id")
+    if tmdb_id:
+        lb_ratings[str(tmdb_id)] = {
+            "r": entry.get("rating"),
+            "liked": entry.get("liked", False),
+            "tags": entry.get("tags", [])
+        }
+    if entry.get("rating"):
+        lb_rating_dist[str(entry["rating"])] += 1
+    for tag in entry.get("tags", []):
+        lb_tags[tag] += 1
+
+data["lb"] = {
+    "ratings": lb_ratings,
+    "dist": [{"r": r, "c": c} for r, c in sorted(lb_rating_dist.items())],
+    "tags": [{"t": t, "c": c} for t, c in lb_tags.most_common(30)],
+    "total": len(lb),
+    "rated": sum(1 for e in lb.values() if e.get("rating")),
+    "avg": round(sum(e["rating"] for e in lb.values() if e.get("rating")) / max(1, sum(1 for e in lb.values() if e.get("rating"))), 1),
+}
 
 data_str = json.dumps(data, separators=(',', ':'), ensure_ascii=False)
 with open("templates/dashboard.html") as f:

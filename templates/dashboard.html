@@ -83,7 +83,7 @@ body{overflow-x:hidden}
 <div class="fctrls">
 <div class="fbtn"><label>Type</label><select id="gs"><option value="all">Both</option><option value="movie">Movies</option><option value="show">Shows</option></select></div>
 <div class="fbtn"><label>Year</label><select id="ys"><option value="all">All Time</option></select></div>
-<div class="fbtn"><label>Jump</label><select id="jmp" onchange="if(this.value){document.getElementById(this.value).scrollIntoView({behavior:'smooth',block:'start'});this.value=''}"><option value="">...</option><option value="sec-act">🎭 Actors</option><option value="sec-crew">🎬 Directors/Writers</option><option value="sec-shows">📺 Shows</option><option value="sec-ttw">⏱️ Time to Watch</option><option value="sec-mov">🎞️ Movies</option><option value="sec-tl">📊 Timeline</option><option value="sec-meta">🎯 Genres/Trends</option><option value="sec-geo">🌍 Countries/Languages</option><option value="sec-vy">📅 Release Years</option><option value="sec-time">📅 Day/Time/Yearly</option><option value="sec-rec">👁️ Recent</option></select></div>
+<div class="fbtn"><label>Jump</label><select id="jmp" onchange="if(this.value){document.getElementById(this.value).scrollIntoView({behavior:'smooth',block:'start'});this.value=''}"><option value="">...</option><option value="sec-act">🎭 Actors</option><option value="sec-crew">🎬 Directors/Writers</option><option value="sec-shows">📺 Shows</option><option value="sec-ttw">⏱️ Time to Watch</option><option value="sec-mov">🎞️ Movies</option><option value="sec-tl">📊 Timeline</option><option value="sec-meta">🎯 Genres/Trends</option><option value="sec-geo">🌍 Countries/Languages</option><option value="sec-vy">📅 Release Years</option><option value="sec-time">📅 Day/Time/Yearly</option><option value="sec-lb">⭐ Ratings/Tags</option><option value="sec-rec">👁️ Recent</option></select></div>
 <button class="rbtn" onclick="location.reload()">&#x21bb;</button>
 </div>
 </div>
@@ -134,6 +134,10 @@ body{overflow-x:hidden}
 <div id="sec-time" class="cd s-t"><h3><span class="i">📅</span>Day of Week</h3><div id="dwc" style="height:280px"></div></div>
 <div class="cd s-t"><h3><span class="i">🕐</span>Time of Day</h3><div id="hodc" style="height:280px"></div></div>
 <div class="cd s-t"><h3><span class="i">📈</span>Yearly Watch Count</h3><div id="yrc" style="height:280px"></div></div>
+</div>
+<div class="g2">
+<div class="cd s-g" id="sec-lb"><h3><span class="i">⭐</span>My Ratings (Letterboxd)</h3><div id="lbc" style="height:280px"></div></div>
+<div class="cd s-g" id="sec-tags"><h3><span class="i">🏷️</span>My Tags</h3><div id="tagc" style="height:280px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:center;padding:10px"></div></div>
 </div>
 <div class="g2">
 <div id="sec-rec" class="cd fw s-r"><h3><span class="i">👁️</span>Recently Watched</h3><table><thead><tr><th>Title</th><th>Type</th><th>Date</th></tr></thead><tbody id="rtb"></tbody></table></div>
@@ -406,6 +410,42 @@ function renderPosters(){
   else{sec.style.display='none'}
 }
 
+function renderLetterboxd(){
+  var lb=D.lb||{};
+  // Rating distribution bar chart
+  var dist=lb.dist||[];
+  var lbEl=document.getElementById('lbc');
+  if(dist.length>0){
+    var clb=echarts.init(lbEl);
+    clb.setOption({tooltip:{trigger:'axis',axisPointer:{type:'shadow'},...tt,formatter:function(p){return p[0].name+'★: '+p[0].value+' films'}},
+      grid:{left:50,right:20,top:30,bottom:24},
+      title:{text:lb.rated+' rated, '+lb.avg+'★ avg',left:'center',top:0,textStyle:{color:'#999',fontSize:11,fontWeight:'normal'}},
+      xAxis:{type:'category',data:dist.map(function(d){return d.r+'★'}),axisLabel:{color:'#ccc'},axisLine:{lineStyle:{color:'#333'}}},
+      yAxis:{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},
+      series:[{type:'bar',data:dist.map(function(d){return{value:d.c,itemStyle:{color:parseFloat(d.r)>=4?'#4ade80':parseFloat(d.r)>=3?'#60a5fa':parseFloat(d.r)>=2?'#fb923c':'#e94560'}}}),barMaxWidth:30}]});
+    ch.push(clb);
+  } else {
+    lbEl.innerHTML='<div style="text-align:center;color:var(--t2);padding:40px">No Letterboxd data yet</div>';
+  }
+  // Tags cloud
+  var tags=lb.tags||[];
+  var tagEl=document.getElementById('tagc');
+  if(tags.length>0){
+    tagEl.innerHTML='';
+    var maxC=tags[0].c;
+    tags.forEach(function(t){
+      var size=Math.max(11,Math.min(28,11+Math.round(t.c/maxC*17)));
+      var opacity=0.5+t.c/maxC*0.5;
+      var span=document.createElement('span');
+      span.style.cssText='font-size:'+size+'px;color:rgba(167,139,250,'+opacity+');cursor:default;padding:2px 4px';
+      span.textContent=t.t+' ('+t.c+')';
+      tagEl.appendChild(span);
+    });
+  } else {
+    tagEl.innerHTML='<div style="text-align:center;color:var(--t2);padding:40px;width:100%">Upload letterboxd_tags.csv for tag data</div>';
+  }
+}
+
 function renderStatus(){
   var total_people=D.a.length+D.x.length;
   var hs_count=Object.keys(D.hs||{}).length;
@@ -414,7 +454,7 @@ function renderStatus(){
   el.innerHTML='<span>Actors: '+total_people+'</span><span>Headshots: '+hs_count+'</span><span>Posters: '+ps_count+'</span><span>Updated: __BUILD_TIME__</span>';
 }
 
-function render(){ch.forEach(function(c){try{c.dispose()}catch(e){}});ch=[];stats();ptbl('atb',D.a);ptbl('xtb',D.x);ptbl('dtb',D.d||[]);ptbl('wtb',D.w||[]);showCharts();movieCharts();renderPosters();baseCharts();renderStatus()}
+function render(){ch.forEach(function(c){try{c.dispose()}catch(e){}});ch=[];stats();ptbl('atb',D.a);ptbl('xtb',D.x);ptbl('dtb',D.d||[]);ptbl('wtb',D.w||[]);showCharts();movieCharts();renderPosters();baseCharts();renderLetterboxd();renderStatus()}
 window.addEventListener('resize',function(){mob=window.innerWidth<768;ch.forEach(function(c){try{c.resize()}catch(e){}})});
 window.addEventListener('hashchange',function(){readHash();render()});
 render();
