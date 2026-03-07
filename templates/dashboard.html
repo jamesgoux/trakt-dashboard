@@ -85,7 +85,7 @@ body{overflow-x:hidden}
 <div class="fctrls">
 <div class="fbtn"><label>Type</label><select id="gs"><option value="all">Both</option><option value="movie">Movies</option><option value="show">Shows</option></select></div>
 <div class="fbtn"><label>Year</label><select id="ys"><option value="all">All Time</option></select></div>
-<div class="fbtn"><label>Jump</label><select id="jmp" onchange="if(this.value){document.getElementById(this.value).scrollIntoView({behavior:'smooth',block:'start'});this.value=''}"><option value="">...</option><option value="sec-act">🎭 Actors</option><option value="sec-crew">🎬 Directors/Writers</option><option value="sec-shows">📺 Shows</option><option value="sec-ttw">⏱️ Time to Watch</option><option value="sec-mov">🎞️ Movies</option><option value="sec-tl">📊 Timeline</option><option value="sec-meta">🎯 Genres/Trends</option><option value="sec-geo">🌍 Countries/Languages</option><option value="sec-vy">📅 Release Years</option><option value="sec-time">📅 Day/Time/Yearly</option><option value="sec-lb">⭐ Letterboxd</option><option value="sec-rec">👁️ Recent</option></select></div>
+<div class="fbtn"><label>Jump</label><select id="jmp" onchange="if(this.value){document.getElementById(this.value).scrollIntoView({behavior:'smooth',block:'start'});this.value=''}"><option value="">...</option><option value="sec-act">🎭 Actors</option><option value="sec-crew">🎬 Directors/Writers</option><option value="sec-shows">📺 Shows</option><option value="sec-ttw">⏱️ Time to Watch</option><option value="sec-mov">🎞️ Movies</option><option value="sec-tl">📊 Timeline</option><option value="sec-meta">🎯 Genres/Trends</option><option value="sec-geo">🌍 Countries/Languages</option><option value="sec-vy">📅 Release Years</option><option value="sec-time">📅 Day/Time/Yearly</option><option value="sec-lb">⭐ Letterboxd</option><option value="sec-ratings">🏆 Ratings</option><option value="sec-rec">👁️ Recent</option></select></div>
 <button class="rbtn" onclick="location.reload()">&#x21bb;</button>
 </div>
 </div>
@@ -142,12 +142,16 @@ body{overflow-x:hidden}
 <div class="cd s-g"><h3><span class="i">👥</span>Watched With</h3><div id="pplc" style="height:280px"></div></div>
 </div>
 <div class="g2">
-<div class="cd s-g"><h3><span class="i">🏆</span>My Highest Rated Movies</h3><div class="stb" id="myh-list"></div></div>
+<div id="sec-ratings" class="cd s-g"><h3><span class="i">🏆</span>My Highest Rated Movies</h3><div class="stb" id="myh-list"></div></div>
 <div class="cd s-m"><h3><span class="i">💎</span>Highest Rated Movies (Community)</h3><div class="stb" id="mch-list"></div></div>
 </div>
 <div class="g2">
 <div class="cd s-s"><h3><span class="i">📺</span>Highest Rated TV (Trakt)</h3><div class="stb" id="sch-list"></div></div>
-<div class="cd s-g"><h3><span class="i">👎</span>Lowest Rated</h3><div class="stb" id="low-list"></div></div>
+<div class="cd s-g"><h3><span class="i">👎</span>My Lowest Rated Movies</h3><div class="stb" id="myl-list"></div></div>
+</div>
+<div class="g2">
+<div class="cd s-s"><h3><span class="i">📉</span>Lowest Rated TV (Trakt)</h3><div class="stb" id="scl-list"></div></div>
+<div class="cd s-m"><h3><span class="i">📉</span>Lowest Rated Movies (Community)</h3><div class="stb" id="mcl-list"></div></div>
 </div>
 <div class="g2">
 </div>
@@ -472,17 +476,9 @@ function renderLetterboxd(){
   ratingList('mch-list',D.c.mch||[],'Rating','#60a5fa',20);
   ratingList('sch-list',D.c.sch||[],'Rating','#a78bfa',20);
 
-  // Lowest rated: filter + combine
-  var lowItems=[];
-  filterByWatchYear(lb.myl||[]).slice(0,5).forEach(function(i){lowItems.push({t:i.t,yr:i.yr,r:i.r+'★',src:'My rating',color:'#e94560',wy:i.wy})});
-  filterByWatchYear(D.c.mcl||[]).slice(0,5).forEach(function(i){lowItems.push({t:i.t,yr:i.yr,r:i.r,src:'Movie avg',color:'#fb923c',wy:i.wy})});
-  filterByWatchYear(D.c.scl||[]).slice(0,5).forEach(function(i){lowItems.push({t:i.t,yr:i.yr,r:i.r,src:'TV avg',color:'#fb923c',wy:i.wy})});
-  var lowEl=document.getElementById('low-list');
-  if(lowItems.length){
-    var h='<table><thead><tr><th>#</th><th>Title</th><th>Source</th><th>Rating</th></tr></thead><tbody>';
-    lowItems.forEach(function(item,i){h+='<tr><td style="color:var(--t2);font-size:10px">'+(i+1)+'</td><td style="font-weight:600">'+item.t+'</td><td style="color:var(--t2);font-size:10px">'+item.src+'</td><td class="nm" style="color:'+item.color+'">'+item.r+'</td></tr>'});
-    h+='</tbody></table>';lowEl.innerHTML=h;
-  } else {lowEl.innerHTML='<div style="text-align:center;color:var(--t2);padding:20px">No data'+(cy!=='all'?' for '+cy:'')+'</div>'}
+  ratingList('myl-list',lb.myl||[],'★','#e94560',10);
+  ratingList('scl-list',D.c.scl||[],'Rating','#e94560',10);
+  ratingList('mcl-list',D.c.mcl||[],'Rating','#e94560',10);
 
   // Helper: render pie or year-over-year bar for a tag category
   function renderTagChart(elId,catData,colors,label){
