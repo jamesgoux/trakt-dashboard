@@ -405,23 +405,37 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
         cl.sort(key=lambda x: x["tt"], reverse=True)
         return cl
 
-    # Genre trends: year-over-year data for top genres
+    # Genre trends: year-over-year + month-over-month data for top genres
+    genre_monthly = defaultdict(Counter)  # month -> genre -> count
+    for e in entries:
+        if not e["watched_at"] or not e["genres"]: continue
+        mo = e["watched_at"][:7]
+        for g in e["genres"].split(", "):
+            genre_monthly[mo][g.strip()] += 1
+
     def _build_genre_trends(gm_y, gs_y):
         all_years = sorted(set(list(gm_y) + list(gs_y)))
         all_years = [y for y in all_years if int(y) >= 2012]
-        # Get top 8 genres across all time
         total = Counter()
         for y in all_years:
             for g, c in (gm_y[y] + gs_y[y]).items():
                 total[g] += c
         top_genres = [g for g, _ in total.most_common(8)]
-        # Build per-year counts for each genre
         series = {}
         for g in top_genres:
             series[g] = []
             for y in all_years:
                 series[g].append(gm_y[y].get(g, 0) + gs_y[y].get(g, 0))
-        return {"years": all_years, "genres": top_genres, "data": series}
+        # Monthly breakdowns per year for filtered view
+        monthly = {}
+        for y in all_years:
+            months = sorted([m for m in genre_monthly if m.startswith(y)])
+            if not months: continue
+            mseries = {}
+            for g in top_genres:
+                mseries[g] = [genre_monthly[m].get(g, 0) for m in months]
+            monthly[y] = {"months": months, "data": mseries}
+        return {"years": all_years, "genres": top_genres, "data": series, "monthly": monthly}
 
     dir_list = build_crew(directors_raw)
     wr_list = build_crew(writers_raw)

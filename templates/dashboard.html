@@ -115,7 +115,7 @@ body{overflow-x:hidden}
 <div class="g3">
 <div id="sec-meta" class="cd s-g"><h3 id="gnh"><span class="i">🎯</span>Genres</h3><div id="gnc" style="height:360px"></div></div>
 </div>
-<div class="g2" id="gt-wrap" style="display:none">
+<div class="g2" id="gt-wrap">
 <div class="cd fw s-g"><h3><span class="i">📈</span>Genre Trends (year over year %)</h3><div id="gtc" style="height:350px"></div></div>
 </div>
 <div class="g3">
@@ -230,32 +230,45 @@ function baseCharts(){
   // Genres click
   addClick(c2,document.getElementById('gnc'),'genre',gd,'genre');
 
-  // Genre trends (100% stacked area) - only show on All Time
+  // Genre trends (100% stacked area) - yearly or monthly
   var gtWrap=document.getElementById('gt-wrap');
-  if(cy==='all'&&D.c.gt){
+  if(D.c.gt){
     gtWrap.style.display='';
     var gt=D.c.gt;
     var gtColors=['#e94560','#60a5fa','#a78bfa','#fb923c','#4ade80','#f472b6','#38bdf8','#fbbf24'];
-    // Zero out 2016 and compute percentages for 100% stacked
-    var gtYears=gt.years.slice();
-    var yi2016=gtYears.indexOf('2016');
-    // Pre-compute totals per year
-    var gtTotals=gtYears.map(function(y,i){
-      if(y==='2016')return 0;
-      var t=0;gt.genres.forEach(function(g){t+=gt.data[g][i]});return t});
-    var gtSeries=gt.genres.map(function(g,i){return{name:g,type:'line',stack:'pct',areaStyle:{opacity:0.7},emphasis:{focus:'series'},
-      data:gtYears.map(function(y,j){if(y==='2016')return 0;return gtTotals[j]>0?Math.round(gt.data[g][j]/gtTotals[j]*1000)/10:0}),
-      smooth:true,lineStyle:{width:0},itemStyle:{color:gtColors[i%gtColors.length]}}});
     var cgt=echarts.init(document.getElementById('gtc'));
+
+    var xLabels,rawData,zeroLabel;
+    if(cy!=='all'&&gt.monthly&&gt.monthly[cy]){
+      // Monthly view for filtered year
+      var md=gt.monthly[cy];
+      xLabels=md.months.map(function(m){return m.substring(5)});  // just MM
+      rawData=md.data;
+      zeroLabel=null;
+      document.querySelector('#gt-wrap h3').innerHTML='<span class="i">📈</span>Genre Trends — '+cy+' (monthly %)';
+    }else{
+      // Yearly view
+      xLabels=gt.years.slice();
+      rawData=gt.data;
+      zeroLabel='2016';
+      document.querySelector('#gt-wrap h3').innerHTML='<span class="i">📈</span>Genre Trends (year over year %)';
+    }
+
+    var gtTotals=xLabels.map(function(l,i){
+      if(l===zeroLabel)return 0;
+      var t=0;gt.genres.forEach(function(g){t+=(rawData[g]||[])[i]||0});return t});
+    var gtSeries=gt.genres.map(function(g,i){return{name:g,type:'line',stack:'pct',areaStyle:{opacity:0.7},emphasis:{focus:'series'},
+      data:xLabels.map(function(l,j){if(l===zeroLabel)return 0;var v=(rawData[g]||[])[j]||0;return gtTotals[j]>0?Math.round(v/gtTotals[j]*1000)/10:0}),
+      smooth:true,lineStyle:{width:0},itemStyle:{color:gtColors[i%gtColors.length]}}});
     cgt.setOption({tooltip:{trigger:'axis',axisPointer:{type:'cross'},...tt,formatter:function(params){
       var h='<b>'+params[0].axisValue+'</b>';
-      if(params[0].axisValue==='2016'){return h+'<br/>Zeroed (outlier)'}
+      if(params[0].axisValue===zeroLabel){return h+'<br/>Zeroed (outlier)'}
       h+='<br/>';
       params.forEach(function(p){h+=p.marker+' '+p.seriesName+': '+p.value+'%<br/>'});
       return h}},
       legend:{data:gt.genres,top:0,textStyle:{color:'#999',fontSize:10},type:'scroll'},
       grid:{left:50,right:20,top:40,bottom:30},
-      xAxis:{type:'category',data:gtYears,axisLabel:{color:'#666'},axisLine:{lineStyle:{color:'#333'}},boundaryGap:false},
+      xAxis:{type:'category',data:xLabels,axisLabel:{color:'#666'},axisLine:{lineStyle:{color:'#333'}},boundaryGap:false},
       yAxis:{type:'value',axisLabel:{color:'#666',formatter:function(v){return v+'%'}},splitLine:{lineStyle:{color:'#222'}},max:100,min:0},
       series:gtSeries});
     ch.push(cgt);
