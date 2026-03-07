@@ -11,7 +11,7 @@
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:var(--bg);color:var(--tx);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;padding:0}
 .dash{max-width:1400px;margin:0 auto;padding:0 16px 16px}
-.fbar{position:sticky;top:0;z-index:100;background:rgba(15,15,15,.95);backdrop-filter:blur(10px);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;border-bottom:1px solid rgba(255,255,255,.06);margin-bottom:20px}
+.fbar{padding:12px 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:20px}
 .fbar h1{font-size:20px;font-weight:700}.fbar h1 span{color:var(--ac)}
 .fctrls{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .fbtn{background:var(--sf);border:1px solid rgba(255,255,255,.1);color:var(--tx);border-radius:8px;padding:10px 16px;font-size:14px;cursor:pointer;-webkit-tap-highlight-color:transparent;min-height:44px}
@@ -45,6 +45,10 @@ tr:hover td{background:rgba(255,255,255,.02)}
 .poster-item span{display:block;font-size:10px;color:var(--t2);margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .dr td{padding:4px 8px;background:rgba(15,52,96,.15)!important}
 .dr table{font-size:11px}.dr table td{padding:3px 6px;border:none}
+.chart-detail{background:rgba(15,52,96,.2);border-radius:8px;padding:10px;margin-top:8px;max-height:200px;overflow-y:auto;font-size:12px}
+.chart-detail .cd-item{padding:3px 0;border-bottom:1px solid rgba(255,255,255,.04);display:flex;justify-content:space-between}
+.chart-detail .cd-item:last-child{border:none}
+.chart-detail .cd-close{float:right;cursor:pointer;color:var(--t2);font-size:14px}
 .status{text-align:center;padding:20px;color:var(--t2);font-size:11px;border-top:1px solid rgba(255,255,255,.04);margin-top:20px}
 .status span{margin:0 10px}
 @media(max-width:768px){
@@ -106,12 +110,16 @@ body{overflow-x:hidden}
 </div>
 <script>
 var D=__DASHBOARD_DATA__;
-var HS=D.hs||{},TL=D.tl||[],SYD=D.syd||[],MYD=D.myd||[];
+var HS=D.hs||{},TL=D.tl||[],SYD=D.syd||[],MYD=D.myd||[],SM=D.sm||{};
 var ch=[],cy='all',ct='all';
 var mob=window.innerWidth<768;
 var tt={backgroundColor:'#1a1a2e',borderColor:'#333',textStyle:{color:'#eee'}};
 function LG(){var s=Array.from(arguments);return new echarts.graphic.LinearGradient(0,0,1,0,s.map(function(c,i){return{offset:i/(s.length-1),color:c}}))}
 function gl(px){return mob?Math.min(px,Math.round(window.innerWidth*0.32)):px}
+
+function findTitles(field,value){var r=[];for(var slug in SM){var m=SM[slug];var ok=false;if(field==='stu')ok=(m.stu||[]).indexOf(value)>=0;else if(field==='net')ok=m.net===value;else if(field==='ctry')ok=m.ctry===value;else if(field==='lang')ok=m.lang===value;else if(field==='genre')ok=(m.g||'').split(', ').indexOf(value)>=0;if(!ok)continue;var tl2=TL.filter(function(t){return t.t===m.t&&t.type===m.type});if(tl2.length>0){var t=tl2[0];var c2=cy==='all'?t.tot:((t.eby||{})[cy]||0);if(c2>0)r.push({t:m.t,type:m.type,ct:c2})}}r.sort(function(a,b){return b.ct-a.ct});return r}
+function showDetail(el,field,value){var ex=el.parentElement.querySelector('.chart-detail');if(ex){ex.remove();if(ex.dataset.val===value)return}var ts=findTitles(field,value);if(!ts.length)return;var d=document.createElement('div');d.className='chart-detail';d.dataset.val=value;var h='<span class="cd-close" onclick="this.parentElement.remove()">✕</span><b>'+value+' ('+ts.length+')</b>';ts.slice(0,30).forEach(function(t){h+='<div class="cd-item"><span><span class="badge '+(t.type==='movie'?'b-m':'b-e')+'">'+t.type+'</span> '+t.t+'</span><span class="nm '+(t.type==='show'?'nm-b':'nm-a')+'">'+(t.type==='show'?t.ct+' eps':(t.ct>1?t.ct+'x':''))+'</span></div>'});d.innerHTML=h;el.parentElement.appendChild(d)}
+function addClick(chart,el,field,arr,key){chart.on('click',function(p){var name=arr[p.dataIndex]?(arr[p.dataIndex][key||'n']):p.name;showDetail(el,field,name)})}
 
 // URL hash persistence
 function readHash(){var h=location.hash.substring(1);var p=new URLSearchParams(h);cy=p.get('y')||'all';ct=p.get('t')||'all';document.getElementById('ys').value=cy;document.getElementById('gs').value=ct}
@@ -167,10 +175,15 @@ function baseCharts(){
   var c2=echarts.init(document.getElementById('gnc'));
   c2.setOption({tooltip:{trigger:'axis',axisPointer:{type:'shadow'},...tt},grid:{left:gl(100),right:20,top:8,bottom:8},xAxis:{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},yAxis:{type:'category',data:gd.map(function(d){return d.genre}),axisLabel:{color:'#ccc',fontSize:11},axisLine:{lineStyle:{color:'#333'}}},series:[{type:'bar',data:gd.map(function(d){return d.count}),itemStyle:{color:LG('#0f3460','#e94560')},barMaxWidth:18}]});
 
+  // Genres click
+  addClick(c2,document.getElementById('gnc'),'genre',gd,'genre');
+
   // Networks
   var nd=(cy!=='all'&&D.c.net_y&&D.c.net_y[cy]?D.c.net_y[cy]:(D.c.net||[])).slice(0,15).reverse();
   var c3=echarts.init(document.getElementById('netc'));
   c3.setOption({tooltip:{trigger:'axis',axisPointer:{type:'shadow'},...tt},grid:{left:gl(120),right:20,top:8,bottom:8},xAxis:{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},yAxis:{type:'category',data:nd.map(function(d){return d.n}),axisLabel:{color:'#ccc',fontSize:11},axisLine:{lineStyle:{color:'#333'}}},series:[{type:'bar',data:nd.map(function(d){return d.s||0}),itemStyle:{color:LG('#0f3460','#a78bfa')},barMaxWidth:18}]});
+
+  addClick(c3,document.getElementById('netc'),'net',nd);
 
   // Studios - stacked movie/show
   var sd2=(cy!=='all'&&D.c.stu_y&&D.c.stu_y[cy]?D.c.stu_y[cy]:(D.c.stu||[])).slice(0,15).reverse();
@@ -179,6 +192,8 @@ function baseCharts(){
   if(ct!=='show')stuSeries.push({name:'Movies',type:'bar',stack:'t',data:sd2.map(function(d){return d.m||0}),itemStyle:{color:'#e94560'},barMaxWidth:18});
   if(ct!=='movie')stuSeries.push({name:'Shows',type:'bar',stack:'t',data:sd2.map(function(d){return d.s||0}),itemStyle:{color:'#60a5fa'},barMaxWidth:18});
   c3b.setOption({tooltip:{trigger:'axis',axisPointer:{type:'shadow'},...tt},legend:{data:ct==='all'?['Movies','Shows']:[],right:10,top:0,textStyle:{color:'#999'}},grid:{left:gl(140),right:20,top:ct==='all'?30:8,bottom:8},xAxis:{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},yAxis:{type:'category',data:sd2.map(function(d){return d.n}),axisLabel:{color:'#ccc',fontSize:10},axisLine:{lineStyle:{color:'#333'}}},series:stuSeries});
+
+  addClick(c3b,document.getElementById('stuc'),'stu',sd2);
 
   // Day of week
   var dwC=['#60a5fa','#a78bfa','#4ade80','#fb923c','#e94560','#60a5fa','#a78bfa'];
@@ -208,10 +223,12 @@ function baseCharts(){
   var ctd=(cy!=='all'&&D.c.ctry_y&&D.c.ctry_y[cy]?D.c.ctry_y[cy]:(D.c.ctry||[])).slice(0,15).reverse();
   var c7=echarts.init(document.getElementById('ctryc'));
   c7.setOption({tooltip:{trigger:'axis',axisPointer:{type:'shadow'},...tt},grid:{left:50,right:20,top:8,bottom:8},xAxis:{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},yAxis:{type:'category',data:ctd.map(function(d){return(d.n||'').toUpperCase()}),axisLabel:{color:'#ccc',fontSize:11},axisLine:{lineStyle:{color:'#333'}}},series:[{type:'bar',data:ctd.map(function(d){return d.count}),itemStyle:{color:LG('#0f3460','#4ade80')},barMaxWidth:18}]});
+  c7.on('click',function(p){var n=ctd[p.dataIndex]?ctd[p.dataIndex].n:p.name.toLowerCase();showDetail(document.getElementById('ctryc'),'ctry',n)});
   var lnd=(cy!=='all'&&D.c.lang_y&&D.c.lang_y[cy]?D.c.lang_y[cy]:(D.c.lang||[])).slice(0,15).reverse();
   var c8=echarts.init(document.getElementById('langc'));
   c8.setOption({tooltip:{trigger:'axis',axisPointer:{type:'shadow'},...tt},grid:{left:50,right:20,top:8,bottom:8},xAxis:{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},yAxis:{type:'category',data:lnd.map(function(d){return(d.n||'').toUpperCase()}),axisLabel:{color:'#ccc',fontSize:11},axisLine:{lineStyle:{color:'#333'}}},series:[{type:'bar',data:lnd.map(function(d){return d.count}),itemStyle:{color:LG('#0f3460','#60a5fa')},barMaxWidth:18}]});
 
+  c8.on('click',function(p){var n=lnd[p.dataIndex]?lnd[p.dataIndex].n:p.name.toLowerCase();showDetail(document.getElementById('langc'),'lang',n)});
   ch.push(c1,c2,c3,c3b,c4,c5,c6,c7,c8);
 }
 

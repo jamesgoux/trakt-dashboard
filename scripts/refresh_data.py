@@ -110,6 +110,14 @@ def fetch_cast_and_studios(entries):
     return people_out, slug_studios
 
 def build_data(entries, people, headshots, posters, slug_studios):
+    # Per-slug metadata for clickable charts
+    slug_meta = {}
+    for e in entries:
+        s = e["trakt_slug"]
+        if not s or s in slug_meta: continue
+        slug_meta[s] = {"t": e["show_title"] or e["title"], "type": "show" if e["type"] == "episode" else "movie",
+                        "net": e.get("network",""), "ctry": e.get("country",""),
+                        "lang": e.get("language",""), "g": e.get("genres",""), "stu": slug_studios.get(s,[])}
     # Titles
     tw = defaultdict(lambda: {"type":"","title":"","year":"","eby":defaultdict(int),"total":0,"runtime":0})
     for e in entries:
@@ -265,7 +273,7 @@ def build_data(entries, people, headshots, posters, slug_studios):
     return {
         "a": [p for p in pd if p["g"] == "m"],
         "x": [p for p in pd if p["g"] == "f"],
-        "tl": tl, "hs": headshots, "ps": posters,
+        "tl": tl, "hs": headshots, "ps": posters, "sm": slug_meta,
         "syd": [{"n": i["name"], "net": i["net"],
                  "yd": {y: {"e": d["e"], "m": d["m"]} for y, d in i["yd"].items()}}
                 for _, i in syd.items()],
