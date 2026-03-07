@@ -53,9 +53,21 @@ def fetch_cast_and_studios(entries):
     for e in entries:
         if e["trakt_slug"]:
             (movie_slugs if e["type"] == "movie" else show_slugs).add(e["trakt_slug"])
+    # MERGE with existing people data so we never lose actors
     people = defaultdict(lambda: {"name": "", "gender": None, "titles": set()})
-    studios = Counter()  # studio name -> episode/movie count
-    slug_studio = {}  # slug -> primary studio name
+    if os.path.exists("data/people.json"):
+        with open("data/people.json") as f:
+            existing = json.load(f)
+        for pid, info in existing.items():
+            people[pid]["name"] = info["name"]
+            people[pid]["gender"] = info["gender"]
+            people[pid]["titles"] = set(info.get("titles", []))
+        print(f"  Loaded {len(existing)} existing people (merging)")
+    # Merge with existing studios too
+    slug_studio = {}
+    if os.path.exists("data/studios.json"):
+        with open("data/studios.json") as f:
+            slug_studio = json.load(f)
     total = len(show_slugs) + len(movie_slugs); done = 0
     for slugs, kind in [(show_slugs, "shows"), (movie_slugs, "movies")]:
         for slug in slugs:
@@ -82,6 +94,10 @@ def fetch_cast_and_studios(entries):
             time.sleep(0.12)
     print(f"  people: {len(people)}, studios: {len(slug_studio)}")
     people_out = {pid: {"name": i["name"], "gender": i["gender"], "titles": list(i["titles"])} for pid, i in people.items()}
+    # Save studios persistently
+    os.makedirs("data", exist_ok=True)
+    with open("data/studios.json", "w") as f:
+        json.dump(slug_studio, f, separators=(',', ':'))
     return people_out, slug_studio
 
 def build_data(entries, people, headshots, posters, slug_studio):
@@ -146,11 +162,18 @@ def build_data(entries, people, headshots, posters, slug_studio):
     genre_movie = Counter(); genre_show = Counter()
     dwc = Counter(); dwn = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"]
     hod = defaultdict(lambda: defaultdict(int))  # hour of day by year
-    net_counter = Counter()
-    net_by_year = defaultdict(Counter)
-    studio_counter = Counter()
-    studio_by_year = defaultdict(Counter)
-    recent_all = []  # full list for year filtering
+    net_movies = Counter()  # count unique titles, not episodes
+    net_shows = Counter()
+    net_movies_y = defaultdict(Counter)
+    net_shows_y = defaultdict(Counter)
+    stu_movies = Counter()
+    stu_shows = Counter()
+    stu_movies_y = defaultdict(Counter)
+    stu_shows_y = defaultdict(Counter)
+    # Track which slug+year combos we've already counted for title-based counting
+    seen_net = set()
+    seen_stu = set()
+    recent_all = []
 
     for e in entries:
         if not e["watched_at"]: continue
@@ -163,13 +186,26 @@ def build_data(entries, people, headshots, posters, slug_studio):
                 gs = g.strip()
                 if e["type"] == "movie": genre_movie[gs] += 1
                 else: genre_show[gs] += 1
-        if e["network"]:
-            net_counter[e["network"]] += 1
-            net_by_year[y][e["network"]] += 1
-        st = slug_studio.get(e["trakt_slug"])
-        if st:
-            studio_counter[st] += 1
-            studio_by_year[y][st] += 1
+        # Networks: count unique titles (slug), not episodes
+        slug = e["trakt_slug"]
+        net_key = (slug, y)
+        if e["network"] and net_key not in seen_net:
+            seen_net.add(net_key)
+            if e["type"] == "episode":
+                net_shows[e["network"]] += 1
+                net_shows_y[y][e["network"]] += 1
+            # Movies don't typically have networks but just in case
+        # Studios: count unique titles
+        st = slug_studio.get(slug)
+        stu_key = (slug, y)
+        if st and stu_key not in seen_stu:
+            seen_stu.add(stu_key)
+            if e["type"] == "movie":
+                stu_movies[st] += 1
+                stu_movies_y[y][st] += 1
+            else:
+                stu_shows[st] += 1
+                stu_shows_y[y][st] += 1
         try:
             dt = datetime.fromisoformat(e["watched_at"].replace("Z", "+00:00"))
             dwc[dwn[dt.weekday()]] += 1
@@ -221,10 +257,10 @@ def build_data(entries, people, headshots, posters, slug_studio):
             "dw": [{"day": d, "count": dwc.get(d, 0)} for d in dwn],
             "hod": {str(h): hod_all.get(h, 0) for h in range(24)},
             "hod_y": hod_by_year,
-            "net": [{"network": n, "count": c} for n, c in net_counter.most_common(25)],
-            "net_y": {y: [{"network": n, "count": c} for n, c in ct.most_common(25)] for y, ct in net_by_year.items()},
-            "stu": [{"studio": s, "count": c} for s, c in studio_counter.most_common(25)],
-            "stu_y": {y: [{"studio": s, "count": c} for s, c in ct.most_common(25)] for y, ct in studio_by_year.items()},
+            "net": [{"n": n, "s": net_shows[n]} for n in sorted(net_shows, key=net_shows.get, reverse=True)[:25]],
+            "net_y": {y: [{"n": n, "s": ct[n]} for n in sorted(ct, key=ct.get, reverse=True)[:25]] for y, ct in net_shows_y.items()},
+            "stu": [{"n": s, "m": stu_movies[s], "s": stu_shows[s]} for s in sorted(set(list(stu_movies)+list(stu_shows)), key=lambda x: stu_movies[x]+stu_shows[x], reverse=True)[:25]],
+            "stu_y": {y: [{"n": s, "m": stu_movies_y[y][s], "s": stu_shows_y[y][s]} for s in sorted(set(list(stu_movies_y[y])+list(stu_shows_y[y])), key=lambda x: stu_movies_y[y][x]+stu_shows_y[y][x], reverse=True)[:25]] for y in set(list(stu_movies_y)+list(stu_shows_y))},
             "r": recent_all,
         }
     }
