@@ -48,7 +48,8 @@ def norm_show(e):
             "tmdb_id": ids.get("tmdb", ""),
             "show_title": s.get("title", ""), "season": ep.get("season", ""),
             "episode_number": ep.get("number", ""), "network": s.get("network", ""),
-            "country": s.get("country", ""), "language": s.get("language", "")}
+            "country": s.get("country", ""), "language": s.get("language", ""),
+            "first_aired": ep.get("first_aired", "")}
 
 def fetch_cast_and_studios(entries):
     show_slugs = set(); movie_slugs = set()
@@ -196,6 +197,52 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
             syd[s]["name"] = e["show_title"]; syd[s]["yd"][yr]["e"] += 1
             if e["runtime"]: syd[s]["yd"][yr]["m"] += int(e["runtime"])
             if e["network"]: syd[s]["net"] = e["network"]
+
+    # Time-to-watch: avg days between air date and first watch per show
+    # Track first watch per episode (slug + season + episode_number)
+    ep_first_watch = {}  # (show_slug, season, ep_num) -> {aired, watched, year}
+    for e in entries:
+        if e["type"] != "episode" or not e["show_title"] or not e["watched_at"]: continue
+        fa = e.get("first_aired", "")
+        if not fa: continue
+        key = (e["trakt_slug"], e.get("season"), e.get("episode_number"))
+        wa = e["watched_at"]
+        # Keep earliest watch
+        if key not in ep_first_watch or wa < ep_first_watch[key]["watched"]:
+            ep_first_watch[key] = {"show": e["show_title"], "slug": e["trakt_slug"],
+                                    "aired": fa, "watched": wa, "year": wa[:4]}
+
+    # Aggregate by show: avg days
+    show_ttw = defaultdict(lambda: {"name": "", "delays": [], "delays_y": defaultdict(list)})
+    for key, info in ep_first_watch.items():
+        try:
+            aired = datetime.fromisoformat(info["aired"].replace("Z", "+00:00"))
+            watched = datetime.fromisoformat(info["watched"].replace("Z", "+00:00"))
+            days = (watched - aired).total_seconds() / 86400
+            if days < 0: days = 0  # watched before air (timezone diff)
+            if days > 365: continue  # skip old backfills
+            show_ttw[info["slug"]]["name"] = info["show"]
+            show_ttw[info["slug"]]["delays"].append(days)
+            show_ttw[info["slug"]]["delays_y"][info["year"]].append(days)
+        except: pass
+
+    # Build ttw data: [{n, avg, count}] sorted by avg ascending (fastest first)
+    ttw_all = []
+    for slug, info in show_ttw.items():
+        if len(info["delays"]) >= 3:  # need at least 3 episodes
+            ttw_all.append({"n": info["name"], "avg": round(sum(info["delays"])/len(info["delays"]), 1),
+                           "ct": len(info["delays"])})
+    ttw_all.sort(key=lambda x: x["avg"])
+
+    ttw_by_year = {}
+    for slug, info in show_ttw.items():
+        for yr, delays in info["delays_y"].items():
+            if len(delays) >= 2:
+                if yr not in ttw_by_year: ttw_by_year[yr] = []
+                ttw_by_year[yr].append({"n": info["name"], "avg": round(sum(delays)/len(delays), 1),
+                                        "ct": len(delays)})
+    for yr in ttw_by_year:
+        ttw_by_year[yr].sort(key=lambda x: x["avg"])
 
     # Movie year data
     myd = defaultdict(lambda: {"name": "", "yr": "", "rt": 0, "yd": defaultdict(int)})
@@ -357,6 +404,8 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
             "lang": [{"n": l, "count": n} for l, n in lang_counter.most_common(20)],
             "lang_y": {y: [{"n": l, "count": n} for l, n in ct.most_common(20)] for y, ct in lang_counter_y.items()},
             "r": recent_all,
+            "ttw": ttw_all[:25],
+            "ttw_y": {y: v[:25] for y, v in ttw_by_year.items()},
         }
     }
 
