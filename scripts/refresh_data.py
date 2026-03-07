@@ -697,28 +697,39 @@ def categorize_tags(lb_data, tag_cats):
         for t in dtags:
             device_y[yr][t] += 1; device_all[t] += 1
 
-    # Build title lists per category value for click-to-see
-    cat_titles = defaultdict(lambda: defaultdict(list))  # category -> value -> [titles]
+    # Build title lists per category value with watch years for click-to-see
+    cat_titles = defaultdict(lambda: defaultdict(list))  # category -> value -> [{t, wy}]
     for key, entry in lb_data.items():
         tags = [t.lower() for t in entry.get("tags", [])]
         if not tags: continue
         title = entry.get("title", "")
+        dates = entry.get("dates", [])
+        wys = sorted(set(d[:4] for d in dates if d))
+        item = {"t": title, "wy": wys}
         for t in tags:
             if t in streaming_set:
-                cat_titles["stream"][t].append(title)
+                cat_titles["stream"][t].append(item)
             if t in device_set:
-                cat_titles["dev"][t].append(title)
+                cat_titles["dev"][t].append(item)
             if t in home_set or t == "quarantine":
-                cat_titles["loc"]["home"].append(title)
+                cat_titles["loc"]["home"].append(item)
             if t in theater_set:
-                cat_titles["loc"]["theater"].append(title)
+                cat_titles["loc"]["theater"].append(item)
             if t in travel_set:
-                cat_titles["loc"]["travel"].append(title)
+                cat_titles["loc"]["travel"].append(item)
 
-    # Convert to sorted lists
+    # Deduplicate by title
     ct_out = {}
     for cat, vals in cat_titles.items():
-        ct_out[cat] = {v: sorted(set(ts))[:30] for v, ts in vals.items()}
+        ct_out[cat] = {}
+        for v, items in vals.items():
+            seen = set()
+            deduped = []
+            for item in items:
+                if item["t"] not in seen:
+                    seen.add(item["t"])
+                    deduped.append(item)
+            ct_out[cat][v] = deduped[:50]
 
     years = sorted(set(list(people_y) + list(loc_y) + list(streaming_y) + list(device_y)))
 

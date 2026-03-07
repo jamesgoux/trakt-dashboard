@@ -506,16 +506,21 @@ function renderLetterboxd(){
         xAxis:{type:'category',data:yrs,axisLabel:{color:'#666',fontSize:10},axisLine:{lineStyle:{color:'#333'}}},
         yAxis:{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},series:series});
     }
-    // Click to show titles
+    // Click to show titles (filtered by year)
     if(catKey&&catTitles[catKey]){
       tc.on('click',function(p){
         var name=p.name||'';
-        var titles=catTitles[catKey][name]||[];
+        var allTitles=catTitles[catKey][name]||[];
+        // Filter by selected year
+        var titles=allTitles.filter(function(t){
+          if(cy==='all')return true;
+          return t.wy&&t.wy.indexOf(cy)>=0;
+        });
         if(!titles.length)return;
         var ex=el.parentElement.querySelector('.chart-detail');if(ex){ex.remove();if(ex.dataset.val===name)return}
         var div=document.createElement('div');div.className='chart-detail';div.dataset.val=name;
         var h='<span class="cd-close" onclick="this.parentElement.remove()">✕</span><b>'+name+' ('+titles.length+')</b>';
-        titles.forEach(function(t){h+='<div class="cd-item"><span>'+t+'</span></div>'});
+        titles.forEach(function(t){h+='<div class="cd-item"><span>'+(t.t||t)+'</span></div>'});
         div.innerHTML=h;el.parentElement.appendChild(div);
       });
     }
