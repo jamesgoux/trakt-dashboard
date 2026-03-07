@@ -697,6 +697,29 @@ def categorize_tags(lb_data, tag_cats):
         for t in dtags:
             device_y[yr][t] += 1; device_all[t] += 1
 
+    # Build title lists per category value for click-to-see
+    cat_titles = defaultdict(lambda: defaultdict(list))  # category -> value -> [titles]
+    for key, entry in lb_data.items():
+        tags = [t.lower() for t in entry.get("tags", [])]
+        if not tags: continue
+        title = entry.get("title", "")
+        for t in tags:
+            if t in streaming_set:
+                cat_titles["stream"][t].append(title)
+            if t in device_set:
+                cat_titles["dev"][t].append(title)
+            if t in home_set or t == "quarantine":
+                cat_titles["loc"]["home"].append(title)
+            if t in theater_set:
+                cat_titles["loc"]["theater"].append(title)
+            if t in travel_set:
+                cat_titles["loc"]["travel"].append(title)
+
+    # Convert to sorted lists
+    ct_out = {}
+    for cat, vals in cat_titles.items():
+        ct_out[cat] = {v: sorted(set(ts))[:30] for v, ts in vals.items()}
+
     years = sorted(set(list(people_y) + list(loc_y) + list(streaming_y) + list(device_y)))
 
     return {
@@ -711,6 +734,7 @@ def categorize_tags(lb_data, tag_cats):
                    "y": {y: [{"n": n, "c": c} for n, c in ct.most_common(10)] for y, ct in streaming_y.items()}},
         "dev": {"all": [{"n": n, "c": c} for n, c in device_all.most_common(15)],
                 "y": {y: [{"n": n, "c": c} for n, c in ct.most_common(10)] for y, ct in device_y.items()}},
+        "ct": ct_out,
     }
 
 tag_data = categorize_tags(lb, tag_cats)

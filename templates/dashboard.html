@@ -487,18 +487,16 @@ function renderLetterboxd(){
   ratingList('mcl-list',D.c.mcl||[],'Rating','#e94560',10);
 
   // Helper: render pie or year-over-year bar for a tag category
-  function renderTagChart(elId,catData,colors,label){
+  var catTitles=(tags.ct||{});
+  function renderTagChart(elId,catData,colors,label,catKey){
     var el=document.getElementById(elId);if(!el)return;
     var tc=echarts.init(el);
     if(cy!=='all'){
-      // Pie chart for single year
       var yd=catData.y&&catData.y[cy]?catData.y[cy]:[];
       if(!yd.length){el.innerHTML='<div style="text-align:center;color:var(--t2);padding:40px">No data for '+cy+'</div>';return}
       tc.setOption({tooltip:{trigger:'item',...tt,formatter:'{b}: {c} ({d}%)'},series:[{type:'pie',radius:['35%','70%'],center:['50%','55%'],data:yd.map(function(d,i){return{value:d.c,name:d.n,itemStyle:{color:colors[i%colors.length]}}}),label:{color:'#ccc',fontSize:10,formatter:'{b}\n{d}%'},emphasis:{itemStyle:{shadowBlur:10}}}]});
     }else{
-      // Year-over-year stacked bar
       var yrs=tags.years||[];if(!yrs.length||!catData.y){el.innerHTML='<div style="text-align:center;color:var(--t2);padding:40px">No data</div>';return}
-      // Get top N items from all-time
       var top=(catData.all||[]).slice(0,8).map(function(d){return d.n});
       var series=top.map(function(n,i){return{name:n,type:'bar',stack:'t',data:yrs.map(function(y){
         var yd2=catData.y[y]||[];var found=yd2.find(function(d){return d.n===n});return found?found.c:0}),
@@ -508,6 +506,19 @@ function renderLetterboxd(){
         xAxis:{type:'category',data:yrs,axisLabel:{color:'#666',fontSize:10},axisLine:{lineStyle:{color:'#333'}}},
         yAxis:{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},series:series});
     }
+    // Click to show titles
+    if(catKey&&catTitles[catKey]){
+      tc.on('click',function(p){
+        var name=p.name||'';
+        var titles=catTitles[catKey][name]||[];
+        if(!titles.length)return;
+        var ex=el.parentElement.querySelector('.chart-detail');if(ex){ex.remove();if(ex.dataset.val===name)return}
+        var div=document.createElement('div');div.className='chart-detail';div.dataset.val=name;
+        var h='<span class="cd-close" onclick="this.parentElement.remove()">✕</span><b>'+name+' ('+titles.length+')</b>';
+        titles.forEach(function(t){h+='<div class="cd-item"><span>'+t+'</span></div>'});
+        div.innerHTML=h;el.parentElement.appendChild(div);
+      });
+    }
     ch.push(tc);
   }
 
@@ -516,11 +527,11 @@ function renderLetterboxd(){
   var strColors=['#e94560','#60a5fa','#a78bfa','#fb923c','#4ade80','#f472b6','#38bdf8','#fbbf24'];
   var devColors=['#60a5fa','#a78bfa','#fb923c','#4ade80','#e94560','#f472b6','#38bdf8','#fbbf24'];
 
-  renderTagChart('pplc',tags.people||{},pplColors,'Watched With');
+  renderTagChart('pplc',tags.people||{},pplColors,'Watched With',null);
   window._locMode=window._locMode||'simple';
   var locDetailColors=['#4ade80','#e94560','#60a5fa','#fb923c','#a78bfa','#f472b6','#38bdf8','#fbbf24','#34d399','#f87171','#818cf8','#22d3ee'];
   var locData=window._locMode==='detail'?(tags.locd||tags.loc||{}):(tags.loc||{});
-  renderTagChart('locc',locData,window._locMode==='detail'?locDetailColors:locColors,'Location');
+  renderTagChart('locc',locData,window._locMode==='detail'?locDetailColors:locColors,'Location','loc');
   // Add click handler to simple location chart to show detail breakout
   if(window._locMode==='simple'){
     var locEl=document.getElementById('locc');
@@ -550,8 +561,8 @@ function renderLetterboxd(){
       div.innerHTML=h;locEl.parentElement.appendChild(div);
     })}
   }
-  renderTagChart('strc',tags.stream||{},strColors,'Streaming');
-  renderTagChart('devc',tags.dev||{},devColors,'Devices');
+  renderTagChart('strc',tags.stream||{},strColors,'Streaming','stream');
+  renderTagChart('devc',tags.dev||{},devColors,'Devices','dev');
 
   document.querySelectorAll('.lb-loc').forEach(function(btn){
     btn.onclick=function(){
@@ -561,7 +572,7 @@ function renderLetterboxd(){
       var el=document.getElementById('locc');
       if(el){try{echarts.getInstanceByDom(el).dispose()}catch(e){}}
       var ld=window._locMode==='detail'?(tags.locd||tags.loc||{}):(tags.loc||{});
-      renderTagChart('locc',ld,window._locMode==='detail'?locDetailColors:locColors,'Location');
+      renderTagChart('locc',ld,window._locMode==='detail'?locDetailColors:locColors,'Location','loc');
     };
   });
 }
@@ -657,8 +668,7 @@ function processCSV(file){
       });
       if(!hasPpl)inc(people,eyr,'solo');
       if(!hasLoc){inc(loc,eyr,'other');inc(locd,eyr,'other')}
-      if(!hasStr)inc(stream,eyr,'other');
-      if(!hasDev)inc(dev,eyr,'other');
+      // No "other" for streaming or devices — only count tagged entries
     });
 
     var yrsArr=Array.from(years).sort();
