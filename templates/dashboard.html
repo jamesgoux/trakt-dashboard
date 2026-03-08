@@ -371,19 +371,28 @@ function renderLifeline(){
       {name:'Concerts',type:'bar',stack:'ll',data:negData.co,itemStyle:{color:'#fb923c'},barMaxWidth:bw},
       {name:'Plays',type:'bar',stack:'ll',data:negData.th,itemStyle:{color:'#d946ef'},barMaxWidth:bw}
     ]});
-  // Click to show day detail
+  // Click to show chronological events for that day
+  var typeIcons={ep:'📺',mv:'🎞️',sc:'🎧',bk:'📚',co:'🎸',th:'🎭'};
+  var typeColors={ep:'var(--pu)',mv:'var(--ac)',sc:'#1db954',bk:'#22d3ee',co:'#fb923c',th:'#d946ef'};
   llChart.on('click',function(p){
     var idx=p.dataIndex;var day=days[idx];if(!day||!ll[day])return;
-    var ld=ll[day];var det=ld.d||{};
+    var ld=ll[day];var evts=ld.e||[];
     var ex=llEl.parentElement.querySelector('.chart-detail');if(ex){ex.remove();if(ex.dataset.val===day)return}
     var div=document.createElement('div');div.className='chart-detail';div.dataset.val=day;
     var h='<span class="cd-close" onclick="this.parentElement.remove()">✕</span><b>'+day+'</b>';
-    if(det.ep&&det.ep.length){h+='<div style="margin-top:4px;font-size:10px;font-weight:600;color:var(--t2)">📺 Episodes ('+ld.ep+')</div>';det.ep.forEach(function(e){h+='<div class="cd-item"><span>'+e+'</span></div>'})}
-    if(det.mv&&det.mv.length){h+='<div style="margin-top:4px;font-size:10px;font-weight:600;color:var(--t2)">🎞️ Movies ('+ld.mv+')</div>';det.mv.forEach(function(m){h+='<div class="cd-item"><span>'+m+'</span></div>'})}
-    if(ld.sc){h+='<div style="margin-top:4px;font-size:10px;font-weight:600;color:var(--t2)">🎧 Scrobbles: '+ld.sc+'</div>'}
-    if(det.bk&&det.bk.length){h+='<div style="margin-top:4px;font-size:10px;font-weight:600;color:var(--t2)">📚 Books</div>';det.bk.forEach(function(b){h+='<div class="cd-item"><span>'+b+'</span></div>'})}
-    if(det.co&&det.co.length){h+='<div style="margin-top:4px;font-size:10px;font-weight:600;color:var(--t2)">🎸 Concerts</div>';det.co.forEach(function(c){h+='<div class="cd-item"><span>'+c+'</span></div>'})}
-    if(det.th&&det.th.length){h+='<div style="margin-top:4px;font-size:10px;font-weight:600;color:var(--t2)">🎭 Theater</div>';det.th.forEach(function(t){h+='<div class="cd-item"><span>'+t+'</span></div>'})}
+    if(evts.length){
+      evts.forEach(function(e){
+        var icon=typeIcons[e.ty]||'';var color=typeColors[e.ty]||'#ccc';
+        h+='<div class="cd-item"><span style="color:#666;font-size:10px;min-width:36px;display:inline-block">'+e.t+'</span><span style="color:'+color+'">'+icon+' '+e.n+'</span></div>'});
+    }else{
+      // No detailed events — show summary
+      if(ld.ep)h+='<div class="cd-item"><span>📺 '+ld.ep+' episodes</span></div>';
+      if(ld.mv)h+='<div class="cd-item"><span>🎞️ '+ld.mv+' movies</span></div>';
+      if(ld.sc)h+='<div class="cd-item"><span>🎧 ~'+ld.sc+' scrobbles</span></div>';
+      if(ld.bk)h+='<div class="cd-item"><span>📚 '+ld.bk+' books</span></div>';
+      if(ld.co)h+='<div class="cd-item"><span>🎸 '+ld.co+' concerts</span></div>';
+      if(ld.th)h+='<div class="cd-item"><span>🎭 '+ld.th+' plays</span></div>';
+    }
     div.innerHTML=h;llEl.parentElement.appendChild(div);
   });
   ch.push(llChart);

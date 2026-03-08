@@ -1245,42 +1245,49 @@ if os.path.exists("data/lastfm.json"):
         data["lfm"] = json.load(f)
     print(f"  Last.fm: {data['lfm']['total']} scrobbles")
 
-# Lifeline: per-day activity from all sources (last 30 days + historical)
+# Lifeline: per-day activity with timestamped events for chronological display
 from datetime import timedelta
-lifeline_days = defaultdict(lambda: {"ep": [], "mv": [], "bk": [], "sc": 0, "co": [], "th": []})
+ll_counts = defaultdict(lambda: {"ep": 0, "mv": 0, "bk": 0, "sc": 0, "co": 0, "th": 0})
+ll_events = defaultdict(list)  # day -> [{t: time, n: name, ty: type}]
 
-# Episodes + Movies from Trakt
+# Episodes + Movies from Trakt (have full timestamps)
 for e in entries:
     if not e.get("watched_at"): continue
     d = e["watched_at"][:10]
+    ts = e["watched_at"][11:16] if len(e["watched_at"]) > 11 else "00:00"
     if e["type"] == "episode":
         name = (e.get("show_title") or "") + " S" + str(e.get("season","")) + "E" + str(e.get("episode_number",""))
-        lifeline_days[d]["ep"].append(name)
+        ll_counts[d]["ep"] += 1
+        ll_events[d].append({"t": ts, "n": name, "ty": "ep"})
     elif e["type"] == "movie":
-        lifeline_days[d]["mv"].append(e.get("title",""))
+        ll_counts[d]["mv"] += 1
+        ll_events[d].append({"t": ts, "n": e.get("title",""), "ty": "mv"})
 
-# Books from Goodreads
+# Books from Goodreads (date only, no time)
 if gr_books:
     for b in gr_books:
         if b.get("date_read"):
-            lifeline_days[b["date_read"]]["bk"].append(b["title"])
+            d = b["date_read"]
+            ll_counts[d]["bk"] += 1
+            ll_events[d].append({"t": "12:00", "n": b["title"], "ty": "bk"})
 
 # Scrobbles from Last.fm
+exact_sc_days = set()
 if os.path.exists("data/lastfm.json"):
     with open("data/lastfm.json") as f:
         lfm_data = json.load(f)
-    # Exact counts from recent tracks
-    exact_sc_days = set()
-    for t in lfm_data.get("recent", []):
-        if t.get("d"):
+    # Exact from recent tracks (have timestamps and track names)
+    for tr in lfm_data.get("recent", []):
+        if tr.get("d"):
             try:
-                from datetime import datetime as dt2
-                parsed = dt2.strptime(t["d"], "%d %b %Y, %H:%M")
+                parsed = datetime.strptime(tr["d"], "%d %b %Y, %H:%M")
                 d = parsed.strftime("%Y-%m-%d")
-                lifeline_days[d]["sc"] += 1
+                ts = parsed.strftime("%H:%M")
+                ll_counts[d]["sc"] += 1
                 exact_sc_days.add(d)
+                ll_events[d].append({"t": ts, "n": tr.get("a","") + " — " + tr.get("n",""), "ty": "sc"})
             except: pass
-    # Approximate from weekly totals for days without exact data
+    # Approximate from weekly totals
     for w in lfm_data.get("weekly", []):
         if w.get("week") and w.get("c"):
             try:
@@ -1289,9 +1296,9 @@ if os.path.exists("data/lastfm.json"):
                 for i in range(7):
                     d = (wk_start + timedelta(days=i)).strftime("%Y-%m-%d")
                     if d not in exact_sc_days:
-                        lifeline_days[d]["sc"] += daily
+                        ll_counts[d]["sc"] += daily
             except: pass
-    # Approximate from monthly totals for older months not covered by weekly
+    # Approximate from monthly for older data
     weekly_dates = set()
     for w in lfm_data.get("weekly", []):
         if w.get("week"):
@@ -1306,35 +1313,41 @@ if os.path.exists("data/lastfm.json"):
             for day in range(1, 32):
                 try:
                     d = f"{mo}-{day:02d}"
-                    datetime.strptime(d, "%Y-%m-%d")  # validate date
+                    datetime.strptime(d, "%Y-%m-%d")
                     if d not in exact_sc_days and d not in weekly_dates:
-                        lifeline_days[d]["sc"] += daily
+                        ll_counts[d]["sc"] += daily
                 except: pass
 
 # Concerts
 if concerts:
     for c in concerts:
         if c.get("date"):
-            lifeline_days[c["date"]]["co"].append(c["artist"])
+            d = c["date"]
+            ll_counts[d]["co"] += 1
+            ll_events[d].append({"t": "20:00", "n": "🎸 " + c["artist"] + " @ " + c.get("venue",""), "ty": "co"})
 
 # Theater
 if theater:
     for t in theater:
         if t.get("date"):
-            lifeline_days[t["date"][:10]]["th"].append(t["show"])
+            d = t["date"][:10]
+            ll_counts[d]["th"] += 1
+            ll_events[d].append({"t": "19:30", "n": "🎭 " + t["show"], "ty": "th"})
 
-# Build output: all days sorted, with details for click
+# Build output: counts for bars + chronological events for click
 lifeline_all = {}
-for d in sorted(lifeline_days.keys()):
-    ld = lifeline_days[d]
-    if ld["ep"] or ld["mv"] or ld["bk"] or ld["sc"] or ld["co"] or ld["th"]:
+for d in sorted(ll_counts.keys()):
+    c = ll_counts[d]
+    if c["ep"] or c["mv"] or c["bk"] or c["sc"] or c["co"] or c["th"]:
+        # Sort events by timestamp
+        evts = sorted(ll_events.get(d, []), key=lambda x: x["t"])
+        # For days with only approximate scrobbles (no exact events), add a summary
+        if c["sc"] and not any(e["ty"] == "sc" for e in evts):
+            evts.append({"t": "12:00", "n": "~" + str(c["sc"]) + " scrobbles (approx)", "ty": "sc"})
         lifeline_all[d] = {
-            "ep": len(ld["ep"]), "mv": len(ld["mv"]), "bk": len(ld["bk"]),
-            "sc": ld["sc"], "co": len(ld["co"]), "th": len(ld["th"]),
-            "d": {  # detail for click
-                "ep": ld["ep"][:15], "mv": ld["mv"][:10], "bk": ld["bk"][:5],
-                "co": ld["co"][:10], "th": ld["th"][:5]
-            }
+            "ep": c["ep"], "mv": c["mv"], "bk": c["bk"],
+            "sc": c["sc"], "co": c["co"], "th": c["th"],
+            "e": evts[:30]  # chronological events, capped at 30
         }
 data["ll"] = lifeline_all
 
