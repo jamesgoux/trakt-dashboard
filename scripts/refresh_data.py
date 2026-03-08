@@ -423,11 +423,22 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
                 movie_month[m][name] = movie_month[m].get(name, 0) + 1
 
     # Assign each season to its completion month (last month with a watched episode)
+    # Also count seasons per month and year for the timeline bars
     season_by_month = defaultdict(list)  # month -> [{t, type, c}]
+    season_count_monthly = Counter()  # month -> season count
+    season_count_yearly = Counter()   # year -> season count
     for (show, sn), data in season_data.items():
         completion_month = sorted(data["months"])[-1]  # last month
         label = show + " S" + sn.zfill(2)
         season_by_month[completion_month].append({"t": label, "type": "show", "c": data["eps"]})
+        season_count_monthly[completion_month] += 1
+        season_count_yearly[completion_month[:4]] += 1
+
+    # Add season counts to monthly/yearly chart data
+    for m in monthly:
+        monthly[m]["seasons"] = season_count_monthly.get(m, 0)
+    for y in yearly:
+        yearly[y]["seasons"] = season_count_yearly.get(y, 0)
 
     # Build mt_out: seasons (at completion month) + movies
     mt_out = {}
