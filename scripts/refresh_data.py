@@ -1381,5 +1381,5 @@ with open("index.html", "w") as f:
 
 print(f"  index.html: {len(html)//1024}KB")
 print(f"  Actors: {len(data.get('a',[]))}, Actresses: {len(data.get('x',[]))}")
-print(f"  Networks: {len(data['c']['net'])}, Studios: {len(data['c']['stu'])}")
+print(f"  Networks: {len(data.get('c',{}).get('net',[]))}, Studios: {len(data.get('c',{}).get('stu',[]))}")
 print("Done!")
