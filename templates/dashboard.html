@@ -717,17 +717,30 @@ function renderLetterboxd(){
 function renderConcerts(){
   var con=D.con;var wrap=document.getElementById('con-wrap');var wrap2=document.getElementById('con-wrap2');
   if(!con||!con.total){wrap.style.display='none';if(wrap2)wrap2.style.display='none';return}
+  // Filter raw entries by year
+  var allE=con.recent||[];
+  var filtered=cy==='all'?allE:allE.filter(function(e){return e.yr===cy});
+  // Hide entire section if no concerts in filtered year
+  if(filtered.length===0){wrap.style.display='none';if(wrap2)wrap2.style.display='none';return}
   wrap.style.display='';if(wrap2)wrap2.style.display='';
   window._conMode=window._conMode||'shows';var mode=window._conMode;
   var yrs=(con.years||[]);if(cy!=='all')yrs=yrs.filter(function(y){return y.yr===cy});
+  // Compute filtered totals
+  var events={};filtered.forEach(function(e){var ek=e.date+'|'+e.venue;if(!events[ek])events[ek]={artists:[],songs:0};events[ek].artists.push(e.artist);events[ek].songs+=e.songs});
+  var fTotal=Object.keys(events).length;var fSets=filtered.length;var fSongs=filtered.reduce(function(s,e){return s+e.songs},0);
   var cChart=echarts.init(document.getElementById('conc'));
   var mLabel=mode==='songs'?' songs':mode==='sets'?' sets':' concerts';
   var mColor=mode==='songs'?'#a78bfa':mode==='sets'?'#4ade80':'#fb923c';
-  var mTotal=con.total+' concerts, '+(con.sets||0)+' sets, '+con.songs+' songs';
+  var mTotal=fTotal+' concerts, '+fSets+' sets, '+fSongs+' songs'+(cy!=='all'?' ('+cy+')':'');
   if(yrs.length===0){document.getElementById('conc').innerHTML='<div style="text-align:center;color:var(--t2);padding:40px">No concerts'+(cy!=='all'?' in '+cy:'')+'</div>'}
   else{cChart.setOption({tooltip:{trigger:mob?'item':'axis',axisPointer:{type:'shadow'},...tt,formatter:function(p){return'<b>'+tp(p).name+'</b><br/>'+tp(p).value+mLabel}},grid:{left:50,right:20,top:30,bottom:24},title:{text:mTotal,left:'center',top:0,textStyle:{color:'#999',fontSize:11,fontWeight:'normal'}},xAxis:{type:'category',data:yrs.map(function(y){return y.yr}),axisLabel:{color:'#ccc'},axisLine:{lineStyle:{color:'#333'}}},yAxis:{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},series:[{type:'bar',data:yrs.map(function(y){return{value:mode==='songs'?(y.s||0):mode==='sets'?(y.st||0):y.c,itemStyle:{color:LG('#0f3460',mColor)}}}),barMaxWidth:30,label:{show:true,position:'top',color:'#999',fontSize:10}}]});ch.push(cChart)}
   document.querySelectorAll('.con-tog').forEach(function(btn){btn.onclick=function(){document.querySelectorAll('.con-tog').forEach(function(b){b.classList.remove('vb-on')});btn.classList.add('vb-on');window._conMode=btn.dataset.v;renderConcerts()}});
-  var aEl=document.getElementById('con-artists');var artists=con.artists||[];var ad=con.adetail||{};
+  // Recompute artists from filtered entries
+  var artistCounts={};var artistSongs={};
+  filtered.forEach(function(e){artistCounts[e.artist]=(artistCounts[e.artist]||0)+1;artistSongs[e.artist]=(artistSongs[e.artist]||0)+e.songs});
+  var artists=Object.entries(artistCounts).sort(function(a,b){return b[1]-a[1]}).map(function(e){return{n:e[0],c:e[1],s:artistSongs[e[0]]||0}});
+  var ad=con.adetail||{};
+  var aEl=document.getElementById('con-artists');
   if(artists.length){var h='<table><thead><tr><th>#</th><th>Artist</th><th>Shows</th><th>Songs</th></tr></thead><tbody>';
     artists.forEach(function(a,i){h+='<tr class="pr" data-artist="'+a.n+'"><td style="color:var(--t2);font-size:10px">'+(i+1)+'</td><td style="font-weight:600">'+a.n+'</td><td class="nm nm-o">'+a.c+'</td><td class="nm nm-b">'+(a.s||0)+'</td></tr>'});
     h+='</tbody></table>';aEl.innerHTML=h;
@@ -735,8 +748,12 @@ function renderConcerts(){
       if(detail.albums&&detail.albums.length){h2+='<div id="album-pie-'+idx+'" style="height:160px;margin-bottom:4px"></div>'}
       h2+='<table style="font-size:11px">';if(detail.top&&detail.top.length){h2+='<tr><td colspan="2" style="font-weight:600;color:var(--or);padding:4px 6px">Most Performed (2+)</td></tr>';detail.top.forEach(function(s){h2+='<tr><td style="padding:2px 6px">'+s.n+'</td><td class="nm" style="padding:2px 6px">'+s.c+'x</td></tr>'})}else if(detail.songs&&detail.songs.length){h2+='<tr><td colspan="2" style="font-weight:600;color:var(--bl);padding:4px 6px">Setlist</td></tr>';detail.songs.slice(0,10).forEach(function(s){h2+='<tr><td style="padding:2px 6px">'+s.n+'</td><td class="nm" style="padding:2px 6px">'+s.c+'x</td></tr>'})}h2+='</table></td>';dr.innerHTML=h2;tr.after(dr);
       if(detail.albums&&detail.albums.length){var pieEl=document.getElementById('album-pie-'+idx);if(pieEl){var ac2=echarts.init(pieEl);var acols=['#e94560','#60a5fa','#a78bfa','#fb923c','#4ade80','#f472b6','#38bdf8','#fbbf24'];ac2.setOption({tooltip:{trigger:'item',...tt,formatter:'{b}: {c} songs ({d}%)'},series:[{type:'pie',radius:['30%','65%'],center:['50%','50%'],data:detail.albums.map(function(a,j){return{value:a.c,name:a.n,itemStyle:{color:acols[j%acols.length]}}}),label:{color:'#ccc',fontSize:9,formatter:'{b}\n{d}%'},emphasis:{itemStyle:{shadowBlur:10}}}]})}}}})
-  }
-  if(wrap2){var vEl=document.getElementById('con-venues');var venues=con.venues||[];if(venues.length){var h2='<table><thead><tr><th>#</th><th>Venue</th><th>Shows</th></tr></thead><tbody>';venues.forEach(function(v,i){h2+='<tr><td style="color:var(--t2);font-size:10px">'+(i+1)+'</td><td style="font-weight:600">'+v.n+'</td><td class="nm nm-o">'+v.c+'</td></tr>'});h2+='</tbody></table>';vEl.innerHTML=h2}}
+  }else{aEl.innerHTML=''}
+  // Recompute venues from filtered entries
+  if(wrap2){var vEl=document.getElementById('con-venues');
+    var venCounts={};filtered.forEach(function(e){var vk=e.venue+(e.city?', '+e.city:'');venCounts[vk]=(venCounts[vk]||0)+1});
+    var venues=Object.entries(venCounts).sort(function(a,b){return b[1]-a[1]}).map(function(e){return{n:e[0],c:e[1]}});
+    if(venues.length){var h2='<table><thead><tr><th>#</th><th>Venue</th><th>Shows</th></tr></thead><tbody>';venues.forEach(function(v,i){h2+='<tr><td style="color:var(--t2);font-size:10px">'+(i+1)+'</td><td style="font-weight:600">'+v.n+'</td><td class="nm nm-o">'+v.c+'</td></tr>'});h2+='</tbody></table>';vEl.innerHTML=h2}else{vEl.innerHTML=''}}
 }
 
 function renderTheater(){

@@ -941,7 +941,7 @@ if concerts:
         "years": [{"yr": y, "c": c, "s": cy2_songs.get(y,0), "st": cy2_sets.get(y,0)} for y, c in sorted(cy2.items())],
         "recent": [{"artist": c["artist"], "venue": c["venue"], "city": c["city"],
                     "date": c["date"], "yr": c["year"], "tour": c["tour"],
-                    "songs": c["song_count"]} for c in concerts[:20]],
+                    "songs": c["song_count"]} for c in concerts],
     }
 
 # Theater data from Mezzanine
