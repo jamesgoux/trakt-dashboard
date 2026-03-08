@@ -358,7 +358,7 @@ function baseCharts(){
 
   // Genre trends (100% stacked area) - yearly or monthly
   var gtWrap=document.getElementById('gt-wrap');
-  if(D.c.gt){
+  if(D.c.gt&&(ct==='all'||ct==='movie'||ct==='show')){
     gtWrap.style.display='';
     var gt=D.c.gt;
     var gtColors=gt.genres.map(function(g){return GC[g.toLowerCase()]||'#666'});
