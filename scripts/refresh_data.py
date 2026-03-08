@@ -407,21 +407,62 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
             hod[y][h_key] += 1
         except: pass
 
-    # Per-month/year title lists for click-to-see (bundled: shows count episodes, movies count watches)
-    month_titles = defaultdict(lambda: defaultdict(lambda: {"type":"","count":0}))
+    # Build season-level data: group episodes by show+season, assign to completion month
+    season_data = defaultdict(lambda: {"eps": 0, "months": set()})  # (show, season) -> data
+    movie_month = defaultdict(lambda: defaultdict(int))  # month -> movie -> count
     for e in entries:
         if not e["watched_at"]: continue
         m = e["watched_at"][:7]
-        name = e["show_title"] or e["title"]
-        if not name: continue
-        month_titles[m][name]["type"] = "show" if e["type"] == "episode" else "movie"
-        month_titles[m][name]["count"] += 1
+        if e["type"] == "episode" and e.get("show_title") and e.get("season"):
+            key = (e["show_title"], str(e["season"]))
+            season_data[key]["eps"] += 1
+            season_data[key]["months"].add(m)
+        elif e["type"] == "movie" or (e["type"] == "episode" and not e.get("season")):
+            name = e.get("show_title") or e.get("title") or ""
+            if name:
+                movie_month[m][name] = movie_month[m].get(name, 0) + 1
 
-    # Compact: per-month top titles
+    # Assign each season to its completion month (last month with a watched episode)
+    season_by_month = defaultdict(list)  # month -> [{t, type, c}]
+    for (show, sn), data in season_data.items():
+        completion_month = sorted(data["months"])[-1]  # last month
+        label = show + " S" + sn.zfill(2)
+        season_by_month[completion_month].append({"t": label, "type": "show", "c": data["eps"]})
+
+    # Build mt_out: seasons (at completion month) + movies
     mt_out = {}
-    for m, titles in month_titles.items():
-        sorted_t = sorted(titles.items(), key=lambda x: x[1]["count"], reverse=True)
-        mt_out[m] = [{"t": t, "type": d["type"], "c": d["count"]} for t, d in sorted_t[:20]]
+    all_months = set(list(season_by_month.keys()) + list(movie_month.keys()))
+    for m in all_months:
+        items = list(season_by_month.get(m, []))
+        for name, count in movie_month.get(m, {}).items():
+            items.append({"t": name, "type": "movie", "c": count})
+        items.sort(key=lambda x: x["c"], reverse=True)
+        mt_out[m] = items[:25]
+
+    # Episode watch chart: per-month episodes by show (top shows get their own color)
+    ep_by_month = defaultdict(lambda: defaultdict(int))  # month -> show -> count
+    for e in entries:
+        if e["type"] != "episode" or not e.get("watched_at") or not e.get("show_title"): continue
+        m = e["watched_at"][:7]
+        ep_by_month[m][e["show_title"]] += 1
+    # Build: for each month, top shows + "other"
+    ep_top_shows = Counter()
+    for m, shows in ep_by_month.items():
+        for s, c in shows.items():
+            ep_top_shows[s] += c
+    ep_legend = [s for s, _ in ep_top_shows.most_common(8)]
+    ep_chart = {}
+    for m in sorted(ep_by_month.keys()):
+        row = {}
+        other = 0
+        for s, c in ep_by_month[m].items():
+            if s in ep_legend:
+                row[s] = c
+            else:
+                other += c
+        if other:
+            row["Other"] = other
+        ep_chart[m] = row
 
     # Recent: keep 200 most recent for filtering
     sorted_entries = sorted(entries, key=lambda x: x["watched_at"], reverse=True)
@@ -595,6 +636,8 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
             "r": recent_all,
             "f": first_all,
             "mt": mt_out,
+            "epc": ep_chart,
+            "epl": ep_legend,
             "ttw": ttw_all[:25],
             "ttw_y": {y: v[:25] for y, v in ttw_by_year.items()},
             "cup": catchup_all[:25],

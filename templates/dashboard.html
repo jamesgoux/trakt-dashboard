@@ -87,7 +87,7 @@ body{overflow-x:hidden}
 <div class="fctrls">
 <div class="fbtn"><label>Type</label><select id="gs"><option value="all">Both</option><option value="movie">Movies</option><option value="show">Shows</option></select></div>
 <div class="fbtn"><label>Year</label><select id="ys"><option value="all">All Time</option></select></div>
-<div class="fbtn"><label>Jump</label><select id="jmp" onchange="if(this.value){document.getElementById(this.value).scrollIntoView({behavior:'smooth',block:'start'});this.value=''}"><option value="">...</option><option value="sec-tl">📈 Timeline</option><option value="sec-act">🎭 Actors</option><option value="sec-crew">🎬 Directors/Writers</option><option value="sec-shows">📺 Top Shows</option><option value="sec-ttw">⏱️ Time to Watch</option><option value="sec-mov">🎞️ Movies</option><option value="sec-time">🕐 Day & Time</option><option value="sec-meta">🎯 Genres/Trends</option><option value="sec-geo">🌍 Countries/Languages</option><option value="sec-vy">📅 Release Years</option><option value="sec-how">🖥️ How I Watch</option><option value="sec-ratings">⭐ Ratings</option><option value="sec-first">🌅 First Watches</option><option value="sec-rec">👁️ Last Watches</option><option value="sec-con">🎸 Concerts</option><option value="sec-th">🎭 Theater</option></select></div>
+<div class="fbtn"><label>Jump</label><select id="jmp" onchange="if(this.value){document.getElementById(this.value).scrollIntoView({behavior:'smooth',block:'start'});this.value=''}"><option value="">...</option><option value="sec-tl">📈 Timeline</option><option value="sec-act">🎭 Actors</option><option value="sec-crew">🎬 Directors/Writers</option><option value="sec-shows">📺 Top Shows</option><option value="sec-ttw">⏱️ Time to Watch</option><option value="sec-mov">🎞️ Movies</option><option value="sec-eps">📺 Episodes</option><option value="sec-time">🕐 Day & Time</option><option value="sec-meta">🎯 Genres/Trends</option><option value="sec-geo">🌍 Countries/Languages</option><option value="sec-vy">📅 Release Years</option><option value="sec-how">🖥️ How I Watch</option><option value="sec-ratings">⭐ Ratings</option><option value="sec-first">🌅 First Watches</option><option value="sec-rec">👁️ Last Watches</option><option value="sec-con">🎸 Concerts</option><option value="sec-th">🎭 Theater</option></select></div>
 <button class="rbtn" onclick="location.reload()">&#x21bb;</button>
 </div>
 </div>
@@ -118,6 +118,10 @@ body{overflow-x:hidden}
 <div class="g2">
 <div id="sec-mov" class="cd s-m"><h3 id="mdh"><span class="i">🎞️</span>Movies by Watch Time</h3><div id="mdc" style="height:340px"></div></div>
 <div class="cd s-m" id="mrc-card"><h3 id="mrh"><span class="i">🔁</span>Most Rewatched</h3><div id="mrc" style="height:340px"></div></div>
+</div>
+<!-- EPISODES WATCHED -->
+<div class="g2">
+<div id="sec-eps" class="cd fw s-s"><h3><span class="i">📺</span>Episodes Watched</h3><div id="epcc" style="height:300px"></div></div>
 </div>
 <div class="g2">
 <div id="sec-time" class="cd s-t"><h3><span class="i">📅</span>Day of Week</h3><div id="dwc" style="height:280px"></div></div>
@@ -443,6 +447,36 @@ function baseCharts(){
     };
   });
   ch.push(c10);
+
+  // Episodes Watched — stacked bar by show
+  var epc=D.c.epc||{};var epl=(D.c.epl||[]).concat(['Other']);
+  var epMonths=Object.keys(epc).sort();
+  if(cy!=='all')epMonths=epMonths.filter(function(m){return m.startsWith(cy)});
+  var epEl=document.getElementById('epcc');
+  if(ct==='movie'||epMonths.length===0){epEl.parentElement.style.display='none'}
+  else{
+    epEl.parentElement.style.display='';
+    var epColors=['#60a5fa','#e94560','#a78bfa','#fb923c','#4ade80','#f472b6','#38bdf8','#fbbf24','#94a3b8'];
+    var epSeries=epl.map(function(show,i){return{name:show,type:'bar',stack:'ep',data:epMonths.map(function(m){return(epc[m]||{})[show]||0}),itemStyle:{color:epColors[i%epColors.length]},barMaxWidth:cy==='all'?5:20}});
+    var epChart=echarts.init(epEl);
+    epChart.setOption({tooltip:{trigger:'axis',...tt},legend:{data:epl,top:0,textStyle:{color:'#999',fontSize:9},type:'scroll'},
+      grid:{left:40,right:10,top:35,bottom:30},
+      xAxis:{type:'category',data:epMonths,axisLabel:{color:'#666',interval:cy==='all'?11:0,rotate:45,fontSize:10},axisLine:{lineStyle:{color:'#333'}}},
+      yAxis:{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},series:epSeries});
+    // Click to see episode detail for that month
+    epChart.on('click',function(p){
+      var month=epMonths[p.dataIndex];if(!month)return;
+      var shows=epc[month]||{};
+      var items=Object.entries(shows).sort(function(a,b){return b[1]-a[1]}).map(function(e){return{t:e[0],type:'show',c:e[1]}});
+      if(!items.length)return;
+      var ex=epEl.parentElement.querySelector('.chart-detail');if(ex){ex.remove();if(ex.dataset.val===month)return}
+      var div=document.createElement('div');div.className='chart-detail';div.dataset.val=month;
+      var h='<span class="cd-close" onclick="this.parentElement.remove()">✕</span><b>'+month+' episodes</b>';
+      items.forEach(function(t){h+='<div class="cd-item"><span><span class="badge b-e">show</span> '+t.t+'</span><span class="nm nm-b">'+t.c+' eps</span></div>'});
+      div.innerHTML=h;epEl.parentElement.appendChild(div);
+    });
+    ch.push(epChart);
+  }
 
   // Day of week
   var dwC=['#60a5fa','#a78bfa','#4ade80','#fb923c','#e94560','#60a5fa','#a78bfa'];
