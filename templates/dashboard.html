@@ -319,17 +319,15 @@ function baseCharts(){
   if(isYear){
   var mf=D.c.m.filter(function(m){return m.month.startsWith(cy)});
   var c1=echarts.init(document.getElementById('tlc'));
-  var tlSeries=[];
-  if(ct!=='movie')tlSeries.push({name:'Seasons',type:'bar',stack:'t',data:mf.map(function(d){return d.seasons||0}),itemStyle:{color:'#60a5fa'},barMaxWidth:30});
-  if(ct!=='show')tlSeries.push({name:'Movies',type:'bar',stack:'t',data:mf.map(function(d){return d.movies}),itemStyle:{color:'#e94560'},barMaxWidth:30});
-  var conM=D.c.con_m||{};var thM=D.c.th_m||{};
-  var grM=D.c.gr_m||{};
-  if(Object.keys(grM).length)tlSeries.push({name:'Books',type:'bar',stack:'t',data:mf.map(function(d){return grM[d.month]||0}),itemStyle:{color:'#22d3ee'},barMaxWidth:30});
-  var conM=D.c.con_m||{};var thM=D.c.th_m||{};
-  if(Object.keys(conM).length)tlSeries.push({name:'Concerts',type:'bar',stack:'t',data:mf.map(function(d){return conM[d.month]||0}),itemStyle:{color:'#fb923c'},barMaxWidth:30});
-  if(Object.keys(thM).length)tlSeries.push({name:'Theater',type:'bar',stack:'t',data:mf.map(function(d){return thM[d.month]||0}),itemStyle:{color:'#d946ef'},barMaxWidth:30});
-  var tlLeg=['Seasons','Movies'];if(Object.keys(grM).length)tlLeg.push('Books');if(Object.keys(conM).length)tlLeg.push('Concerts');if(Object.keys(thM).length)tlLeg.push('Theater');
-  c1.setOption({tooltip:{trigger:'axis',...tt},legend:{data:ct==='all'?tlLeg:[],right:10,top:0,textStyle:{color:'#999'}},grid:{left:50,right:20,top:36,bottom:30},xAxis:{type:'category',data:mf.map(function(d){return d.month}),axisLabel:{color:'#666',interval:0,rotate:45,fontSize:10},axisLine:{lineStyle:{color:'#333'}}},yAxis:{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},series:tlSeries});
+  var tlSeries=[];var tlLeg=[];
+  var conM=D.c.con_m||{};var thM=D.c.th_m||{};var grM=D.c.gr_m||{};
+  var showSe=ct==='all'||ct==='show',showMo=ct==='all'||ct==='movie',showBk=ct==='all'||ct==='book',showCo=ct==='all'||ct==='concert',showTh=ct==='all'||ct==='theater';
+  if(showSe){tlSeries.push({name:'Seasons',type:'bar',stack:'t',data:mf.map(function(d){return d.seasons||0}),itemStyle:{color:'#60a5fa'},barMaxWidth:30});tlLeg.push('Seasons')}
+  if(showMo){tlSeries.push({name:'Movies',type:'bar',stack:'t',data:mf.map(function(d){return d.movies}),itemStyle:{color:'#e94560'},barMaxWidth:30});tlLeg.push('Movies')}
+  if(showBk&&Object.keys(grM).length){tlSeries.push({name:'Books',type:'bar',stack:'t',data:mf.map(function(d){return grM[d.month]||0}),itemStyle:{color:'#22d3ee'},barMaxWidth:30});tlLeg.push('Books')}
+  if(showCo&&Object.keys(conM).length){tlSeries.push({name:'Concerts',type:'bar',stack:'t',data:mf.map(function(d){return conM[d.month]||0}),itemStyle:{color:'#fb923c'},barMaxWidth:30});tlLeg.push('Concerts')}
+  if(showTh&&Object.keys(thM).length){tlSeries.push({name:'Theater',type:'bar',stack:'t',data:mf.map(function(d){return thM[d.month]||0}),itemStyle:{color:'#d946ef'},barMaxWidth:30});tlLeg.push('Theater')}
+  c1.setOption({tooltip:{trigger:'axis',...tt},legend:{data:tlLeg.length>1?tlLeg:[],right:10,top:0,textStyle:{color:'#999'}},grid:{left:50,right:20,top:36,bottom:30},xAxis:{type:'category',data:mf.map(function(d){return d.month}),axisLabel:{color:'#666',interval:0,rotate:45,fontSize:10},axisLine:{lineStyle:{color:'#333'}}},yAxis:{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},series:tlSeries});
   if(ct==='all'&&tlLeg.length>1)legendIsolate(c1,tlLeg);
   c1.on('click',function(p){
     var month=mf[p.dataIndex]?mf[p.dataIndex].month:p.name;
@@ -550,16 +548,15 @@ function baseCharts(){
   if(!isYear){
   var yr=D.c.y.filter(function(d){return parseInt(d.year)>=2012}).map(function(d){return{year:d.year,seasons:d.year==='2016'?0:(d.seasons||0),movies:d.year==='2016'?0:d.movies}});
   var c6=echarts.init(document.getElementById('yrc'));
-  var yrSeries=[];
-  if(ct!=='movie')yrSeries.push({name:'Seasons',type:'bar',stack:'t',data:yr.map(function(d){return d.seasons}),itemStyle:{color:'#60a5fa'}});
-  if(ct!=='show')yrSeries.push({name:'Movies',type:'bar',stack:'t',data:yr.map(function(d){return d.movies}),itemStyle:{color:'#e94560'}});
-  var grY=D.c.gr_y||{};
-  if(Object.keys(grY).length)yrSeries.push({name:'Books',type:'bar',stack:'t',data:yr.map(function(d){return grY[d.year]||0}),itemStyle:{color:'#22d3ee'}});
-  var conY=D.c.con_y||{};var thY=D.c.th_y||{};
-  if(Object.keys(conY).length)yrSeries.push({name:'Concerts',type:'bar',stack:'t',data:yr.map(function(d){return conY[d.year]||0}),itemStyle:{color:'#fb923c'}});
-  if(Object.keys(thY).length)yrSeries.push({name:'Theater',type:'bar',stack:'t',data:yr.map(function(d){return thY[d.year]||0}),itemStyle:{color:'#d946ef'}});
-  var yrLeg=['Seasons','Movies'];if(Object.keys(grY).length)yrLeg.push('Books');if(Object.keys(conY).length)yrLeg.push('Concerts');if(Object.keys(thY).length)yrLeg.push('Theater');
-  c6.setOption({tooltip:{trigger:'axis',...tt,formatter:function(p){if(p[0]&&tp(p).axisValue==='2016')return'<b>2016</b><br/>Zeroed (outlier: 4,257)';return p.map(function(s){return s.marker+s.seriesName+': '+s.value}).join('<br/>')}},legend:{data:ct==='all'?yrLeg:[],right:10,top:0,textStyle:{color:'#999'}},grid:{left:50,right:20,top:36,bottom:24},xAxis:{type:'category',data:yr.map(function(d){return d.year}),axisLabel:{color:'#666',fontSize:10},axisLine:{lineStyle:{color:'#333'}}},yAxis:{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},series:yrSeries});
+  var yrSeries=[];var yrLeg=[];
+  var grY=D.c.gr_y||{};var conY=D.c.con_y||{};var thY=D.c.th_y||{};
+  var ySe=ct==='all'||ct==='show',yMo=ct==='all'||ct==='movie',yBk=ct==='all'||ct==='book',yCo=ct==='all'||ct==='concert',yTh=ct==='all'||ct==='theater';
+  if(ySe){yrSeries.push({name:'Seasons',type:'bar',stack:'t',data:yr.map(function(d){return d.seasons}),itemStyle:{color:'#60a5fa'}});yrLeg.push('Seasons')}
+  if(yMo){yrSeries.push({name:'Movies',type:'bar',stack:'t',data:yr.map(function(d){return d.movies}),itemStyle:{color:'#e94560'}});yrLeg.push('Movies')}
+  if(yBk&&Object.keys(grY).length){yrSeries.push({name:'Books',type:'bar',stack:'t',data:yr.map(function(d){return grY[d.year]||0}),itemStyle:{color:'#22d3ee'}});yrLeg.push('Books')}
+  if(yCo&&Object.keys(conY).length){yrSeries.push({name:'Concerts',type:'bar',stack:'t',data:yr.map(function(d){return conY[d.year]||0}),itemStyle:{color:'#fb923c'}});yrLeg.push('Concerts')}
+  if(yTh&&Object.keys(thY).length){yrSeries.push({name:'Theater',type:'bar',stack:'t',data:yr.map(function(d){return thY[d.year]||0}),itemStyle:{color:'#d946ef'}});yrLeg.push('Theater')}
+  c6.setOption({tooltip:{trigger:'axis',...tt,formatter:function(p){if(p[0]&&tp(p).axisValue==='2016')return'<b>2016</b><br/>Zeroed (outlier: 4,257)';return p.map(function(s){return s.marker+s.seriesName+': '+s.value}).join('<br/>')}},legend:{data:yrLeg.length>1?yrLeg:[],right:10,top:0,textStyle:{color:'#999'}},grid:{left:50,right:20,top:36,bottom:24},xAxis:{type:'category',data:yr.map(function(d){return d.year}),axisLabel:{color:'#666',fontSize:10},axisLine:{lineStyle:{color:'#333'}}},yAxis:{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},series:yrSeries});
   if(ct==='all'&&yrLeg.length>1)legendIsolate(c6,yrLeg);
   c6.on('click',function(p){
     var year=yr[p.dataIndex]?yr[p.dataIndex].year:p.name;
@@ -850,7 +847,7 @@ function renderLetterboxd(){
 
 function renderGoodreads(){
   var gr=D.gr;var wrap=document.getElementById('gr-wrap');
-  if(!gr||!gr.total){wrap.style.display='none';return}
+  if(!gr||!gr.total||ct!=='all'&&ct!=='book'){wrap.style.display='none';return}
   wrap.style.display='';
   // Filter by year
   var allBooks=gr.all||[];
@@ -976,7 +973,7 @@ function renderGoodreads(){
 
 function renderConcerts(){
   var con=D.con;var wrap=document.getElementById('con-wrap');var wrap2=document.getElementById('con-wrap2');
-  if(!con||!con.total){wrap.style.display='none';if(wrap2)wrap2.style.display='none';return}
+  if(!con||!con.total||ct!=='all'&&ct!=='concert'){wrap.style.display='none';if(wrap2)wrap2.style.display='none';return}
   // Filter raw entries by year
   var allE=con.recent||[];
   var filtered=cy==='all'?allE:allE.filter(function(e){return e.yr===cy});
@@ -1036,7 +1033,7 @@ function renderConcerts(){
 
 function renderTheater(){
   var th=D.th;var wrap=document.getElementById('th-wrap');
-  if(!th||!th.total){wrap.style.display='none';return}
+  if(!th||!th.total||ct!=='all'&&ct!=='theater'){wrap.style.display='none';return}
   wrap.style.display='';
   // Filter by year if set
   var allE=th.all||[];
