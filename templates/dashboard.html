@@ -99,7 +99,7 @@ body{overflow-x:hidden}
 </div>
 <!-- LIFELINE: 30-day activity -->
 <div class="g2 med-s" data-med="all movie show book music concert theater">
-<div id="sec-ll" class="cd fw s-t"><h3><span class="i">🧬</span>Lifeline (Last 30 Days)</h3><div id="llc" style="height:280px"></div></div>
+<div id="sec-ll" class="cd fw s-t"><h3><span class="i">🧬</span>Lifeline <span id="ll-sel" class="vtog" style="float:right"></span></h3><div id="llc" style="height:280px"></div></div>
 </div>
 <div class="g2 med-s" data-med="all movie show">
 <div id="sec-act" class="cd s-a"><h3><span class="i">🎭</span>Most Watched Actors</h3><div class="stb"><table><thead><tr><th>#</th><th>Actor</th><th>Mov</th><th>Show</th><th>Total</th></tr></thead><tbody id="atb"></tbody></table></div></div>
@@ -317,38 +317,63 @@ items.sort(function(a,b){return b.tot-a.tot});
 var rk=0;items.forEach(function(item){var p=item.p,m=item.m,s=item.s;rk++;var tot=item.tot;var img=HS[p.n]?'<img class="hs" src="'+HS[p.n]+'" loading="lazy" onerror="this.style.display=\'none\'" alt="">':'<div class="hp">'+p.n.charAt(0)+'</div>';var tr=document.createElement('tr');tr.className='pr';tr.innerHTML='<td style="color:var(--t2);font-size:10px;width:24px">'+rk+'</td><td><div class="pn">'+img+'<span>'+p.n+'</span></div></td><td class="nm nm-a">'+m+'</td><td class="nm nm-p">'+s+'</td><td class="nm nm-o">'+tot+'</td>';tr.onclick=function(){var nx=tr.nextElementSibling;if(nx&&nx.classList.contains('dr')){nx.remove();return}document.querySelectorAll('.dr').forEach(function(r){r.remove()});if(!p.ti)return;var dr=document.createElement('tr');dr.className='dr';var h='<td colspan="5"><table>';p.ti.forEach(function(i){var t=TL[i];if(!t)return;var eb=cy==='all'?t.eby:fby(t.eby);var ct2=sm(eb);if(ct2===0&&cy!=='all')return;h+='<tr><td><span class="badge '+(t.type==='movie'?'b-m':'b-e')+'">'+t.type+'</span></td><td style="font-weight:600">'+t.t+'</td><td style="color:var(--t2)">'+(t.yr||'')+'</td><td class="nm '+(t.type==='show'?'nm-b':'nm-a')+'">'+(t.type==='show'?ct2+' eps':(ct2>1?ct2+'x':''))+'</td></tr>'});h+='</table></td>';dr.innerHTML=h;tr.after(dr)};tb.appendChild(tr)})}
 
 function renderLifeline(){
-  var ll=D.ll||{};var llEl=document.getElementById('llc');
+  var ll=D.ll||{};var llEl=document.getElementById('llc');var llSel=document.getElementById('ll-sel');
   if(!llEl)return;
   var allDays=Object.keys(ll).sort();
-  // Last 30 days with data, or filter by year
-  var days;
-  if(cy!=='all'){
-    days=allDays.filter(function(d){return d.startsWith(cy)});
-    document.querySelector('#sec-ll h3').innerHTML='<span class="i">🧬</span>Lifeline ('+cy+')';
+  window._llMonth=window._llMonth||'last30';
+  var isYrLL=cy!=='all';var curYr=new Date().getFullYear().toString();
+
+  // Build month selector
+  if(isYrLL){
+    var months={};allDays.filter(function(d){return d.startsWith(cy)}).forEach(function(d){months[d.substring(0,7)]=true});
+    var moList=Object.keys(months).sort();
+    var opts='';
+    if(cy===curYr)opts+='<button class="vb ll-mo '+(window._llMonth==='last30'?'vb-on':'')+'" data-v="last30" style="font-size:9px">Last 30</button>';
+    moList.forEach(function(m){opts+='<button class="vb ll-mo '+(window._llMonth===m?'vb-on':'')+'" data-v="'+m+'" style="font-size:9px">'+m.substring(5)+'</button>'});
+    llSel.innerHTML=opts;
+    llSel.querySelectorAll('.ll-mo').forEach(function(btn){btn.onclick=function(){window._llMonth=btn.dataset.v;renderLifeline()}});
+    // Default: if no valid selection, pick last30 or last month
+    if(window._llMonth!=='last30'&&moList.indexOf(window._llMonth)<0)window._llMonth=cy===curYr?'last30':moList[moList.length-1]||'last30';
   }else{
+    window._llMonth='last30';
+    llSel.innerHTML='';
+  }
+
+  // Filter days
+  var days;
+  if(window._llMonth==='last30'){
     days=allDays.slice(-30);
-    document.querySelector('#sec-ll h3').innerHTML='<span class="i">🧬</span>Lifeline (Last 30 Days)';
+  }else{
+    days=allDays.filter(function(d){return d.startsWith(window._llMonth)});
   }
   if(!days.length){llEl.parentElement.parentElement.style.display='none';return}
   llEl.parentElement.parentElement.style.display='';
+
+  // Pulse display: split into positive (episodes+movies+books) and negative (scrobbles+concerts+plays)
+  var bw=15;
+  var posData={ep:[],mv:[],bk:[]};var negData={sc:[],co:[],th:[]};
+  days.forEach(function(d){var v=ll[d]||{};
+    posData.ep.push(v.ep||0);posData.mv.push(v.mv||0);posData.bk.push(v.bk||0);
+    negData.sc.push(-(v.sc||0));negData.co.push(-(v.co||0));negData.th.push(-(v.th||0));
+  });
+
   var llChart=echarts.init(llEl);
-  var series=[
-    {name:'Episodes',type:'bar',stack:'ll',data:days.map(function(d){return ll[d]?ll[d].ep:0}),itemStyle:{color:'#a78bfa'},barMaxWidth:days.length>60?4:days.length>30?8:15},
-    {name:'Movies',type:'bar',stack:'ll',data:days.map(function(d){return ll[d]?ll[d].mv:0}),itemStyle:{color:'#e94560'},barMaxWidth:days.length>60?4:days.length>30?8:15},
-    {name:'Scrobbles',type:'bar',stack:'ll',data:days.map(function(d){return ll[d]?ll[d].sc:0}),itemStyle:{color:'#1db954'},barMaxWidth:days.length>60?4:days.length>30?8:15},
-    {name:'Books',type:'bar',stack:'ll',data:days.map(function(d){return ll[d]?ll[d].bk:0}),itemStyle:{color:'#22d3ee'},barMaxWidth:days.length>60?4:days.length>30?8:15},
-    {name:'Concerts',type:'bar',stack:'ll',data:days.map(function(d){return ll[d]?ll[d].co:0}),itemStyle:{color:'#fb923c'},barMaxWidth:days.length>60?4:days.length>30?8:15},
-    {name:'Plays',type:'bar',stack:'ll',data:days.map(function(d){return ll[d]?ll[d].th:0}),itemStyle:{color:'#d946ef'},barMaxWidth:days.length>60?4:days.length>30?8:15}
-  ];
-  llChart.setOption({tooltip:{trigger:'axis',...tt},
-    legend:{data:['Episodes','Movies','Scrobbles','Books','Concerts','Plays'],top:0,textStyle:{color:'#999',fontSize:9},type:'scroll'},
+  llChart.setOption({tooltip:{trigger:'axis',...tt,formatter:function(p){var day=days[p[0].dataIndex];var h='<b>'+day+'</b>';p.forEach(function(s){var v=Math.abs(s.value);if(v)h+='<br/>'+s.marker+s.seriesName+': '+v});return h}},
+    legend:{data:['Episodes','Movies','Books','Scrobbles','Concerts','Plays'],top:0,textStyle:{color:'#999',fontSize:9},type:'scroll'},
     grid:{left:40,right:10,top:35,bottom:30},
-    xAxis:{type:'category',data:days.map(function(d){return d.substring(5)}),axisLabel:{color:'#666',fontSize:8,rotate:45,interval:days.length>60?6:days.length>30?2:0},axisLine:{lineStyle:{color:'#333'}}},
-    yAxis:{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},
-    series:series});
+    xAxis:{type:'category',data:days.map(function(d){return d.substring(5)}),axisLabel:{color:'#666',fontSize:8,rotate:45,interval:0},axisLine:{lineStyle:{color:'#444'}}},
+    yAxis:{type:'value',axisLabel:{color:'#666',formatter:function(v){return Math.abs(v)}},splitLine:{lineStyle:{color:'#222'}}},
+    series:[
+      {name:'Episodes',type:'bar',stack:'pos',data:posData.ep,itemStyle:{color:'#a78bfa'},barMaxWidth:bw},
+      {name:'Movies',type:'bar',stack:'pos',data:posData.mv,itemStyle:{color:'#e94560'},barMaxWidth:bw},
+      {name:'Books',type:'bar',stack:'pos',data:posData.bk,itemStyle:{color:'#22d3ee'},barMaxWidth:bw},
+      {name:'Scrobbles',type:'bar',stack:'neg',data:negData.sc,itemStyle:{color:'#1db954'},barMaxWidth:bw},
+      {name:'Concerts',type:'bar',stack:'neg',data:negData.co,itemStyle:{color:'#fb923c'},barMaxWidth:bw},
+      {name:'Plays',type:'bar',stack:'neg',data:negData.th,itemStyle:{color:'#d946ef'},barMaxWidth:bw}
+    ]});
   // Click to show day detail
   llChart.on('click',function(p){
-    var day=days[p.dataIndex];if(!day||!ll[day])return;
+    var idx=p.dataIndex;var day=days[idx];if(!day||!ll[day])return;
     var ld=ll[day];var det=ld.d||{};
     var ex=llEl.parentElement.querySelector('.chart-detail');if(ex){ex.remove();if(ex.dataset.val===day)return}
     var div=document.createElement('div');div.className='chart-detail';div.dataset.val=day;
