@@ -87,7 +87,7 @@ body{overflow-x:hidden}
 <div class="fctrls">
 <div class="fbtn"><label>Type</label><select id="gs"><option value="all">🌐 All</option><option value="movie">🎞️ Movies</option><option value="show">📺 Shows</option><option value="book">📚 Books</option><option value="music">🎧 Music</option><option value="concert">🎸 Concerts</option><option value="theater">🎭 Theater</option></select></div>
 <div class="fbtn"><label>Year</label><select id="ys"><option value="all">All Time</option></select></div>
-<div class="fbtn"><label>Jump</label><select id="jmp" onchange="if(this.value){document.getElementById(this.value).scrollIntoView({behavior:'smooth',block:'start'});this.value=''}"><option value="">...</option><option value="sec-tl">📈 Timeline</option><option value="sec-act">🎭 Actors</option><option value="sec-crew">🎬 Directors/Writers</option><option value="sec-shows">📺 Top Shows</option><option value="sec-ttw">⏱️ Time to Watch</option><option value="sec-mov">🎞️ Movies</option><option value="sec-eps">📺 Episodes</option><option value="sec-time">🕐 Day & Time</option><option value="sec-meta">🎯 Genres/Trends</option><option value="sec-geo">🌍 Countries/Languages</option><option value="sec-vy">📅 Release Years</option><option value="sec-how">🖥️ How I Watch</option><option value="sec-ratings">⭐ Ratings</option><option value="sec-first">🌅 First Watches</option><option value="sec-rec">👁️ Last Watches</option><option value="sec-gr">📚 Books</option><option value="sec-lfm">🎧 Music</option><option value="sec-con">🎸 Concerts</option><option value="sec-th">🎭 Theater</option></select></div>
+<div class="fbtn"><label>Jump</label><select id="jmp" onchange="if(this.value){document.getElementById(this.value).scrollIntoView({behavior:'smooth',block:'start'});this.value=''}"><option value="">...</option><option value="sec-tl">📈 Timeline</option><option value="sec-ll">🧬 Lifeline</option><option value="sec-act">🎭 Actors</option><option value="sec-crew">🎬 Directors/Writers</option><option value="sec-shows">📺 Top Shows</option><option value="sec-ttw">⏱️ Time to Watch</option><option value="sec-mov">🎞️ Movies</option><option value="sec-eps">📺 Episodes</option><option value="sec-time">🕐 Day & Time</option><option value="sec-meta">🎯 Genres/Trends</option><option value="sec-geo">🌍 Countries/Languages</option><option value="sec-vy">📅 Release Years</option><option value="sec-how">🖥️ How I Watch</option><option value="sec-ratings">⭐ Ratings</option><option value="sec-first">🌅 First Watches</option><option value="sec-rec">👁️ Last Watches</option><option value="sec-gr">📚 Books</option><option value="sec-lfm">🎧 Music</option><option value="sec-con">🎸 Concerts</option><option value="sec-th">🎭 Theater</option></select></div>
 <button class="rbtn" onclick="location.reload()">&#x21bb;</button>
 </div>
 </div>
@@ -96,6 +96,10 @@ body{overflow-x:hidden}
 <!-- TIMELINE: Yearly / Monthly -->
 <div class="g2 med-s" data-med="all movie show book concert theater">
 <div id="sec-tl" class="cd fw s-t"><h3 id="tlh"><span class="i">📈</span>Yearly Watch Count</h3><div id="yrc" style="height:280px"></div><div id="tlc" style="height:280px;display:none"></div></div>
+</div>
+<!-- LIFELINE: 30-day activity -->
+<div class="g2 med-s" data-med="all movie show book music concert theater">
+<div id="sec-ll" class="cd fw s-t"><h3><span class="i">🧬</span>Lifeline (Last 30 Days)</h3><div id="llc" style="height:280px"></div></div>
 </div>
 <div class="g2 med-s" data-med="all movie show">
 <div id="sec-act" class="cd s-a"><h3><span class="i">🎭</span>Most Watched Actors</h3><div class="stb"><table><thead><tr><th>#</th><th>Actor</th><th>Mov</th><th>Show</th><th>Total</th></tr></thead><tbody id="atb"></tbody></table></div></div>
@@ -311,6 +315,54 @@ function ptbl(id,pp){var tb=document.getElementById(id);tb.innerHTML='';
 var items=[];pp.forEach(function(p){var m=p.m,s=p.s;if(cy!=='all'&&p.ti){m=0;s=0;p.ti.forEach(function(i){var t=TL[i];if(!t)return;if(sm(fby(t.eby))>0){if(t.type==='movie')m++;else s++}});if(m+s<2)return}items.push({p:p,m:m,s:s,tot:m+s})});
 items.sort(function(a,b){return b.tot-a.tot});
 var rk=0;items.forEach(function(item){var p=item.p,m=item.m,s=item.s;rk++;var tot=item.tot;var img=HS[p.n]?'<img class="hs" src="'+HS[p.n]+'" loading="lazy" onerror="this.style.display=\'none\'" alt="">':'<div class="hp">'+p.n.charAt(0)+'</div>';var tr=document.createElement('tr');tr.className='pr';tr.innerHTML='<td style="color:var(--t2);font-size:10px;width:24px">'+rk+'</td><td><div class="pn">'+img+'<span>'+p.n+'</span></div></td><td class="nm nm-a">'+m+'</td><td class="nm nm-p">'+s+'</td><td class="nm nm-o">'+tot+'</td>';tr.onclick=function(){var nx=tr.nextElementSibling;if(nx&&nx.classList.contains('dr')){nx.remove();return}document.querySelectorAll('.dr').forEach(function(r){r.remove()});if(!p.ti)return;var dr=document.createElement('tr');dr.className='dr';var h='<td colspan="5"><table>';p.ti.forEach(function(i){var t=TL[i];if(!t)return;var eb=cy==='all'?t.eby:fby(t.eby);var ct2=sm(eb);if(ct2===0&&cy!=='all')return;h+='<tr><td><span class="badge '+(t.type==='movie'?'b-m':'b-e')+'">'+t.type+'</span></td><td style="font-weight:600">'+t.t+'</td><td style="color:var(--t2)">'+(t.yr||'')+'</td><td class="nm '+(t.type==='show'?'nm-b':'nm-a')+'">'+(t.type==='show'?ct2+' eps':(ct2>1?ct2+'x':''))+'</td></tr>'});h+='</table></td>';dr.innerHTML=h;tr.after(dr)};tb.appendChild(tr)})}
+
+function renderLifeline(){
+  var ll=D.ll||{};var llEl=document.getElementById('llc');
+  if(!llEl)return;
+  var allDays=Object.keys(ll).sort();
+  // Last 30 days with data, or filter by year
+  var days;
+  if(cy!=='all'){
+    days=allDays.filter(function(d){return d.startsWith(cy)});
+    document.querySelector('#sec-ll h3').innerHTML='<span class="i">🧬</span>Lifeline ('+cy+')';
+  }else{
+    days=allDays.slice(-30);
+    document.querySelector('#sec-ll h3').innerHTML='<span class="i">🧬</span>Lifeline (Last 30 Days)';
+  }
+  if(!days.length){llEl.parentElement.parentElement.style.display='none';return}
+  llEl.parentElement.parentElement.style.display='';
+  var llChart=echarts.init(llEl);
+  var series=[
+    {name:'Episodes',type:'bar',stack:'ll',data:days.map(function(d){return ll[d]?ll[d].ep:0}),itemStyle:{color:'#a78bfa'},barMaxWidth:days.length>60?4:days.length>30?8:15},
+    {name:'Movies',type:'bar',stack:'ll',data:days.map(function(d){return ll[d]?ll[d].mv:0}),itemStyle:{color:'#e94560'},barMaxWidth:days.length>60?4:days.length>30?8:15},
+    {name:'Scrobbles',type:'bar',stack:'ll',data:days.map(function(d){return ll[d]?ll[d].sc:0}),itemStyle:{color:'#1db954'},barMaxWidth:days.length>60?4:days.length>30?8:15},
+    {name:'Books',type:'bar',stack:'ll',data:days.map(function(d){return ll[d]?ll[d].bk:0}),itemStyle:{color:'#22d3ee'},barMaxWidth:days.length>60?4:days.length>30?8:15},
+    {name:'Concerts',type:'bar',stack:'ll',data:days.map(function(d){return ll[d]?ll[d].co:0}),itemStyle:{color:'#fb923c'},barMaxWidth:days.length>60?4:days.length>30?8:15},
+    {name:'Plays',type:'bar',stack:'ll',data:days.map(function(d){return ll[d]?ll[d].th:0}),itemStyle:{color:'#d946ef'},barMaxWidth:days.length>60?4:days.length>30?8:15}
+  ];
+  llChart.setOption({tooltip:{trigger:'axis',...tt},
+    legend:{data:['Episodes','Movies','Scrobbles','Books','Concerts','Plays'],top:0,textStyle:{color:'#999',fontSize:9},type:'scroll'},
+    grid:{left:40,right:10,top:35,bottom:30},
+    xAxis:{type:'category',data:days.map(function(d){return d.substring(5)}),axisLabel:{color:'#666',fontSize:8,rotate:45,interval:days.length>60?6:days.length>30?2:0},axisLine:{lineStyle:{color:'#333'}}},
+    yAxis:{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},
+    series:series});
+  // Click to show day detail
+  llChart.on('click',function(p){
+    var day=days[p.dataIndex];if(!day||!ll[day])return;
+    var ld=ll[day];var det=ld.d||{};
+    var ex=llEl.parentElement.querySelector('.chart-detail');if(ex){ex.remove();if(ex.dataset.val===day)return}
+    var div=document.createElement('div');div.className='chart-detail';div.dataset.val=day;
+    var h='<span class="cd-close" onclick="this.parentElement.remove()">✕</span><b>'+day+'</b>';
+    if(det.ep&&det.ep.length){h+='<div style="margin-top:4px;font-size:10px;font-weight:600;color:var(--t2)">📺 Episodes ('+ld.ep+')</div>';det.ep.forEach(function(e){h+='<div class="cd-item"><span>'+e+'</span></div>'})}
+    if(det.mv&&det.mv.length){h+='<div style="margin-top:4px;font-size:10px;font-weight:600;color:var(--t2)">🎞️ Movies ('+ld.mv+')</div>';det.mv.forEach(function(m){h+='<div class="cd-item"><span>'+m+'</span></div>'})}
+    if(ld.sc){h+='<div style="margin-top:4px;font-size:10px;font-weight:600;color:var(--t2)">🎧 Scrobbles: '+ld.sc+'</div>'}
+    if(det.bk&&det.bk.length){h+='<div style="margin-top:4px;font-size:10px;font-weight:600;color:var(--t2)">📚 Books</div>';det.bk.forEach(function(b){h+='<div class="cd-item"><span>'+b+'</span></div>'})}
+    if(det.co&&det.co.length){h+='<div style="margin-top:4px;font-size:10px;font-weight:600;color:var(--t2)">🎸 Concerts</div>';det.co.forEach(function(c){h+='<div class="cd-item"><span>'+c+'</span></div>'})}
+    if(det.th&&det.th.length){h+='<div style="margin-top:4px;font-size:10px;font-weight:600;color:var(--t2)">🎭 Theater</div>';det.th.forEach(function(t){h+='<div class="cd-item"><span>'+t+'</span></div>'})}
+    div.innerHTML=h;llEl.parentElement.appendChild(div);
+  });
+  ch.push(llChart);
+}
 
 function movieCharts(){
   if(ct==='show'){document.getElementById('mdc').parentElement.style.display='none';document.getElementById('mrc-card').style.display='none';return}
@@ -1353,7 +1405,7 @@ function renderStatus(){
 function render(){ch.forEach(function(c){try{c.dispose()}catch(e){}});ch=[];
   // Show/hide sections based on medium filter
   document.querySelectorAll('.med-s').forEach(function(el){var meds=el.dataset.med||'';el.style.display=meds.indexOf(ct)>=0?'':'none'});
-  stats();ptbl('atb',D.a);ptbl('xtb',D.x);ptbl('dtb',D.d||[]);ptbl('wtb',D.w||[]);movieCharts();renderPosters();baseCharts();renderLetterboxd();renderGoodreads();renderLastfm();renderConcerts();renderTheater();renderStatus()}
+  stats();ptbl('atb',D.a);ptbl('xtb',D.x);ptbl('dtb',D.d||[]);ptbl('wtb',D.w||[]);movieCharts();renderPosters();renderLifeline();baseCharts();renderLetterboxd();renderGoodreads();renderLastfm();renderConcerts();renderTheater();renderStatus()}
 var _rzt,_lastW=window.innerWidth;
 function _rz(){clearTimeout(_rzt);_rzt=setTimeout(function(){mob=window.innerWidth<768;ch.forEach(function(c){try{c.resize()}catch(e){}})},200)}
 window.addEventListener('resize',function(){

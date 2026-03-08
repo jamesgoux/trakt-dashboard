@@ -1245,6 +1245,67 @@ if os.path.exists("data/lastfm.json"):
         data["lfm"] = json.load(f)
     print(f"  Last.fm: {data['lfm']['total']} scrobbles")
 
+# Lifeline: per-day activity from all sources (last 30 days + historical)
+from datetime import timedelta
+lifeline_days = defaultdict(lambda: {"ep": [], "mv": [], "bk": [], "sc": 0, "co": [], "th": []})
+
+# Episodes + Movies from Trakt
+for e in entries:
+    if not e.get("watched_at"): continue
+    d = e["watched_at"][:10]
+    if e["type"] == "episode":
+        name = (e.get("show_title") or "") + " S" + str(e.get("season","")) + "E" + str(e.get("episode_number",""))
+        lifeline_days[d]["ep"].append(name)
+    elif e["type"] == "movie":
+        lifeline_days[d]["mv"].append(e.get("title",""))
+
+# Books from Goodreads
+if gr_books:
+    for b in gr_books:
+        if b.get("date_read"):
+            lifeline_days[b["date_read"]]["bk"].append(b["title"])
+
+# Scrobbles from Last.fm (recent tracks have dates)
+if os.path.exists("data/lastfm.json"):
+    with open("data/lastfm.json") as f:
+        lfm_data = json.load(f)
+    for t in lfm_data.get("recent", []):
+        if t.get("d"):
+            # Parse "08 Mar 2026, 18:06" format
+            try:
+                from datetime import datetime as dt2
+                parsed = dt2.strptime(t["d"], "%d %b %Y, %H:%M")
+                d = parsed.strftime("%Y-%m-%d")
+                lifeline_days[d]["sc"] += 1
+            except: pass
+
+# Concerts
+if concerts:
+    for c in concerts:
+        if c.get("date"):
+            lifeline_days[c["date"]]["co"].append(c["artist"])
+
+# Theater
+if theater:
+    for t in theater:
+        if t.get("date"):
+            lifeline_days[t["date"][:10]]["th"].append(t["show"])
+
+# Build output: all days sorted, with details for click
+lifeline_all = {}
+for d in sorted(lifeline_days.keys()):
+    ld = lifeline_days[d]
+    if ld["ep"] or ld["mv"] or ld["bk"] or ld["sc"] or ld["co"] or ld["th"]:
+        lifeline_all[d] = {
+            "ep": len(ld["ep"]), "mv": len(ld["mv"]), "bk": len(ld["bk"]),
+            "sc": ld["sc"], "co": len(ld["co"]), "th": len(ld["th"]),
+            "d": {  # detail for click
+                "ep": ld["ep"][:15], "mv": ld["mv"][:10], "bk": ld["bk"][:5],
+                "co": ld["co"][:10], "th": ld["th"][:5]
+            }
+        }
+data["ll"] = lifeline_all
+
 data_str = json.dumps(data, separators=(',', ':'), ensure_ascii=False)
 with open("templates/dashboard.html") as f:
     template = f.read()
