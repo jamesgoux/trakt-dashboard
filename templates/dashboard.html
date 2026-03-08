@@ -49,7 +49,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
 .pn{display:flex;align-items:center;gap:10px}
 .hs{width:44px;height:44px;border-radius:50%;object-fit:cover;background:#222;flex-shrink:0}
 .hp{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#1a1a2e,#0f3460);display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--t2);font-weight:700;flex-shrink:0}
-.poster-item{text-align:center;flex-shrink:0;width:100px;transition:transform .5s ease,opacity .3s ease}
+.poster-item{text-align:center;flex-shrink:0;width:100px;transition:transform .83s ease,opacity .5s ease}
 .poster-item img{width:100px;height:150px;object-fit:cover;border-radius:6px;background:#222}
 .poster-item span{display:block;font-size:10px;color:var(--t2);margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .poster-ph{width:100px;height:150px}
@@ -623,7 +623,7 @@ function renderPosters(animate){
         if(dx||dy){
           el.style.transition='none';el.style.transform='translate('+dx+'px,'+dy+'px)';
           el.offsetHeight;// force reflow
-          el.style.transition='transform .5s ease,opacity .3s ease';el.style.transform='';
+          el.style.transition='transform .83s ease,opacity .5s ease';el.style.transform='';
         }
       }else{
         el.offsetHeight;el.style.opacity='1';
