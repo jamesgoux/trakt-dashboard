@@ -946,9 +946,16 @@ if theater:
     th_locations = Ctr2(t["location"] for t in theater if t["location"])
     th_years = Ctr2(t["year"] for t in theater)
     th_people = Ctr2()
+    th_people_shows = defaultdict(list)
+    th_theater_shows = defaultdict(list)
+    th_tag_shows = defaultdict(list)
     for t in theater:
         for tag in t["tags"]:
             th_people[tag] += 1
+            th_people_shows[tag].append(t["show"])
+            th_tag_shows[tag].append(t["show"])
+        if t["theater"]:
+            th_theater_shows[t["theater"]].append(t["show"])
     th_rated = [t for t in theater if t["rating"]]
     # Rating distribution with titles
     th_rating_dist = defaultdict(list)
@@ -964,10 +971,10 @@ if theater:
         "total": len(theater),
         "rated": len(th_rated),
         "avg": round(sum(t["rating"] for t in th_rated)/len(th_rated),1) if th_rated else 0,
-        "theaters": [{"n":t,"c":c} for t,c in th_theaters.most_common(20)],
+        "theaters": [{"n":t,"c":c,"shows":th_theater_shows[t]} for t,c in th_theaters.most_common(20)],
         "locations": [{"n":l,"c":c} for l,c in th_locations.most_common(20)],
-        "people": [{"n":p,"c":c} for p,c in th_people.most_common(20)],
-        "tags": [{"n":t,"c":c} for t,c in th_all_tags.most_common(30)],
+        "people": [{"n":p,"c":c,"shows":th_people_shows[p]} for p,c in th_people.most_common(20)],
+        "tags": [{"n":t,"c":c,"shows":th_tag_shows[t]} for t,c in th_all_tags.most_common(30)],
         "dist": [{"r":r,"c":len(ts),"titles":ts} for r,ts in sorted(th_rating_dist.items())],
         "recent": [{"show":t["show"],"date":t["date"],"yr":t["year"],"theater":t["theater"],
                     "location":t["location"],"rating":t["rating"]} for t in sorted(theater,key=lambda x:x["date"],reverse=True)[:15]],

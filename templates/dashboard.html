@@ -760,23 +760,40 @@ function renderTheater(){
     });
     ch.push(tChart);
   }else{document.getElementById('thc').innerHTML='<div style="text-align:center;color:var(--t2);padding:40px">'+th.total+' shows (no ratings)</div>'}
-  // Tags — rounded pill cloud
+  // Helper: toggle show list under a clicked row
+  function thToggle(container,key,shows,label){
+    var ex=container.querySelector('.chart-detail');
+    if(ex){var same=ex.dataset.val===key;ex.remove();if(same)return}
+    var div=document.createElement('div');div.className='chart-detail';div.dataset.val=key;
+    var h='<span class="cd-close" onclick="this.parentElement.remove()">✕</span><b>'+label+' ('+shows.length+')</b>';
+    shows.forEach(function(s){h+='<div class="cd-item"><span>'+s+'</span></div>'});
+    div.innerHTML=h;container.appendChild(div);
+  }
+  // Tags — rounded pill cloud (clickable)
   var tagsEl=document.getElementById('th-tags');
   var tags=th.tags||[];
   if(tags.length){
     var maxT=tags[0].c;var th2='<div style="display:flex;flex-wrap:wrap;gap:8px;padding:4px 0;align-items:center;justify-content:center">';
-    tags.forEach(function(t){var size=Math.max(11,Math.min(22,11+Math.round(t.c/maxT*11)));var op=(.35+t.c/maxT*.65).toFixed(2);
-      th2+='<span style="display:inline-block;font-size:'+size+'px;color:rgba(217,70,239,'+op+');background:rgba(217,70,239,'+(.06+t.c/maxT*.1).toFixed(2)+');border:1px solid rgba(217,70,239,'+(.1+t.c/maxT*.15).toFixed(2)+');border-radius:999px;padding:4px 14px;line-height:1.3;white-space:nowrap">'+t.n+' <span style="opacity:.6;font-size:'+(size-2)+'px">'+t.c+'</span></span>'});
+    tags.forEach(function(t,idx){var size=Math.max(11,Math.min(22,11+Math.round(t.c/maxT*11)));var op=(.35+t.c/maxT*.65).toFixed(2);
+      th2+='<span data-idx="'+idx+'" style="cursor:pointer;display:inline-block;font-size:'+size+'px;color:rgba(217,70,239,'+op+');background:rgba(217,70,239,'+(.06+t.c/maxT*.1).toFixed(2)+');border:1px solid rgba(217,70,239,'+(.1+t.c/maxT*.15).toFixed(2)+');border-radius:999px;padding:4px 14px;line-height:1.3;white-space:nowrap;transition:background .15s">'+t.n+' <span style="opacity:.6;font-size:'+(size-2)+'px">'+t.c+'</span></span>'});
     th2+='</div>';tagsEl.innerHTML=th2;
+    tagsEl.querySelectorAll('[data-idx]').forEach(function(el){
+      el.addEventListener('click',function(){var t=tags[parseInt(el.dataset.idx)];if(t&&t.shows&&t.shows.length)thToggle(tagsEl,t.n,t.shows,t.n)});
+      el.addEventListener('mouseenter',function(){el.style.background='rgba(217,70,239,0.25)'});
+      el.addEventListener('mouseleave',function(){el.style.background=''})});
   }else{tagsEl.innerHTML='<div style="text-align:center;color:var(--t2);padding:20px">No tags yet</div>'}
-  // Top Theaters
+  // Top Theaters (clickable rows)
   var venuesEl=document.getElementById('th-venues');
   var theaters=th.theaters||[];
-  if(theaters.length){var vh='<table><tbody>';theaters.slice(0,10).forEach(function(t,i){vh+='<tr><td style="color:var(--t2);font-size:10px;padding-right:8px">'+(i+1)+'</td><td style="font-weight:600">'+t.n+'</td><td class="nm nm-o">'+t.c+'</td></tr>'});vh+='</tbody></table>';venuesEl.innerHTML=vh}else{venuesEl.innerHTML='<div style="text-align:center;color:var(--t2);padding:20px">No theater data</div>'}
-  // Companions
+  if(theaters.length){var vh='<table><tbody>';theaters.slice(0,10).forEach(function(t,i){vh+='<tr data-idx="'+i+'" style="cursor:pointer"><td style="color:var(--t2);font-size:10px;padding-right:8px">'+(i+1)+'</td><td style="font-weight:600">'+t.n+'</td><td class="nm nm-o">'+t.c+'</td></tr>'});vh+='</tbody></table>';venuesEl.innerHTML=vh;
+    venuesEl.querySelectorAll('tr[data-idx]').forEach(function(el){el.addEventListener('click',function(){var t=theaters[parseInt(el.dataset.idx)];if(t&&t.shows&&t.shows.length)thToggle(venuesEl,t.n,t.shows,t.n)})});
+  }else{venuesEl.innerHTML='<div style="text-align:center;color:var(--t2);padding:20px">No theater data</div>'}
+  // Companions (clickable rows)
   var compEl=document.getElementById('th-companions');
   var people=th.people||[];
-  if(people.length){var ph='<table><tbody>';people.slice(0,10).forEach(function(p,i){ph+='<tr><td style="color:var(--t2);font-size:10px;padding-right:8px">'+(i+1)+'</td><td style="font-weight:600">'+p.n+'</td><td class="nm nm-p">'+p.c+'</td></tr>'});ph+='</tbody></table>';compEl.innerHTML=ph}else{compEl.innerHTML='<div style="text-align:center;color:var(--t2);padding:20px">No companion data</div>'}
+  if(people.length){var ph='<table><tbody>';people.slice(0,10).forEach(function(p,i){ph+='<tr data-idx="'+i+'" style="cursor:pointer"><td style="color:var(--t2);font-size:10px;padding-right:8px">'+(i+1)+'</td><td style="font-weight:600">'+p.n+'</td><td class="nm nm-p">'+p.c+'</td></tr>'});ph+='</tbody></table>';compEl.innerHTML=ph;
+    compEl.querySelectorAll('tr[data-idx]').forEach(function(el){el.addEventListener('click',function(){var p=people[parseInt(el.dataset.idx)];if(p&&p.shows&&p.shows.length)thToggle(compEl,p.n,p.shows,p.n)})});
+  }else{compEl.innerHTML='<div style="text-align:center;color:var(--t2);padding:20px">No companion data</div>'}
 }
 
 function renderStatus(){
@@ -919,7 +936,7 @@ function processMezzanine(lines,headers){
   var tagsIdx=headers.indexOf('customTags');
   var ratingIdx=headers.indexOf('rating');
   var total=0;
-  var theaters={};var people={};var dist={};var tags={};
+  var theaters={};var theaterShows={};var people={};var peopleShows={};var dist={};var tags={};var tagShows={};
   for(var i=1;i<lines.length;i++){
     var cols=parseCSVLine(lines[i]);
     if(!cols||cols.length<=showIdx)continue;
@@ -927,15 +944,15 @@ function processMezzanine(lines,headers){
     var theater=cols[theaterIdx]||'';
     var rating=cols[ratingIdx]||'';
     var ctags=(cols[tagsIdx]||'').split(',').map(function(t){return t.trim()}).filter(Boolean);
-    if(theater){theaters[theater]=(theaters[theater]||0)+1}
-    ctags.forEach(function(t){people[t]=(people[t]||0)+1;tags[t]=(tags[t]||0)+1});
+    if(theater){theaters[theater]=(theaters[theater]||0)+1;if(!theaterShows[theater])theaterShows[theater]=[];theaterShows[theater].push(show)}
+    ctags.forEach(function(t){people[t]=(people[t]||0)+1;tags[t]=(tags[t]||0)+1;if(!peopleShows[t])peopleShows[t]=[];peopleShows[t].push(show);if(!tagShows[t])tagShows[t]=[];tagShows[t].push(show)});
     if(rating){var r=parseFloat(rating);if(!isNaN(r)){var rk=String(r);if(!dist[rk])dist[rk]={r:rk,c:0,titles:[]};dist[rk].c++;dist[rk].titles.push(show)}}
   }
   // Update D.th
   var distArr=Object.values(dist).sort(function(a,b){return parseFloat(a.r)-parseFloat(b.r)});
-  var theaterArr=Object.entries(theaters).sort(function(a,b){return b[1]-a[1]}).map(function(e){return{n:e[0],c:e[1]}});
-  var peopleArr=Object.entries(people).sort(function(a,b){return b[1]-a[1]}).map(function(e){return{n:e[0],c:e[1]}});
-  var tagsArr=Object.entries(tags).sort(function(a,b){return b[1]-a[1]}).map(function(e){return{n:e[0],c:e[1]}});
+  var theaterArr=Object.entries(theaters).sort(function(a,b){return b[1]-a[1]}).map(function(e){return{n:e[0],c:e[1],shows:theaterShows[e[0]]||[]}});
+  var peopleArr=Object.entries(people).sort(function(a,b){return b[1]-a[1]}).map(function(e){return{n:e[0],c:e[1],shows:peopleShows[e[0]]||[]}});
+  var tagsArr=Object.entries(tags).sort(function(a,b){return b[1]-a[1]}).map(function(e){return{n:e[0],c:e[1],shows:tagShows[e[0]]||[]}});
   var rated=distArr.reduce(function(s,d){return s+d.c},0);
   var avgSum=distArr.reduce(function(s,d){return s+parseFloat(d.r)*d.c},0);
   D.th={total:total,rated:rated,avg:rated?Math.round(avgSum/rated*10)/10:0,theaters:theaterArr,people:peopleArr,tags:tagsArr,dist:distArr,locations:[],recent:[]};
