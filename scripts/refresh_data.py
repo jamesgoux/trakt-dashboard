@@ -987,6 +987,7 @@ if theater:
         "dist": [{"r":r,"c":len(ts),"titles":ts} for r,ts in sorted(th_rating_dist.items())],
         "recent": [{"show":t["show"],"date":t["date"],"yr":t["year"],"theater":t["theater"],
                     "location":t["location"],"rating":t["rating"]} for t in sorted(theater,key=lambda x:x["date"],reverse=True)[:15]],
+        "all": [{"s":t["show"],"y":t["year"],"t":t["theater"],"r":t["rating"],"g":t["tags"]} for t in theater],
     }
 
 # Add concert + theater monthly/yearly counts to chart data

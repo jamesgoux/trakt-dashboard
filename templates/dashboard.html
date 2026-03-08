@@ -743,19 +743,38 @@ function renderTheater(){
   var th=D.th;var wrap=document.getElementById('th-wrap');
   if(!th||!th.total){wrap.style.display='none';return}
   wrap.style.display='';
-  // Rating distribution (clickable to show titles)
-  var dist=th.dist||[];
+  // Filter by year if set
+  var allE=th.all||[];
+  var entries=cy==='all'?allE:allE.filter(function(e){return e.y===cy});
+  if(entries.length===0&&cy!=='all'){wrap.style.display='none';return}
+  var compSet={};(th.companions||[]).forEach(function(c){compSet[c]=true});
+  // Recompute from filtered entries
+  var dist={},theaters={},theaterShows={},tags={},tagShows={},people={},peopleShows={};
+  var total=entries.length,rated=0,rSum=0;
+  entries.forEach(function(e){
+    if(e.r){rated++;rSum+=e.r;var rk=String(e.r);if(!dist[rk])dist[rk]={r:rk,c:0,titles:[]};dist[rk].c++;dist[rk].titles.push(e.s)}
+    if(e.t){theaters[e.t]=(theaters[e.t]||0)+1;if(!theaterShows[e.t])theaterShows[e.t]=[];theaterShows[e.t].push(e.s)}
+    (e.g||[]).forEach(function(tag){
+      if(compSet[tag]){people[tag]=(people[tag]||0)+1;if(!peopleShows[tag])peopleShows[tag]=[];peopleShows[tag].push(e.s)}
+      else{tags[tag]=(tags[tag]||0)+1;if(!tagShows[tag])tagShows[tag]=[];tagShows[tag].push(e.s)}
+    });
+  });
+  var distArr=Object.values(dist).sort(function(a,b){return parseFloat(a.r)-parseFloat(b.r)});
+  var avg=rated?Math.round(rSum/rated*10)/10:0;
+  var theaterArr=Object.entries(theaters).sort(function(a,b){return b[1]-a[1]}).map(function(e){return{n:e[0],c:e[1],shows:theaterShows[e[0]]}});
+  var tagArr=Object.entries(tags).sort(function(a,b){return b[1]-a[1]}).map(function(e){return{n:e[0],c:e[1],shows:tagShows[e[0]]}});
+  var pplArr=Object.entries(people).sort(function(a,b){return b[1]-a[1]}).map(function(e){return{n:e[0],c:e[1],shows:peopleShows[e[0]]}});
+  // Rating distribution chart
   var tChart=echarts.init(document.getElementById('thc'));
-  if(dist.length>0){
+  if(distArr.length>0){
     tChart.setOption({tooltip:{trigger:mob?'item':'axis',axisPointer:{type:'shadow'},...tt,formatter:function(p){return tp(p).name+': '+tp(p).value+' shows'}},
       grid:{left:50,right:20,top:30,bottom:24},
-      title:{text:th.total+' shows, '+th.rated+' rated ('+th.avg+'★ avg)',left:'center',top:0,textStyle:{color:'#999',fontSize:11,fontWeight:'normal'}},
-      xAxis:{type:'category',data:dist.map(function(d){return d.r+'★'}),axisLabel:{color:'#ccc'},axisLine:{lineStyle:{color:'#333'}}},
+      title:{text:total+' shows, '+rated+' rated ('+avg+'★ avg)'+(cy!=='all'?' ('+cy+')':''),left:'center',top:0,textStyle:{color:'#999',fontSize:11,fontWeight:'normal'}},
+      xAxis:{type:'category',data:distArr.map(function(d){return d.r+'★'}),axisLabel:{color:'#ccc'},axisLine:{lineStyle:{color:'#333'}}},
       yAxis:{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},
-      series:[{type:'bar',data:dist.map(function(d){return{value:d.c,itemStyle:{color:parseFloat(d.r)>=4?'#d946ef':parseFloat(d.r)>=3?'#a78bfa':'#fb923c'}}}),barMaxWidth:30,label:{show:true,position:'top',color:'#999',fontSize:10}}]});
-    // Click to show titles for that rating
+      series:[{type:'bar',data:distArr.map(function(d){return{value:d.c,itemStyle:{color:parseFloat(d.r)>=4?'#d946ef':parseFloat(d.r)>=3?'#a78bfa':'#fb923c'}}}),barMaxWidth:30,label:{show:true,position:'top',color:'#999',fontSize:10}}]});
     tChart.on('click',function(p){
-      var d=dist[p.dataIndex];if(!d||!d.titles)return;
+      var d=distArr[p.dataIndex];if(!d||!d.titles)return;
       var el=document.getElementById('thc');
       var ex=el.parentElement.querySelector('.chart-detail');if(ex){ex.remove();if(ex.dataset.val===d.r)return}
       var div=document.createElement('div');div.className='chart-detail';div.dataset.val=d.r;
@@ -764,7 +783,7 @@ function renderTheater(){
       div.innerHTML=h2;el.parentElement.appendChild(div);
     });
     ch.push(tChart);
-  }else{document.getElementById('thc').innerHTML='<div style="text-align:center;color:var(--t2);padding:40px">'+th.total+' shows (no ratings)</div>'}
+  }else{document.getElementById('thc').innerHTML='<div style="text-align:center;color:var(--t2);padding:40px">'+total+' shows'+(rated?'':' (no ratings)')+(cy!=='all'?' in '+cy:'')+'</div>'}
   // Helper: show detail panel on chart click (same pattern as ratings)
   function thDetail(elId,data,idx){
     var d=data[idx];if(!d||!d.shows||!d.shows.length)return;
@@ -776,9 +795,8 @@ function renderTheater(){
     div.innerHTML=h;el.parentElement.appendChild(div);
   }
   // Tags — ECharts horizontal bar (clickable)
-  var tags=th.tags||[];
-  if(tags.length){
-    var tagSlice=tags.slice(0,15).reverse();
+  if(tagArr.length){
+    var tagSlice=tagArr.slice(0,15).reverse();
     var tagChart=echarts.init(document.getElementById('th-tags'));
     tagChart.setOption({tooltip:{trigger:mob?'item':'axis',axisPointer:{type:'shadow'},...tt,formatter:function(p){return'<b>'+tp(p).name+'</b>: '+tp(p).value}},
       grid:{left:gl(110),right:30,top:8,bottom:8},
@@ -789,9 +807,8 @@ function renderTheater(){
     ch.push(tagChart);
   }else{document.getElementById('th-tags').innerHTML='<div style="text-align:center;color:var(--t2);padding:40px">No tags yet</div>'}
   // Top Theaters — ECharts horizontal bar (clickable)
-  var theaters=th.theaters||[];
-  if(theaters.length){
-    var venSlice=theaters.slice(0,10).reverse();
+  if(theaterArr.length){
+    var venSlice=theaterArr.slice(0,10).reverse();
     var venChart=echarts.init(document.getElementById('th-venues'));
     venChart.setOption({tooltip:{trigger:mob?'item':'axis',axisPointer:{type:'shadow'},...tt,formatter:function(p){return'<b>'+tp(p).name+'</b>: '+tp(p).value+' shows'}},
       grid:{left:gl(140),right:30,top:8,bottom:8},
@@ -802,9 +819,8 @@ function renderTheater(){
     ch.push(venChart);
   }else{document.getElementById('th-venues').innerHTML='<div style="text-align:center;color:var(--t2);padding:40px">No theater data</div>'}
   // Companions — ECharts horizontal bar (clickable)
-  var people=th.people||[];
-  if(people.length){
-    var pplSlice=people.slice(0,10).reverse();
+  if(pplArr.length){
+    var pplSlice=pplArr.slice(0,10).reverse();
     var pplChart=echarts.init(document.getElementById('th-companions'));
     pplChart.setOption({tooltip:{trigger:mob?'item':'axis',axisPointer:{type:'shadow'},...tt,formatter:function(p){return'<b>'+tp(p).name+'</b>: '+tp(p).value+' shows'}},
       grid:{left:gl(90),right:30,top:8,bottom:8},
