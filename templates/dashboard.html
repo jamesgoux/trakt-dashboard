@@ -25,7 +25,7 @@ body{background:var(--bg);color:var(--tx);font-family:-apple-system,BlinkMacSyst
 .rbtn{background:none;border:1px solid rgba(255,255,255,.1);color:var(--t2);border-radius:8px;padding:10px 14px;font-size:16px;cursor:pointer;min-height:44px}
 .sg{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:22px}
 .sc{background:var(--sf);border-radius:10px;padding:14px 12px;text-align:center;border:1px solid rgba(255,255,255,.06)}
-.sc .v{font-size:26px;font-weight:800;line-height:1.1}.sc .l{font-size:10px;color:var(--t2);margin-top:3px;text-transform:uppercase;letter-spacing:.5px}
+.sc .v{font-size:26px;font-weight:800;line-height:1.1}.sc .l{font-size:10px;color:var(--t2);margin-top:3px;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap}
 .g2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
 .g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px}
 .fw{grid-column:1/-1}
@@ -263,10 +263,10 @@ function tmatch(type){return ct==='all'||(ct==='movie'&&type==='movie')||(ct==='
 
 function stats(){
   var el=document.getElementById('st');
-  if(cy==='all'&&ct==='all'){var s=D.c.s;var h2='<div class="sc"><div class="v" style="color:var(--gr)">'+s.total_watches.toLocaleString()+'</div><div class="l">Watches</div></div><div class="sc"><div class="v" style="color:var(--ac)">'+s.unique_movies+'</div><div class="l">Movies</div></div><div class="sc"><div class="v" style="color:var(--pu)">'+s.unique_shows+'</div><div class="l">Shows</div></div><div class="sc"><div class="v" style="color:var(--or)">'+s.total_runtime_days+'</div><div class="l">Days</div></div>';
-    if(D.gr&&D.gr.total)h2+='<div class="sc"><div class="v" style="color:#22d3ee">'+D.gr.total+'</div><div class="l">Books</div></div><div class="sc"><div class="v" style="color:#22d3ee">'+D.gr.total_pages.toLocaleString()+'</div><div class="l">Pages</div></div>';
-    if(D.con&&D.con.total)h2+='<div class="sc"><div class="v" style="color:#fb923c">'+D.con.total+'</div><div class="l">Concerts</div></div>';
-    if(D.th&&D.th.total)h2+='<div class="sc"><div class="v" style="color:#d946ef">'+D.th.total+'</div><div class="l">Plays</div></div>';
+  if(cy==='all'&&ct==='all'){var s=D.c.s;var h2='<div class="sc"><div class="v" style="color:var(--gr)">'+s.total_watches.toLocaleString()+'</div><div class="l">👁️ Watches</div></div><div class="sc"><div class="v" style="color:var(--ac)">'+s.unique_movies+'</div><div class="l">🎞️ Movies</div></div><div class="sc"><div class="v" style="color:var(--pu)">'+s.unique_shows+'</div><div class="l">📺 Shows</div></div><div class="sc"><div class="v" style="color:var(--or)">'+s.total_runtime_days+'</div><div class="l">⏱️ Days</div></div>';
+    if(D.gr&&D.gr.total)h2+='<div class="sc"><div class="v" style="color:#22d3ee">'+D.gr.total+'</div><div class="l">📚 Books</div></div><div class="sc"><div class="v" style="color:#22d3ee">'+D.gr.total_pages.toLocaleString()+'</div><div class="l">📖 Pages</div></div>';
+    if(D.con&&D.con.total)h2+='<div class="sc"><div class="v" style="color:#fb923c">'+D.con.total+'</div><div class="l">🎸 Concerts</div></div>';
+    if(D.th&&D.th.total)h2+='<div class="sc"><div class="v" style="color:#d946ef">'+D.th.total+'</div><div class="l">🎭 Plays</div></div>';
     el.innerHTML=h2}
   else{var mw=0,ew=0;D.c.m.filter(function(m){return cy==='all'||m.month.startsWith(cy)}).forEach(function(m){mw+=m.movies;ew+=m.episodes});
     if(ct==='movie'){el.innerHTML='<div class="sc"><div class="v" style="color:var(--gr)">'+mw.toLocaleString()+'</div><div class="l">'+(cy!=='all'?cy+' ':'')+'Movies</div></div>'}
