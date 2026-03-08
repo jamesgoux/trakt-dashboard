@@ -1288,8 +1288,8 @@ if LASTFM_KEY and LASTFM_USER:
             url = f"https://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user={LASTFM_USER}&api_key={LASTFM_KEY}&format=json&limit=200&from={fr}&to={to}"
             req = urlreq.Request(url, headers={"User-Agent": "Iris/1.0"})
             with urlreq.urlopen(req, timeout=10) as resp:
-                data = json.loads(resp.read())
-            tracks = data.get("recenttracks", {}).get("track", [])
+                lfm_resp = json.loads(resp.read())
+            tracks = lfm_resp.get("recenttracks", {}).get("track", [])
             for t in tracks:
                 if not t.get("date"): continue
                 try:
