@@ -1265,19 +1265,51 @@ if gr_books:
         if b.get("date_read"):
             lifeline_days[b["date_read"]]["bk"].append(b["title"])
 
-# Scrobbles from Last.fm (recent tracks have dates)
+# Scrobbles from Last.fm
 if os.path.exists("data/lastfm.json"):
     with open("data/lastfm.json") as f:
         lfm_data = json.load(f)
+    # Exact counts from recent tracks
+    exact_sc_days = set()
     for t in lfm_data.get("recent", []):
         if t.get("d"):
-            # Parse "08 Mar 2026, 18:06" format
             try:
                 from datetime import datetime as dt2
                 parsed = dt2.strptime(t["d"], "%d %b %Y, %H:%M")
                 d = parsed.strftime("%Y-%m-%d")
                 lifeline_days[d]["sc"] += 1
+                exact_sc_days.add(d)
             except: pass
+    # Approximate from weekly totals for days without exact data
+    for w in lfm_data.get("weekly", []):
+        if w.get("week") and w.get("c"):
+            try:
+                wk_start = datetime.strptime(w["week"], "%Y-%m-%d")
+                daily = max(1, w["c"] // 7)
+                for i in range(7):
+                    d = (wk_start + timedelta(days=i)).strftime("%Y-%m-%d")
+                    if d not in exact_sc_days:
+                        lifeline_days[d]["sc"] += daily
+            except: pass
+    # Approximate from monthly totals for older months not covered by weekly
+    weekly_dates = set()
+    for w in lfm_data.get("weekly", []):
+        if w.get("week"):
+            try:
+                ws = datetime.strptime(w["week"], "%Y-%m-%d")
+                for i in range(7): weekly_dates.add((ws + timedelta(days=i)).strftime("%Y-%m-%d"))
+            except: pass
+    for m in lfm_data.get("monthly", []):
+        if m.get("m") and m.get("s"):
+            mo = m["m"]
+            daily = max(1, m["s"] // 30)
+            for day in range(1, 32):
+                try:
+                    d = f"{mo}-{day:02d}"
+                    datetime.strptime(d, "%Y-%m-%d")  # validate date
+                    if d not in exact_sc_days and d not in weekly_dates:
+                        lifeline_days[d]["sc"] += daily
+                except: pass
 
 # Concerts
 if concerts:
