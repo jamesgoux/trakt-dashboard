@@ -652,7 +652,7 @@ function renderLetterboxd(){
   }
 
   var pplColors=['#e94560','#60a5fa','#a78bfa','#fb923c','#4ade80','#f472b6','#38bdf8','#fbbf24','#34d399','#f87171'];
-  var locColors=['#4ade80','#e94560','#60a5fa','#fb923c'];
+  var locColors=['#4ade80','#f472b6','#e94560','#60a5fa','#fb923c'];
   var strColors=['#e94560','#60a5fa','#a78bfa','#fb923c','#4ade80','#f472b6','#38bdf8','#fbbf24'];
   var devColors=['#60a5fa','#a78bfa','#fb923c','#4ade80','#e94560','#f472b6','#38bdf8','#fbbf24'];
 
@@ -669,19 +669,16 @@ function renderLetterboxd(){
     if(locInst){locInst.on('click',function(p){
       var group=p.name;var locdData=tags.locd||{};
       var detail=cy!=='all'&&locdData.y&&locdData.y[cy]?locdData.y[cy]:(locdData.all||[]);
-      // Filter detail items that belong to this group
-      var TC_home=["home (mdr)","home","moms","dads house","gassmans","lindsays","isabels","mdr-temp-house","home (quarantine)","coolidge-virtual","quarantine"];
-      var TC_travel=["airplane","in-flight","airline","hotel","train","cdmx","puerto-vallerta","vacation","india","mumbai"];
+      // Classify detail items by group using tag_categories
+      var TC=D.tc||{};
+      var homeS={};(TC.home||[]).forEach(function(h){homeS[h.toLowerCase()]=true});homeS['quarantine']=true;homeS['home (quarantine)']=true;
+      var famS={};(TC.family||[]).forEach(function(h){famS[h.toLowerCase()]=true});
+      var travS={};(TC.travel||[]).forEach(function(h){travS[h.toLowerCase()]=true});
       var matches=[];
       detail.forEach(function(d){
         var tl=d.n.toLowerCase();
-        var isHome=TC_home.some(function(h){return tl===h.toLowerCase()});
-        var isTravel=TC_travel.some(function(h){return tl===h.toLowerCase()});
-        var isTheater=!isHome&&!isTravel&&d.n!=='other';
-        if(group==='home'&&isHome)matches.push(d);
-        else if(group==='theater'&&isTheater)matches.push(d);
-        else if(group==='travel'&&isTravel)matches.push(d);
-        else if(group==='other'&&d.n==='other')matches.push(d);
+        var cat=homeS[tl]?'home':famS[tl]?'family/friends':travS[tl]?'travel':tl==='other'?'other':'theater';
+        if(cat===group)matches.push(d);
       });
       if(!matches.length)return;
       var ex=locEl.parentElement.querySelector('.chart-detail');if(ex)ex.remove();
@@ -711,18 +708,15 @@ function renderLetterboxd(){
         if(locInst2){locInst2.on('click',function(p){
           var group=p.name;var locdData=tags.locd||{};
           var detail=cy!=='all'&&locdData.y&&locdData.y[cy]?locdData.y[cy]:(locdData.all||[]);
-          var TC_home=["home (mdr)","home","moms","dads house","gassmans","lindsays","isabels","mdr-temp-house","home (quarantine)","coolidge-virtual","quarantine"];
-          var TC_travel=["airplane","in-flight","airline","hotel","train","cdmx","puerto-vallerta","vacation","india","mumbai"];
+          var TC=D.tc||{};
+          var homeS={};(TC.home||[]).forEach(function(h){homeS[h.toLowerCase()]=true});homeS['quarantine']=true;homeS['home (quarantine)']=true;
+          var famS={};(TC.family||[]).forEach(function(h){famS[h.toLowerCase()]=true});
+          var travS={};(TC.travel||[]).forEach(function(h){travS[h.toLowerCase()]=true});
           var matches=[];
           detail.forEach(function(d){
             var tl=d.n.toLowerCase();
-            var isHome=TC_home.some(function(h){return tl===h.toLowerCase()});
-            var isTravel=TC_travel.some(function(h){return tl===h.toLowerCase()});
-            var isTheater=!isHome&&!isTravel&&d.n!=='other';
-            if(group==='home'&&isHome)matches.push(d);
-            else if(group==='theater'&&isTheater)matches.push(d);
-            else if(group==='travel'&&isTravel)matches.push(d);
-            else if(group==='other'&&d.n==='other')matches.push(d);
+            var cat=homeS[tl]?'home':famS[tl]?'family/friends':travS[tl]?'travel':tl==='other'?'other':'theater';
+            if(cat===group)matches.push(d);
           });
           if(!matches.length)return;
           var ex=locEl2.parentElement.querySelector('.chart-detail');if(ex)ex.remove();

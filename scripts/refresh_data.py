@@ -712,11 +712,13 @@ tag_cats = {}
 if os.path.exists("data/tag_categories.json"):
     with open("data/tag_categories.json") as f:
         tag_cats = json.load(f)
+data["tc"] = tag_cats  # tag categories for JS classification
 
 # Build categorized tag data by year
 def categorize_tags(lb_data, tag_cats):
     people_set = set(t.lower() for t in tag_cats.get("people", []))
     home_set = set(t.lower() for t in tag_cats.get("home", []))
+    family_set = set(t.lower() for t in tag_cats.get("family", []))
     theater_set = set(t.lower() for t in tag_cats.get("theater", []))
     travel_set = set(t.lower() for t in tag_cats.get("travel", []))
     streaming_set = set(t.lower() for t in tag_cats.get("streaming", []))
@@ -776,21 +778,24 @@ def categorize_tags(lb_data, tag_cats):
             people_y[yr]["solo"] += 1
             people_all["solo"] += 1
 
-        # Location (simple)
+        # Location (simple) — first matching tag wins (no double counting)
         has_loc = False
         for t in tags:
             if t in home_set or t == "quarantine":
                 loc_y[yr]["home"] += 1; loc_all["home"] += 1; has_loc = True; break
+            elif t in family_set:
+                loc_y[yr]["family/friends"] += 1; loc_all["family/friends"] += 1; has_loc = True; break
             elif t in theater_set:
                 loc_y[yr]["theater"] += 1; loc_all["theater"] += 1; has_loc = True; break
             elif t in travel_set:
                 loc_y[yr]["travel"] += 1; loc_all["travel"] += 1; has_loc = True; break
         if not has_loc:
             loc_y[yr]["other"] += 1; loc_all["other"] += 1
-        # Location detail (individual venues)
+        # Location detail (individual venues) — first matching tag wins
         loc_found = False
+        all_loc_tags = home_set | family_set | theater_set | travel_set
         for t in tags:
-            if t in home_set or t == "quarantine" or t in theater_set or t in travel_set:
+            if t in all_loc_tags or t == "quarantine":
                 display = t.replace("quarantine", "home (quarantine)")
                 loc_detail_y[yr][display] += 1; loc_detail_all[display] += 1; loc_found = True; break
         if not loc_found:
@@ -814,23 +819,30 @@ def categorize_tags(lb_data, tag_cats):
         title = wt2["title"]
         yr2 = wt2["yr"]
         item = {"t": title, "wy": [yr2]}
+        loc_assigned = False
         for t in tags:
             if t in streaming_set:
                 cat_titles["stream"][t].append(item)
             if t in device_set:
                 cat_titles["dev"][t].append(item)
-            is_loc = False
-            if t in home_set or t == "quarantine":
-                cat_titles["loc"]["home"].append(item)
-                is_loc = True
-            if t in theater_set:
-                cat_titles["loc"]["theater"].append(item)
-                is_loc = True
-            if t in travel_set:
-                cat_titles["loc"]["travel"].append(item)
-                is_loc = True
-            if is_loc:
-                cat_titles["locd"][t.lower()].append(item)
+            # Location: only first match (no double counting)
+            if not loc_assigned:
+                if t in home_set or t == "quarantine":
+                    cat_titles["loc"]["home"].append(item)
+                    cat_titles["locd"][t.lower()].append(item)
+                    loc_assigned = True
+                elif t in family_set:
+                    cat_titles["loc"]["family/friends"].append(item)
+                    cat_titles["locd"][t.lower()].append(item)
+                    loc_assigned = True
+                elif t in theater_set:
+                    cat_titles["loc"]["theater"].append(item)
+                    cat_titles["locd"][t.lower()].append(item)
+                    loc_assigned = True
+                elif t in travel_set:
+                    cat_titles["loc"]["travel"].append(item)
+                    cat_titles["locd"][t.lower()].append(item)
+                    loc_assigned = True
             # People: track titles per person
             if t.startswith("with ") or t in people_set:
                 display = t.replace("with ", "").strip()
