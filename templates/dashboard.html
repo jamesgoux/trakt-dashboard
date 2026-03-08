@@ -187,11 +187,11 @@ body{overflow-x:hidden}
 <div class="cd s-g"><h3><span class="i">🏛️</span>Theaters, Tags &amp; Companions</h3><div class="stb" id="th-detail" style="font-size:12px"></div></div>
 </div>
 <div class="cd fw s-g" style="margin-top:14px">
-<h3><span class="i">📤</span>Update Letterboxd Tags</h3>
-<p style="color:var(--t2);font-size:12px;margin-bottom:10px">Export your diary from <a href="https://letterboxd.com/settings/data/" target="_blank" style="color:var(--bl)">letterboxd.com/settings/data</a>, then drop diary.csv here to update tags instantly.</p>
+<h3><span class="i">📤</span>Import Data</h3>
+<p style="color:var(--t2);font-size:12px;margin-bottom:10px">Drop a CSV to update — auto-detects <b>Letterboxd</b> diary or <b>Mezzanine</b> theater diary.</p>
 <div id="csv-drop" style="border:2px dashed rgba(255,255,255,.1);border-radius:8px;padding:30px;text-align:center;cursor:pointer;color:var(--t2);font-size:13px;transition:border-color .2s">
 <input type="file" id="csv-file" accept=".csv" style="display:none">
-Drop diary.csv here or <span style="color:var(--bl);text-decoration:underline">click to browse</span>
+Drop CSV here or <span style="color:var(--bl);text-decoration:underline">click to browse</span>
 </div>
 <div id="csv-status" style="margin-top:8px;font-size:11px;color:var(--t2)"></div>
 </div>
@@ -782,6 +782,12 @@ function processCSV(file){
     var text=e.target.result;
     var lines=text.split('\n');
     var headers=lines[0].split(',').map(function(h){return h.trim().replace(/"/g,'')});
+
+    // Auto-detect: Mezzanine has "show" and "theater" columns
+    if(headers.indexOf('show')>=0&&headers.indexOf('theater')>=0){
+      processMezzanine(lines,headers);return;
+    }
+
     var tagIdx=headers.indexOf('Tags');
     var nameIdx=headers.indexOf('Name');
     var yearIdx=headers.indexOf('Year');
@@ -860,6 +866,38 @@ function parseCSVLine(line){
   }
   result.push(current.trim());
   return result;
+}
+
+function processMezzanine(lines,headers){
+  var showIdx=headers.indexOf('show');
+  var dateIdx=headers.indexOf('date');
+  var theaterIdx=headers.indexOf('theater');
+  var locIdx=headers.indexOf('location');
+  var tagsIdx=headers.indexOf('customTags');
+  var ratingIdx=headers.indexOf('rating');
+  var total=0;
+  var theaters={};var people={};var dist={};var tags={};
+  for(var i=1;i<lines.length;i++){
+    var cols=parseCSVLine(lines[i]);
+    if(!cols||cols.length<=showIdx)continue;
+    var show=cols[showIdx]||'';if(!show)continue;total++;
+    var theater=cols[theaterIdx]||'';
+    var rating=cols[ratingIdx]||'';
+    var ctags=(cols[tagsIdx]||'').split(',').map(function(t){return t.trim()}).filter(Boolean);
+    if(theater){theaters[theater]=(theaters[theater]||0)+1}
+    ctags.forEach(function(t){people[t]=(people[t]||0)+1;tags[t]=(tags[t]||0)+1});
+    if(rating){var r=parseFloat(rating);if(!isNaN(r)){var rk=String(r);if(!dist[rk])dist[rk]={r:rk,c:0,titles:[]};dist[rk].c++;dist[rk].titles.push(show)}}
+  }
+  // Update D.th
+  var distArr=Object.values(dist).sort(function(a,b){return parseFloat(a.r)-parseFloat(b.r)});
+  var theaterArr=Object.entries(theaters).sort(function(a,b){return b[1]-a[1]}).map(function(e){return{n:e[0],c:e[1]}});
+  var peopleArr=Object.entries(people).sort(function(a,b){return b[1]-a[1]}).map(function(e){return{n:e[0],c:e[1]}});
+  var tagsArr=Object.entries(tags).sort(function(a,b){return b[1]-a[1]}).map(function(e){return{n:e[0],c:e[1]}});
+  var rated=distArr.reduce(function(s,d){return s+d.c},0);
+  var avgSum=distArr.reduce(function(s,d){return s+parseFloat(d.r)*d.c},0);
+  D.th={total:total,rated:rated,avg:rated?Math.round(avgSum/rated*10)/10:0,theaters:theaterArr,people:peopleArr,tags:tagsArr,dist:distArr,locations:[],recent:[]};
+  stat.innerHTML='<span style="color:var(--gr)">✓</span> Imported '+total+' theater shows. Charts updated!<br><span style="color:var(--t2)">To persist: push CSV to data/mezzanine.csv in your GitHub repo.</span>';
+  renderTheater();
 }
 })();
 </script></body></html>
