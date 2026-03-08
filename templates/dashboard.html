@@ -825,9 +825,11 @@ function renderStatus(){
 }
 
 function render(){ch.forEach(function(c){try{c.dispose()}catch(e){}});ch=[];stats();ptbl('atb',D.a);ptbl('xtb',D.x);ptbl('dtb',D.d||[]);ptbl('wtb',D.w||[]);showCharts();movieCharts();renderPosters();baseCharts();renderLetterboxd();renderConcerts();renderTheater();renderStatus()}
-var _rzt;function _rz(){clearTimeout(_rzt);_rzt=setTimeout(function(){mob=window.innerWidth<768;ch.forEach(function(c){try{c.resize()}catch(e){}})},250)}
-window.addEventListener('resize',_rz);
-window.addEventListener('orientationchange',function(){setTimeout(_rz,300)});
+var _rzt,_lastW=window.innerWidth;
+function _rz(){clearTimeout(_rzt);_rzt=setTimeout(function(){mob=window.innerWidth<768;ch.forEach(function(c){try{c.resize()}catch(e){}})},200)}
+window.addEventListener('resize',function(){
+  var w=window.innerWidth;if(Math.abs(w-_lastW)>50){_lastW=w;clearTimeout(_rzt);_rzt=setTimeout(function(){mob=window.innerWidth<768;render()},400)}else{_rz()}
+});
 window.addEventListener('hashchange',function(){readHash();render()});
 render();
 
