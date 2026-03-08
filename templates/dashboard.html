@@ -265,8 +265,8 @@ function tmatch(type){return ct==='all'||(ct==='movie'&&type==='movie')||(ct==='
 function stats(){
   var el=document.getElementById('st');
   if(cy==='all'&&ct==='all'){var s=D.c.s;var h2='<div class="sc"><div class="v" style="color:var(--gr)">'+s.total_watches.toLocaleString()+'</div><div class="l">👁️ Watches</div></div><div class="sc"><div class="v" style="color:var(--or)">'+s.total_runtime_days+'</div><div class="l">⏱️ Days</div></div><div class="sc"><div class="v" style="color:var(--ac)">'+s.unique_movies+'</div><div class="l">🎞️ Movies</div></div><div class="sc"><div class="v" style="color:var(--pu)">'+s.unique_shows+'</div><div class="l">📺 Shows</div></div><div class="sc"><div class="v" style="color:var(--bl)">'+s.episode_watches.toLocaleString()+'</div><div class="l">🔢 Episodes</div></div>';
-    if(D.gr&&D.gr.total)h2+='<div class="sc"><div class="v" style="color:#22d3ee">'+D.gr.total+'</div><div class="l">📚 Books</div></div><div class="sc"><div class="v" style="color:#22d3ee">'+D.gr.total_pages.toLocaleString()+'</div><div class="l">📖 Pages</div></div>';
     if(D.con&&D.con.total)h2+='<div class="sc"><div class="v" style="color:#fb923c">'+D.con.total+'</div><div class="l">🎸 Concerts</div></div>';
+    if(D.gr&&D.gr.total)h2+='<div class="sc"><div class="v" style="color:#22d3ee">'+D.gr.total+'</div><div class="l">📚 Books</div></div><div class="sc"><div class="v" style="color:#22d3ee">'+D.gr.total_pages.toLocaleString()+'</div><div class="l">📖 Pages</div></div>';
     if(D.th&&D.th.total)h2+='<div class="sc"><div class="v" style="color:#d946ef">'+D.th.total+'</div><div class="l">🎭 Plays</div></div>';
     el.innerHTML=h2}
   else if(ct==='book'){
