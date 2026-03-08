@@ -1193,6 +1193,14 @@ if gr_books:
     for yr, c in gr_year.items():
         gr_yearly[yr] = c
     data["c"]["gr_y"] = gr_yearly
+    # Add books to monthly title lists
+    mt = data["c"].get("mt", {})
+    for b in gr_books:
+        if b.get("date_read"):
+            m = b["date_read"][:7]
+            if m not in mt: mt[m] = []
+            mt[m].append({"t": b["title"] + " — " + b["author"], "type": "book", "c": 1})
+    data["c"]["mt"] = mt
     print(f"  Goodreads: {len(gr_books)} books, {len(gr_rated)} rated")
 
 data_str = json.dumps(data, separators=(',', ':'), ensure_ascii=False)
