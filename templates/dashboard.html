@@ -825,7 +825,9 @@ function renderStatus(){
 }
 
 function render(){ch.forEach(function(c){try{c.dispose()}catch(e){}});ch=[];stats();ptbl('atb',D.a);ptbl('xtb',D.x);ptbl('dtb',D.d||[]);ptbl('wtb',D.w||[]);showCharts();movieCharts();renderPosters();baseCharts();renderLetterboxd();renderConcerts();renderTheater();renderStatus()}
-window.addEventListener('resize',function(){mob=window.innerWidth<768;ch.forEach(function(c){try{c.resize()}catch(e){}})});
+var _rzt;function _rz(){clearTimeout(_rzt);_rzt=setTimeout(function(){mob=window.innerWidth<768;ch.forEach(function(c){try{c.resize()}catch(e){}})},250)}
+window.addEventListener('resize',_rz);
+window.addEventListener('orientationchange',function(){setTimeout(_rz,300)});
 window.addEventListener('hashchange',function(){readHash();render()});
 render();
 
