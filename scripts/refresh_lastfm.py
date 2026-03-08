@@ -35,7 +35,7 @@ print(f"  User: {info['name']}, Scrobbles: {total_scrobbles}, Artists: {total_ar
 
 # Top artists (all time + by year periods)
 top_artists = []
-for period in ["overall", "12month", "6month", "1month"]:
+for period in ["overall", "12month", "3month", "1month"]:
     data = api("user.gettopartists", period=period, limit=25)
     artists = [{"n": a["name"], "c": int(a["playcount"])} for a in data.get("topartists", {}).get("artist", [])]
     top_artists.append({"period": period, "artists": artists})
@@ -43,7 +43,7 @@ for period in ["overall", "12month", "6month", "1month"]:
 
 # Top tracks
 top_tracks = []
-for period in ["overall", "12month", "1month"]:
+for period in ["overall", "12month", "3month", "1month"]:
     data = api("user.gettoptracks", period=period, limit=20)
     tracks = [{"n": t["name"], "a": t["artist"]["name"], "c": int(t["playcount"])} for t in data.get("toptracks", {}).get("track", [])]
     top_tracks.append({"period": period, "tracks": tracks})
@@ -51,7 +51,7 @@ for period in ["overall", "12month", "1month"]:
 
 # Top albums
 top_albums = []
-for period in ["overall", "12month", "1month"]:
+for period in ["overall", "12month", "3month", "1month"]:
     data = api("user.gettopalbums", period=period, limit=15)
     albums = [{"n": a["name"], "a": a["artist"]["name"], "c": int(a["playcount"]),
                "img": a.get("image", [{}])[-1].get("#text", "")} for a in data.get("topalbums", {}).get("album", [])]
@@ -82,39 +82,49 @@ from collections import defaultdict
 print("  Fetching weekly charts (all time)...")
 weekly = []
 yearly_scrobbles = defaultdict(int)
-yearly_artists = defaultdict(set)
-yearly_albums = defaultdict(set)
+yearly_artist_plays = defaultdict(lambda: defaultdict(int))  # yr -> artist -> plays
+yearly_album_plays = defaultdict(lambda: defaultdict(int))   # yr -> album -> plays
 monthly_scrobbles = defaultdict(int)
-monthly_artists = defaultdict(set)
-monthly_albums = defaultdict(set)
+monthly_artist_plays = defaultdict(lambda: defaultdict(int))
+monthly_album_plays = defaultdict(lambda: defaultdict(int))
+weekly_details = {}  # week_date -> {artists: [...], albums: [...]}
 try:
     charts_data = api("user.getweeklychartlist")
     chart_list = charts_data.get("weeklychartlist", {}).get("chart", [])
-    # Fetch all weeks for yearly aggregation, recent 52 for weekly display
     for i, ch in enumerate(chart_list):
         try:
             dt = datetime.fromtimestamp(int(ch["from"]))
             yr = dt.strftime("%Y")
             mo = dt.strftime("%Y-%m")
+            wk_date = dt.strftime("%Y-%m-%d")
             wk = api("user.getweeklyartistchart", **{"from": ch["from"], "to": ch["to"]})
             artists_in_week = wk.get("weeklyartistchart", {}).get("artist", [])
             week_total = sum(int(a.get("playcount", 0)) for a in artists_in_week)
             yearly_scrobbles[yr] += week_total
             monthly_scrobbles[mo] += week_total
+            wk_artists = []
             for a in artists_in_week:
-                yearly_artists[yr].add(a["name"])
-                monthly_artists[mo].add(a["name"])
-            # Also get album chart for this week
+                pc = int(a.get("playcount", 0))
+                yearly_artist_plays[yr][a["name"]] += pc
+                monthly_artist_plays[mo][a["name"]] += pc
+                wk_artists.append({"n": a["name"], "c": pc})
+            # Album chart
+            wk_albums = []
             try:
                 wka = api("user.getweeklyalbumchart", **{"from": ch["from"], "to": ch["to"]})
                 for al in wka.get("weeklyalbumchart", {}).get("album", []):
-                    yearly_albums[yr].add(al["artist"]["#text"] + " — " + al["name"])
-                    monthly_albums[mo].add(al["artist"]["#text"] + " — " + al["name"])
+                    pc = int(al.get("playcount", 0))
+                    name = al["name"]
+                    artist = al["artist"]["#text"]
+                    yearly_album_plays[yr][artist + " — " + name] += pc
+                    monthly_album_plays[mo][artist + " — " + name] += pc
+                    wk_albums.append({"n": name, "a": artist, "c": pc})
             except:
                 pass
-            # Keep recent 52 for weekly chart
+            # Keep recent 52 weeks with detail
             if i >= len(chart_list) - 52:
-                weekly.append({"week": dt.strftime("%Y-%m-%d"), "c": week_total})
+                weekly.append({"week": wk_date, "c": week_total})
+                weekly_details[wk_date] = {"artists": wk_artists[:10], "albums": wk_albums[:10]}
             if i % 50 == 0:
                 print(f"    Week {i+1}/{len(chart_list)} ({yr})...")
             time.sleep(0.25)
@@ -123,10 +133,18 @@ try:
 except Exception as e:
     print(f"  Weekly chart error: {e}")
 
-# Build yearly/monthly summary arrays
-lfm_yearly = sorted([{"yr": y, "s": yearly_scrobbles[y], "a": len(yearly_artists[y]), "al": len(yearly_albums[y])}
+# Build top lists per period
+def top_n(counter, n=10):
+    return [{"n": k, "c": v} for k, v in sorted(counter.items(), key=lambda x: x[1], reverse=True)[:n]]
+
+# Build yearly/monthly summary arrays with top artists/albums
+lfm_yearly = sorted([{"yr": y, "s": yearly_scrobbles[y],
+                       "a": len(yearly_artist_plays[y]), "al": len(yearly_album_plays[y]),
+                       "ta": top_n(yearly_artist_plays[y]), "tal": top_n(yearly_album_plays[y])}
                       for y in yearly_scrobbles], key=lambda x: x["yr"])
-lfm_monthly = sorted([{"m": m, "s": monthly_scrobbles[m], "a": len(monthly_artists[m]), "al": len(monthly_albums[m])}
+lfm_monthly = sorted([{"m": m, "s": monthly_scrobbles[m],
+                       "a": len(monthly_artist_plays[m]), "al": len(monthly_album_plays[m]),
+                       "ta": top_n(monthly_artist_plays[m]), "tal": top_n(monthly_album_plays[m])}
                        for m in monthly_scrobbles], key=lambda x: x["m"])
 print(f"  Years: {len(lfm_yearly)}, Months: {len(lfm_monthly)}")
 
@@ -159,6 +177,7 @@ output = {
     "yearly": lfm_yearly,
     "monthly": lfm_monthly,
     "weekly": weekly,
+    "wd": weekly_details,
     "recent": recent[:100],
 }
 

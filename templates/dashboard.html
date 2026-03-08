@@ -192,9 +192,12 @@ body{overflow-x:hidden}
 <div class="g2 med-s" data-med="all music" id="lfm-wrap" style="display:none">
 <div id="sec-lfm" class="cd s-lfm"><h3><span class="i">🎧</span>Listening Activity <span class="vtog" style="float:right"><button class="vb vb-on lfm-met" data-v="s">Scrobbles</button><button class="vb lfm-met" data-v="a">Artists</button><button class="vb lfm-met" data-v="al">Albums</button></span></h3><div id="lfm-weekly" style="height:280px"></div></div>
 <div class="cd s-lfm"><h3><span class="i">🎤</span>Top Artists</h3><div id="lfm-artists" style="height:280px"></div></div>
-<div class="cd s-lfm"><h3><span class="i">🎵</span>Top Tracks</h3><div id="lfm-tracks" style="height:280px"></div></div>
 <div class="cd s-lfm"><h3><span class="i">💿</span>Top Albums</h3><div id="lfm-albums" style="height:280px"></div></div>
+<div class="cd s-lfm"><h3><span class="i">🎵</span>Top Tracks</h3><div id="lfm-tracks" style="height:280px"></div></div>
 <div class="cd s-lfm"><h3><span class="i">🏷️</span>Genres</h3><div id="lfm-genres" style="height:280px"></div></div>
+<div class="cd s-lfm" id="lfm-90-artists-card" style="display:none"><h3><span class="i">🔥</span>Last 90 Days — Artists</h3><div id="lfm-90-artists" style="height:280px"></div></div>
+<div class="cd s-lfm" id="lfm-90-albums-card" style="display:none"><h3><span class="i">🔥</span>Last 90 Days — Albums</h3><div id="lfm-90-albums" style="height:280px"></div></div>
+<div class="cd s-lfm" id="lfm-90-tracks-card" style="display:none"><h3><span class="i">🔥</span>Last 90 Days — Tracks</h3><div id="lfm-90-tracks" style="height:280px"></div></div>
 </div>
 <!-- CONCERTS (bottom) -->
 <div class="g2 med-s" data-med="all concert" id="con-wrap" style="display:none">
@@ -1021,6 +1024,27 @@ function renderLastfm(){
       xAxis:{type:'category',data:keys,axisLabel:{color:'#666',fontSize:isYr?9:10,rotate:isYr?45:0},axisLine:{lineStyle:{color:'#333'}}},
       yAxis:{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},
       series:[{type:'bar',data:vals,itemStyle:{color:LG('#0f3460',metColors[met])},barMaxWidth:isYr?15:30,label:{show:!isYr||keys.length<=12,position:'top',color:'#999',fontSize:9}}]});
+    // Click to see top artists/albums for that period
+    wChart.on('click',function(p){
+      var key=keys[p.dataIndex];if(!key)return;
+      var detail;
+      if(!isYr){
+        // Clicked a year — find in yearly data
+        detail=lfmYearly.find(function(y){return y.yr===key});
+      }else if(res==='weekly'){
+        detail=(lfm.wd||{})[key];
+      }else{
+        detail=lfmMonthly.find(function(m){return m.m===key});
+      }
+      if(!detail)return;
+      var ta=detail.ta||detail.artists||[];var tal=detail.tal||detail.albums||[];
+      var ex=wEl.parentElement.querySelector('.chart-detail');if(ex){ex.remove();if(ex.dataset.val===key)return}
+      var div=document.createElement('div');div.className='chart-detail';div.dataset.val=key;
+      var h='<span class="cd-close" onclick="this.parentElement.remove()">✕</span><b>'+key+'</b>';
+      if(ta.length){h+='<div style="margin-top:4px;font-size:10px;font-weight:600;color:var(--t2)">🎤 Top Artists</div>';ta.slice(0,8).forEach(function(a){h+='<div class="cd-item"><span>'+a.n+'</span><span class="nm" style="color:#1db954">'+a.c+'</span></div>'})}
+      if(tal.length){h+='<div style="margin-top:4px;font-size:10px;font-weight:600;color:var(--t2)">💿 Top Albums</div>';tal.slice(0,8).forEach(function(a){var name=a.a?a.n+' — '+a.a:a.n;h+='<div class="cd-item"><span>'+name+'</span><span class="nm" style="color:#fb923c">'+a.c+'</span></div>'})}
+      div.innerHTML=h;wEl.parentElement.appendChild(div);
+    });
     ch.push(wChart);
   }
   document.querySelectorAll('.lfm-met').forEach(function(btn){btn.onclick=function(){
@@ -1099,6 +1123,28 @@ function renderLastfm(){
       series:[{type:'bar',data:gSlice.map(function(d,i){return{value:d.c,itemStyle:{color:gCols[i%gCols.length]}}}),barMaxWidth:18,label:{show:true,position:'right',color:'#ccc',fontSize:10}}]});
     ch.push(gChart);
   }
+
+  // Last 90 Days — only show on all-time or current year
+  var show90=!isYr||cy===curYr;
+  function lfmBar(elId,cardId,items,color,label){
+    var card=document.getElementById(cardId);var el=document.getElementById(elId);
+    if(!show90||!items||!items.length){card.style.display='none';return}
+    card.style.display='';
+    var slice=items.slice(0,10).reverse();
+    var c=echarts.init(el);
+    c.setOption({tooltip:{trigger:mob?'item':'axis',axisPointer:{type:'shadow'},...tt,formatter:function(p){return'<b>'+tp(p).name+'</b>: '+tp(p).value+' plays'}},
+      grid:{left:gl(120),right:30,top:8,bottom:8},
+      xAxis:{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},
+      yAxis:{type:'category',data:slice.map(function(d){return(d.a?d.n+' — '+d.a:d.n).substring(0,25)}),axisLabel:{color:'#ccc',fontSize:9,interval:0},axisLine:{lineStyle:{color:'#333'}}},
+      series:[{type:'bar',data:slice.map(function(d){return d.c}),itemStyle:{color:LG('#0f3460',color)},barMaxWidth:18,label:{show:true,position:'right',color:color,fontSize:9}}]});
+    ch.push(c);
+  }
+  var p90a=(perData.find(function(p){return p.period==='3month'})||{}).artists;
+  var p90al=(alData.find(function(p){return p.period==='3month'})||{}).albums;
+  var p90t=(trData.find(function(p){return p.period==='3month'})||{}).tracks;
+  lfmBar('lfm-90-artists','lfm-90-artists-card',p90a,'#1db954','plays');
+  lfmBar('lfm-90-albums','lfm-90-albums-card',p90al,'#fb923c','plays');
+  lfmBar('lfm-90-tracks','lfm-90-tracks-card',p90t,'#a78bfa','plays');
 }
 
 function renderConcerts(){
