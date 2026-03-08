@@ -946,18 +946,27 @@ if concerts:
 
 # Theater data from Mezzanine
 if theater:
+    # Load companion names to separate from descriptive tags
+    th_companion_names = set()
+    if os.path.exists("data/theater_companions.json"):
+        with open("data/theater_companions.json") as f:
+            th_companion_names = set(json.load(f))
     th_theaters = Ctr2(t["theater"] for t in theater if t["theater"])
     th_locations = Ctr2(t["location"] for t in theater if t["location"])
     th_years = Ctr2(t["year"] for t in theater)
-    th_people = Ctr2()
+    th_people = Ctr2()        # companions only
     th_people_shows = defaultdict(list)
     th_theater_shows = defaultdict(list)
+    th_all_tags = Ctr2()      # non-companion tags only
     th_tag_shows = defaultdict(list)
     for t in theater:
         for tag in t["tags"]:
-            th_people[tag] += 1
-            th_people_shows[tag].append(t["show"])
-            th_tag_shows[tag].append(t["show"])
+            if tag in th_companion_names:
+                th_people[tag] += 1
+                th_people_shows[tag].append(t["show"])
+            else:
+                th_all_tags[tag] += 1
+                th_tag_shows[tag].append(t["show"])
         if t["theater"]:
             th_theater_shows[t["theater"]].append(t["show"])
     th_rated = [t for t in theater if t["rating"]]
@@ -966,11 +975,6 @@ if theater:
     for t in theater:
         if t["rating"]:
             th_rating_dist[str(t["rating"])].append(t["show"])
-    # All tags as a flat list for tag cloud
-    th_all_tags = Ctr2()
-    for t in theater:
-        for tag in t["tags"]:
-            th_all_tags[tag] += 1
     data["th"] = {
         "total": len(theater),
         "rated": len(th_rated),
@@ -979,6 +983,7 @@ if theater:
         "locations": [{"n":l,"c":c} for l,c in th_locations.most_common(20)],
         "people": [{"n":p,"c":c,"shows":th_people_shows[p]} for p,c in th_people.most_common(20)],
         "tags": [{"n":t,"c":c,"shows":th_tag_shows[t]} for t,c in th_all_tags.most_common(30)],
+        "companions": list(th_companion_names),
         "dist": [{"r":r,"c":len(ts),"titles":ts} for r,ts in sorted(th_rating_dist.items())],
         "recent": [{"show":t["show"],"date":t["date"],"yr":t["year"],"theater":t["theater"],
                     "location":t["location"],"rating":t["rating"]} for t in sorted(theater,key=lambda x:x["date"],reverse=True)[:15]],

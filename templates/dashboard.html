@@ -956,6 +956,7 @@ function processMezzanine(lines,headers){
   var tagsIdx=headers.indexOf('customTags');
   var ratingIdx=headers.indexOf('rating');
   var total=0;
+  var compSet=D.th&&D.th.companions?{}:{};if(D.th&&D.th.companions)D.th.companions.forEach(function(c){compSet[c]=true});
   var theaters={};var theaterShows={};var people={};var peopleShows={};var dist={};var tags={};var tagShows={};
   for(var i=1;i<lines.length;i++){
     var cols=parseCSVLine(lines[i]);
@@ -965,7 +966,7 @@ function processMezzanine(lines,headers){
     var rating=cols[ratingIdx]||'';
     var ctags=(cols[tagsIdx]||'').split(',').map(function(t){return t.trim()}).filter(Boolean);
     if(theater){theaters[theater]=(theaters[theater]||0)+1;if(!theaterShows[theater])theaterShows[theater]=[];theaterShows[theater].push(show)}
-    ctags.forEach(function(t){people[t]=(people[t]||0)+1;tags[t]=(tags[t]||0)+1;if(!peopleShows[t])peopleShows[t]=[];peopleShows[t].push(show);if(!tagShows[t])tagShows[t]=[];tagShows[t].push(show)});
+    ctags.forEach(function(t){if(compSet[t]){people[t]=(people[t]||0)+1;if(!peopleShows[t])peopleShows[t]=[];peopleShows[t].push(show)}else{tags[t]=(tags[t]||0)+1;if(!tagShows[t])tagShows[t]=[];tagShows[t].push(show)}});
     if(rating){var r=parseFloat(rating);if(!isNaN(r)){var rk=String(r);if(!dist[rk])dist[rk]={r:rk,c:0,titles:[]};dist[rk].c++;dist[rk].titles.push(show)}}
   }
   // Update D.th
