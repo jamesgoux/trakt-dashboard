@@ -183,8 +183,8 @@ body{overflow-x:hidden}
 </div>
 <!-- THEATER -->
 <div class="g2" id="th-wrap" style="display:none">
-<div id="sec-th" class="cd s-g"><h3><span class="i">🎭</span>Theater Shows</h3><div id="thc" style="height:280px"></div></div>
-<div class="cd s-g"><h3><span class="i">🏛️</span>Theaters &amp; Companions</h3><div class="stb" id="th-detail" style="font-size:12px"></div></div>
+<div id="sec-th" class="cd s-g"><h3><span class="i">🎭</span>Theater Ratings</h3><div id="thc" style="height:280px"></div></div>
+<div class="cd s-g"><h3><span class="i">🏛️</span>Theaters, Tags &amp; Companions</h3><div class="stb" id="th-detail" style="font-size:12px"></div></div>
 </div>
 <div class="cd fw s-g" style="margin-top:14px">
 <h3><span class="i">📤</span>Update Letterboxd Tags</h3>
@@ -693,17 +693,46 @@ function renderTheater(){
   var th=D.th;var wrap=document.getElementById('th-wrap');
   if(!th||!th.total){wrap.style.display='none';return}
   wrap.style.display='';
-  var yrs=(th.years||[]);if(cy!=='all')yrs=yrs.filter(function(y){return y.yr===cy});
+  // Rating distribution (clickable to show titles)
+  var dist=th.dist||[];
   var tChart=echarts.init(document.getElementById('thc'));
-  if(yrs.length===0){document.getElementById('thc').innerHTML='<div style="text-align:center;color:var(--t2);padding:40px">No shows'+(cy!=='all'?' in '+cy:'')+'</div>'}
-  else{tChart.setOption({tooltip:{trigger:mob?'item':'axis',axisPointer:{type:'shadow'},...tt,formatter:function(p){return'<b>'+tp(p).name+'</b><br/>'+tp(p).value+' shows'}},grid:{left:50,right:20,top:30,bottom:24},title:{text:th.total+' shows'+(th.rated?' ('+th.avg+'★ avg)':''),left:'center',top:0,textStyle:{color:'#999',fontSize:11,fontWeight:'normal'}},xAxis:{type:'category',data:yrs.map(function(y){return y.yr}),axisLabel:{color:'#ccc'},axisLine:{lineStyle:{color:'#333'}}},yAxis:{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},series:[{type:'bar',data:yrs.map(function(y){return{value:y.c,itemStyle:{color:LG('#0f3460','#d946ef')}}}),barMaxWidth:30,label:{show:true,position:'top',color:'#999',fontSize:10}}]});ch.push(tChart)}
-  // Detail: theaters + people
+  if(dist.length>0){
+    tChart.setOption({tooltip:{trigger:mob?'item':'axis',axisPointer:{type:'shadow'},...tt,formatter:function(p){return tp(p).name+': '+tp(p).value+' shows'}},
+      grid:{left:50,right:20,top:30,bottom:24},
+      title:{text:th.total+' shows, '+th.rated+' rated ('+th.avg+'★ avg)',left:'center',top:0,textStyle:{color:'#999',fontSize:11,fontWeight:'normal'}},
+      xAxis:{type:'category',data:dist.map(function(d){return d.r+'★'}),axisLabel:{color:'#ccc'},axisLine:{lineStyle:{color:'#333'}}},
+      yAxis:{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},
+      series:[{type:'bar',data:dist.map(function(d){return{value:d.c,itemStyle:{color:parseFloat(d.r)>=4?'#d946ef':parseFloat(d.r)>=3?'#a78bfa':'#fb923c'}}}),barMaxWidth:30,label:{show:true,position:'top',color:'#999',fontSize:10}}]});
+    // Click to show titles for that rating
+    tChart.on('click',function(p){
+      var d=dist[p.dataIndex];if(!d||!d.titles)return;
+      var el=document.getElementById('thc');
+      var ex=el.parentElement.querySelector('.chart-detail');if(ex){ex.remove();if(ex.dataset.val===d.r)return}
+      var div=document.createElement('div');div.className='chart-detail';div.dataset.val=d.r;
+      var h2='<span class="cd-close" onclick="this.parentElement.remove()">✕</span><b>'+d.r+'★ ('+d.titles.length+')</b>';
+      d.titles.forEach(function(t){h2+='<div class="cd-item"><span>'+t+'</span></div>'});
+      div.innerHTML=h2;el.parentElement.appendChild(div);
+    });
+    ch.push(tChart);
+  }else{document.getElementById('thc').innerHTML='<div style="text-align:center;color:var(--t2);padding:40px">'+th.total+' shows (no ratings)</div>'}
+  // Detail: tag cloud + theaters + companions
   var dEl=document.getElementById('th-detail');
   var h='';
+  // Tag cloud
+  var tags=th.tags||[];
+  if(tags.length){
+    h+='<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px;padding:6px 0">';
+    var maxT=tags[0].c;
+    tags.forEach(function(t){var size=Math.max(11,Math.min(24,11+Math.round(t.c/maxT*13)));
+      h+='<span style="font-size:'+size+'px;color:rgba(217,70,239,'+(.4+t.c/maxT*.6)+');padding:1px 3px">'+t.n+' ('+t.c+')</span>'});
+    h+='</div>';
+  }
+  // Theaters
   var theaters=th.theaters||[];
-  if(theaters.length){h+='<table><thead><tr><th>#</th><th>Theater</th><th>Shows</th></tr></thead><tbody>';theaters.slice(0,10).forEach(function(t,i){h+='<tr><td style="color:var(--t2);font-size:10px">'+(i+1)+'</td><td style="font-weight:600">'+t.n+'</td><td class="nm nm-o">'+t.c+'</td></tr>'});h+='</tbody></table>'}
+  if(theaters.length){h+='<div style="margin-bottom:4px"><b style="color:var(--t2);font-size:11px">Top Theaters</b></div><table><tbody>';theaters.slice(0,10).forEach(function(t,i){h+='<tr><td style="color:var(--t2);font-size:10px">'+(i+1)+'</td><td style="font-weight:600">'+t.n+'</td><td class="nm nm-o">'+t.c+'</td></tr>'});h+='</tbody></table>'}
+  // Companions
   var people=th.people||[];
-  if(people.length){h+='<div style="margin-top:8px"><b style="color:var(--t2);font-size:11px">Companions</b></div><table><tbody>';people.slice(0,10).forEach(function(p,i){h+='<tr><td style="color:var(--t2);font-size:10px">'+(i+1)+'</td><td style="font-weight:600">'+p.n+'</td><td class="nm nm-p">'+p.c+'</td></tr>'});h+='</tbody></table>'}
+  if(people.length){h+='<div style="margin-top:8px;margin-bottom:4px"><b style="color:var(--t2);font-size:11px">Companions</b></div><table><tbody>';people.slice(0,10).forEach(function(p,i){h+='<tr><td style="color:var(--t2);font-size:10px">'+(i+1)+'</td><td style="font-weight:600">'+p.n+'</td><td class="nm nm-p">'+p.c+'</td></tr>'});h+='</tbody></table>'}
   dEl.innerHTML=h;
 }
 
