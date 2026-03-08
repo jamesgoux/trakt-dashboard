@@ -264,9 +264,7 @@ var rk=0;items.forEach(function(item){var p=item.p,m=item.m,s=item.s;rk++;var to
 
 function showCharts(){
   if(ct==='movie'){document.getElementById('sdc').parentElement.style.display='none';document.getElementById('sec').parentElement.style.display='none';return}
-  var isDur=window._showSort==='dur';
-  document.getElementById('sdc').parentElement.style.display=isDur?'':'none';
-  document.getElementById('sec').parentElement.style.display=isDur?'none':'';
+  document.getElementById('sdc').parentElement.style.display='';document.getElementById('sec').parentElement.style.display='';
   var dm={},em={};SYD.forEach(function(s){var e=0,m=0;if(cy==='all'){Object.values(s.yd).forEach(function(d){e+=d.e;m+=d.m})}else if(s.yd[cy]){e=s.yd[cy].e;m=s.yd[cy].m}if(e>0){dm[s.n]=m/60;em[s.n]=e}});var da=Object.entries(dm).sort(function(a,b){return b[1]-a[1]}).slice(0,20).reverse();var ea=Object.entries(em).sort(function(a,b){return b[1]-a[1]}).slice(0,20).reverse();document.getElementById('sdh').textContent='Top Shows by Duration'+(cy!=='all'?' ('+cy+')':'');document.getElementById('seh').textContent='Top Shows by Episodes'+(cy!=='all'?' ('+cy+')':'');var c1=echarts.init(document.getElementById('sdc'));c1.setOption({tooltip:{trigger:mob?'item':'axis',axisPointer:{type:'shadow'},...tt,formatter:function(p){return'<b>'+tp(p).name+'</b><br/>'+tp(p).value.toFixed(1)+'h'}},grid:{left:gl(155),right:mob?30:55,top:8,bottom:8},xAxis:{type:'value',axisLabel:{color:'#666',formatter:function(v){return Math.round(v)+'h'}},splitLine:{lineStyle:{color:'#222'}}},yAxis:{type:'category',data:da.map(function(d){return d[0]}),axisLabel:{color:'#ccc',fontSize:10,interval:0},axisLine:{lineStyle:{color:'#333'}}},series:[{type:'bar',data:da.map(function(d){return Math.round(d[1]*10)/10}),itemStyle:{color:LG('#0f3460','#fb923c')},barMaxWidth:18,label:{show:true,position:'right',color:'#fb923c',fontSize:10,formatter:function(p){return p.value+'h'}}}]});var c2=echarts.init(document.getElementById('sec'));c2.setOption({tooltip:{trigger:mob?'item':'axis',axisPointer:{type:'shadow'},...tt},grid:{left:gl(155),right:mob?30:55,top:8,bottom:8},xAxis:{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},yAxis:{type:'category',data:ea.map(function(d){return d[0]}),axisLabel:{color:'#ccc',fontSize:10,interval:0},axisLine:{lineStyle:{color:'#333'}}},series:[{type:'bar',data:ea.map(function(d){return d[1]}),itemStyle:{color:LG('#0f3460','#a78bfa')},barMaxWidth:18,label:{show:true,position:'right',color:'#a78bfa',fontSize:10}}]});ch.push(c1,c2)
 }
 
@@ -563,24 +561,22 @@ function renderPosters(){
   });
   shows.sort(function(a,b){return window._showSort==='dur'?(b.h-a.h):(b.e-a.e)});
   var top=shows.slice(0,20);
-  grid.innerHTML='';
+  var gh='';
   top.forEach(function(s,i){
     var slug=s.n.toLowerCase().replace(/[^a-z0-9]/g,'-');
     var img=null;
     for(var k in PS){if(k.indexOf(slug.substring(0,10))>=0||slug.indexOf(k.substring(0,10))>=0){img=PS[k];break}}
     var label=window._showSort==='dur'?s.h+'h':s.e+' eps';
-    grid.innerHTML+='<div class="poster-item">'+(img?'<img src="'+img+'" loading="lazy" alt="">':'<div style="width:100px;height:150px;background:#222;border-radius:6px;display:flex;align-items:center;justify-content:center;color:var(--t2);font-size:10px">'+s.n.substring(0,15)+'</div>')+'<span>'+(i+1)+'. '+s.n+'</span><span style="font-size:9px;color:var(--t2)">'+label+'</span></div>';
+    gh+='<div class="poster-item">'+(img?'<img src="'+img+'" loading="lazy" alt="">':'<div style="width:100px;height:150px;background:#222;border-radius:6px;display:flex;align-items:center;justify-content:center;color:var(--t2);font-size:10px">'+s.n.substring(0,15)+'</div>')+'<span>'+(i+1)+'. '+s.n+'</span><span style="font-size:9px;color:var(--t2)">'+label+'</span></div>';
   });
-  // Toggle handlers — also swap which chart is visible below
+  grid.innerHTML=gh;
+  // Toggle handlers
   document.querySelectorAll('.show-sort').forEach(function(btn){
     btn.onclick=function(){
       document.querySelectorAll('.show-sort').forEach(function(b){b.classList.remove('vb-on')});
       btn.classList.add('vb-on');
       window._showSort=btn.dataset.v;
       renderPosters();
-      var isDur=window._showSort==='dur';
-      document.getElementById('sdc').parentElement.style.display=isDur?'':'none';
-      document.getElementById('sec').parentElement.style.display=isDur?'none':'';
     };
   });
 }
