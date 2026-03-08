@@ -285,6 +285,18 @@ function baseCharts(){
   if(Object.keys(thM).length)tlSeries.push({name:'Theater',type:'line',data:mf.map(function(d){return thM[d.month]||0}),itemStyle:{color:'#d946ef'},lineStyle:{width:2},symbol:'diamond',symbolSize:4});
   var tlLeg=['Episodes','Movies'];if(Object.keys(conM).length)tlLeg.push('Concerts');if(Object.keys(thM).length)tlLeg.push('Theater');
   c1.setOption({tooltip:{trigger:'axis',...tt},legend:{data:ct==='all'?tlLeg:[],right:10,top:0,textStyle:{color:'#999'}},grid:{left:50,right:20,top:36,bottom:30},xAxis:{type:'category',data:mf.map(function(d){return d.month}),axisLabel:{color:'#666',interval:cy==='all'?11:0,rotate:45,fontSize:10},axisLine:{lineStyle:{color:'#333'}}},yAxis:{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},series:tlSeries});
+  // Click monthly to see titles (bundled)
+  var mtData=D.c.mt||{};
+  c1.on('click',function(p){
+    var month=mf[p.dataIndex]?mf[p.dataIndex].month:p.name;
+    var titles=mtData[month]||[];if(!titles.length)return;
+    var el=document.getElementById('tlc');
+    var ex=el.parentElement.querySelector('.chart-detail');if(ex){ex.remove();if(ex.dataset.val===month)return}
+    var div=document.createElement('div');div.className='chart-detail';div.dataset.val=month;
+    var h='<span class="cd-close" onclick="this.parentElement.remove()">✕</span><b>'+month+' ('+titles.length+' titles)</b>';
+    titles.forEach(function(t){var badge=t.type==='movie'?'b-m':'b-e';var label=t.type==='show'?t.c+' eps':(t.c>1?t.c+'x':'');
+      h+='<div class="cd-item"><span><span class="badge '+badge+'">'+t.type+'</span> '+t.t+'</span><span class="nm '+(t.type==='show'?'nm-b':'nm-a')+'">'+label+'</span></div>'});
+    div.innerHTML=h;el.parentElement.appendChild(div)});
 
   // Genres - respects type AND year filter
   var gd;
@@ -457,6 +469,23 @@ function baseCharts(){
   if(Object.keys(thY).length)yrSeries.push({name:'Theater',type:'line',data:yr.map(function(d){return thY[d.year]||0}),itemStyle:{color:'#d946ef'},lineStyle:{width:2},symbol:'diamond',symbolSize:5});
   var yrLeg=['Episodes','Movies'];if(Object.keys(conY).length)yrLeg.push('Concerts');if(Object.keys(thY).length)yrLeg.push('Theater');
   c6.setOption({tooltip:{trigger:'axis',...tt,formatter:function(p){if(p[0]&&tp(p).axisValue==='2016')return'<b>2016</b><br/>Zeroed (outlier: 4,257)';return p.map(function(s){return s.marker+s.seriesName+': '+s.value}).join('<br/>')}},legend:{data:ct==='all'?yrLeg:[],right:10,top:0,textStyle:{color:'#999'}},grid:{left:50,right:20,top:36,bottom:24},xAxis:{type:'category',data:yr.map(function(d){return d.year}),axisLabel:{color:'#666',fontSize:10},axisLine:{lineStyle:{color:'#333'}}},yAxis:{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},series:yrSeries});
+  // Click yearly to see titles for that year (aggregate months)
+  c6.on('click',function(p){
+    var year=yr[p.dataIndex]?yr[p.dataIndex].year:p.name;
+    var allTitles={};
+    Object.keys(mtData).filter(function(m){return m.startsWith(year)}).forEach(function(m){
+      (mtData[m]||[]).forEach(function(t){
+        if(!allTitles[t.t])allTitles[t.t]={type:t.type,count:0};
+        allTitles[t.t].count+=t.c})});
+    var titles=Object.entries(allTitles).sort(function(a,b){return b[1].count-a[1].count}).slice(0,25);
+    if(!titles.length)return;
+    var el=document.getElementById('yrc');
+    var ex=el.parentElement.querySelector('.chart-detail');if(ex){ex.remove();if(ex.dataset.val===year)return}
+    var div=document.createElement('div');div.className='chart-detail';div.dataset.val=year;
+    var h='<span class="cd-close" onclick="this.parentElement.remove()">✕</span><b>'+year+' ('+titles.length+' top titles)</b>';
+    titles.forEach(function(e){var t=e[0],d=e[1];var badge=d.type==='movie'?'b-m':'b-e';var label=d.type==='show'?d.count+' eps':(d.count>1?d.count+'x':'');
+      h+='<div class="cd-item"><span><span class="badge '+badge+'">'+d.type+'</span> '+t+'</span><span class="nm '+(d.type==='show'?'nm-b':'nm-a')+'">'+label+'</span></div>'});
+    div.innerHTML=h;el.parentElement.appendChild(div)});
 
   // Time to watch
   var ttwData=(cy!=='all'&&D.c.ttw_y&&D.c.ttw_y[cy]?D.c.ttw_y[cy]:(D.c.ttw||[])).slice(0,20).reverse();

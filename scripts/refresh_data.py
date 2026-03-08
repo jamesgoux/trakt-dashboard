@@ -407,6 +407,22 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
             hod[y][h_key] += 1
         except: pass
 
+    # Per-month/year title lists for click-to-see (bundled: shows count episodes, movies count watches)
+    month_titles = defaultdict(lambda: defaultdict(lambda: {"type":"","count":0}))
+    for e in entries:
+        if not e["watched_at"]: continue
+        m = e["watched_at"][:7]
+        name = e["show_title"] or e["title"]
+        if not name: continue
+        month_titles[m][name]["type"] = "show" if e["type"] == "episode" else "movie"
+        month_titles[m][name]["count"] += 1
+
+    # Compact: per-month top titles
+    mt_out = {}
+    for m, titles in month_titles.items():
+        sorted_t = sorted(titles.items(), key=lambda x: x[1]["count"], reverse=True)
+        mt_out[m] = [{"t": t, "type": d["type"], "c": d["count"]} for t, d in sorted_t[:20]]
+
     # Recent: keep 200 most recent for filtering
     sorted_entries = sorted(entries, key=lambda x: x["watched_at"], reverse=True)
     for e in sorted_entries[:200]:
@@ -577,6 +593,7 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
             "lang_y": {y: [{"n": l, "count": n} for l, n in ct.most_common(20)] for y, ct in lang_counter_y.items()},
             "r": recent_all,
             "f": first_all,
+            "mt": mt_out,
             "ttw": ttw_all[:25],
             "ttw_y": {y: v[:25] for y, v in ttw_by_year.items()},
             "cup": catchup_all[:25],
