@@ -13,6 +13,7 @@ Requires POCKETCASTS_EMAIL and POCKETCASTS_PASSWORD env vars.
 
 import os, json, time, requests
 from datetime import datetime, timezone
+from utils import retry_request
 
 EMAIL = os.environ.get("POCKETCASTS_EMAIL", "")
 PASSWORD = os.environ.get("POCKETCASTS_PASSWORD", "")
@@ -39,14 +40,11 @@ def login():
 
 def api_post(endpoint, token, data=None):
     headers = {"Authorization": f"Bearer {token}"}
-    try:
-        r = requests.post(f"{BASE}{endpoint}",
-                          json=data or {"v": "1"},
-                          headers=headers, timeout=15)
-        if r.status_code == 200:
-            return r.json()
-    except Exception as e:
-        print(f"  API error {endpoint}: {e}")
+    r = retry_request("post", f"{BASE}{endpoint}",
+                      json=data or {"v": "1"},
+                      headers=headers, timeout=15)
+    if r and r.status_code == 200:
+        return r.json()
     return None
 
 def load_json(path):

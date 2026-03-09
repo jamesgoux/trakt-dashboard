@@ -8,6 +8,7 @@ Outputs index.html for GitHub Pages.
 import os, json, time, requests
 from collections import defaultdict, Counter
 from datetime import datetime
+from utils import retry_request
 
 CLIENT_ID = os.environ.get("TRAKT_CLIENT_ID")
 USERNAME = os.environ.get("TRAKT_USERNAME")
@@ -32,9 +33,9 @@ def safe_float(val, default=0.0):
 def fetch_history(media_type):
     items = []; page = 1
     while True:
-        r = requests.get(f"{BASE_URL}/users/{USERNAME}/history/{media_type}",
+        r = retry_request("get", f"{BASE_URL}/users/{USERNAME}/history/{media_type}",
                          params={"page": page, "limit": 100, "extended": "full"}, headers=HEADERS)
-        if r.status_code != 200: break
+        if not r or r.status_code != 200: break
         batch = r.json()
         if not batch: break
         items.extend(batch)
@@ -101,7 +102,7 @@ def fetch_cast_and_studios(entries):
     for slugs, kind in [(show_slugs, "shows"), (movie_slugs, "movies")]:
         for slug in slugs:
             try:
-                r = requests.get(f"{BASE_URL}/{kind}/{slug}/people?extended=full", headers=HEADERS, timeout=10)
+                r = retry_request("get", f"{BASE_URL}/{kind}/{slug}/people?extended=full", headers=HEADERS, timeout=10)
                 if r.status_code == 200:
                     for c in r.json().get("cast", []):
                         p = c.get("person", {}); pid = p.get("ids", {}).get("slug", "")
@@ -130,7 +131,7 @@ def fetch_cast_and_studios(entries):
             except Exception: pass
             # Fetch studios (store ALL, not just first)
             try:
-                r2 = requests.get(f"{BASE_URL}/{kind}/{slug}/studios", headers=HEADERS, timeout=5)
+                r2 = retry_request("get", f"{BASE_URL}/{kind}/{slug}/studios", headers=HEADERS, timeout=5)
                 if r2.status_code == 200:
                     st = r2.json()
                     if st:

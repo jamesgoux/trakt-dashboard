@@ -33,8 +33,8 @@
 
 ## Priority 3: Medium Effort / High Impact
 
-8. **Add retry logic with exponential backoff for API calls**
-   Transient failures currently skip data silently. Add retries so temporary outages don't leave gaps.
+8. ~~**Add retry logic with exponential backoff for API calls**~~ ✅ DONE
+   Added shared `scripts/utils.py` with `retry_request()` (exponential backoff, rate limit handling). Integrated into `refresh_data.py` and `refresh_pocketcasts.py`. Fixed workflow concurrency to not cancel in-progress runs.
 
 9. **Refactor `refresh_data.py` into smaller functions**
    Currently 1,417 lines. Break into testable, maintainable modules.
