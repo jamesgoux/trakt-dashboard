@@ -242,9 +242,8 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
             except Exception: pass
         if not delays or len(delays) < 2: continue
         avg_delay = sum(delays) / len(delays)
-        # Filter bulk imports: if avg delay < 1 day for a season with 3+ episodes,
-        # it's almost certainly bulk-imported (watched_at set to air date)
-        if avg_delay < 1.0 and len(delays) > 3: continue
+        # Filter bulk imports: if avg delay < 1 day, almost certainly bulk-imported
+        if avg_delay < 1.0: continue
         # Use the latest watch year for this season
         watch_year = max(ep["year"] for ep in eps if ep.get("year"))
         season_delays.append({
