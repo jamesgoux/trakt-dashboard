@@ -390,7 +390,7 @@ function renderLifeline(){
       {name:'Movies',type:'bar',stack:'ll',data:posData.mv,itemStyle:{color:new echarts.graphic.LinearGradient(0,1,0,0,[{offset:0,color:'rgba(251,146,60,0.4)'},{offset:1,color:'#fb923c'}])},barMaxWidth:bw},
       {name:'Episodes',type:'bar',stack:'ll',data:posData.ep,itemStyle:{color:new echarts.graphic.LinearGradient(0,1,0,0,[{offset:0,color:'rgba(20,184,166,0.4)'},{offset:1,color:'#14b8a6'}])},barMaxWidth:bw},
       {name:'Books',type:'bar',stack:'ll',data:posData.bk,itemStyle:{color:new echarts.graphic.LinearGradient(0,1,0,0,[{offset:0,color:'rgba(251,191,36,0.4)'},{offset:1,color:'#fbbf24'}])},barMaxWidth:bw},
-      {name:'Scrobbles',type:'bar',stack:'ll',yAxisIndex:1,data:negScScaled,itemStyle:{color:new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:'rgba(29,185,84,0.4)'},{offset:1,color:'#1db954'}])},barMaxWidth:bw},
+      {name:'Scrobbles',type:'bar',stack:'ll',data:negScScaled,itemStyle:{color:new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:'rgba(29,185,84,0.4)'},{offset:1,color:'#1db954'}])},barMaxWidth:bw},
       {name:'Concerts',type:'bar',stack:'ll',data:negData.co,itemStyle:{color:new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:'rgba(233,69,96,0.4)'},{offset:1,color:'#e94560'}])},barMaxWidth:bw},
       {name:'Plays',type:'bar',stack:'ll',data:negData.th,itemStyle:{color:new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:'rgba(167,139,250,0.4)'},{offset:1,color:'#a78bfa'}])},barMaxWidth:bw}
   ];
@@ -398,10 +398,9 @@ function renderLifeline(){
 
   llChart.setOption({tooltip:{trigger:'axis',...tt,formatter:function(p){var day=days[p[0].dataIndex];var h='<b>'+day+'</b>';p.forEach(function(s){var v=Math.abs(s.value);if(v){if(s.seriesName==='Scrobbles'){v=Math.abs(negData.sc[p[0].dataIndex])}h+='<br/>'+s.marker+s.seriesName+': '+v}});return h}},
     legend:{data:llLeg,top:0,textStyle:{color:'#999',fontSize:9},type:'scroll'},
-    grid:{left:40,right:50,top:35,bottom:30},
+    grid:{left:40,right:10,top:35,bottom:30},
     xAxis:{type:'category',data:days.map(function(d){return d.substring(5)}),axisLabel:{color:'#666',fontSize:8,rotate:45,interval:0},axisLine:{lineStyle:{color:'#444'}}},
-    yAxis:[{type:'value',axisLabel:{color:'#666',formatter:function(v){return v>=0?v:''}},splitLine:{lineStyle:{color:'#222'}}},
-           {type:'value',position:'right',min:function(val){return val.min},max:function(val){return val.max},axisLabel:{color:'#1db954',fontSize:9,formatter:function(v){if(v>=0)return'';return Math.round(Math.abs(v)/scScale)}},splitLine:{show:false},axisLine:{show:false},axisTick:{show:false}}],
+    yAxis:{type:'value',axisLabel:{color:'#666',formatter:function(v){return v>=0?v:''}},splitLine:{lineStyle:{color:'#222'}}},
     series:llSeries});
   // Click to show chronological events for that day
   var typeIcons={ep:'📺',mv:'🎞️',sc:'🎧',bk:'📚',co:'🎸',th:'🎭'};
@@ -1698,7 +1697,7 @@ function renderStatus(){
   var hs_count=Object.keys(D.hs||{}).length;
   var ps_count=Object.keys(D.ps||{}).length;
   var el=document.getElementById('status');
-  el.innerHTML='<span>Actors: '+total_people+'</span><span>Headshots: '+hs_count+'</span><span>Posters: '+ps_count+'</span><span>Updated: 2026-03-09 23:23 UTC</span>';
+  el.innerHTML='<span>Actors: '+total_people+'</span><span>Headshots: '+hs_count+'</span><span>Posters: '+ps_count+'</span><span>Updated: 2026-03-09 23:26 UTC</span>';
 }
 
 function render(){ch.forEach(function(c){try{c.dispose()}catch(e){}});ch=[];
