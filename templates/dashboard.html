@@ -127,8 +127,8 @@ body{overflow-x:hidden}
 </div>
 <!-- MOVIES -->
 <div class="g2 med-s" data-med="all movie">
-<div id="sec-mov" class="cd s-m"><h3 id="mdh"><span class="i">🎞️</span>Movies by Watch Time <span class="vtog" style="float:right"><button class="vb vb-on mv-sort" data-v="long" onclick="window._mvSort='long';movieCharts()">Longest</button><button class="vb mv-sort" data-v="short" onclick="window._mvSort='short';movieCharts()">Shortest</button></span></h3><div id="mdc" style="height:340px"></div></div>
-<div class="cd s-m" id="mrc-card"><h3 id="mrh"><span class="i">🔁</span>Most Rewatched</h3><div id="mrc" style="height:340px"></div></div>
+<div id="sec-mov" class="cd s-m"><h3 id="mdh"><span class="i">🎞️</span>Movies by Watch Time <span class="vtog" style="float:right"><button class="vb vb-on mv-sort" data-v="long" onclick="window._mvSort='long';movieCharts()">Longest</button><button class="vb mv-sort" data-v="short" onclick="window._mvSort='short';movieCharts()">Shortest</button></span></h3><div id="mdc"></div></div>
+<div class="cd s-m" id="mrc-card"><h3 id="mrh"><span class="i">🔁</span>Most Rewatched</h3><div id="mrc"></div></div>
 </div>
 <div class="g2 med-s" data-med="all movie show">
 <div id="sec-time" class="cd s-t"><h3><span class="i">📅</span>Day of Week</h3><div id="dwc" style="height:280px"></div></div>
@@ -731,7 +731,7 @@ function baseCharts(){
   // Hour of day
   var hodData=D.c.hod||{};if(cy!=='all'&&D.c.hod_y&&D.c.hod_y[cy])hodData=D.c.hod_y[cy];
   var hrs=[];for(var h=0;h<24;h++){var d=hodData[String(h)]||{};hrs.push({h:h,m:d.m||0,e:d.e||0})}
-  var maxHod=Math.max.apply(null,hrs.map(function(d){return d.m+d.e}))||1;
+  var maxHod=Math.max.apply(null,hrs.map(function(d){var v=0;if(ct!=='movie')v+=d.e;if(ct!=='show')v+=d.m;return v}))||1;
   var c5=echarts.init(document.getElementById('hodc'));
   var hodLabels=hrs.map(function(d){var h=d.h;return h===0?'12am':h===12?'12pm':h<12?h+'am':(h-12)+'pm'});
   var hodSeries=[];var hodLeg=[];
