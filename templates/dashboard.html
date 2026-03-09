@@ -318,8 +318,13 @@ function stats(){
 
 function ptbl(id,pp){var tb=document.getElementById(id);tb.innerHTML='';
 // Pre-compute filtered counts and sort
-var items=[];pp.forEach(function(p){var m=p.m,s=p.s;if(cy!=='all'&&p.ti){m=0;s=0;p.ti.forEach(function(i){var t=TL[i];if(!t)return;if(sm(fby(t.eby))>0){if(t.type==='movie')m++;else s++}});if(m+s<2)return}items.push({p:p,m:m,s:s,tot:m+s})});
-items.sort(function(a,b){return b.tot-a.tot});
+var items=[];pp.forEach(function(p){var m=p.m,s=p.s;if(cy!=='all'&&p.ti){m=0;s=0;p.ti.forEach(function(i){var t=TL[i];if(!t)return;if(sm(fby(t.eby))>0){if(t.type==='movie')m++;else s++}});if(m+s<2)return}
+// Filter by type
+var sortVal=m+s;
+if(ct==='movie'){if(m===0)return;sortVal=m}
+if(ct==='show'){if(s===0)return;sortVal=s}
+items.push({p:p,m:m,s:s,tot:m+s,sv:sortVal})});
+items.sort(function(a,b){return b.sv-a.sv});
 var rk=0;items.forEach(function(item){var p=item.p,m=item.m,s=item.s;rk++;var tot=item.tot;var img=HS[p.n]?'<img class="hs" src="'+HS[p.n]+'" loading="lazy" onerror="this.style.display=\'none\'" alt="">':'<div class="hp">'+p.n.charAt(0)+'</div>';var tr=document.createElement('tr');tr.className='pr';tr.innerHTML='<td style="color:var(--t2);font-size:10px;width:24px">'+rk+'</td><td><div class="pn">'+img+'<span>'+p.n+'</span></div></td><td class="nm nm-a">'+m+'</td><td class="nm nm-p">'+s+'</td><td class="nm nm-o">'+tot+'</td>';tr.onclick=function(){var nx=tr.nextElementSibling;if(nx&&nx.classList.contains('dr')){nx.remove();return}document.querySelectorAll('.dr').forEach(function(r){r.remove()});if(!p.ti)return;var dr=document.createElement('tr');dr.className='dr';var h='<td colspan="5"><table>';p.ti.forEach(function(i){var t=TL[i];if(!t)return;var eb=cy==='all'?t.eby:fby(t.eby);var ct2=sm(eb);if(ct2===0&&cy!=='all')return;h+='<tr><td><span class="badge '+(t.type==='movie'?'b-m':'b-e')+'">'+t.type+'</span></td><td style="font-weight:600">'+t.t+'</td><td style="color:var(--t2)">'+(t.yr||'')+'</td><td class="nm '+(t.type==='show'?'nm-b':'nm-a')+'">'+(t.type==='show'?ct2+' eps':(ct2>1?ct2+'x':''))+'</td></tr>'});h+='</table></td>';dr.innerHTML=h;tr.after(dr)};tb.appendChild(tr)})}
 
 function renderLifeline(){
