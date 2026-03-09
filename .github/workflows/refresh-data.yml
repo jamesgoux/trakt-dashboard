@@ -46,6 +46,12 @@ jobs:
           SETLIST_FM_API_KEY: ${{ secrets.SETLIST_FM_API_KEY }}
         run: python scripts/refresh_setlist.py
 
+      - name: Refresh Podcasts
+        env:
+          POCKETCASTS_EMAIL: ${{ secrets.POCKETCASTS_EMAIL }}
+          POCKETCASTS_PASSWORD: ${{ secrets.POCKETCASTS_PASSWORD }}
+        run: python scripts/refresh_pocketcasts.py
+
       - name: Refresh Trakt data
         env:
           TRAKT_CLIENT_ID: ${{ secrets.TRAKT_CLIENT_ID }}

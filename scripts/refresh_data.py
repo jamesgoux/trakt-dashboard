@@ -825,6 +825,11 @@ concerts = []
 if os.path.exists("data/setlist.json"):
     with open("data/setlist.json") as f: concerts = json.load(f)
 
+# Podcast data from Pocket Casts
+pc_data = {}
+if os.path.exists("data/pocketcasts.json"):
+    with open("data/pocketcasts.json") as f: pc_data = json.load(f)
+
 # Theater data from Mezzanine
 theater = []
 if os.path.exists("data/mezzanine.csv"):
@@ -1189,6 +1194,11 @@ if theater:
         if t["date"]: th_monthly[t["date"][:7]] += 1
     data["c"]["th_m"] = dict(th_monthly)
     data["c"]["th_y"] = dict(th_years)
+
+# Podcast data from Pocket Casts
+if pc_data:
+    data["pc"] = pc_data
+    print(f"  Podcasts: {pc_data.get('total_podcasts', 0)} shows, {pc_data.get('total_listened_hrs', 0)}h listened")
 
 # Merge concert + theater titles into monthly title lists (mt)
 mt = data["c"].get("mt", {})

@@ -209,6 +209,10 @@ body{overflow-x:hidden}
 <div class="cd s-th"><h3><span class="i">🏛️</span>Top Theaters</h3><div id="th-venues" style="height:280px"></div></div>
 <div class="cd s-th"><h3><span class="i">👥</span>Theater Companions</h3><div id="th-companions" style="height:280px"></div></div>
 </div>
+<!-- PODCASTS (Pocket Casts) -->
+<div class="g2 med-s" data-med="all" id="pc-wrap" style="display:none">
+<div id="sec-pc" class="cd fw"><h3><span class="i">🎙️</span>Top Podcasts (Pocket Casts)</h3><div id="pc-chart" style="height:350px"></div></div>
+</div>
 <div class="cd fw s-g" style="margin-top:14px">
 <h3><span class="i">📤</span>Import Data</h3>
 <p style="color:var(--t2);font-size:12px;margin-bottom:10px">Drop a CSV to update — auto-detects <b>Letterboxd</b> diary or <b>Mezzanine</b> theater diary.</p>
@@ -307,6 +311,7 @@ function stats(){
     if(D.lfm&&D.lfm.total){var lfmY=cy!=='all'&&D.lfm.yearly?(D.lfm.yearly.find(function(y){return y.yr===cy})||{}):{s:D.lfm.total,a:D.lfm.artists,al:D.lfm.albums};h2+=sc((lfmY.s||0).toLocaleString(),'🎧 Scrobbles','#1db954')+sc((lfmY.a||0).toLocaleString(),'🎤 Artists','#1db954')+sc((lfmY.al||0).toLocaleString(),'💿 Albums','#1db954')}
     if(D.con&&D.con.total){var conR=D.con.recent||[];var conF=cy==='all'?conR:conR.filter(function(e){return e.yr===cy});var conEv={};conF.forEach(function(e){conEv[e.date+'|'+e.venue]=true});var conUA=conF.map(function(e){return e.artist}).filter(function(v,i,a){return a.indexOf(v)===i}).length;var conSongs=conF.reduce(function(s,e){return s+e.songs},0);h2+=sc(Object.keys(conEv).length,'🎸 Concerts','#e94560')+sc(conF.length,'🎤 Sets','#e94560')+sc(conUA,'🎙️ Artists','#e94560')+sc(conSongs,'🎵 Songs','#e94560')}
     if(D.th&&D.th.total){var thF=cy==='all'?(D.th.all||[]):(D.th.all||[]).filter(function(e){return e.y===cy});h2+=sc(thF.length,'🎭 Plays','#a78bfa')}
+    if(D.pc&&D.pc.total_podcasts){h2+=sc(D.pc.total_listened_hrs+'h','🎙️ Podcasts','#8b5cf6')+sc(D.pc.total_episodes,'📻 Episodes','#8b5cf6')+sc(D.pc.total_podcasts,'📡 Shows','#8b5cf6')}
   }
   el.innerHTML=h2;
 }
@@ -1648,6 +1653,22 @@ function renderTheater(){
   }else{document.getElementById('th-companions').innerHTML='<div style="text-align:center;color:var(--t2);padding:40px">No companion data</div>'}
 }
 
+function renderPodcasts(){
+  var pc=D.pc;var wrap=document.getElementById('pc-wrap');
+  if(!pc||!pc.total_podcasts||ct!=='all'){if(wrap)wrap.style.display='none';return}
+  wrap.style.display='';
+  var top=pc.top||[];if(!top.length)return;
+  var el=document.getElementById('pc-chart');
+  var items=top.slice(0,15).reverse();
+  var pcChart=echarts.init(el);
+  pcChart.setOption({tooltip:{trigger:mob?'item':'axis',axisPointer:{type:'shadow'},...tt,formatter:function(p){return'<b>'+tp(p).name+'</b><br/>'+tp(p).value+'h ('+tp(p).data.eps+' eps)'}},
+    grid:{left:gl(150),right:30,top:8,bottom:8},
+    xAxis:{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},
+    yAxis:{type:'category',data:items.map(function(d){return d.title}),axisLabel:{color:'#ccc',fontSize:10,interval:0},axisLine:{lineStyle:{color:'#333'}}},
+    series:[{type:'bar',data:items.map(function(d){return{value:d.listened_hrs,eps:d.played}}),itemStyle:{color:new echarts.graphic.LinearGradient(0,0,1,0,[{offset:0,color:'#0f3460'},{offset:1,color:'#8b5cf6'}])},barMaxWidth:18,label:{show:true,position:'right',color:'#8b5cf6',fontSize:10,formatter:function(p){return p.value+'h'}}}]});
+  ch.push(pcChart);
+}
+
 function renderStatus(){
   var total_people=D.a.length+D.x.length;
   var hs_count=Object.keys(D.hs||{}).length;
@@ -1662,7 +1683,7 @@ function render(){ch.forEach(function(c){try{c.dispose()}catch(e){}});ch=[];
   // Critical (above fold): stats, timeline, lifeline, posters
   stats();renderLifeline();baseCharts();renderPosters();
   // Deferred (below fold): render after first paint
-  requestAnimationFrame(function(){ptbl('atb',D.a);ptbl('xtb',D.x);ptbl('dtb',D.d||[]);ptbl('wtb',D.w||[]);movieCharts();renderLetterboxd();renderGoodreads();renderLastfm();renderConcerts();renderTheater();renderStatus()})}
+  requestAnimationFrame(function(){ptbl('atb',D.a);ptbl('xtb',D.x);ptbl('dtb',D.d||[]);ptbl('wtb',D.w||[]);movieCharts();renderLetterboxd();renderGoodreads();renderLastfm();renderConcerts();renderTheater();renderPodcasts();renderStatus()})}
 var _rzt,_lastW=window.innerWidth;
 function _rz(){clearTimeout(_rzt);_rzt=setTimeout(function(){mob=window.innerWidth<768;ch.forEach(function(c){try{c.resize()}catch(e){}})},200)}
 window.addEventListener('resize',function(){
