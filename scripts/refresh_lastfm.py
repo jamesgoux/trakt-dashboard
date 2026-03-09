@@ -1,7 +1,13 @@
 #!/usr/bin/env python3
-"""Fetch Last.fm listening data and save to data/lastfm.json"""
+"""
+Fetch Last.fm listening data and save to data/lastfm.json.
+INCREMENTAL: Only fetches new weekly charts since last run.
+Full data is preserved and merged.
+"""
 import json, os, sys, time
 import urllib.request
+from datetime import datetime
+from collections import defaultdict
 
 LASTFM_API_KEY = os.environ.get("LASTFM_API_KEY", "")
 LASTFM_USER = os.environ.get("LASTFM_USER", "")
@@ -29,17 +35,25 @@ def api(method, **params):
     with urllib.request.urlopen(req, timeout=15) as resp:
         return json.loads(resp.read())
 
-print("=== Last.fm Refresh ===")
+SKIP_TAGS = {"seen live", "favorites", "favourite", "american", "british", "all", ""}
 
-# User info
+def load_existing():
+    if os.path.exists("data/lastfm.json"):
+        with open("data/lastfm.json") as f:
+            return json.load(f)
+    return {}
+
+print("=== Last.fm Refresh (Incremental) ===")
+existing = load_existing()
+
+# ── 1. User info + top lists (always refresh, fast) ──
 info = api("user.getinfo")["user"]
 total_scrobbles = int(info.get("playcount", 0))
 total_artists = int(info.get("artist_count", 0))
 total_albums = int(info.get("album_count", 0))
 total_tracks = int(info.get("track_count", 0))
-print(f"  User: {info['name']}, Scrobbles: {total_scrobbles}, Artists: {total_artists}, Albums: {total_albums}")
+print(f"  User: {info['name']}, Scrobbles: {total_scrobbles}")
 
-# Top artists (all time + by year periods)
 top_artists = []
 for period in ["overall", "12month", "3month", "1month"]:
     data = api("user.gettopartists", period=period, limit=25)
@@ -47,7 +61,6 @@ for period in ["overall", "12month", "3month", "1month"]:
     top_artists.append({"period": period, "artists": artists})
     time.sleep(0.3)
 
-# Top tracks
 top_tracks = []
 for period in ["overall", "12month", "3month", "1month"]:
     data = api("user.gettoptracks", period=period, limit=20)
@@ -55,7 +68,6 @@ for period in ["overall", "12month", "3month", "1month"]:
     top_tracks.append({"period": period, "tracks": tracks})
     time.sleep(0.3)
 
-# Top albums
 top_albums = []
 for period in ["overall", "12month", "3month", "1month"]:
     data = api("user.gettopalbums", period=period, limit=20)
@@ -64,11 +76,10 @@ for period in ["overall", "12month", "3month", "1month"]:
     top_albums.append({"period": period, "albums": albums})
     time.sleep(0.3)
 
-# Top tags/genres (from top artists' tags) — per period
-SKIP_TAGS = {"seen live", "favorites", "favourite", "american", "british", "all", ""}
+# ── 2. Genres from top artists' tags (always refresh) ──
 print("  Fetching artist tags for genres...")
 genres_by_period = {}
-fetched_artist_tags = {}  # cache
+fetched_artist_tags = {}
 for pdata in top_artists:
     period = pdata["period"]
     genre_counter = {}
@@ -88,39 +99,79 @@ for pdata in top_artists:
     genres_by_period[period] = [{"n": g, "c": c} for g, c in top_genres]
 genres = genres_by_period.get("overall", [])
 
-# Weekly chart list — aggregate into yearly and monthly buckets
-from datetime import datetime
-from collections import defaultdict
-print("  Fetching weekly charts (all time)...")
-weekly = []
+# ── 3. Weekly charts — INCREMENTAL ──
+# Load existing yearly/monthly data and only fetch new weeks
+print("  Fetching weekly charts (incremental)...")
+
+# Preserve existing aggregated data
+old_yearly = {y["yr"]: y for y in existing.get("yearly", [])}
+old_monthly = {m["m"]: m for m in existing.get("monthly", [])}
+old_weekly = existing.get("weekly", [])
+old_wd = existing.get("wd", {})
+
+# Find the most recent week we already have
+last_fetched_ts = 0
+if old_weekly:
+    try:
+        last_week = max(w["week"] for w in old_weekly)
+        last_fetched_ts = int(datetime.strptime(last_week, "%Y-%m-%d").timestamp())
+        print(f"  Last fetched week: {last_week}")
+    except Exception:
+        pass
+
+# Rebuild mutable aggregates from existing data
 yearly_scrobbles = defaultdict(int)
-yearly_artist_plays = defaultdict(lambda: defaultdict(int))  # yr -> artist -> plays
-yearly_album_plays = defaultdict(lambda: defaultdict(int))   # yr -> album -> plays
 monthly_scrobbles = defaultdict(int)
+yearly_artist_plays = defaultdict(lambda: defaultdict(int))
+yearly_album_plays = defaultdict(lambda: defaultdict(int))
 monthly_artist_plays = defaultdict(lambda: defaultdict(int))
 monthly_album_plays = defaultdict(lambda: defaultdict(int))
-weekly_details = {}  # week_date -> {artists: [...], albums: [...]}
+
+# Seed from existing yearly/monthly totals
+for y in existing.get("yearly", []):
+    yearly_scrobbles[y["yr"]] = y["s"]
+    for a in y.get("ta", []):
+        yearly_artist_plays[y["yr"]][a["n"]] = a["c"]
+    for a in y.get("tal", []):
+        yearly_album_plays[y["yr"]][a["n"]] = a["c"]
+for m in existing.get("monthly", []):
+    monthly_scrobbles[m["m"]] = m["s"]
+    for a in m.get("ta", []):
+        monthly_artist_plays[m["m"]][a["n"]] = a["c"]
+    for a in m.get("tal", []):
+        monthly_album_plays[m["m"]][a["n"]] = a["c"]
+
+weekly = list(old_weekly)
+weekly_details = dict(old_wd)
+
 try:
     charts_data = api("user.getweeklychartlist")
     chart_list = charts_data.get("weeklychartlist", {}).get("chart", [])
-    for i, ch in enumerate(chart_list):
+    
+    # Only fetch charts newer than what we have
+    new_charts = [ch for ch in chart_list if safe_int(ch["from"]) > last_fetched_ts] if last_fetched_ts else chart_list
+    print(f"  Total charts: {len(chart_list)}, New to fetch: {len(new_charts)}")
+    
+    for i, ch in enumerate(new_charts):
         try:
             dt = datetime.fromtimestamp(safe_int(ch["from"]))
             yr = dt.strftime("%Y")
             mo = dt.strftime("%Y-%m")
             wk_date = dt.strftime("%Y-%m-%d")
+            
             wk = api("user.getweeklyartistchart", **{"from": ch["from"], "to": ch["to"]})
             artists_in_week = wk.get("weeklyartistchart", {}).get("artist", [])
             week_total = sum(int(a.get("playcount", 0)) for a in artists_in_week)
             yearly_scrobbles[yr] += week_total
             monthly_scrobbles[mo] += week_total
+            
             wk_artists = []
             for a in artists_in_week:
                 pc = int(a.get("playcount", 0))
                 yearly_artist_plays[yr][a["name"]] += pc
                 monthly_artist_plays[mo][a["name"]] += pc
                 wk_artists.append({"n": a["name"], "c": pc})
-            # Album chart
+            
             wk_albums = []
             try:
                 wka = api("user.getweeklyalbumchart", **{"from": ch["from"], "to": ch["to"]})
@@ -133,38 +184,32 @@ try:
                     wk_albums.append({"n": name, "a": artist, "c": pc})
             except Exception:
                 pass
-            # Keep recent 52 weeks with detail
-            if i >= len(chart_list) - 52:
-                weekly.append({"week": wk_date, "c": week_total})
-                weekly_details[wk_date] = {"artists": wk_artists[:10], "albums": wk_albums[:10]}
-            if i % 50 == 0:
-                print(f"    Week {i+1}/{len(chart_list)} ({yr})...")
+            
+            weekly.append({"week": wk_date, "c": week_total})
+            weekly_details[wk_date] = {"artists": wk_artists[:10], "albums": wk_albums[:10]}
+            
+            if (i + 1) % 10 == 0:
+                print(f"    Fetched {i+1}/{len(new_charts)} new weeks...")
             time.sleep(0.25)
         except Exception:
             pass
 except Exception as e:
     print(f"  Weekly chart error: {e}")
 
-# Build top lists per period
+# Keep only last 52 weeks of detail
+weekly.sort(key=lambda x: x["week"], reverse=True)
+weekly = weekly[:52]
+keep_weeks = set(w["week"] for w in weekly)
+weekly_details = {k: v for k, v in weekly_details.items() if k in keep_weeks}
+
+# ── 4. Recent tracks (always refresh, ~30 days) ──
 def top_n(counter, n=10):
     return [{"n": k, "c": v} for k, v in sorted(counter.items(), key=lambda x: x[1], reverse=True)[:n]]
 
-# Build yearly/monthly summary arrays with top artists/albums
-lfm_yearly = sorted([{"yr": y, "s": yearly_scrobbles[y],
-                       "a": len(yearly_artist_plays[y]), "al": len(yearly_album_plays[y]),
-                       "ta": top_n(yearly_artist_plays[y]), "tal": top_n(yearly_album_plays[y])}
-                      for y in yearly_scrobbles], key=lambda x: x["yr"])
-lfm_monthly = sorted([{"m": m, "s": monthly_scrobbles[m],
-                       "a": len(monthly_artist_plays[m]), "al": len(monthly_album_plays[m]),
-                       "ta": top_n(monthly_artist_plays[m]), "tal": top_n(monthly_album_plays[m])}
-                       for m in monthly_scrobbles], key=lambda x: x["m"])
-print(f"  Years: {len(lfm_yearly)}, Months: {len(lfm_monthly)}")
-
-# Recent tracks — paginate to get ~30 days of scrobbles
-print("  Fetching recent tracks (paginated)...")
+print("  Fetching recent tracks...")
 recent = []
 try:
-    for page in range(1, 20):  # up to ~4000 tracks
+    for page in range(1, 20):
         data = api("user.getrecenttracks", limit=200, page=page)
         tracks = data.get("recenttracks", {}).get("track", [])
         if not tracks:
@@ -178,12 +223,10 @@ try:
                 "al": t.get("album", {}).get("#text", ""),
                 "d": t["date"]["#text"],
             })
-        print(f"    Page {page}: {len(tracks)} tracks (total: {len(recent)})")
-        # Stop if we have 30+ days of data
         if len(recent) > 100:
             oldest = recent[-1]["d"]
             try:
-                from datetime import datetime as dt2, timedelta as td2
+                from datetime import datetime as dt2
                 oldest_date = dt2.strptime(oldest, "%d %b %Y, %H:%M")
                 if (dt2.now() - oldest_date).days >= 35:
                     break
@@ -192,7 +235,17 @@ try:
         time.sleep(0.3)
 except Exception as e:
     print(f"  Recent tracks error: {e}")
-print(f"  Total recent tracks: {len(recent)}")
+print(f"  Recent tracks: {len(recent)}")
+
+# ── 5. Build output ──
+lfm_yearly = sorted([{"yr": y, "s": yearly_scrobbles[y],
+                       "a": len(yearly_artist_plays[y]), "al": len(yearly_album_plays[y]),
+                       "ta": top_n(yearly_artist_plays[y]), "tal": top_n(yearly_album_plays[y])}
+                      for y in yearly_scrobbles], key=lambda x: x["yr"])
+lfm_monthly = sorted([{"m": m, "s": monthly_scrobbles[m],
+                       "a": len(monthly_artist_plays[m]), "al": len(monthly_album_plays[m]),
+                       "ta": top_n(monthly_artist_plays[m]), "tal": top_n(monthly_album_plays[m])}
+                       for m in monthly_scrobbles], key=lambda x: x["m"])
 
 output = {
     "total": total_scrobbles,
@@ -214,5 +267,5 @@ output = {
 with open("data/lastfm.json", "w") as f:
     json.dump(output, f, separators=(",", ":"))
 
-print(f"  Saved: {total_scrobbles} scrobbles, {len(genres)} genres, {len(weekly)} weeks")
+print(f"  Saved: {total_scrobbles} scrobbles, {len(lfm_yearly)} years, {len(lfm_monthly)} months, {len(weekly)} weeks")
 print("Done!")
