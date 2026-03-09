@@ -511,10 +511,11 @@ function baseCharts(){
     var tt=gtTitles[gn]||{};var el=document.getElementById('gnc');
     var ex=el.parentElement.querySelector('.chart-detail');if(ex){ex.remove();if(ex.dataset.val===gn)return}
     var div=document.createElement('div');div.className='chart-detail';div.dataset.val=gn;
-    var h='<span class="cd-close" onclick="this.parentElement.remove()">✕</span><b>'+gn+'</b>';
-    var movies=tt.m||[];var shows=tt.s||[];
-    if(ct!=='show'&&movies.length){h+='<div style="margin-top:4px;font-size:10px;font-weight:600;color:var(--mv)">🎞️ Movies ('+movies.length+')</div>';movies.slice(0,20).forEach(function(t){h+='<div class="cd-item"><span>'+t+'</span></div>'})}
-    if(ct!=='movie'&&shows.length){h+='<div style="margin-top:4px;font-size:10px;font-weight:600;color:var(--tv)">📺 Shows ('+shows.length+')</div>';shows.slice(0,20).forEach(function(t){h+='<div class="cd-item"><span>'+t+'</span></div>'})}
+    var h='<span class="cd-close" onclick="this.parentElement.remove()">✕</span><b>'+gn+(cy!=='all'?' ('+cy+')':'')+'</b>';
+    var movies=(tt.m||[]).filter(function(t){return cy==='all'||t.y===cy});
+    var shows=(tt.s||[]).filter(function(t){return cy==='all'||t.y===cy});
+    if(ct!=='show'&&movies.length){h+='<div style="margin-top:4px;font-size:10px;font-weight:600;color:var(--mv)">🎞️ Movies ('+movies.length+')</div>';movies.slice(0,20).forEach(function(t){h+='<div class="cd-item"><span>'+(t.t||t)+'</span></div>'})}
+    if(ct!=='movie'&&shows.length){h+='<div style="margin-top:4px;font-size:10px;font-weight:600;color:var(--tv)">📺 Shows ('+shows.length+')</div>';shows.slice(0,20).forEach(function(t){h+='<div class="cd-item"><span>'+(t.t||t)+'</span></div>'})}
     div.innerHTML=h;el.parentElement.appendChild(div);
   });
 

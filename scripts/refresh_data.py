@@ -371,7 +371,7 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
                     if gtkey not in seen_net and title_name:
                         seen_net.add(gtkey)
                         if gs not in genre_titles: genre_titles[gs] = {"m": [], "s": []}
-                        genre_titles[gs]["m"].append(title_name)
+                        genre_titles[gs]["m"].append({"t": title_name, "y": y})
                 else:
                     gkey = (slug, gs, y)
                     if gkey not in seen_net:
@@ -381,7 +381,7 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
                     if gtkey not in seen_net and title_name:
                         seen_net.add(gtkey)
                         if gs not in genre_titles: genre_titles[gs] = {"m": [], "s": []}
-                        genre_titles[gs]["s"].append(title_name)
+                        genre_titles[gs]["s"].append({"t": title_name, "y": y})
         # Networks: count unique titles (slug), not episodes
         slug = e["trakt_slug"]
         net_key = (slug, y)
