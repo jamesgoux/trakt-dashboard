@@ -722,7 +722,71 @@ raw_movies = fetch_history("movies")
 raw_shows = fetch_history("shows")
 entries = [norm_movie(e) for e in raw_movies] + [norm_show(e) for e in raw_shows]
 entries.sort(key=lambda x: x["watched_at"], reverse=True)
-print(f"  Total: {len(entries)} entries")
+print(f"  Total: {len(entries)} entries (Trakt)")
+
+# ── Letterboxd backfill: merge old watches (2015-2022) not in Trakt ──
+if os.path.exists("data/letterboxd.json"):
+    with open("data/letterboxd.json") as f:
+        lb_data = json.load(f)
+    
+    # Build lookup: (title_lower, year) -> set of watched dates from Trakt
+    trakt_watches = defaultdict(set)
+    for e in entries:
+        if e["type"] == "movie" and e["title"] and e["watched_at"]:
+            key = (e["title"].lower(), str(e.get("year", "")))
+            trakt_watches[key].add(e["watched_at"][:10])
+    
+    lb_added = 0
+    for lb_key, lb_entry in lb_data.items():
+        title = lb_entry.get("title", "")
+        year = str(lb_entry.get("year", ""))
+        if not title:
+            continue
+        key = (title.lower(), year)
+        
+        for lb_date in lb_entry.get("dates", []):
+            if not lb_date or lb_date[:4] < "2015" or lb_date[:4] > "2022":
+                continue
+            
+            # Check if Trakt already has a watch within 30 days
+            is_dupe = False
+            for trakt_date in trakt_watches[key]:
+                try:
+                    td = abs((datetime.strptime(lb_date, "%Y-%m-%d") - datetime.strptime(trakt_date, "%Y-%m-%d")).days)
+                    if td <= 30:
+                        is_dupe = True
+                        break
+                except Exception:
+                    pass
+            
+            if not is_dupe:
+                entries.append({
+                    "type": "movie",
+                    "watched_at": lb_date + "T12:00:00.000Z",
+                    "title": title,
+                    "year": year,
+                    "runtime": "",
+                    "genres": "",
+                    "trakt_slug": "",
+                    "tmdb_id": lb_entry.get("tmdb_id", ""),
+                    "show_title": "",
+                    "season": "",
+                    "episode_number": "",
+                    "network": "",
+                    "country": "",
+                    "language": "",
+                    "trakt_rating": "",
+                })
+                trakt_watches[key].add(lb_date)
+                lb_added += 1
+    
+    if lb_added:
+        entries.sort(key=lambda x: x["watched_at"], reverse=True)
+        print(f"  Letterboxd backfill: +{lb_added} watches merged (2015-2022, deduped within 30 days)")
+    else:
+        print(f"  Letterboxd backfill: no new watches to merge")
+
+print(f"  Total: {len(entries)} entries (after merge)")
 
 os.makedirs("data", exist_ok=True)
 
