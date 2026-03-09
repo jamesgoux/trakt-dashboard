@@ -1,25 +1,42 @@
 #!/usr/bin/env python3
 """
-Image backfill script — fetches posters, logos, and headshots from TMDB.
+Image backfill script — fetches posters, logos, and headshots via TMDB API.
 
 Priority order: posters → logos → actors → directors → writers
-Within each: most recently watched content first.
-Goal: complete coverage for recent watches before older ones.
+Within each: dashboard-visible items first, then most recently watched.
 
-Budget per run: ~1000 TMDB requests total (respects rate limits).
+Uses TMDB API (requires TMDB_API_KEY or TMDB_BEARER_TOKEN).
+Falls back to web scraping if no TMDB API credentials are set.
+
+Budget per run: configurable via HEADSHOT_BUDGET env var.
+Daily run (default): 2000 items. 20-min run: 300 items.
 """
 
 import os, json, time, re, requests
 
 CLIENT_ID = os.environ.get("TRAKT_CLIENT_ID")
 BASE_URL = "https://api.trakt.tv"
-HEADERS = {"Content-Type": "application/json", "trakt-api-version": "2", "trakt-api-key": CLIENT_ID}
+TRAKT_HEADERS = {"Content-Type": "application/json", "trakt-api-version": "2", "trakt-api-key": CLIENT_ID}
 
-# Total budget per run — split across categories
-TOTAL_BUDGET = 1000
+# TMDB API setup
+TMDB_BEARER = os.environ.get("TMDB_BEARER_TOKEN", "")
+TMDB_API_KEY = os.environ.get("TMDB_API_KEY", "")
+USE_TMDB_API = bool(TMDB_BEARER or TMDB_API_KEY)
+
+TMDB_HEADERS = {}
+if TMDB_BEARER:
+    TMDB_HEADERS = {"Authorization": f"Bearer {TMDB_BEARER}", "Accept": "application/json"}
+
+# Budget: higher with API (1 req per item), lower with scraping (2 req per item)
+TOTAL_BUDGET = int(os.environ.get("HEADSHOT_BUDGET", "2000" if USE_TMDB_API else "1000"))
 
 if not CLIENT_ID:
     print("ERROR: Set TRAKT_CLIENT_ID"); exit(1)
+
+if USE_TMDB_API:
+    print("Using TMDB API (fast mode)")
+else:
+    print("No TMDB API credentials — falling back to web scraping (slow mode)")
 
 os.makedirs("data", exist_ok=True)
 
@@ -31,24 +48,67 @@ def load_json(path):
 def save_json(path, data):
     with open(path, "w") as f: json.dump(data, f, separators=(',', ':'))
 
-def fetch_tmdb_image(tmdb_url):
+# ============================================================
+# TMDB API helpers
+# ============================================================
+def tmdb_api(endpoint):
+    """Call TMDB API. Returns JSON or None."""
+    url = f"https://api.themoviedb.org/3{endpoint}"
+    params = {} if TMDB_BEARER else {"api_key": TMDB_API_KEY}
+    try:
+        r = requests.get(url, headers=TMDB_HEADERS, params=params, timeout=8)
+        if r.status_code == 200:
+            return r.json()
+        if r.status_code == 429:  # rate limited
+            time.sleep(2)
+    except Exception:
+        pass
+    return None
+
+def tmdb_person_image(tmdb_id):
+    """Get person profile image via API."""
+    data = tmdb_api(f"/person/{tmdb_id}")
+    if data and data.get("profile_path"):
+        return f"https://image.tmdb.org/t/p/w185{data['profile_path']}"
+    return None
+
+def tmdb_poster_image(tmdb_id, kind="tv"):
+    """Get show/movie poster via API. kind='tv' or 'movie'."""
+    data = tmdb_api(f"/{kind}/{tmdb_id}")
+    if data and data.get("poster_path"):
+        return f"https://image.tmdb.org/t/p/w185{data['poster_path']}"
+    return None
+
+def tmdb_logo_image(tmdb_id):
+    """Get company logo via API."""
+    data = tmdb_api(f"/company/{tmdb_id}")
+    if data and data.get("logo_path"):
+        return f"https://image.tmdb.org/t/p/original{data['logo_path']}"
+    return None
+
+# ============================================================
+# Scraping fallback (original method)
+# ============================================================
+def fetch_tmdb_image_scrape(tmdb_url):
     try:
         r = requests.get(tmdb_url, timeout=5, headers={"User-Agent": "Mozilla/5.0"})
         if r.status_code == 200:
             imgs = re.findall(r'https://image\.tmdb\.org/t/p/w500/([^"\']+\.jpg)', r.text)
             if imgs:
                 return imgs[0]
-    except: pass
+    except Exception:
+        pass
     return None
 
-def fetch_tmdb_png(tmdb_url):
+def fetch_tmdb_png_scrape(tmdb_url):
     try:
         r = requests.get(tmdb_url, timeout=5, headers={"User-Agent": "Mozilla/5.0"})
         if r.status_code == 200:
             imgs = re.findall(r'https://image\.tmdb\.org/t/p/[^"\']+\.png', r.text)
             if imgs:
                 return imgs[0]
-    except: pass
+    except Exception:
+        pass
     return None
 
 # ============================================================
@@ -59,9 +119,7 @@ def fetch_posters(budget):
     slug_recency = load_json("data/slug_recency.json")
     vis = load_json("data/visible_priority.json")
 
-    # All slugs needing posters, sorted by most recent watch
     need = [(s, yr) for s, yr in slug_recency.items() if s and s not in ps]
-    # Prioritize slugs visible on the all/all dashboard page
     vis_slugs = set(vis.get("shows", []) + vis.get("movies", []))
     need.sort(key=lambda x: (1 if x[0] in vis_slugs else 0, x[1]), reverse=True)
     need = need[:budget]
@@ -71,29 +129,36 @@ def fetch_posters(budget):
 
     count = 0; used = 0
     for i, (slug, _) in enumerate(need):
-        for kind in ["tv", "movie"]:
+        for kind_tmdb, kind_trakt in [("tv", "shows"), ("movie", "movies")]:
             try:
-                trakt_kind = "shows" if kind == "tv" else "movies"
-                r1 = requests.get(f"{BASE_URL}/{trakt_kind}/{slug}", headers=HEADERS, timeout=5)
+                r1 = requests.get(f"{BASE_URL}/{kind_trakt}/{slug}", headers=TRAKT_HEADERS, timeout=5)
                 used += 1
                 if r1.status_code == 200:
                     tmdb_id = r1.json().get("ids", {}).get("tmdb")
                     if tmdb_id:
-                        h = fetch_tmdb_image(f"https://www.themoviedb.org/{kind}/{tmdb_id}")
-                        used += 1
-                        if h:
-                            ps[slug] = f"https://image.tmdb.org/t/p/w185/{h}"
-                            count += 1; break
-            except: pass
-            time.sleep(0.08)
+                        if USE_TMDB_API:
+                            url = tmdb_poster_image(tmdb_id, kind_tmdb)
+                            used += 1
+                            if url:
+                                ps[slug] = url; count += 1; break
+                        else:
+                            h = fetch_tmdb_image_scrape(f"https://www.themoviedb.org/{kind_tmdb}/{tmdb_id}")
+                            used += 1
+                            if h:
+                                ps[slug] = f"https://image.tmdb.org/t/p/w185/{h}"
+                                count += 1; break
+            except Exception:
+                pass
+            time.sleep(0.05 if USE_TMDB_API else 0.08)
         if (i+1) % 50 == 0:
             print(f"  {i+1}/{len(need)}, {count} found")
             save_json("data/posters.json", ps)
-        time.sleep(0.08)
+        time.sleep(0.05 if USE_TMDB_API else 0.08)
 
     save_json("data/posters.json", ps)
     print(f"  +{count} posters ({len(ps)} total), {used} requests")
     return used
+
 
 # ============================================================
 # LOGOS (studio/network) — PRIORITY 2
@@ -103,7 +168,6 @@ def fetch_logos(budget):
     studios_raw = load_json("data/studios.json")
     slug_recency = load_json("data/slug_recency.json")
 
-    # Score each studio by most recent title it appears on
     studio_recency = {}
     for slug, names in studios_raw.items():
         yr = slug_recency.get(slug, 0)
@@ -128,25 +192,31 @@ def fetch_logos(budget):
         if not found_slug: continue
         try:
             for kind in ["movies", "shows"]:
-                r = requests.get(f"{BASE_URL}/{kind}/{found_slug}/studios", headers=HEADERS, timeout=5)
+                r = requests.get(f"{BASE_URL}/{kind}/{found_slug}/studios", headers=TRAKT_HEADERS, timeout=5)
                 used += 1
                 if r.status_code == 200:
                     for s in r.json():
                         if s["name"] == name:
                             tmdb_id = s["ids"].get("tmdb")
                             if tmdb_id:
-                                img = fetch_tmdb_png(f"https://www.themoviedb.org/company/{tmdb_id}")
-                                used += 1
-                                if img:
-                                    logos[name] = img
-                                    count += 1
+                                if USE_TMDB_API:
+                                    url = tmdb_logo_image(tmdb_id)
+                                    used += 1
+                                    if url:
+                                        logos[name] = url; count += 1
+                                else:
+                                    img = fetch_tmdb_png_scrape(f"https://www.themoviedb.org/company/{tmdb_id}")
+                                    used += 1
+                                    if img:
+                                        logos[name] = img; count += 1
                             break
                     if name in logos: break
-        except: pass
+        except Exception:
+            pass
         if (i+1) % 20 == 0:
             print(f"  {i+1}/{len(need)}, {count} found")
             save_json("data/logos.json", logos)
-        time.sleep(0.15)
+        time.sleep(0.05 if USE_TMDB_API else 0.15)
 
     save_json("data/logos.json", logos)
     print(f"  +{count} logos ({len(logos)} total), {used} requests")
@@ -160,11 +230,9 @@ def fetch_headshots_for(label, priority, source_files, budget):
     slug_recency = load_json("data/slug_recency.json")
     vis = load_json("data/visible_priority.json")
 
-    # Build set of person slugs visible on the all/all page
     vis_key = "directors" if "director" in source_files[0] else "writers" if "writer" in source_files[0] else "people"
     vis_pids = set(p["pid"] for p in vis.get(vis_key, []))
 
-    # Combine sources
     all_people = {}
     for src_file in source_files:
         src = load_json(src_file)
@@ -177,7 +245,6 @@ def fetch_headshots_for(label, priority, source_files, budget):
         return max((slug_recency.get(t, 0) for t in titles), default=0)
 
     need = [(slug, info) for slug, info in all_people.items() if info["name"] not in hs]
-    # Sort: visible on dashboard first, then by recency
     need.sort(key=lambda x: (1 if x[0] in vis_pids else 0, person_recency(x[0])), reverse=True)
     need = need[:budget]
 
@@ -187,21 +254,29 @@ def fetch_headshots_for(label, priority, source_files, budget):
     count = 0; used = 0
     for i, (slug, info) in enumerate(need):
         try:
-            r1 = requests.get(f"{BASE_URL}/people/{slug}?extended=full", headers=HEADERS, timeout=5)
+            # Get TMDB ID from Trakt
+            r1 = requests.get(f"{BASE_URL}/people/{slug}?extended=full", headers=TRAKT_HEADERS, timeout=5)
             used += 1
             if r1.status_code == 200:
                 tmdb_id = r1.json().get("ids", {}).get("tmdb")
                 if tmdb_id:
-                    h = fetch_tmdb_image(f"https://www.themoviedb.org/person/{tmdb_id}")
-                    used += 1
-                    if h:
-                        hs[info["name"]] = f"https://image.tmdb.org/t/p/w185/{h}"
-                        count += 1
-        except: pass
-        if (i+1) % 200 == 0:
+                    if USE_TMDB_API:
+                        url = tmdb_person_image(tmdb_id)
+                        used += 1
+                        if url:
+                            hs[info["name"]] = url; count += 1
+                    else:
+                        h = fetch_tmdb_image_scrape(f"https://www.themoviedb.org/person/{tmdb_id}")
+                        used += 1
+                        if h:
+                            hs[info["name"]] = f"https://image.tmdb.org/t/p/w185/{h}"
+                            count += 1
+        except Exception:
+            pass
+        if (i+1) % 100 == 0:
             print(f"  {i+1}/{len(need)}, {count} found")
             save_json("data/headshots.json", hs)
-        time.sleep(0.1)
+        time.sleep(0.05 if USE_TMDB_API else 0.1)
 
     save_json("data/headshots.json", hs)
     print(f"  +{count} {label.lower()} ({len(hs)} total headshots), {used} requests")
@@ -211,30 +286,30 @@ def fetch_headshots_for(label, priority, source_files, budget):
 # MAIN — allocate budget across categories
 # ============================================================
 print("=== Iris Image Backfill ===")
-print(f"Budget: {TOTAL_BUDGET} requests\n")
+print(f"Budget: {TOTAL_BUDGET} items, Mode: {'API' if USE_TMDB_API else 'scrape'}\n")
 
 remaining = TOTAL_BUDGET
 
-# 1. Posters (20% of budget)
-used = fetch_posters(min(200, remaining))
+# 1. Posters (20%)
+used = fetch_posters(min(remaining * 20 // 100, remaining))
 remaining -= used
 
-# 2. Logos (10% of budget)
-used = fetch_logos(min(100, remaining))
+# 2. Logos (10%)
+used = fetch_logos(min(remaining * 10 // 100, remaining))
 remaining -= used
 
 # 3. Actors (35% of remaining)
-actor_budget = min(remaining * 35 // 100, remaining)
-used = fetch_headshots_for("Actors", 3, ["data/people.json"], actor_budget // 2)  # 2 requests per person
+actor_budget = remaining * 35 // 100
+used = fetch_headshots_for("Actors", 3, ["data/people.json"], actor_budget)
 remaining -= used
 
 # 4. Directors (30% of remaining)
-dir_budget = min(remaining * 45 // 100, remaining)
-used = fetch_headshots_for("Directors", 4, ["data/directors.json"], dir_budget // 2)
+dir_budget = remaining * 45 // 100
+used = fetch_headshots_for("Directors", 4, ["data/directors.json"], dir_budget)
 remaining -= used
 
 # 5. Writers (rest)
-used = fetch_headshots_for("Writers", 5, ["data/writers.json"], remaining // 2)
+used = fetch_headshots_for("Writers", 5, ["data/writers.json"], remaining)
 
 # Summary
 hs = load_json("data/headshots.json")

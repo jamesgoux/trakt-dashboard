@@ -25,6 +25,8 @@ jobs:
       - name: Fetch new headshots
         env:
           TRAKT_CLIENT_ID: ${{ secrets.TRAKT_CLIENT_ID }}
+          TMDB_BEARER_TOKEN: ${{ secrets.TMDB_BEARER_TOKEN }}
+          TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
         run: python scripts/refresh_headshots.py
 
       - name: Backfill book genres

@@ -50,6 +50,14 @@ jobs:
           LASTFM_USER: ${{ secrets.LASTFM_USER }}
         run: python scripts/refresh_data.py
 
+      - name: Quick image backfill
+        env:
+          TRAKT_CLIENT_ID: ${{ secrets.TRAKT_CLIENT_ID }}
+          TMDB_BEARER_TOKEN: ${{ secrets.TMDB_BEARER_TOKEN }}
+          TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+          HEADSHOT_BUDGET: "300"
+        run: python scripts/refresh_headshots.py
+
       - name: Commit and push
         run: |
           git config user.name "github-actions[bot]"
