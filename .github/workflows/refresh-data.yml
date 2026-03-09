@@ -44,6 +44,8 @@ jobs:
         env:
           TRAKT_CLIENT_ID: ${{ secrets.TRAKT_CLIENT_ID }}
           TRAKT_USERNAME: ${{ secrets.TRAKT_USERNAME }}
+          LASTFM_API_KEY: ${{ secrets.LASTFM_API_KEY }}
+          LASTFM_USER: ${{ secrets.LASTFM_USER }}
         run: python scripts/refresh_data.py
 
       - name: Commit and push

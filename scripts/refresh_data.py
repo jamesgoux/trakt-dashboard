@@ -1357,21 +1357,21 @@ if theater:
             ll_counts[d]["th"] += 1
             ll_events[d].append({"t": "19:30", "n": "🎭 " + t["show"], "ty": "th"})
 
-# Build output: counts for bars + chronological events for click
+# Build output: counts for bars + events only for recent 90 days
+event_cutoff = (datetime.now() - timedelta(days=90)).strftime("%Y-%m-%d")
 lifeline_all = {}
 for d in sorted(ll_counts.keys()):
     c = ll_counts[d]
     if c["ep"] or c["mv"] or c["bk"] or c["sc"] or c["co"] or c["th"]:
-        # Sort events by timestamp
-        evts = sorted(ll_events.get(d, []), key=lambda x: x["t"])
-        # For days with only approximate scrobbles (no exact events), add a summary
-        if c["sc"] and not any(e["ty"] == "sc" for e in evts):
-            evts.append({"t": "12:00", "n": "~" + str(c["sc"]) + " scrobbles (approx)", "ty": "sc"})
-        lifeline_all[d] = {
-            "ep": c["ep"], "mv": c["mv"], "bk": c["bk"],
-            "sc": c["sc"], "co": c["co"], "th": c["th"],
-            "e": evts[:80]  # chronological events
-        }
+        entry = {"ep": c["ep"], "mv": c["mv"], "bk": c["bk"],
+                 "sc": c["sc"], "co": c["co"], "th": c["th"]}
+        # Only store detailed events for last 90 days (saves ~1MB)
+        if d >= event_cutoff:
+            evts = sorted(ll_events.get(d, []), key=lambda x: x["t"])
+            if c["sc"] and not any(e["ty"] == "sc" for e in evts):
+                evts.append({"t": "12:00", "n": "~" + str(c["sc"]) + " scrobbles (approx)", "ty": "sc"})
+            entry["e"] = evts[:80]
+        lifeline_all[d] = entry
 data["ll"] = lifeline_all
 
 data_str = json.dumps(data, separators=(',', ':'), ensure_ascii=False)
