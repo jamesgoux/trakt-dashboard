@@ -164,14 +164,16 @@ body{overflow-x:hidden}
 <div class="g2 med-s" data-med="all movie">
 <div id="sec-ratings" class="cd fw s-g"><h3><span class="i">⭐</span>My Ratings (Letterboxd)</h3><div id="lbc" style="height:280px"></div></div>
 </div>
-<div class="g3 med-s" data-med="all movie">
+<div class="g2 med-s" data-med="all movie">
 <div class="cd s-g"><h3><span class="i">🏆</span>My Highest Rated Movies (Letterboxd)</h3><div class="stb" id="myh-list" style="font-size:12px"></div></div>
 <div class="cd s-m"><h3><span class="i">💎</span>Highest Rated Movies (Trakt Community)</h3><div class="stb" id="mch-list" style="font-size:12px"></div></div>
-<div class="cd s-s"><h3><span class="i">📺</span>Highest Rated TV (Trakt Community)</h3><div class="stb" id="sch-list" style="font-size:12px"></div></div>
 </div>
-<div class="g3 med-s" data-med="all movie">
+<div class="g2 med-s" data-med="all movie">
 <div class="cd s-g"><h3><span class="i">👎</span>My Lowest Rated Movies (Letterboxd)</h3><div id="myl-list"></div></div>
 <div class="cd s-m"><h3><span class="i">📉</span>Lowest Rated Movies (Trakt Community)</h3><div id="mcl-list"></div></div>
+</div>
+<div class="g2 med-s" data-med="all show">
+<div class="cd s-s"><h3><span class="i">📺</span>Highest Rated TV (Trakt Community)</h3><div class="stb" id="sch-list" style="font-size:12px"></div></div>
 <div class="cd s-s"><h3><span class="i">📉</span>Lowest Rated TV (Trakt Community)</h3><div id="scl-list"></div></div>
 </div>
 <!-- FIRST + LAST WATCHES (same row) -->
@@ -353,12 +355,13 @@ function renderLifeline(){
   if(!days.length){llEl.parentElement.parentElement.style.display='none';return}
   llEl.parentElement.parentElement.style.display='';
 
-  // Pulse display: split into positive (episodes+movies+books) and negative (scrobbles+concerts+plays)
+  // Pulse display: filter by type, split into positive and negative
   var bw=15;
+  var sEp=ct==='all'||ct==='show',sMv=ct==='all'||ct==='movie',sBk=ct==='all'||ct==='book',sSc=ct==='all'||ct==='music',sCo=ct==='all'||ct==='concert',sTh=ct==='all'||ct==='theater';
   var posData={ep:[],mv:[],bk:[]};var negData={sc:[],co:[],th:[]};
   days.forEach(function(d){var v=ll[d]||{};
-    posData.ep.push(v.ep||0);posData.mv.push(v.mv||0);posData.bk.push(v.bk||0);
-    negData.sc.push(-(v.sc||0));negData.co.push(-(v.co||0));negData.th.push(-(v.th||0));
+    posData.ep.push(sEp?(v.ep||0):0);posData.mv.push(sMv?(v.mv||0):0);posData.bk.push(sBk?(v.bk||0):0);
+    negData.sc.push(sSc?-(v.sc||0):0);negData.co.push(sCo?-(v.co||0):0);negData.th.push(sTh?-(v.th||0):0);
   });
 
   var llChart=echarts.init(llEl);
@@ -672,15 +675,15 @@ function baseCharts(){
   var maxHod=Math.max.apply(null,hrs.map(function(d){return d.m+d.e}))||1;
   var c5=echarts.init(document.getElementById('hodc'));
   var hodLabels=hrs.map(function(d){var h=d.h;return h===0?'12am':h===12?'12pm':h<12?h+'am':(h-12)+'pm'});
+  var hodSeries=[];var hodLeg=[];
+  if(ct!=='movie'){hodSeries.push({name:'Episodes',type:'bar',coordinateSystem:'polar',stack:'hod',data:hrs.map(function(d){return d.e}),itemStyle:{color:'#14b8a6'},barMaxWidth:20});hodLeg.push('Episodes')}
+  if(ct!=='show'){hodSeries.push({name:'Movies',type:'bar',coordinateSystem:'polar',stack:'hod',data:hrs.map(function(d){return d.m}),itemStyle:{color:'#fb923c'},barMaxWidth:20});hodLeg.push('Movies')}
   c5.setOption({tooltip:{trigger:'item',...tt},
-    legend:{data:['Episodes','Movies'],top:0,textStyle:{color:'#999',fontSize:9}},
+    legend:{data:hodLeg,top:0,textStyle:{color:'#999',fontSize:9}},
     angleAxis:{type:'category',data:hodLabels,startAngle:97.5,axisLabel:{color:'#999',fontSize:9,interval:1},axisLine:{lineStyle:{color:'#333'}},axisTick:{show:false}},
     radiusAxis:{show:false,max:maxHod*1.1},
     polar:{center:['50%','55%'],radius:['15%','80%']},
-    series:[
-      {name:'Episodes',type:'bar',coordinateSystem:'polar',stack:'hod',data:hrs.map(function(d){return d.e}),itemStyle:{color:'#14b8a6'},barMaxWidth:20},
-      {name:'Movies',type:'bar',coordinateSystem:'polar',stack:'hod',data:hrs.map(function(d){return d.m}),itemStyle:{color:'#fb923c'},barMaxWidth:20}
-    ]});
+    series:hodSeries});
 
   // Yearly — only when All Time (no year filter)
   if(!isYear){
