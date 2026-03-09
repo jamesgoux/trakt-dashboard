@@ -240,7 +240,7 @@ function tp(p){return Array.isArray(p)?p[0]:p}
 
 // Genre color+emoji map - consistent across all charts
 var GC={'comedy':'#fbbf24','drama':'#e94560','fantasy':'#a78bfa','adventure':'#4ade80','action':'#fb923c','crime':'#94a3b8','science-fiction':'#38bdf8','mystery':'#8b5cf6',
-  'animation':'#f472b6','family':'#34d399','superhero':'#60a5fa','thriller':'#ef4444','romance':'#ec4899','horror':'#991b1b','musical':'#d946ef','documentary':'#6b7280',
+  'animation':'#f472b6','family':'#34d399','superhero':'#60a5fa','thriller':'#ef4444','romance':'#ec4899','horror':'#991b1b','musical':'#a78bfa','documentary':'#6b7280',
   'western':'#b45309','war':'#78716c','history':'#a16207','reality':'#0891b2','talk-show':'#7c3aed','children':'#2dd4bf','food':'#84cc16','sport':'#0ea5e9'};
 var GE={'comedy':'😂','drama':'🎭','fantasy':'🧙','adventure':'🗺️','action':'💥','crime':'🔪','science-fiction':'🚀','mystery':'🔍',
   'animation':'✨','family':'👨‍👩‍👧','superhero':'🦸','thriller':'😰','romance':'❤️','horror':'👻','musical':'🎵','documentary':'📹',
@@ -287,15 +287,15 @@ function stats(){
   if(ct==='book'){
     var gr=D.gr||{};var fb=cy==='all'?(gr.all||[]):(gr.all||[]).filter(function(b){return b.yr===cy});
     var tp2=fb.reduce(function(s,b){return s+b.p},0);
-    el.innerHTML=sc(fb.length,'📚 Books','#22d3ee')+sc(tp2.toLocaleString(),'📖 Pages','#22d3ee');return}
+    el.innerHTML=sc(fb.length,'📚 Books','#fbbf24')+sc(tp2.toLocaleString(),'📖 Pages','#fbbf24');return}
   if(ct==='concert'){
     var allC=(D.con||{}).recent||[];var fc=cy==='all'?allC:allC.filter(function(e){return e.yr===cy});
     var ev={};fc.forEach(function(e){ev[e.date+'|'+e.venue]=true});
     var ua=fc.map(function(e){return e.artist}).filter(function(v,i,a){return a.indexOf(v)===i}).length;
-    el.innerHTML=sc(Object.keys(ev).length,'🎸 Concerts','#fb923c')+sc(fc.length,'🎤 Sets','#fb923c')+sc(ua,'🎙️ Artists','#fb923c');return}
+    el.innerHTML=sc(Object.keys(ev).length,'🎸 Concerts','#e94560')+sc(fc.length,'🎤 Sets','#e94560')+sc(ua,'🎙️ Artists','#e94560');return}
   if(ct==='theater'){
     var allT=(D.th||{}).all||[];var ft=cy==='all'?allT:allT.filter(function(e){return e.y===cy});
-    el.innerHTML=sc(ft.length,'🎭 Plays','#d946ef');return}
+    el.innerHTML=sc(ft.length,'🎭 Plays','#a78bfa');return}
   // Movie/show/all — compute counts
   var mw=0,ew=0;D.c.m.filter(function(m){return cy==='all'||m.month.startsWith(cy)}).forEach(function(m){mw+=m.movies;ew+=m.episodes});
   var s=D.c.s;var h2='';
@@ -305,11 +305,11 @@ function stats(){
     // Row 1: Watches, Days, Movies, Shows, Episodes, Books
     var seasonCount=0;D.c.m.filter(function(m){return cy==='all'||m.month.startsWith(cy)}).forEach(function(m){seasonCount+=m.seasons||0});
     h2=sc(s.total_watches.toLocaleString(),'👁️ Watches','var(--gr)')+sc(s.total_runtime_days,'⏱️ Days','var(--or)')+sc(s.unique_movies,'🎞️ Movies','var(--ac)')+sc(s.unique_shows,'📺 Shows','var(--pu)')+sc(seasonCount,'📦 Seasons','var(--pu)')+sc(s.episode_watches.toLocaleString(),'🔢 Episodes','var(--pu)');
-    if(D.gr&&D.gr.total){var grAll=D.gr.all||[];var grF=cy==='all'?grAll:grAll.filter(function(b){return b.yr===cy});h2+=sc(grF.length,'📚 Books','#22d3ee')+sc(grF.reduce(function(s,b){return s+b.p},0).toLocaleString(),'📖 Pages','#22d3ee')}
+    if(D.gr&&D.gr.total){var grAll=D.gr.all||[];var grF=cy==='all'?grAll:grAll.filter(function(b){return b.yr===cy});h2+=sc(grF.length,'📚 Books','#fbbf24')+sc(grF.reduce(function(s,b){return s+b.p},0).toLocaleString(),'📖 Pages','#fbbf24')}
     // Row 2: Scrobbles, Artists, Albums, Concerts, Sets, Plays
     if(D.lfm&&D.lfm.total){var lfmY=cy!=='all'&&D.lfm.yearly?(D.lfm.yearly.find(function(y){return y.yr===cy})||{}):{s:D.lfm.total,a:D.lfm.artists,al:D.lfm.albums};h2+=sc((lfmY.s||0).toLocaleString(),'🎧 Scrobbles','#1db954')+sc((lfmY.a||0).toLocaleString(),'🎤 Artists','#1db954')+sc((lfmY.al||0).toLocaleString(),'💿 Albums','#1db954')}
-    if(D.con&&D.con.total){var conR=D.con.recent||[];var conF=cy==='all'?conR:conR.filter(function(e){return e.yr===cy});var conEv={};conF.forEach(function(e){conEv[e.date+'|'+e.venue]=true});var conUA=conF.map(function(e){return e.artist}).filter(function(v,i,a){return a.indexOf(v)===i}).length;var conSongs=conF.reduce(function(s,e){return s+e.songs},0);h2+=sc(Object.keys(conEv).length,'🎸 Concerts','#fb923c')+sc(conF.length,'🎤 Sets','#fb923c')+sc(conUA,'🎙️ Artists','#fb923c')+sc(conSongs,'🎵 Songs','#fb923c')}
-    if(D.th&&D.th.total){var thF=cy==='all'?(D.th.all||[]):(D.th.all||[]).filter(function(e){return e.y===cy});h2+=sc(thF.length,'🎭 Plays','#d946ef')}
+    if(D.con&&D.con.total){var conR=D.con.recent||[];var conF=cy==='all'?conR:conR.filter(function(e){return e.yr===cy});var conEv={};conF.forEach(function(e){conEv[e.date+'|'+e.venue]=true});var conUA=conF.map(function(e){return e.artist}).filter(function(v,i,a){return a.indexOf(v)===i}).length;var conSongs=conF.reduce(function(s,e){return s+e.songs},0);h2+=sc(Object.keys(conEv).length,'🎸 Concerts','#e94560')+sc(conF.length,'🎤 Sets','#e94560')+sc(conUA,'🎙️ Artists','#e94560')+sc(conSongs,'🎵 Songs','#e94560')}
+    if(D.th&&D.th.total){var thF=cy==='all'?(D.th.all||[]):(D.th.all||[]).filter(function(e){return e.y===cy});h2+=sc(thF.length,'🎭 Plays','#a78bfa')}
   }
   el.innerHTML=h2;
 }
@@ -377,7 +377,7 @@ function renderLifeline(){
     ]});
   // Click to show chronological events for that day
   var typeIcons={ep:'📺',mv:'🎞️',sc:'🎧',bk:'📚',co:'🎸',th:'🎭'};
-  var typeColors={ep:'var(--tv)',mv:'var(--ac)',sc:'#1db954',bk:'#22d3ee',co:'#fb923c',th:'#d946ef'};
+  var typeColors={ep:'var(--tv)',mv:'var(--mv)',sc:'var(--mu)',bk:'var(--bk)',co:'var(--cn)',th:'var(--th)'};
   llChart.on('click',function(p){
     var idx=p.dataIndex;var day=days[idx];if(!day||!ll[day])return;
     var ld=ll[day];var evts=ld.e||[];
@@ -405,7 +405,7 @@ function renderLifeline(){
 function movieCharts(){
   if(ct==='show'){document.getElementById('mdc').parentElement.style.display='none';document.getElementById('mrc-card').style.display='none';return}
   document.getElementById('mdc').parentElement.style.display='';document.getElementById('mrc-card').style.display='';
-  var da=[],ra=[];MYD.forEach(function(m){var w=0;if(cy==='all'){Object.values(m.yd).forEach(function(c){w+=c})}else if(m.yd[cy]){w=m.yd[cy]}if(w>0){da.push({n:m.n,min:m.rt*w,w:w});if(w>1)ra.push({n:m.n,w:w})}});da.sort(function(a,b){return b.min-a.min});da=da.slice(0,15).reverse();ra.sort(function(a,b){return b.w-a.w});ra=ra.slice(0,15).reverse();document.getElementById('mdh').textContent='Movies by Watch Time'+(cy!=='all'?' ('+cy+')':'');document.getElementById('mrh').textContent='Most Rewatched'+(cy!=='all'?' ('+cy+')':'');var c1=echarts.init(document.getElementById('mdc'));c1.setOption({tooltip:{trigger:mob?'item':'axis',axisPointer:{type:'shadow'},...tt,formatter:function(p){return'<b>'+tp(p).name+'</b><br/>'+tp(p).value+'min ('+Math.round(tp(p).value/60)+'h)'}},grid:{left:gl(180),right:20,top:8,bottom:8},xAxis:{type:'value',axisLabel:{color:'#666',formatter:function(v){return Math.round(v/60)+'h'}},splitLine:{lineStyle:{color:'#222'}}},yAxis:{type:'category',data:da.map(function(d){return d.n}),axisLabel:{color:'#ccc',fontSize:10,interval:0},axisLine:{lineStyle:{color:'#333'}}},series:[{type:'bar',data:da.map(function(d){return d.min}),itemStyle:{color:LG('#0f3460','#fb923c')},barMaxWidth:18,label:{show:true,position:'right',color:'#fb923c',fontSize:10,formatter:function(p){return Math.round(p.value/60)+'h'}}}]});var c2=echarts.init(document.getElementById('mrc'));if(ra.length===0){document.getElementById('mrc-card').style.display='none';ch.push(c1);return}document.getElementById('mrc-card').style.display='';c2.setOption({tooltip:{trigger:mob?'item':'axis',axisPointer:{type:'shadow'},...tt},grid:{left:gl(180),right:20,top:8,bottom:8},xAxis:{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},yAxis:{type:'category',data:ra.map(function(d){return d.n}),axisLabel:{color:'#ccc',fontSize:10,interval:0},axisLine:{lineStyle:{color:'#333'}}},series:[{type:'bar',data:ra.map(function(d){return d.w}),itemStyle:{color:LG('#0f3460','#4ade80')},barMaxWidth:18,label:{show:true,position:'right',color:'#4ade80',fontSize:10,formatter:function(p){return p.value+'x'}}}]});ch.push(c1,c2)
+  var da=[],ra=[];MYD.forEach(function(m){var w=0;if(cy==='all'){Object.values(m.yd).forEach(function(c){w+=c})}else if(m.yd[cy]){w=m.yd[cy]}if(w>0){da.push({n:m.n,min:m.rt*w,w:w});if(w>1)ra.push({n:m.n,w:w})}});da.sort(function(a,b){return b.min-a.min});da=da.slice(0,15).reverse();ra.sort(function(a,b){return b.w-a.w});ra=ra.slice(0,15).reverse();document.getElementById('mdh').textContent='Movies by Watch Time'+(cy!=='all'?' ('+cy+')':'');document.getElementById('mrh').textContent='Most Rewatched'+(cy!=='all'?' ('+cy+')':'');var c1=echarts.init(document.getElementById('mdc'));c1.setOption({tooltip:{trigger:mob?'item':'axis',axisPointer:{type:'shadow'},...tt,formatter:function(p){return'<b>'+tp(p).name+'</b><br/>'+tp(p).value+'min ('+Math.round(tp(p).value/60)+'h)'}},grid:{left:gl(180),right:20,top:8,bottom:8},xAxis:{type:'value',axisLabel:{color:'#666',formatter:function(v){return Math.round(v/60)+'h'}},splitLine:{lineStyle:{color:'#222'}}},yAxis:{type:'category',data:da.map(function(d){return d.n}),axisLabel:{color:'#ccc',fontSize:10,interval:0},axisLine:{lineStyle:{color:'#333'}}},series:[{type:'bar',data:da.map(function(d){return d.min}),itemStyle:{color:LG('#0f3460','#e94560')},barMaxWidth:18,label:{show:true,position:'right',color:'#fb923c',fontSize:10,formatter:function(p){return Math.round(p.value/60)+'h'}}}]});var c2=echarts.init(document.getElementById('mrc'));if(ra.length===0){document.getElementById('mrc-card').style.display='none';ch.push(c1);return}document.getElementById('mrc-card').style.display='';c2.setOption({tooltip:{trigger:mob?'item':'axis',axisPointer:{type:'shadow'},...tt},grid:{left:gl(180),right:20,top:8,bottom:8},xAxis:{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},yAxis:{type:'category',data:ra.map(function(d){return d.n}),axisLabel:{color:'#ccc',fontSize:10,interval:0},axisLine:{lineStyle:{color:'#333'}}},series:[{type:'bar',data:ra.map(function(d){return d.w}),itemStyle:{color:LG('#0f3460','#4ade80')},barMaxWidth:18,label:{show:true,position:'right',color:'#4ade80',fontSize:10,formatter:function(p){return p.value+'x'}}}]});ch.push(c1,c2)
 }
 
 function legendIsolate(ec,legs){var hd=false;ec.on('legendselectchanged',function(p){if(hd)return;hd=true;var s=p.selected,n=p.name,c=0;for(var k in s)if(s[k])c++;if(c===0){ec.dispatchAction({type:'legendAllSelect'})}else if(c<legs.length){for(var k in s){if(k===n&&!s[k])ec.dispatchAction({type:'legendSelect',name:k});if(k!==n&&s[k])ec.dispatchAction({type:'legendUnSelect',name:k})}}hd=false})}
@@ -997,7 +997,7 @@ function renderGoodreads(){
   var yrs=gr.years||[];if(cy!=='all')yrs=yrs.filter(function(y){return y.yr===cy});
   var grChart=echarts.init(document.getElementById('grc'));
   var mLabel=mode==='pages'?' pages':' books';
-  var mColor=mode==='pages'?'#a78bfa':'#22d3ee';
+  var mColor=mode==='pages'?'#a78bfa':'#fbbf24';
   var grTotal=gr.total+' books, '+gr.total_pages.toLocaleString()+' pages';
   if(yrs.length){
     grChart.setOption({tooltip:{trigger:mob?'item':'axis',axisPointer:{type:'shadow'},...tt,formatter:function(p){return'<b>'+tp(p).name+'</b><br/>'+tp(p).value.toLocaleString()+mLabel}},
@@ -1024,7 +1024,7 @@ function renderGoodreads(){
       title:{text:ttrAll.length+' books, avg '+(gr.ttr_avg||0)+' days',left:'center',top:0,textStyle:{color:'#999',fontSize:11,fontWeight:'normal'}},
       xAxis:{type:'value',axisLabel:{color:'#666',formatter:function(v){return v+'d'}},splitLine:{lineStyle:{color:'#222'}}},
       yAxis:{type:'category',data:ttrAll.map(function(d){return d.t}),axisLabel:{color:'#ccc',fontSize:9,interval:0},axisLine:{lineStyle:{color:'#333'}}},
-      series:[{type:'bar',data:ttrAll.map(function(d){return d.d}),itemStyle:{color:function(p){var v=p.value;return v<7?'#4ade80':v<30?'#22d3ee':v<90?'#fb923c':'#e94560'}},barMaxWidth:14,label:{show:true,position:'right',color:'#ccc',fontSize:9,formatter:function(p){return p.value<365?p.value+'d':Math.round(p.value/365*10)/10+'y'}}}]});
+      series:[{type:'bar',data:ttrAll.map(function(d){return d.d}),itemStyle:{color:function(p){var v=p.value;return v<7?'#4ade80':v<30?'#fbbf24':v<90?'#fb923c':'#e94560'}},barMaxWidth:14,label:{show:true,position:'right',color:'#ccc',fontSize:9,formatter:function(p){return p.value<365?p.value+'d':Math.round(p.value/365*10)/10+'y'}}}]});
     ch.push(ttrChart);
   }else{ttrEl.innerHTML='<div style="text-align:center;color:var(--t2);padding:40px">No time-to-read data</div>'}
 
@@ -1047,7 +1047,7 @@ function renderGoodreads(){
       var ex=authEl.parentElement.querySelector('.chart-detail');if(ex){ex.remove();if(ex.dataset.val===author.n)return}
       var div=document.createElement('div');div.className='chart-detail';div.dataset.val=author.n;
       var h='<span class="cd-close" onclick="this.parentElement.remove()">✕</span><b>'+author.n+' ('+books.length+')</b>';
-      books.forEach(function(b){h+='<div class="cd-item"><span>'+b.t+'</span><span class="nm" style="color:#fbbf24">'+(b.p?b.p+'p':'')+(b.r?' '+b.r+'★':'')+'</span></div>'});
+      books.forEach(function(b){h+='<div class="cd-item"><span>'+b.t+'</span><span class="nm" style="color:var(--bk)">'+(b.p?b.p+'p':'')+(b.r?' '+b.r+'★':'')+'</span></div>'});
       div.innerHTML=h;authEl.parentElement.appendChild(div);
     });
     ch.push(authChart);
@@ -1066,7 +1066,7 @@ function renderGoodreads(){
       title:{text:fRated.length+' rated, '+fAvg+'★ avg',left:'center',top:0,textStyle:{color:'#999',fontSize:11,fontWeight:'normal'}},
       xAxis:{type:'category',data:dist.map(function(d){return d.r+'★'}),axisLabel:{color:'#ccc'},axisLine:{lineStyle:{color:'#333'}}},
       yAxis:{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},
-      series:[{type:'bar',data:dist.map(function(d){return{value:d.c,itemStyle:{color:parseInt(d.r)>=4?'#22d3ee':parseInt(d.r)>=3?'#a78bfa':'#e94560'}}}),barMaxWidth:40,label:{show:true,position:'top',color:'#999',fontSize:10}}]});
+      series:[{type:'bar',data:dist.map(function(d){return{value:d.c,itemStyle:{color:parseInt(d.r)>=4?'#fbbf24':parseInt(d.r)>=3?'#a78bfa':'#e94560'}}}),barMaxWidth:40,label:{show:true,position:'top',color:'#999',fontSize:10}}]});
     ch.push(distChart);
   }
 
@@ -1093,7 +1093,7 @@ function renderGoodreads(){
     if(!data||!data.length){el.innerHTML='<div style="text-align:center;color:var(--t2);padding:40px">No '+label+' data</div>';return}
     var slice=data.slice(0,12).reverse();
     var c=echarts.init(el);
-    var cols=['#22d3ee','#60a5fa','#a78bfa','#e94560','#fb923c','#4ade80','#f472b6','#38bdf8','#fbbf24','#34d399','#818cf8','#f87171'];
+    var cols=['#fbbf24','#60a5fa','#a78bfa','#e94560','#fb923c','#4ade80','#f472b6','#38bdf8','#fbbf24','#34d399','#818cf8','#f87171'];
     c.setOption({tooltip:{trigger:mob?'item':'axis',axisPointer:{type:'shadow'},...tt,formatter:function(p){return'<b>'+tp(p).name+'</b>: '+tp(p).value+' books'}},
       grid:{left:gl(120),right:30,top:8,bottom:8},
       xAxis:{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},
@@ -1115,7 +1115,7 @@ function renderGoodreads(){
   var fGenList=Object.entries(fGenC).sort(function(a,b){return b[1]-a[1]}).slice(0,15).map(function(e){return{n:e[0],c:e[1]}});
   var fShC={};filtered.forEach(function(b){(b.sh||[]).forEach(function(s){fShC[s]=(fShC[s]||0)+1})});
   var fShList=Object.entries(fShC).sort(function(a,b){return b[1]-a[1]}).slice(0,15).map(function(e){return{n:e[0],c:e[1]}});
-  grBarChart('gr-genres',fGenList,'gn','#22d3ee','genre');
+  grBarChart('gr-genres',fGenList,'gn','#fbbf24','genre');
   grBarChart('gr-shelves',fShList,'sh','#a78bfa','shelf')
 
   var fHighest=fRated.slice().sort(function(a,b){return b.r-a.r||b.p-a.p}).slice(0,10).map(function(b){return{t:b.t,a:b.a,r:b.r,p:b.p}});
@@ -1254,7 +1254,7 @@ function renderLastfm(){
       grid:{left:gl(130),right:30,top:8,bottom:8},
       xAxis:{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},
       yAxis:{type:'category',data:alSlice.map(function(d){return d.n.length>22?d.n.substring(0,20)+'…':d.n}),axisLabel:{color:'#ccc',fontSize:9,interval:0},axisLine:{lineStyle:{color:'#333'}}},
-      series:[{type:'bar',data:alSlice.map(function(d){return d.c}),itemStyle:{color:LG('#0f3460','#e94560')},barMaxWidth:18,label:{show:true,position:'right',color:'#fb923c',fontSize:9}}]});
+      series:[{type:'bar',data:alSlice.map(function(d){return d.c}),itemStyle:{color:LG('#0f3460','#e94560')},barMaxWidth:18,label:{show:true,position:'right',color:'#e94560',fontSize:9}}]});
     ch.push(alChart);
   }
 
@@ -1323,7 +1323,7 @@ function renderConcerts(){
       grid:{left:gl(140),right:30,top:8,bottom:8},
       xAxis:{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},
       yAxis:{type:'category',data:venSlice.map(function(d){return d.n}),axisLabel:{color:'#ccc',fontSize:10,interval:0},axisLine:{lineStyle:{color:'#333'}}},
-      series:[{type:'bar',data:venSlice.map(function(d){return d.c}),itemStyle:{color:LG('#0f3460','#e94560')},barMaxWidth:18,label:{show:true,position:'right',color:'#fb923c',fontSize:10}}]});
+      series:[{type:'bar',data:venSlice.map(function(d){return d.c}),itemStyle:{color:LG('#0f3460','#e94560')},barMaxWidth:18,label:{show:true,position:'right',color:'#e94560',fontSize:10}}]});
     venChart.on('click',function(p){
       var v=venSlice[p.dataIndex];if(!v||!v.artists||!v.artists.length)return;
       var ex=venEl.parentElement.querySelector('.chart-detail');if(ex){ex.remove();if(ex.dataset.val===v.n)return}
@@ -1394,7 +1394,7 @@ function renderTheater(){
       title:{text:total+' shows, '+rated+' rated ('+avg+'★ avg)'+(cy!=='all'?' ('+cy+')':''),left:'center',top:0,textStyle:{color:'#999',fontSize:11,fontWeight:'normal'}},
       xAxis:{type:'category',data:distArr.map(function(d){return d.r+'★'}),axisLabel:{color:'#ccc'},axisLine:{lineStyle:{color:'#333'}}},
       yAxis:{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},
-      series:[{type:'bar',data:distArr.map(function(d){return{value:d.c,itemStyle:{color:parseFloat(d.r)>=4?'#d946ef':parseFloat(d.r)>=3?'#a78bfa':'#fb923c'}}}),barMaxWidth:30,label:{show:true,position:'top',color:'#999',fontSize:10}}]});
+      series:[{type:'bar',data:distArr.map(function(d){return{value:d.c,itemStyle:{color:parseFloat(d.r)>=4?'#a78bfa':parseFloat(d.r)>=3?'#7c3aed':'#e94560'}}}),barMaxWidth:30,label:{show:true,position:'top',color:'#999',fontSize:10}}]});
     tChart.on('click',function(p){
       var d=distArr[p.dataIndex];if(!d||!d.titles)return;
       var el=document.getElementById('thc');
@@ -1424,7 +1424,7 @@ function renderTheater(){
       grid:{left:gl(110),right:30,top:8,bottom:8},
       xAxis:{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},
       yAxis:{type:'category',data:tagSlice.map(function(d){return d.n}),axisLabel:{color:'#ccc',fontSize:10,interval:0},axisLine:{lineStyle:{color:'#333'}}},
-      series:[{type:'bar',data:tagSlice.map(function(d){return d.c}),itemStyle:{color:LG('#4a1a6b','#d946ef')},barMaxWidth:18,label:{show:true,position:'right',color:'#a78bfa',fontSize:10}}]});
+      series:[{type:'bar',data:tagSlice.map(function(d){return d.c}),itemStyle:{color:LG('#4a1a6b','#a78bfa')},barMaxWidth:18,label:{show:true,position:'right',color:'#a78bfa',fontSize:10}}]});
     tagChart.on('click',function(p){thDetail('th-tags',tagSlice,p.dataIndex)});
     ch.push(tagChart);
   }else{document.getElementById('th-tags').innerHTML='<div style="text-align:center;color:var(--t2);padding:40px">No tags yet</div>'}
