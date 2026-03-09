@@ -7,14 +7,14 @@
 1. ~~**"Watches" and "Days Watched" not filtering by year**~~ ✅ DONE
    Stats bar totals for watches and days watched now recalculate based on the selected year. Added per-month runtime tracking to Python pipeline and computed filtered totals in JS.
 
-2. **Show posters not obeying the 50% image fallback rule**
-   The Top Shows section should fall back to bar graphs when fewer than 50% of shows have poster images. Currently it renders the poster grid regardless of coverage.
+2. ~~**Show posters not obeying the 50% image fallback rule**~~ ✅ DONE
+   Top Shows now falls back to side-by-side bar charts (By Duration + By Episodes) when fewer than 50% of shows have poster images.
 
 3. **Better image backfill catch-up strategy**
    Need a smarter approach to backfilling missing images so gaps get filled faster.
 
-4. **Prioritize visible empty posters on "All Time" for image backfill**
-   Change the headshot/poster backfill priority so that shows appearing in the "All Time" view with missing images are fetched first, rather than the current most-recent-first approach.
+4. ~~**Prioritize visible empty posters on "All Time" for image backfill**~~ ✅ DONE
+   Headshot/poster backfill now prioritizes people and shows visible on the "all time / all types" dashboard page before falling back to most-recent-first. Directors and writers also get a larger budget share.
 
 ---
 

@@ -744,6 +744,58 @@ for e in entries:
 with open("data/slug_recency.json", "w") as f:
     json.dump(slug_recency, f, separators=(',', ':'))
 
+# Export visible-on-dashboard priority list for image backfill
+# These are the people/shows that appear on the "all time / all types" page
+visible_priority = {"people": [], "shows": [], "directors": [], "writers": []}
+# Top actors + actresses (all time, sorted by total titles)
+for pid, info in people.items():
+    mc = sc = 0
+    for ts in info["titles"]:
+        for pre, typ in [("movie:", "movie"), ("show:", "show")]:
+            k = pre + ts
+            if k in {f"movie:{s}" for s in info["titles"]} | {f"show:{s}" for s in info["titles"]}:
+                if typ == "movie": mc += 1
+                else: sc += 1
+                break
+    if mc + sc >= 2:
+        visible_priority["people"].append({"pid": pid, "name": info["name"], "rank": mc + sc})
+visible_priority["people"].sort(key=lambda x: x["rank"], reverse=True)
+visible_priority["people"] = visible_priority["people"][:100]  # top 100 visible
+# Top directors + writers
+for crew_raw, key in [(directors_raw, "directors"), (writers_raw, "writers")]:
+    crew_vis = []
+    for pid, info in crew_raw.items():
+        mc = sc = 0
+        for ts in info.get("titles", []):
+            for pre, typ in [("movie:", "movie"), ("show:", "show")]:
+                k = pre + ts
+                if ts in slug_recency:
+                    if typ == "movie": mc += 1
+                    else: sc += 1
+                    break
+        if mc + sc >= 2:
+            crew_vis.append({"pid": pid, "name": info["name"], "rank": mc + sc})
+    crew_vis.sort(key=lambda x: x["rank"], reverse=True)
+    visible_priority[key] = crew_vis[:50]
+# Top shows (all time by total episodes)
+show_eps = defaultdict(int)
+for e in entries:
+    if e["type"] == "episode" and e["show_title"] and e["trakt_slug"]:
+        show_eps[e["trakt_slug"]] += 1
+top_show_slugs = sorted(show_eps, key=show_eps.get, reverse=True)[:30]
+visible_priority["shows"] = top_show_slugs
+# Top movies (all time by watch count / runtime)
+movie_rt = defaultdict(int)
+for e in entries:
+    if e["type"] == "movie" and e["trakt_slug"]:
+        movie_rt[e["trakt_slug"]] += int(e["runtime"]) if e["runtime"] else 0
+top_movie_slugs = sorted(movie_rt, key=movie_rt.get, reverse=True)[:30]
+visible_priority["movies"] = top_movie_slugs
+
+with open("data/visible_priority.json", "w") as f:
+    json.dump(visible_priority, f, separators=(',', ':'))
+print(f"  Visible priority: {len(visible_priority['people'])} people, {len(visible_priority['shows'])} shows, {len(visible_priority['directors'])} directors, {len(visible_priority['writers'])} writers")
+
 # Load headshots and posters
 hs = {}
 if os.path.exists("data/headshots.json"):

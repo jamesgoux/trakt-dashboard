@@ -57,10 +57,13 @@ def fetch_tmdb_png(tmdb_url):
 def fetch_posters(budget):
     ps = load_json("data/posters.json")
     slug_recency = load_json("data/slug_recency.json")
+    vis = load_json("data/visible_priority.json")
 
     # All slugs needing posters, sorted by most recent watch
     need = [(s, yr) for s, yr in slug_recency.items() if s and s not in ps]
-    need.sort(key=lambda x: x[1], reverse=True)
+    # Prioritize slugs visible on the all/all dashboard page
+    vis_slugs = set(vis.get("shows", []) + vis.get("movies", []))
+    need.sort(key=lambda x: (1 if x[0] in vis_slugs else 0, x[1]), reverse=True)
     need = need[:budget]
 
     print(f"\n[1/5] Posters: {len(ps)} cached, {len(need)} to fetch")
@@ -155,6 +158,11 @@ def fetch_logos(budget):
 def fetch_headshots_for(label, priority, source_files, budget):
     hs = load_json("data/headshots.json")
     slug_recency = load_json("data/slug_recency.json")
+    vis = load_json("data/visible_priority.json")
+
+    # Build set of person slugs visible on the all/all page
+    vis_key = "directors" if "director" in source_files[0] else "writers" if "writer" in source_files[0] else "people"
+    vis_pids = set(p["pid"] for p in vis.get(vis_key, []))
 
     # Combine sources
     all_people = {}
@@ -169,7 +177,8 @@ def fetch_headshots_for(label, priority, source_files, budget):
         return max((slug_recency.get(t, 0) for t in titles), default=0)
 
     need = [(slug, info) for slug, info in all_people.items() if info["name"] not in hs]
-    need.sort(key=lambda x: person_recency(x[0]), reverse=True)
+    # Sort: visible on dashboard first, then by recency
+    need.sort(key=lambda x: (1 if x[0] in vis_pids else 0, person_recency(x[0])), reverse=True)
     need = need[:budget]
 
     print(f"\n[{priority}/5] {label}: {sum(1 for p in all_people.values() if p['name'] in hs)} cached, {len(need)} to fetch")
@@ -214,13 +223,13 @@ remaining -= used
 used = fetch_logos(min(100, remaining))
 remaining -= used
 
-# 3. Actors (40% of remaining)
-actor_budget = min(remaining * 40 // 100, remaining)
+# 3. Actors (35% of remaining)
+actor_budget = min(remaining * 35 // 100, remaining)
 used = fetch_headshots_for("Actors", 3, ["data/people.json"], actor_budget // 2)  # 2 requests per person
 remaining -= used
 
-# 4. Directors (20% of remaining)
-dir_budget = min(remaining * 50 // 100, remaining)
+# 4. Directors (30% of remaining)
+dir_budget = min(remaining * 45 // 100, remaining)
 used = fetch_headshots_for("Directors", 4, ["data/directors.json"], dir_budget // 2)
 remaining -= used
 
