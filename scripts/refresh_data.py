@@ -17,6 +17,18 @@ HEADERS = {"Content-Type": "application/json", "trakt-api-version": "2", "trakt-
 if not CLIENT_ID or not USERNAME:
     print("ERROR: Set TRAKT_CLIENT_ID and TRAKT_USERNAME"); exit(1)
 
+def safe_int(val, default=0):
+    try:
+        return int(val)
+    except (ValueError, TypeError):
+        return default
+
+def safe_float(val, default=0.0):
+    try:
+        return float(val)
+    except (ValueError, TypeError):
+        return default
+
 def fetch_history(media_type):
     items = []; page = 1
     while True:
@@ -115,7 +127,7 @@ def fetch_cast_and_studios(entries):
                             if pid2:
                                 writers[pid2]["name"] = cp["person"].get("name", "")
                                 writers[pid2]["titles"].add(slug)
-            except: pass
+            except Exception: pass
             # Fetch studios (store ALL, not just first)
             try:
                 r2 = requests.get(f"{BASE_URL}/{kind}/{slug}/studios", headers=HEADERS, timeout=5)
@@ -127,7 +139,7 @@ def fetch_cast_and_studios(entries):
                         existing = set(slug_studios.get(slug, []))
                         existing.update(names)
                         slug_studios[slug] = list(existing)
-            except: pass
+            except Exception: pass
             done += 1
             if done % 100 == 0: print(f"  cast+studios: {done}/{total}")
             time.sleep(0.12)
@@ -163,7 +175,7 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
         if e["type"] == "movie":
             k = f"movie:{s}"; tw[k]["type"] = "movie"; tw[k]["title"] = e["title"]
             tw[k]["year"] = str(e["year"]) if e["year"] else ""
-            tw[k]["runtime"] = int(e["runtime"]) if e["runtime"] else 0
+            tw[k]["runtime"] = safe_int(e["runtime"]) if e["runtime"] else 0
             if wy: tw[k]["eby"][wy] += 1
             tw[k]["total"] += 1
         else:
@@ -171,7 +183,7 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
             tw[k]["year"] = str(e["year"]) if e["year"] else ""
             if wy: tw[k]["eby"][wy] += 1
             tw[k]["total"] += 1
-            if e["runtime"]: tw[k]["runtime"] = int(e["runtime"])
+            if e["runtime"]: tw[k]["runtime"] = safe_int(e["runtime"])
     tl = []; ti = {}
     for k, t in tw.items():
         ti[k] = len(tl)
@@ -197,7 +209,7 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
         if e["type"] == "episode" and e["show_title"] and e["watched_at"]:
             s = e["trakt_slug"]; yr = e["watched_at"][:4]
             syd[s]["name"] = e["show_title"]; syd[s]["yd"][yr]["e"] += 1
-            if e["runtime"]: syd[s]["yd"][yr]["m"] += int(e["runtime"])
+            if e["runtime"]: syd[s]["yd"][yr]["m"] += safe_int(e["runtime"])
             if e["network"]: syd[s]["net"] = e["network"]
 
     # Time-to-watch: avg days between air date and first watch per show
@@ -226,7 +238,7 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
             show_ttw[info["slug"]]["name"] = info["show"]
             show_ttw[info["slug"]]["delays"].append(days)
             show_ttw[info["slug"]]["delays_y"][info["year"]].append(days)
-        except: pass
+        except Exception: pass
 
     # Build ttw data: [{n, avg, count}] sorted by avg ascending (fastest first)
     ttw_all = []
@@ -247,7 +259,7 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
                 catchup_shows[info["slug"]]["name"] = info["show"]
                 catchup_shows[info["slug"]]["delays"].append(days)
                 catchup_shows[info["slug"]]["delays_y"][info["year"]].append(days)
-        except: pass
+        except Exception: pass
 
     for slug, info in catchup_shows.items():
         if len(info["delays"]) >= 3:
@@ -324,7 +336,7 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
         if e["type"] == "movie" and e["title"] and e["watched_at"]:
             k = e["title"]; yr = e["watched_at"][:4]
             myd[k]["name"] = e["title"]; myd[k]["yr"] = str(e["year"]) if e["year"] else ""
-            if e["runtime"]: myd[k]["rt"] = int(e["runtime"])
+            if e["runtime"]: myd[k]["rt"] = safe_int(e["runtime"])
             myd[k]["yd"][yr] += 1
 
     # Charts
@@ -357,7 +369,7 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
     for e in entries:
         if not e["watched_at"]: continue
         m = e["watched_at"][:7]; y = e["watched_at"][:4]
-        rt = int(e["runtime"]) if e["runtime"] else 0
+        rt = safe_int(e["runtime"]) if e["runtime"] else 0
         if e["type"] == "movie":
             monthly[m]["movies"] += 1; yearly[y]["movies"] += 1
             monthly[m]["rt"] += rt; monthly[m]["rt_m"] += rt
@@ -437,7 +449,7 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
             else: dwc_s[dw_name] += 1
             h_key = f"{dt_local.hour}_{e['type']}"
             hod[y][h_key] += 1
-        except: pass
+        except Exception: pass
 
     # Build season-level data: group episodes by show+season, assign to completion month
     season_data = defaultdict(lambda: {"eps": 0, "months": set()})  # (show, season) -> data
@@ -538,22 +550,22 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
 
     ml = [e for e in entries if e["type"] == "movie"]
     el = [e for e in entries if e["type"] == "episode"]
-    tr = sum(int(e["runtime"]) for e in entries if e["runtime"])
-    tr_movies = sum(int(e["runtime"]) for e in ml if e["runtime"])
-    tr_shows = sum(int(e["runtime"]) for e in el if e["runtime"])
+    tr = sum(safe_int(e["runtime"]) for e in entries if e["runtime"])
+    tr_movies = sum(safe_int(e["runtime"]) for e in ml if e["runtime"])
+    tr_shows = sum(safe_int(e["runtime"]) for e in el if e["runtime"])
 
     # Rating lists — include watch years so JS can filter
     movie_ratings = {}
     for e in entries:
         if e["type"] == "movie" and e["title"] and e.get("trakt_rating"):
             try:
-                r = float(e["trakt_rating"])
+                r = safe_float(e["trakt_rating"])
                 wy = e["watched_at"][:4] if e["watched_at"] else ""
                 if r > 0:
                     if e["title"] not in movie_ratings:
                         movie_ratings[e["title"]] = {"t": e["title"], "yr": str(e["year"]) if e["year"] else "", "r": round(r, 1), "wy": set()}
                     if wy: movie_ratings[e["title"]]["wy"].add(wy)
-            except: pass
+            except Exception: pass
     for v in movie_ratings.values(): v["wy"] = sorted(v["wy"])
     movies_by_community = sorted(movie_ratings.values(), key=lambda x: x["r"], reverse=True)
 
@@ -562,13 +574,13 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
     for e in entries:
         if e["type"] == "episode" and e["show_title"] and e.get("trakt_rating"):
             try:
-                r = float(e["trakt_rating"])
+                r = safe_float(e["trakt_rating"])
                 wy = e["watched_at"][:4] if e["watched_at"] else ""
                 if r > 0:
                     if e["show_title"] not in show_ratings:
                         show_ratings[e["show_title"]] = {"t": e["show_title"], "yr": str(e["year"]) if e["year"] else "", "r": round(r, 1), "wy": set()}
                     if wy: show_ratings[e["show_title"]]["wy"].add(wy)
-            except: pass
+            except Exception: pass
     for v in show_ratings.values(): v["wy"] = sorted(v["wy"])
     shows_by_community = sorted(show_ratings.values(), key=lambda x: x["r"], reverse=True)
 
@@ -788,7 +800,7 @@ visible_priority["shows"] = top_show_slugs
 movie_rt = defaultdict(int)
 for e in entries:
     if e["type"] == "movie" and e["trakt_slug"]:
-        movie_rt[e["trakt_slug"]] += int(e["runtime"]) if e["runtime"] else 0
+        movie_rt[e["trakt_slug"]] += safe_int(e["runtime"]) if e["runtime"] else 0
 top_movie_slugs = sorted(movie_rt, key=movie_rt.get, reverse=True)[:30]
 visible_priority["movies"] = top_movie_slugs
 
@@ -1220,7 +1232,7 @@ if gr_books:
                 days = (dr - da).days
                 if 0 < days < 3650:  # filter out unreasonable values
                     gr_ttr.append({"t": b["title"], "a": b["author"], "d": days, "p": b.get("pages", 0)})
-            except:
+            except Exception:
                 pass
     gr_ttr.sort(key=lambda x: x["d"])
 
@@ -1275,7 +1287,7 @@ if gr_books:
                 days = max((dr - da).days, 1)
                 if days < 3650:
                     gr_pace.append({"t": b["title"], "ppd": round(b["pages"] / days, 1), "p": b["pages"], "d": days})
-            except:
+            except Exception:
                 pass
     gr_pace.sort(key=lambda x: x["ppd"], reverse=True)
 
@@ -1380,13 +1392,13 @@ if LASTFM_KEY and LASTFM_USER:
                 try:
                     ts_parsed = datetime.strptime(t["date"]["#text"], "%d %b %Y, %H:%M")
                     ts = ts_parsed.strftime("%H:%M")
-                except:
+                except Exception:
                     ts = "00:00"
                 ll_counts[d]["sc"] += 1
                 ll_events[d].append({"t": ts, "n": t["artist"]["#text"] + " — " + t["name"], "ty": "sc"})
             exact_sc_days.add(d)
             import time as tm; tm.sleep(0.2)
-        except: pass
+        except Exception: pass
 
 # Approximate older days from stored Last.fm data
 today_str = datetime.now().strftime("%Y-%m-%d")
@@ -1404,7 +1416,7 @@ if os.path.exists("data/lastfm.json"):
                     if d > today_str: continue
                     if d not in exact_sc_days:
                         ll_counts[d]["sc"] += daily
-            except: pass
+            except Exception: pass
     # Approximate from monthly for oldest data
     weekly_dates = set()
     for w in lfm_data.get("weekly", []):
@@ -1412,7 +1424,7 @@ if os.path.exists("data/lastfm.json"):
             try:
                 ws = datetime.strptime(w["week"], "%Y-%m-%d")
                 for i in range(7): weekly_dates.add((ws + timedelta(days=i)).strftime("%Y-%m-%d"))
-            except: pass
+            except Exception: pass
     for m in lfm_data.get("monthly", []):
         if m.get("m") and m.get("s"):
             mo = m["m"]
@@ -1424,7 +1436,7 @@ if os.path.exists("data/lastfm.json"):
                     if d > today_str: continue
                     if d not in exact_sc_days and d not in weekly_dates:
                         ll_counts[d]["sc"] += daily
-                except: pass
+                except Exception: pass
 
 # Concerts
 if concerts:

@@ -66,7 +66,7 @@ while True:
             for fmt in ["%a, %d %b %Y %H:%M:%S %z", "%a %b %d %H:%M:%S %z %Y", "%Y-%m-%d"]:
                 try:
                     return datetime.strptime(s.strip(), fmt).strftime("%Y-%m-%d")
-                except:
+                except Exception:
                     continue
             # Try to extract year at least
             m = re.search(r'\d{4}', s)

@@ -13,6 +13,12 @@ os.chdir(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 BASE = "https://ws.audioscrobbler.com/2.0/"
 
+def safe_int(val, default=0):
+    try:
+        return int(val)
+    except (ValueError, TypeError):
+        return default
+
 def api(method, **params):
     params["api_key"] = LASTFM_API_KEY
     params["user"] = LASTFM_USER
@@ -37,7 +43,7 @@ print(f"  User: {info['name']}, Scrobbles: {total_scrobbles}, Artists: {total_ar
 top_artists = []
 for period in ["overall", "12month", "3month", "1month"]:
     data = api("user.gettopartists", period=period, limit=25)
-    artists = [{"n": a["name"], "c": int(a["playcount"])} for a in data.get("topartists", {}).get("artist", [])]
+    artists = [{"n": a["name"], "c": safe_int(a["playcount"])} for a in data.get("topartists", {}).get("artist", [])]
     top_artists.append({"period": period, "artists": artists})
     time.sleep(0.3)
 
@@ -45,7 +51,7 @@ for period in ["overall", "12month", "3month", "1month"]:
 top_tracks = []
 for period in ["overall", "12month", "3month", "1month"]:
     data = api("user.gettoptracks", period=period, limit=20)
-    tracks = [{"n": t["name"], "a": t["artist"]["name"], "c": int(t["playcount"])} for t in data.get("toptracks", {}).get("track", [])]
+    tracks = [{"n": t["name"], "a": t["artist"]["name"], "c": safe_int(t["playcount"])} for t in data.get("toptracks", {}).get("track", [])]
     top_tracks.append({"period": period, "tracks": tracks})
     time.sleep(0.3)
 
@@ -53,7 +59,7 @@ for period in ["overall", "12month", "3month", "1month"]:
 top_albums = []
 for period in ["overall", "12month", "3month", "1month"]:
     data = api("user.gettopalbums", period=period, limit=20)
-    albums = [{"n": a["name"], "a": a["artist"]["name"], "c": int(a["playcount"]),
+    albums = [{"n": a["name"], "a": a["artist"]["name"], "c": safe_int(a["playcount"]),
                "img": a.get("image", [{}])[-1].get("#text", "")} for a in data.get("topalbums", {}).get("album", [])]
     top_albums.append({"period": period, "albums": albums})
     time.sleep(0.3)
@@ -72,7 +78,7 @@ for pdata in top_artists:
                 data = api("artist.gettoptags", artist=a["n"])
                 fetched_artist_tags[a["n"]] = data.get("toptags", {}).get("tag", [])
                 time.sleep(0.3)
-            except:
+            except Exception:
                 fetched_artist_tags[a["n"]] = []
         for t in fetched_artist_tags[a["n"]][:5]:
             name = t["name"].lower()
@@ -99,7 +105,7 @@ try:
     chart_list = charts_data.get("weeklychartlist", {}).get("chart", [])
     for i, ch in enumerate(chart_list):
         try:
-            dt = datetime.fromtimestamp(int(ch["from"]))
+            dt = datetime.fromtimestamp(safe_int(ch["from"]))
             yr = dt.strftime("%Y")
             mo = dt.strftime("%Y-%m")
             wk_date = dt.strftime("%Y-%m-%d")
@@ -125,7 +131,7 @@ try:
                     yearly_album_plays[yr][artist + " — " + name] += pc
                     monthly_album_plays[mo][artist + " — " + name] += pc
                     wk_albums.append({"n": name, "a": artist, "c": pc})
-            except:
+            except Exception:
                 pass
             # Keep recent 52 weeks with detail
             if i >= len(chart_list) - 52:
@@ -134,7 +140,7 @@ try:
             if i % 50 == 0:
                 print(f"    Week {i+1}/{len(chart_list)} ({yr})...")
             time.sleep(0.25)
-        except:
+        except Exception:
             pass
 except Exception as e:
     print(f"  Weekly chart error: {e}")
@@ -181,7 +187,7 @@ try:
                 oldest_date = dt2.strptime(oldest, "%d %b %Y, %H:%M")
                 if (dt2.now() - oldest_date).days >= 35:
                     break
-            except:
+            except Exception:
                 pass
         time.sleep(0.3)
 except Exception as e:

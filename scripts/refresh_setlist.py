@@ -117,7 +117,7 @@ def lookup_albums(concerts):
                     count += 1
             elif r.status_code == 503:
                 time.sleep(2)
-        except:
+        except Exception:
             pass
         if (i + 1) % 20 == 0:
             print(f"    {i+1}/{min(len(need),100)}, {count} found")
@@ -150,7 +150,7 @@ def search_setlist(artist, date):
                             songs.append(song["name"])
                 if songs:
                     return songs
-    except:
+    except Exception:
         pass
     return []
 

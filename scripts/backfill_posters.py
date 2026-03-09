@@ -48,7 +48,7 @@ for i, (slug, yr) in enumerate(need):
                             break
             elif r.status_code == 429:
                 time.sleep(2)
-        except:
+        except Exception:
             errors += 1
         time.sleep(0.1)
 
