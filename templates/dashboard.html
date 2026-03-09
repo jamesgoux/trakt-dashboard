@@ -54,6 +54,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
 .poster-item span{display:block;font-size:10px;color:var(--t2);margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .poster-ph{width:100px;height:150px}
 .bk-cover,.al-cover{transition:transform .2s;cursor:pointer}.bk-cover:hover,.al-cover:hover{transform:scale(2.5);z-index:100;position:relative;border:1px solid #333;box-shadow:0 4px 20px rgba(0,0,0,.8)}
+.cover-grid{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}.cover-grid .gi{text-align:center;width:80px;flex-shrink:0}.cover-grid .gi img{width:80px;height:80px;object-fit:cover;border-radius:6px;background:#222}.cover-grid .gi .bk-img{height:110px}.cover-grid .gi span{display:block;font-size:9px;color:var(--t2);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.cover-grid .gi .val{color:#fbbf24;font-weight:600;font-size:10px}
 .dr td{padding:4px 8px;background:rgba(15,52,96,.15)!important}
 .dr table{font-size:11px}.dr table td{padding:3px 6px;border:none}
 .vtog{display:inline-flex;gap:2px}
@@ -72,6 +73,7 @@ body{overflow-x:hidden}
 .dash{overflow-x:hidden;padding:0 10px 10px}
 .cd{padding:12px}
 .cd [id$="c"]{height:260px!important}
+.cover-grid .gi{width:60px}.cover-grid .gi img{width:60px;height:60px}.cover-grid .gi .bk-img{height:82px}
 .poster-item{width:60px}.poster-item img{width:60px;height:90px}.poster-ph{width:60px;height:90px}.poster-item span{font-size:8px}
 .fbar{padding:10px 12px}
 .fbar h1{font-size:16px}
@@ -1079,20 +1081,21 @@ function renderGoodreads(){
     ch.push(distChart);
   }
 
-  // Helper for book lists
+  // Helper for book lists — cover grid format
   function bookList(elId,items,showField){
     var el=document.getElementById(elId);
     if(!items||!items.length){el.innerHTML='<div style="text-align:center;color:var(--t2);padding:20px">No data</div>';return}
     var imgMap={};filtered.forEach(function(b){if(b.img)imgMap[b.t]=b.img});
-    var h='';items.forEach(function(b,i){
+    var h='<div class="cover-grid">';items.slice(0,25).forEach(function(b,i){
       var val=showField==='p'?(b.p+'p'):showField==='r'?(b.r+'★'):'';
-      var cover=imgMap[b.t]?'<img src="'+imgMap[b.t]+'" class="bk-cover" style="height:40px;width:28px;object-fit:cover;border-radius:3px;margin-right:8px;flex-shrink:0">':'';
-      h+='<div class="cd-item" style="padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04);display:flex;align-items:center"><span style="color:var(--t2);font-size:9px;min-width:16px">'+(i+1)+'</span>'+cover+'<span style="flex:1;min-width:0"><div style="font-weight:600;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+b.t+'</div><div style="color:var(--t2);font-size:9px">'+b.a+'</div></span><span class="nm" style="color:#fbbf24;font-size:10px">'+val+'</span></div>'});
+      var cover=imgMap[b.t]?'<img src="'+imgMap[b.t]+'" class="bk-cover bk-img">':'<div style="width:80px;height:110px;background:linear-gradient(135deg,#3d2d1b,#111);border-radius:6px;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,0.3);font-size:20px;font-weight:800">'+b.t.charAt(0)+'</div>';
+      h+='<div class="gi">'+cover+'<span>'+b.t+'</span><span>'+b.a+'</span><span class="val">'+val+'</span></div>'});
+    h+='</div>';
     el.innerHTML=h;
   }
   var fWithPages=filtered.filter(function(b){return b.p>0});
-  var fLongest=fWithPages.slice().sort(function(a,b){return b.p-a.p}).slice(0,10).map(function(b){return{t:b.t,a:b.a,p:b.p}});
-  var fShortest=fWithPages.slice().sort(function(a,b){return a.p-b.p}).slice(0,10).map(function(b){return{t:b.t,a:b.a,p:b.p}});
+  var fLongest=fWithPages.slice().sort(function(a,b){return b.p-a.p}).slice(0,25).map(function(b){return{t:b.t,a:b.a,p:b.p}});
+  var fShortest=fWithPages.slice().sort(function(a,b){return a.p-b.p}).slice(0,25).map(function(b){return{t:b.t,a:b.a,p:b.p}});
   bookList('gr-long',fLongest,'p');
   bookList('gr-short',fShortest,'p');
 
@@ -1127,8 +1130,8 @@ function renderGoodreads(){
   grBarChart('gr-genres',fGenList,'gn','#fbbf24','genre');
   grBarChart('gr-shelves',fShList,'sh','#a78bfa','shelf')
 
-  var fHighest=fRated.slice().sort(function(a,b){return b.r-a.r||b.p-a.p}).slice(0,10).map(function(b){return{t:b.t,a:b.a,r:b.r,p:b.p}});
-  var fLowest=fRated.slice().sort(function(a,b){return a.r-b.r||a.p-b.p}).slice(0,10).map(function(b){return{t:b.t,a:b.a,r:b.r,p:b.p}});
+  var fHighest=fRated.slice().sort(function(a,b){return b.r-a.r||b.p-a.p}).slice(0,25).map(function(b){return{t:b.t,a:b.a,r:b.r,p:b.p}});
+  var fLowest=fRated.slice().sort(function(a,b){return a.r-b.r||a.p-b.p}).slice(0,25).map(function(b){return{t:b.t,a:b.a,r:b.r,p:b.p}});
   bookList('gr-high',fHighest,'r');
   bookList('gr-low',fLowest,'r');
 }
@@ -1257,11 +1260,10 @@ function renderLastfm(){
   var curAlbums=(alData.find(function(p){return p.period===per})||alData[0]||{}).albums||[];
   var alEl=document.getElementById('lfm-albums');
   if(curAlbums.length){
-    var alH='';curAlbums.slice(0,10).forEach(function(a,i){
-      var cover=a.img?'<img src="'+a.img+'" class="al-cover" style="height:40px;width:40px;object-fit:cover;border-radius:3px;margin-right:8px;flex-shrink:0">':'';
-      alH+='<div class="cd-item" style="padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04);display:flex;align-items:center"><span style="color:var(--t2);font-size:9px;min-width:16px">'+(i+1)+'</span>'+cover+'<span style="flex:1;min-width:0"><div style="font-weight:600;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+a.n+'</div><div style="color:var(--t2);font-size:9px">'+a.a+'</div></span><span class="nm" style="color:#e94560;font-size:10px">'+a.c+'</span></div>'});
-    alEl.style.height='auto';alEl.style.maxHeight='280px';alEl.style.overflowY='auto';alEl.innerHTML=alH;
-    ch.push(alChart);
+    var alH='<div class="cover-grid">';curAlbums.slice(0,25).forEach(function(a,i){
+      var cover=a.img?'<img src="'+a.img+'" class="al-cover">':'<div style="width:80px;height:80px;background:linear-gradient(135deg,#1a1a4e,#111);border-radius:6px;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,0.3);font-size:20px;font-weight:800">'+a.n.charAt(0)+'</div>';
+      alH+='<div class="gi">'+cover+'<span>'+a.n+'</span><span>'+a.a+'</span><span class="val">'+a.c+' plays</span></div>'});
+    alH+='</div>';alEl.style.height='auto';alEl.innerHTML=alH;
   }
 
   // Genres — respects period toggle
