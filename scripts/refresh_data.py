@@ -215,83 +215,71 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
             if e["runtime"]: syd[s]["yd"][yr]["m"] += safe_int(e["runtime"])
             if e["network"]: syd[s]["net"] = e["network"]
 
-    # Time-to-watch: avg days between air date and first watch per show
-    # Track first watch per episode (slug + season + episode_number)
-    ep_first_watch = {}  # (show_slug, season, ep_num) -> {aired, watched, year}
+    # Time-to-watch: avg days between air date and watch date, at SEASON level
+    # Group episodes by (show, season), compute per-season delay
+    season_eps = defaultdict(list)  # (slug, season) -> [{aired, watched, year, show}]
     for e in entries:
         if e["type"] != "episode" or not e["show_title"] or not e["watched_at"]: continue
         fa = e.get("first_aired", "")
-        if not fa: continue
-        key = (e["trakt_slug"], e.get("season"), e.get("episode_number"))
-        wa = e["watched_at"]
-        # Keep earliest watch
-        if key not in ep_first_watch or wa < ep_first_watch[key]["watched"]:
-            ep_first_watch[key] = {"show": e["show_title"], "slug": e["trakt_slug"],
-                                    "aired": fa, "watched": wa, "year": wa[:4]}
+        if not fa or not e.get("season"): continue
+        season_eps[(e["trakt_slug"], str(e["season"]))].append({
+            "show": e["show_title"], "slug": e["trakt_slug"],
+            "aired": fa, "watched": e["watched_at"], "year": e["watched_at"][:4],
+            "season": str(e["season"])
+        })
 
-    # Aggregate by show: avg days
-    show_ttw = defaultdict(lambda: {"name": "", "delays": [], "delays_y": defaultdict(list)})
-    for key, info in ep_first_watch.items():
-        try:
-            aired = datetime.fromisoformat(info["aired"].replace("Z", "+00:00"))
-            watched = datetime.fromisoformat(info["watched"].replace("Z", "+00:00"))
-            days = (watched - aired).total_seconds() / 86400
-            if days < 0: days = 0  # watched before air (timezone diff)
-            if days > 365: continue  # skip old backfills
-            show_ttw[info["slug"]]["name"] = info["show"]
-            show_ttw[info["slug"]]["delays"].append(days)
-            show_ttw[info["slug"]]["delays_y"][info["year"]].append(days)
-        except Exception: pass
+    # Compute per-season delay: use median episode delay, filter bulk imports
+    season_delays = []  # [{show, slug, season, delay_days, watch_year}]
+    for (slug, sn), eps in season_eps.items():
+        delays = []
+        zero_count = 0
+        for ep in eps:
+            try:
+                aired = datetime.fromisoformat(ep["aired"].replace("Z", "+00:00"))
+                watched = datetime.fromisoformat(ep["watched"].replace("Z", "+00:00"))
+                days = (watched - aired).total_seconds() / 86400
+                if days < 0: days = 0
+                delays.append(days)
+                if days < 0.5: zero_count += 1
+            except Exception: pass
+        if not delays or len(delays) < 2: continue
+        # Filter: if >80% of episodes have 0-day delay, likely bulk import — skip
+        if zero_count / len(delays) > 0.8 and len(delays) > 3: continue
+        avg_delay = sum(delays) / len(delays)
+        # Use the latest watch year for this season
+        watch_year = max(ep["year"] for ep in eps if ep.get("year"))
+        season_delays.append({
+            "show": eps[0]["show"], "slug": slug, "season": sn,
+            "delay": round(avg_delay, 1), "eps": len(delays), "year": watch_year
+        })
 
-    # Build ttw data: [{n, avg, count}] sorted by avg ascending (fastest first)
+    # Split into TTW (<365 days) and catch-up (>365 days)
     ttw_all = []
-    catchup_all = []  # shows watched >365 days after air
-    for slug, info in show_ttw.items():
-        if len(info["delays"]) >= 3:
-            ttw_all.append({"n": info["name"], "avg": round(sum(info["delays"])/len(info["delays"]), 1),
-                           "ct": len(info["delays"])})
-
-    # Catch-up list: shows where avg delay > 365 days
-    catchup_shows = defaultdict(lambda: {"name": "", "delays": [], "delays_y": defaultdict(list)})
-    for key, info in ep_first_watch.items():
-        try:
-            aired = datetime.fromisoformat(info["aired"].replace("Z", "+00:00"))
-            watched = datetime.fromisoformat(info["watched"].replace("Z", "+00:00"))
-            days = (watched - aired).total_seconds() / 86400
-            if days > 365:
-                catchup_shows[info["slug"]]["name"] = info["show"]
-                catchup_shows[info["slug"]]["delays"].append(days)
-                catchup_shows[info["slug"]]["delays_y"][info["year"]].append(days)
-        except Exception: pass
-
-    for slug, info in catchup_shows.items():
-        if len(info["delays"]) >= 3:
-            avg_days = sum(info["delays"]) / len(info["delays"])
-            avg_years = round(avg_days / 365, 1)
-            catchup_all.append({"n": info["name"], "avg": avg_years, "ct": len(info["delays"])})
-    catchup_all.sort(key=lambda x: x["avg"])
-
-    catchup_by_year = {}
-    for slug, info in catchup_shows.items():
-        for yr, delays in info["delays_y"].items():
-            if len(delays) >= 2:
-                if yr not in catchup_by_year: catchup_by_year[yr] = []
-                avg_years = round(sum(delays) / len(delays) / 365, 1)
-                catchup_by_year[yr].append({"n": info["name"], "avg": avg_years, "ct": len(delays)})
-    for yr in catchup_by_year:
-        catchup_by_year[yr].sort(key=lambda x: x["avg"])
+    catchup_all = []
+    for sd in season_delays:
+        label = sd["show"] + " S" + sd["season"].zfill(2)
+        entry = {"n": label, "avg": sd["delay"], "ct": sd["eps"]}
+        if sd["delay"] <= 365:
+            ttw_all.append(entry)
+        else:
+            avg_years = round(sd["delay"] / 365, 1)
+            catchup_all.append({"n": label, "avg": avg_years, "ct": sd["eps"]})
 
     ttw_all.sort(key=lambda x: x["avg"])
+    catchup_all.sort(key=lambda x: x["avg"])
 
-    ttw_by_year = {}
-    for slug, info in show_ttw.items():
-        for yr, delays in info["delays_y"].items():
-            if len(delays) >= 2:
-                if yr not in ttw_by_year: ttw_by_year[yr] = []
-                ttw_by_year[yr].append({"n": info["name"], "avg": round(sum(delays)/len(delays), 1),
-                                        "ct": len(delays)})
-    for yr in ttw_by_year:
-        ttw_by_year[yr].sort(key=lambda x: x["avg"])
+    # Per-year breakdowns
+    ttw_by_year = defaultdict(list)
+    catchup_by_year = defaultdict(list)
+    for sd in season_delays:
+        label = sd["show"] + " S" + sd["season"].zfill(2)
+        yr = sd["year"]
+        if sd["delay"] <= 365:
+            ttw_by_year[yr].append({"n": label, "avg": sd["delay"], "ct": sd["eps"]})
+        else:
+            catchup_by_year[yr].append({"n": label, "avg": round(sd["delay"] / 365, 1), "ct": sd["eps"]})
+    for yr in ttw_by_year: ttw_by_year[yr].sort(key=lambda x: x["avg"])
+    for yr in catchup_by_year: catchup_by_year[yr].sort(key=lambda x: x["avg"])
 
     # Content vintage: count unique titles by their release year (not watch year)
     vintage_movies = Counter()  # release_year -> count of unique movie titles
