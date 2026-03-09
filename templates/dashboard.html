@@ -127,7 +127,7 @@ body{overflow-x:hidden}
 </div>
 <!-- MOVIES -->
 <div class="g2 med-s" data-med="all movie">
-<div id="sec-mov" class="cd fw s-m"><h3 id="mdh"><span class="i">🎞️</span>Movies <span class="vtog" style="float:right"><button class="vb vb-on mv-mode" data-v="long" onclick="window._mvMode='long';movieCharts(true)">Longest</button><button class="vb mv-mode" data-v="short" onclick="window._mvMode='short';movieCharts(true)">Shortest</button><button class="vb mv-mode" data-v="rewatch" onclick="window._mvMode='rewatch';movieCharts(true)">Rewatched</button></span></h3><div id="mdc" style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center"></div></div>
+<div id="sec-mov" class="cd fw s-m"><h3 id="mdh"><span class="i">🎞️</span>Movies <span class="vtog" style="float:right"><button class="vb vb-on mv-mode" data-v="long" onclick="window._mvMode='long';movieCharts(true)">Longest</button><button class="vb mv-mode" data-v="short" onclick="window._mvMode='short';movieCharts(true)">Shortest</button><button class="vb mv-mode" data-v="rewatch" onclick="window._mvMode='rewatch';movieCharts(true)">Rewatched</button></span></h3><div id="mdc" class="cover-grid"></div></div>
 </div>
 <div class="g2 med-s" data-med="all movie show">
 <div id="sec-time" class="cd s-t"><h3><span class="i">📅</span>Day of Week</h3><div id="dwc" style="height:280px"></div></div>
@@ -1196,7 +1196,7 @@ function renderGoodreads(){
         var key=bkKey(b.t);var val=showField==='p'?(b.p+'p'):showField==='r'?(b.r+'★'):'';
         var cover=imgMap[b.t]?'<img src="'+imgMap[b.t]+'" class="bk-cover bk-img">':'<div class="bk-img" style="background:linear-gradient(135deg,#3d2d1b,#111);border-radius:6px;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,0.3);font-size:20px;font-weight:800">'+b.t.charAt(0)+'</div>';
         h+='<div class="gi" data-key="'+key+'" style="transition:transform .6s ease,opacity .4s ease">'+cover+'<span>'+b.t+'</span><span>'+b.a+'</span><span class="val">'+val+'</span></div>'});
-      el.innerHTML=h;el.style.display='flex';el.style.flexWrap='wrap';el.style.gap='8px';el.style.justifyContent='center';
+      el.innerHTML=h;el.className='cover-grid';
     }
   }
   var fWithPages=filtered.filter(function(b){return b.p>0});
