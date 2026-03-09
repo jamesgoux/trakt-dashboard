@@ -235,6 +235,7 @@ var D=__DASHBOARD_DATA__;
 var HS=D.hs||{},TL=D.tl||[],SYD=D.syd||[],MYD=D.myd||[],SM=D.sm||{},LO=D.lg||{};
 var ch=[],cy='all',ct='all';
 var mob=window.innerWidth<768;
+var PS=D.ps||{};
 // Lazy chart observer — defer init until visible
 var _lazyQ=[];var _lazyObs=new IntersectionObserver(function(entries){entries.forEach(function(e){if(e.isIntersecting){var idx=_lazyQ.findIndex(function(q){return q.el===e.target});if(idx>=0){var q=_lazyQ.splice(idx,1)[0];q.fn();_lazyObs.unobserve(e.target)}}})},{rootMargin:'200px'});
 function lazyChart(el,fn){if(!el)return;var rect=el.getBoundingClientRect();if(rect.top<window.innerHeight+200){fn()}else{_lazyQ.push({el:el,fn:fn});_lazyObs.observe(el)}}
@@ -416,7 +417,30 @@ function renderLifeline(){
 function movieCharts(){
   if(ct==='show'){document.getElementById('mdc').parentElement.style.display='none';document.getElementById('mrc-card').style.display='none';return}
   document.getElementById('mdc').parentElement.style.display='';document.getElementById('mrc-card').style.display='';
-  var da=[],ra=[];MYD.forEach(function(m){var w=0;if(cy==='all'){Object.values(m.yd).forEach(function(c){w+=c})}else if(m.yd[cy]){w=m.yd[cy]}if(w>0){da.push({n:m.n,min:m.rt*w,w:w});if(w>1)ra.push({n:m.n,w:w})}});da.sort(function(a,b){return b.min-a.min});da=da.slice(0,15).reverse();ra.sort(function(a,b){return b.w-a.w});ra=ra.slice(0,15).reverse();document.getElementById('mdh').textContent='Movies by Watch Time'+(cy!=='all'?' ('+cy+')':'');document.getElementById('mrh').textContent='Most Rewatched'+(cy!=='all'?' ('+cy+')':'');var c1=echarts.init(document.getElementById('mdc'));c1.setOption({tooltip:{trigger:mob?'item':'axis',axisPointer:{type:'shadow'},...tt,formatter:function(p){return'<b>'+tp(p).name+'</b><br/>'+tp(p).value+'min ('+Math.round(tp(p).value/60)+'h)'}},grid:{left:gl(180),right:20,top:8,bottom:8},xAxis:{type:'value',axisLabel:{color:'#666',formatter:function(v){return Math.round(v/60)+'h'}},splitLine:{lineStyle:{color:'#222'}}},yAxis:{type:'category',data:da.map(function(d){return d.n}),axisLabel:{color:'#ccc',fontSize:10,interval:0},axisLine:{lineStyle:{color:'#333'}}},series:[{type:'bar',data:da.map(function(d){return d.min}),itemStyle:{color:LG('#0f3460','#e94560')},barMaxWidth:18,label:{show:true,position:'right',color:'#fb923c',fontSize:10,formatter:function(p){return Math.round(p.value/60)+'h'}}}]});var c2=echarts.init(document.getElementById('mrc'));if(ra.length===0){document.getElementById('mrc-card').style.display='none';ch.push(c1);return}document.getElementById('mrc-card').style.display='';c2.setOption({tooltip:{trigger:mob?'item':'axis',axisPointer:{type:'shadow'},...tt},grid:{left:gl(180),right:20,top:8,bottom:8},xAxis:{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},yAxis:{type:'category',data:ra.map(function(d){return d.n}),axisLabel:{color:'#ccc',fontSize:10,interval:0},axisLine:{lineStyle:{color:'#333'}}},series:[{type:'bar',data:ra.map(function(d){return d.w}),itemStyle:{color:LG('#0f3460','#4ade80')},barMaxWidth:18,label:{show:true,position:'right',color:'#4ade80',fontSize:10,formatter:function(p){return p.value+'x'}}}]});ch.push(c1,c2)
+  var da=[],ra=[];MYD.forEach(function(m){var w=0;if(cy==='all'){Object.values(m.yd).forEach(function(c){w+=c})}else if(m.yd[cy]){w=m.yd[cy]}if(w>0){da.push({n:m.n,min:m.rt*w,w:w,yr:m.yr});if(w>1)ra.push({n:m.n,w:w,yr:m.yr})}});
+  da.sort(function(a,b){return b.min-a.min});da=da.slice(0,20);
+  ra.sort(function(a,b){return b.w-a.w});ra=ra.slice(0,20);
+  document.getElementById('mdh').innerHTML='<span class="i">🎞️</span>Movies by Watch Time'+(cy!=='all'?' ('+cy+')':'');
+  document.getElementById('mrh').innerHTML='<span class="i">🔁</span>Most Rewatched'+(cy!=='all'?' ('+cy+')':'');
+  // Helper: find poster by movie name
+  function mvSlug(n){return n.toLowerCase().replace(/[^a-z0-9]/g,'-')}
+  function mvImg(n,yr){var sl=mvSlug(n);for(var k in PS){if(k===sl||k===sl+'-'+yr)return PS[k]}for(var k in PS){if(sl.length>5&&k.indexOf(sl)>=0)return PS[k]}return null}
+  // Watch time grid
+  var mdEl=document.getElementById('mdc');
+  var mdH='<div class="cover-grid">';da.forEach(function(m,i){
+    var img=mvImg(m.n,m.yr);var hrs=Math.round(m.min/60*10)/10;
+    var cover=img?'<img src="'+img+'" style="width:80px;height:120px;object-fit:cover;border-radius:6px">':'<div style="width:80px;height:120px;background:linear-gradient(135deg,#2d1b1b,#111);border-radius:6px;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,0.3);font-size:20px;font-weight:800">'+m.n.charAt(0)+'</div>';
+    mdH+='<div class="gi">'+cover+'<span>'+m.n+'</span><span class="val" style="color:var(--mv)">'+hrs+'h</span></div>'});
+  mdH+='</div>';mdEl.style.height='auto';mdEl.innerHTML=mdH;
+  // Rewatched grid
+  var rcEl=document.getElementById('mrc');
+  if(ra.length===0){document.getElementById('mrc-card').style.display='none';return}
+  document.getElementById('mrc-card').style.display='';
+  var rcH='<div class="cover-grid">';ra.forEach(function(m,i){
+    var img=mvImg(m.n,m.yr);
+    var cover=img?'<img src="'+img+'" style="width:80px;height:120px;object-fit:cover;border-radius:6px">':'<div style="width:80px;height:120px;background:linear-gradient(135deg,#2d1b1b,#111);border-radius:6px;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,0.3);font-size:20px;font-weight:800">'+m.n.charAt(0)+'</div>';
+    rcH+='<div class="gi">'+cover+'<span>'+m.n+'</span><span class="val" style="color:#4ade80">'+m.w+'x</span></div>'});
+  rcH+='</div>';rcEl.style.height='auto';rcEl.innerHTML=rcH;
 }
 
 function legendIsolate(ec,legs){var hd=false;ec.on('legendselectchanged',function(p){if(hd)return;hd=true;var s=p.selected,n=p.name,c=0;for(var k in s)if(s[k])c++;if(c===0){ec.dispatchAction({type:'legendAllSelect'})}else if(c<legs.length){for(var k in s){if(k===n&&!s[k])ec.dispatchAction({type:'legendSelect',name:k});if(k!==n&&s[k])ec.dispatchAction({type:'legendUnSelect',name:k})}}hd=false})}
