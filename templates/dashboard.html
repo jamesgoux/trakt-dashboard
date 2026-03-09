@@ -98,7 +98,7 @@ body{overflow-x:hidden}
 <div class="sg" id="st"></div>
 <!-- TIMELINE: Yearly / Monthly -->
 <div class="g2 med-s" data-med="all movie show book concert theater">
-<div id="sec-tl" class="cd fw s-t"><h3 id="tlh"><span class="i">📈</span>Yearly Watch Count</h3><div id="yrc" style="height:280px"></div><div id="tlc" style="height:280px;display:none"></div></div>
+<div id="sec-tl" class="cd fw s-t"><h3 id="tlh"><span class="i">📈</span>Yearly Activity</h3><div id="yrc" style="height:280px"></div><div id="tlc" style="height:280px;display:none"></div></div>
 </div>
 <!-- LIFELINE: 30-day activity -->
 <div class="g2 med-s" data-med="all movie show book music concert theater">
@@ -429,7 +429,7 @@ function baseCharts(){
   var isYear=cy!=='all';
   document.getElementById('tlc').style.display=isYear?'':'none';
   document.getElementById('yrc').style.display=isYear?'none':'';
-  document.getElementById('tlh').innerHTML=isYear?'<span class="i">📊</span>Monthly Activity ('+cy+')':'<span class="i">📈</span>Yearly Watch Count';
+  document.getElementById('tlh').innerHTML=isYear?'<span class="i">📊</span>Monthly Activity ('+cy+')':'<span class="i">📈</span>Yearly Activity';
   // Clear any lingering detail panels
   var tlCard=document.getElementById('sec-tl');
   var oldDetail=tlCard.querySelector('.chart-detail');if(oldDetail)oldDetail.remove();
@@ -1086,7 +1086,7 @@ function renderGoodreads(){
     var el=document.getElementById(elId);
     if(!items||!items.length){el.innerHTML='<div style="text-align:center;color:var(--t2);padding:20px">No data</div>';return}
     var imgMap={};filtered.forEach(function(b){if(b.img)imgMap[b.t]=b.img});
-    var h='<div class="cover-grid">';items.slice(0,25).forEach(function(b,i){
+    var h='<div class="cover-grid">';items.slice(0,20).forEach(function(b,i){
       var val=showField==='p'?(b.p+'p'):showField==='r'?(b.r+'★'):'';
       var cover=imgMap[b.t]?'<img src="'+imgMap[b.t]+'" class="bk-cover bk-img">':'<div style="width:80px;height:110px;background:linear-gradient(135deg,#3d2d1b,#111);border-radius:6px;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,0.3);font-size:20px;font-weight:800">'+b.t.charAt(0)+'</div>';
       h+='<div class="gi">'+cover+'<span>'+b.t+'</span><span>'+b.a+'</span><span class="val">'+val+'</span></div>'});
@@ -1094,8 +1094,8 @@ function renderGoodreads(){
     el.innerHTML=h;
   }
   var fWithPages=filtered.filter(function(b){return b.p>0});
-  var fLongest=fWithPages.slice().sort(function(a,b){return b.p-a.p}).slice(0,25).map(function(b){return{t:b.t,a:b.a,p:b.p}});
-  var fShortest=fWithPages.slice().sort(function(a,b){return a.p-b.p}).slice(0,25).map(function(b){return{t:b.t,a:b.a,p:b.p}});
+  var fLongest=fWithPages.slice().sort(function(a,b){return b.p-a.p}).slice(0,20).map(function(b){return{t:b.t,a:b.a,p:b.p}});
+  var fShortest=fWithPages.slice().sort(function(a,b){return a.p-b.p}).slice(0,20).map(function(b){return{t:b.t,a:b.a,p:b.p}});
   bookList('gr-long',fLongest,'p');
   bookList('gr-short',fShortest,'p');
 
@@ -1130,8 +1130,8 @@ function renderGoodreads(){
   grBarChart('gr-genres',fGenList,'gn','#fbbf24','genre');
   grBarChart('gr-shelves',fShList,'sh','#a78bfa','shelf')
 
-  var fHighest=fRated.slice().sort(function(a,b){return b.r-a.r||b.p-a.p}).slice(0,25).map(function(b){return{t:b.t,a:b.a,r:b.r,p:b.p}});
-  var fLowest=fRated.slice().sort(function(a,b){return a.r-b.r||a.p-b.p}).slice(0,25).map(function(b){return{t:b.t,a:b.a,r:b.r,p:b.p}});
+  var fHighest=fRated.slice().sort(function(a,b){return b.r-a.r||b.p-a.p}).slice(0,20).map(function(b){return{t:b.t,a:b.a,r:b.r,p:b.p}});
+  var fLowest=fRated.slice().sort(function(a,b){return a.r-b.r||a.p-b.p}).slice(0,20).map(function(b){return{t:b.t,a:b.a,r:b.r,p:b.p}});
   bookList('gr-high',fHighest,'r');
   bookList('gr-low',fLowest,'r');
 }
