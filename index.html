@@ -892,21 +892,36 @@ function renderPosters(animate){
   // Check poster coverage — if <50%, use bar chart instead
   var imgCount=top.reduce(function(s,sh){return s+(findImg(sh.n)?1:0)},0);
   var useGrid=imgCount>=top.length*0.5;
+  // Hide/show toggle buttons based on mode
+  var togWrap=document.querySelector('#sec-shows .vtog');if(togWrap)togWrap.style.display=useGrid?'':'none';
   if(!useGrid){
     var existingChart=echarts.getInstanceByDom(grid);if(existingChart){existingChart.dispose()}
-    grid.className='';grid.innerHTML='';
-    grid.style.height=Math.max(280,top.slice(0,15).length*22+20)+'px';
-    var barItems=top.slice(0,15).reverse();
-    var barChart=echarts.init(grid);
-    var isDur=window._showSort==='dur';
-    barChart.setOption({tooltip:{trigger:mob?'item':'axis',axisPointer:{type:'shadow'},...tt,formatter:function(p){return'<b>'+tp(p).name+'</b><br/>'+(isDur?tp(p).value+'h':tp(p).value+' eps')}},
-      grid:{left:gl(150),right:30,top:8,bottom:8},
+    grid.className='';grid.style.cssText='display:flex;gap:10px;overflow:hidden';
+    var barItems=top.slice(0,15);
+    var chartH=Math.max(280,barItems.length*22+20)+'px';
+    // Duration chart (left)
+    var durDiv=document.createElement('div');durDiv.style.cssText='flex:1;height:'+chartH;
+    // Episodes chart (right)
+    var epsDiv=document.createElement('div');epsDiv.style.cssText='flex:1;height:'+chartH;
+    grid.innerHTML='';grid.appendChild(durDiv);grid.appendChild(epsDiv);
+    var bRev=barItems.slice().reverse();
+    var durChart=echarts.init(durDiv);
+    durChart.setOption({title:{text:'By Duration',textStyle:{color:'#999',fontSize:12},left:10,top:0},tooltip:{trigger:mob?'item':'axis',axisPointer:{type:'shadow'},...tt,formatter:function(p){return'<b>'+tp(p).name+'</b><br/>'+tp(p).value+'h'}},
+      grid:{left:gl(130),right:30,top:24,bottom:8},
       xAxis:{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},
-      yAxis:{type:'category',data:barItems.map(function(d){return d.n}),axisLabel:{color:'#ccc',fontSize:10,interval:0},axisLine:{lineStyle:{color:'#333'}}},
-      series:[{type:'bar',data:barItems.map(function(d){return isDur?d.h:d.e}),itemStyle:{color:LG('#0f3460','#14b8a6')},barMaxWidth:18,label:{show:true,position:'right',color:'var(--tv)',fontSize:10,formatter:function(p){return isDur?p.value+'h':p.value+' eps'}}}]});
-    ch.push(barChart);return}
-  // Dispose any existing ECharts instance on the grid (from bar chart fallback)
-  var existingChart=echarts.getInstanceByDom(grid);if(existingChart){existingChart.dispose()}
+      yAxis:{type:'category',data:bRev.map(function(d){return d.n}),axisLabel:{color:'#ccc',fontSize:10,interval:0},axisLine:{lineStyle:{color:'#333'}}},
+      series:[{type:'bar',data:bRev.map(function(d){return d.h}),itemStyle:{color:LG('#0f3460','#14b8a6')},barMaxWidth:18,label:{show:true,position:'right',color:'var(--tv)',fontSize:10,formatter:function(p){return p.value+'h'}}}]});
+    var epsChart=echarts.init(epsDiv);
+    var eRev=barItems.slice().sort(function(a,b){return a.e-b.e});
+    epsChart.setOption({title:{text:'By Episodes',textStyle:{color:'#999',fontSize:12},left:10,top:0},tooltip:{trigger:mob?'item':'axis',axisPointer:{type:'shadow'},...tt,formatter:function(p){return'<b>'+tp(p).name+'</b><br/>'+tp(p).value+' eps'}},
+      grid:{left:gl(130),right:30,top:24,bottom:8},
+      xAxis:{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},
+      yAxis:{type:'category',data:eRev.map(function(d){return d.n}),axisLabel:{color:'#ccc',fontSize:10,interval:0},axisLine:{lineStyle:{color:'#333'}}},
+      series:[{type:'bar',data:eRev.map(function(d){return d.e}),itemStyle:{color:LG('#0f3460','#fb923c')},barMaxWidth:18,label:{show:true,position:'right',color:'var(--ac)',fontSize:10,formatter:function(p){return p.value+' eps'}}}]});
+    ch.push(durChart);ch.push(epsChart);return}
+  // Dispose any existing ECharts instances on the grid children (from bar chart fallback)
+  grid.querySelectorAll('div').forEach(function(el){var ec=echarts.getInstanceByDom(el);if(ec)ec.dispose()});
+  grid.style.cssText='display:flex;flex-wrap:wrap;gap:10px;overflow:hidden;padding:4px 0';
   // FLIP animate if existing children match (toggle sort)
   var existing=grid.querySelectorAll('.poster-item');
   if(animate&&existing.length>0){
@@ -1623,7 +1638,7 @@ function renderStatus(){
   var hs_count=Object.keys(D.hs||{}).length;
   var ps_count=Object.keys(D.ps||{}).length;
   var el=document.getElementById('status');
-  el.innerHTML='<span>Actors: '+total_people+'</span><span>Headshots: '+hs_count+'</span><span>Posters: '+ps_count+'</span><span>Updated: 2026-03-09 18:43 UTC</span>';
+  el.innerHTML='<span>Actors: '+total_people+'</span><span>Headshots: '+hs_count+'</span><span>Posters: '+ps_count+'</span><span>Updated: 2026-03-09 18:49 UTC</span>';
 }
 
 function render(){ch.forEach(function(c){try{c.dispose()}catch(e){}});ch=[];
