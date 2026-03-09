@@ -429,6 +429,23 @@ function movieCharts(animate){
   function mvImg(n,yr){var sl=mvSlug(n);for(var k in PS){if(k===sl||k===sl+'-'+yr)return PS[k]}for(var k in PS){if(sl.length>5&&k.indexOf(sl)>=0)return PS[k]}return null}
   function mvKey(n){return mvSlug(n)}
   var grid=document.getElementById('mdc');
+  // Check poster coverage — if <50%, use bar chart instead
+  var imgCount=items.reduce(function(s,m){return s+(mvImg(m.n,m.yr)?1:0)},0);
+  var useGrid=imgCount>=items.length*0.5;
+  if(!useGrid){
+    grid.className='';grid.style.height='auto';
+    var barItems=items.slice(0,15).reverse();
+    var barChart=echarts.init(grid);
+    grid.style.height=Math.max(280,barItems.length*22+20)+'px';
+    var barLabel=mode==='rewatch'?'x':'h';
+    var barColor=mode==='rewatch'?'#4ade80':'var(--mv)';
+    barChart.setOption({tooltip:{trigger:mob?'item':'axis',axisPointer:{type:'shadow'},...tt,formatter:function(p){return'<b>'+tp(p).name+'</b><br/>'+tp(p).value+(mode==='rewatch'?'x':' min ('+Math.round(tp(p).value/60)+'h)')}},
+      grid:{left:gl(150),right:30,top:8,bottom:8},
+      xAxis:{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},
+      yAxis:{type:'category',data:barItems.map(function(d){return d.n}),axisLabel:{color:'#ccc',fontSize:10,interval:0},axisLine:{lineStyle:{color:'#333'}}},
+      series:[{type:'bar',data:barItems.map(function(d){return mode==='rewatch'?d.w:d.min}),itemStyle:{color:LG('#0f3460',mode==='rewatch'?'#4ade80':'#fb923c')},barMaxWidth:18,label:{show:true,position:'right',color:mode==='rewatch'?'#4ade80':'#fb923c',fontSize:10,formatter:function(p){return mode==='rewatch'?p.value+'x':Math.round(p.value/60*10)/10+'h'}}}]});
+    ch.push(barChart);return}
+  grid.className='cover-grid';grid.style.height='auto';
   // FLIP animation when toggling
   var existing=grid.querySelectorAll('.gi');
   if(animate&&existing.length>0){
@@ -1175,8 +1192,14 @@ function renderGoodreads(){
     if(!items||!items.length){el.innerHTML='<div style="text-align:center;color:var(--t2);padding:20px">No data</div>';return}
     var imgMap={};filtered.forEach(function(b){if(b.img)imgMap[b.t]=b.img});
     function bkKey(t){return t.toLowerCase().replace(/[^a-z0-9]/g,'-')}
-    var existing=el.querySelectorAll('.gi');
     var sliced=items.slice(0,20);
+    // If <50% have images, use list instead of grid
+    var imgHits=sliced.reduce(function(s,b){return s+(imgMap[b.t]?1:0)},0);
+    if(imgHits<sliced.length*0.5){
+      var lh='';sliced.forEach(function(b,i){var val=showField==='p'?(b.p+'p'):showField==='r'?(b.r+'★'):'';
+        lh+='<div class="cd-item" style="padding:3px 0;border-bottom:1px solid rgba(255,255,255,.04)"><span style="color:var(--t2);font-size:10px;margin-right:6px">'+(i+1)+'</span><span style="font-weight:600;font-size:11px">'+b.t+'</span><span style="color:var(--t2);font-size:10px;margin-left:4px">— '+b.a+'</span><span class="nm" style="color:#fbbf24;font-size:10px;margin-left:auto">'+val+'</span></div>'});
+      el.innerHTML=lh;el.className='';return}
+    var existing=el.querySelectorAll('.gi');
     if(existing.length>0){
       // FLIP
       var firstR={};existing.forEach(function(e){if(e.dataset.key)firstR[e.dataset.key]=e.getBoundingClientRect()});
