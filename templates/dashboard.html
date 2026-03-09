@@ -299,12 +299,12 @@ function stats(){
   // Movie/show/all — compute counts
   var mw=0,ew=0;D.c.m.filter(function(m){return cy==='all'||m.month.startsWith(cy)}).forEach(function(m){mw+=m.movies;ew+=m.episodes});
   var s=D.c.s;var h2='';
-  if(ct==='movie'){h2=sc(mw.toLocaleString(),'🎞️ Movies','var(--ac)')+sc((s.movie_runtime_days||0),'⏱️ Days','#fff')}
-  else if(ct==='show'){h2=sc(ew.toLocaleString(),'📺 Episodes','var(--pu)')+sc((s.show_runtime_days||0),'⏱️ Days','#fff')}
+  if(ct==='movie'){h2=sc(mw.toLocaleString(),'🎞️ Movies','var(--ac)')+sc((s.movie_runtime_days||0),'⏱️ Days','#b0b0b0')}
+  else if(ct==='show'){h2=sc(ew.toLocaleString(),'📺 Episodes','var(--pu)')+sc((s.show_runtime_days||0),'⏱️ Days','#b0b0b0')}
   else{
     // Row 1: Watches, Days, Movies, Shows, Episodes, Books
     var seasonCount=0;D.c.m.filter(function(m){return cy==='all'||m.month.startsWith(cy)}).forEach(function(m){seasonCount+=m.seasons||0});
-    h2=sc(s.total_watches.toLocaleString(),'👁️ Watches','#fff')+sc(s.total_runtime_days,'⏱️ Days','#fff')+sc(s.unique_movies,'🎞️ Movies','var(--ac)')+sc(s.unique_shows,'📺 Shows','var(--pu)')+sc(seasonCount,'📦 Seasons','var(--pu)')+sc(s.episode_watches.toLocaleString(),'🔢 Episodes','var(--pu)');
+    h2=sc(s.total_watches.toLocaleString(),'👁️ Watches','#b0b0b0')+sc(s.total_runtime_days,'⏱️ Days','#b0b0b0')+sc(s.unique_movies,'🎞️ Movies','var(--ac)')+sc(s.unique_shows,'📺 Shows','var(--pu)')+sc(seasonCount,'📦 Seasons','var(--pu)')+sc(s.episode_watches.toLocaleString(),'🔢 Episodes','var(--pu)');
     if(D.gr&&D.gr.total){var grAll=D.gr.all||[];var grF=cy==='all'?grAll:grAll.filter(function(b){return b.yr===cy});h2+=sc(grF.length,'📚 Books','#fbbf24')+sc(grF.reduce(function(s,b){return s+b.p},0).toLocaleString(),'📖 Pages','#fbbf24')}
     // Row 2: Scrobbles, Artists, Albums, Concerts, Sets, Plays
     if(D.lfm&&D.lfm.total){var lfmY=cy!=='all'&&D.lfm.yearly?(D.lfm.yearly.find(function(y){return y.yr===cy})||{}):{s:D.lfm.total,a:D.lfm.artists,al:D.lfm.albums};h2+=sc((lfmY.s||0).toLocaleString(),'🎧 Scrobbles','#1db954')+sc((lfmY.a||0).toLocaleString(),'🎤 Artists','#1db954')+sc((lfmY.al||0).toLocaleString(),'💿 Albums','#1db954')}
