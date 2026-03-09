@@ -20,8 +20,8 @@
 
 ## Priority 2: Quick Wins
 
-5. **Add `requirements.txt` with pinned versions**
-   Only dependency is `requests`, but it should be pinned to avoid surprise breakage.
+5. ~~**Add `requirements.txt` with pinned versions**~~ ✅ DONE
+   Added `requirements.txt` with `requests>=2.31,<3`. Both workflows now use `pip install -r requirements.txt`.
 
 6. **Replace bare `except:` clauses with specific exceptions**
    7+ instances across scripts silently swallow errors. Catch specific exceptions and log them.
