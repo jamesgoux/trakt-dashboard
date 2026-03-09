@@ -53,6 +53,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
 .poster-item img{width:100px;height:150px;object-fit:cover;border-radius:6px;background:#222}
 .poster-item span{display:block;font-size:10px;color:var(--t2);margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .poster-ph{width:100px;height:150px}
+.bk-cover,.al-cover,.ar-pic{transition:transform .2s;cursor:pointer}.bk-cover:hover,.al-cover:hover,.ar-pic:hover{transform:scale(3);z-index:100;position:relative;border:2px solid #333;box-shadow:0 4px 20px rgba(0,0,0,.8)}
 .dr td{padding:4px 8px;background:rgba(15,52,96,.15)!important}
 .dr table{font-size:11px}.dr table td{padding:3px 6px;border:none}
 .vtog{display:inline-flex;gap:2px}
@@ -1019,21 +1020,19 @@ function renderGoodreads(){
     document.querySelectorAll('.gr-tog').forEach(function(b){b.classList.remove('vb-on')});btn.classList.add('vb-on');
     window._grMode=btn.dataset.v;renderGoodreads()}});
 
-  // Time to read — show all books, dynamic height, truncate long titles
+  // Time to read — HTML list with covers
   var ttr=gr.ttr||[];if(cy!=='all')ttr=ttr.filter(function(t){return filtered.some(function(b){return b.t===t.t})});
-  var ttrAll=ttr.slice().reverse();
   var ttrEl=document.getElementById('gr-ttr');
-  if(ttrAll.length){
-    var ttrH=Math.max(280,ttrAll.length*22+40);
-    ttrEl.style.height=ttrH+'px';
-    var ttrChart=echarts.init(ttrEl);
-    ttrChart.setOption({tooltip:{trigger:mob?'item':'axis',axisPointer:{type:'shadow'},...tt,formatter:function(p){var d=ttrAll.find(function(x){return tp(p).name.indexOf(x.t.substring(0,20))>=0});return d?'<b>'+d.t+'</b><br/>'+d.d+' days ('+d.p+' pages)':''}},
-      grid:{left:gl(150),right:50,top:20,bottom:8},
-      title:{text:ttrAll.length+' books, avg '+(gr.ttr_avg||0)+' days',left:'center',top:0,textStyle:{color:'#999',fontSize:11,fontWeight:'normal'}},
-      xAxis:{type:'value',axisLabel:{color:'#666',formatter:function(v){return v+'d'}},splitLine:{lineStyle:{color:'#222'}}},
-      yAxis:{type:'category',data:ttrAll.map(function(d){return d.t}),axisLabel:{color:'#ccc',fontSize:9,interval:0},axisLine:{lineStyle:{color:'#333'}}},
-      series:[{type:'bar',data:ttrAll.map(function(d){return d.d}),itemStyle:{color:function(p){var v=p.value;return v<7?'#4ade80':v<30?'#fbbf24':v<90?'#fb923c':'#e94560'}},barMaxWidth:14,label:{show:true,position:'right',color:'#ccc',fontSize:9,formatter:function(p){return p.value<365?p.value+'d':Math.round(p.value/365*10)/10+'y'}}}]});
-    ch.push(ttrChart);
+  var imgMap2={};filtered.forEach(function(b){if(b.img)imgMap2[b.t]=b.img});
+  if(ttr.length){
+    ttrEl.style.height='auto';
+    var ttrH='<div style="text-align:center;color:var(--t2);font-size:11px;margin-bottom:6px">'+ttr.length+' books, avg '+(gr.ttr_avg||0)+' days</div>';
+    ttr.forEach(function(t,i){
+      var dColor=t.d<7?'#4ade80':t.d<30?'#fbbf24':t.d<90?'#fb923c':'#e94560';
+      var dLabel=t.d<365?t.d+'d':Math.round(t.d/365*10)/10+'y';
+      var cover=imgMap2[t.t]?'<img src="'+imgMap2[t.t]+'" class="bk-cover" style="height:36px;width:25px;object-fit:cover;border-radius:2px;margin-right:8px;flex-shrink:0">':'';
+      ttrH+='<div class="cd-item" style="padding:4px 0;border-bottom:1px solid rgba(255,255,255,.04);display:flex;align-items:center">'+cover+'<span style="flex:1;min-width:0"><div style="font-weight:600;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+t.t+'</div><div style="color:var(--t2);font-size:9px">'+t.a+(t.p?' · '+t.p+'p':'')+'</div></span><span style="color:'+dColor+';font-weight:700;font-size:11px;min-width:36px;text-align:right">'+dLabel+'</span></div>'});
+    ttrEl.innerHTML=ttrH;
   }else{ttrEl.innerHTML='<div style="text-align:center;color:var(--t2);padding:40px">No time-to-read data</div>'}
 
   // Most read authors — computed from filtered books
@@ -1084,9 +1083,9 @@ function renderGoodreads(){
     if(!items||!items.length){el.innerHTML='<div style="text-align:center;color:var(--t2);padding:20px">No data</div>';return}
     var imgMap={};filtered.forEach(function(b){if(b.img)imgMap[b.t]=b.img});
     var h='';items.forEach(function(b,i){
-      var val=showField==='p'?(b.p+' pages'):showField==='r'?(b.r+'★'):'';
-      var cover=imgMap[b.t]?'<img src="'+imgMap[b.t]+'" style="height:28px;width:20px;object-fit:cover;border-radius:2px;margin-right:6px;vertical-align:middle">':'';
-      h+='<div class="cd-item" style="padding:4px 0;border-bottom:1px solid rgba(255,255,255,.04);display:flex;align-items:center"><span style="color:var(--t2);font-size:10px;min-width:18px">'+(i+1)+'</span>'+cover+'<span style="flex:1"><span style="font-weight:600;font-size:12px">'+b.t+'</span><span style="color:var(--t2);font-size:11px;margin-left:4px">— '+b.a+'</span></span><span class="nm" style="color:#fbbf24;font-size:11px">'+val+'</span></div>'});
+      var val=showField==='p'?(b.p+'p'):showField==='r'?(b.r+'★'):'';
+      var cover=imgMap[b.t]?'<img src="'+imgMap[b.t]+'" class="bk-cover" style="height:40px;width:28px;object-fit:cover;border-radius:3px;margin-right:8px;flex-shrink:0">':'';
+      h+='<div class="cd-item" style="padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04);display:flex;align-items:center"><span style="color:var(--t2);font-size:9px;min-width:16px">'+(i+1)+'</span>'+cover+'<span style="flex:1;min-width:0"><div style="font-weight:600;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+b.t+'</div><div style="color:var(--t2);font-size:9px">'+b.a+'</div></span><span class="nm" style="color:#fbbf24;font-size:10px">'+val+'</span></div>'});
     el.innerHTML=h;
   }
   var fWithPages=filtered.filter(function(b){return b.p>0});
@@ -1221,19 +1220,17 @@ function renderLastfm(){
     rangeWrap.querySelectorAll('.lfm-rng').forEach(function(btn){btn.onclick=function(){window._lfmRange=btn.dataset.v;renderLastfm()}});
   }else if(rangeWrap){rangeWrap.innerHTML=''}
 
-  // Top Artists
+  // Top Artists — HTML list with initial avatars
   var perData=lfm.top_artists||[];
   var curArtists=(perData.find(function(p){return p.period===per})||perData[0]||{}).artists||[];
   var aEl=document.getElementById('lfm-artists');
   if(curArtists.length){
-    var aSlice=curArtists.slice(0,12).reverse();
-    var aChart=echarts.init(aEl);
-    aChart.setOption({tooltip:{trigger:mob?'item':'axis',axisPointer:{type:'shadow'},...tt,formatter:function(p){return'<b>'+tp(p).name+'</b>: '+tp(p).value+' plays'}},
-      grid:{left:gl(120),right:30,top:8,bottom:8},
-      xAxis:{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},
-      yAxis:{type:'category',data:aSlice.map(function(d){return d.n}),axisLabel:{color:'#ccc',fontSize:10,interval:0},axisLine:{lineStyle:{color:'#333'}}},
-      series:[{type:'bar',data:aSlice.map(function(d){return d.c}),itemStyle:{color:LG('#0f3460','#1db954')},barMaxWidth:18,label:{show:true,position:'right',color:'#1db954',fontSize:10}}]});
-    ch.push(aChart);
+    var arColors=['#1db954','#14b8a6','#a78bfa','#fb923c','#e94560','#fbbf24','#f472b6','#60a5fa'];
+    var arH='';curArtists.slice(0,12).forEach(function(a,i){
+      var ci=a.n.charCodeAt(0)%arColors.length;
+      var pic='<div class="ar-pic" style="width:36px;height:36px;border-radius:50%;background:'+arColors[ci]+';display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:14px;margin-right:8px;flex-shrink:0">'+a.n.charAt(0)+'</div>';
+      arH+='<div class="cd-item" style="padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04);display:flex;align-items:center"><span style="color:var(--t2);font-size:9px;min-width:16px">'+(i+1)+'</span>'+pic+'<span style="flex:1;font-weight:600;font-size:11px">'+a.n+'</span><span class="nm" style="color:#1db954;font-size:10px">'+a.c+'</span></div>'});
+    aEl.style.height='auto';aEl.style.maxHeight='280px';aEl.style.overflowY='auto';aEl.innerHTML=arH;
   }
 
   // Top Tracks — obeys year filter
@@ -1256,13 +1253,10 @@ function renderLastfm(){
   var curAlbums=(alData.find(function(p){return p.period===per})||alData[0]||{}).albums||[];
   var alEl=document.getElementById('lfm-albums');
   if(curAlbums.length){
-    var alSlice=curAlbums.slice(0,10).reverse();
-    var alChart=echarts.init(alEl);
-    alChart.setOption({tooltip:{trigger:mob?'item':'axis',axisPointer:{type:'shadow'},...tt,formatter:function(p){var a=alSlice.find(function(x){return tp(p).name.indexOf(x.n.substring(0,15))>=0});if(!a)return'';var img=a.img?'<img src="'+a.img+'" style="height:50px;border-radius:4px;margin-right:8px;vertical-align:middle">':'';return img+'<b>'+a.n+'</b><br/>'+a.a+'<br/>'+a.c+' plays'}},
-      grid:{left:gl(130),right:30,top:8,bottom:8},
-      xAxis:{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},
-      yAxis:{type:'category',data:alSlice.map(function(d){return d.n.length>22?d.n.substring(0,20)+'…':d.n}),axisLabel:{color:'#ccc',fontSize:9,interval:0},axisLine:{lineStyle:{color:'#333'}}},
-      series:[{type:'bar',data:alSlice.map(function(d){return d.c}),itemStyle:{color:LG('#0f3460','#e94560')},barMaxWidth:18,label:{show:true,position:'right',color:'#e94560',fontSize:9}}]});
+    var alH='';curAlbums.slice(0,10).forEach(function(a,i){
+      var cover=a.img?'<img src="'+a.img+'" class="al-cover" style="height:40px;width:40px;object-fit:cover;border-radius:3px;margin-right:8px;flex-shrink:0">':'';
+      alH+='<div class="cd-item" style="padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04);display:flex;align-items:center"><span style="color:var(--t2);font-size:9px;min-width:16px">'+(i+1)+'</span>'+cover+'<span style="flex:1;min-width:0"><div style="font-weight:600;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+a.n+'</div><div style="color:var(--t2);font-size:9px">'+a.a+'</div></span><span class="nm" style="color:#e94560;font-size:10px">'+a.c+'</span></div>'});
+    alEl.style.height='auto';alEl.style.maxHeight='280px';alEl.style.overflowY='auto';alEl.innerHTML=alH;
     ch.push(alChart);
   }
 
