@@ -132,29 +132,76 @@ def lookup_albums(concerts):
     print(f"  +{count} albums found, {len(cache)} total")
     return cache
 
+def search_setlist(artist, date):
+    """Search setlist.fm for a specific artist+date to find songs."""
+    try:
+        # date is YYYY-MM-DD, API wants dd-MM-yyyy
+        api_date = f"{date[8:10]}-{date[5:7]}-{date[0:4]}"
+        r = requests.get(f"{BASE}/search/setlists",
+            params={"artistName": artist, "date": api_date},
+            headers=HEADERS, timeout=10)
+        if r.status_code == 200:
+            setlists = r.json().get("setlist", [])
+            for s in setlists:
+                songs = []
+                for st in s.get("sets", {}).get("set", []):
+                    for song in st.get("song", []):
+                        if song.get("name"):
+                            songs.append(song["name"])
+                if songs:
+                    return songs
+    except:
+        pass
+    return []
+
 print("=== Setlist.fm Concert Refresh ===")
 
-# Load existing
-existing = {}
+# Load existing — use date|artist as key for Concert Archives entries
+existing_by_id = {}
+existing_by_key = {}
 if os.path.exists("data/setlist.json"):
     with open("data/setlist.json") as f:
         for c in json.load(f):
-            existing[c["id"]] = c
+            if c.get("id"):
+                existing_by_id[c["id"]] = c
+            key = c["date"] + "|" + c["artist"]
+            existing_by_key[key] = c
 
-print(f"  Existing: {len(existing)} concerts")
+print(f"  Existing: {len(existing_by_key)} entries")
 
-# Fetch
+# Fetch attended from setlist.fm
 raw = fetch_attended()
 print(f"  Fetched: {len(raw)} concerts from API")
 
-# Normalize and merge
+# Normalize and merge — setlist.fm always wins over Concert Archives
 new_count = 0
 for entry in normalize(raw):
-    if entry["id"] not in existing:
-        new_count += 1
-    existing[entry["id"]] = entry
+    key = entry["date"] + "|" + entry["artist"]
+    if key not in existing_by_key or entry.get("song_count", 0) > existing_by_key.get(key, {}).get("song_count", 0):
+        if key not in existing_by_key:
+            new_count += 1
+        existing_by_key[key] = entry
 
-concerts = sorted(existing.values(), key=lambda x: x["date"], reverse=True)
+# Try to find songs for Concert Archives entries that have no songs (budget: 50 per run)
+no_songs = [(k, c) for k, c in existing_by_key.items() if c.get("song_count", 0) == 0 and not c.get("_searched")]
+print(f"  Searching setlist.fm for songs on {min(len(no_songs), 50)} of {len(no_songs)} events without songs...")
+found = 0
+for i, (key, c) in enumerate(no_songs[:50]):
+    songs = search_setlist(c["artist"], c["date"])
+    if songs:
+        c["songs"] = songs
+        c["song_count"] = len(songs)
+        found += 1
+    c["_searched"] = True
+    time.sleep(0.5)
+    if (i + 1) % 10 == 0:
+        print(f"    {i+1}/{min(len(no_songs),50)}, found songs for {found}")
+print(f"  Found songs for {found} events")
+
+concerts = sorted(existing_by_key.values(), key=lambda x: x["date"], reverse=True)
+# Clean internal flags before saving
+for c in concerts:
+    c.pop("_searched", None)
 
 # Look up albums for songs
 album_cache = lookup_albums(concerts)
