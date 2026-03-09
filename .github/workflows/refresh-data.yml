@@ -1,6 +1,8 @@
 name: Refresh Trakt Data
 
 on:
+  push:
+    branches: [main]
   schedule:
     - cron: '*/20 * * * *'  # Every 20 minutes
   workflow_dispatch:          # Manual trigger

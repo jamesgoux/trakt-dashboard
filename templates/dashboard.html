@@ -300,14 +300,15 @@ function stats(){
     var allT=(D.th||{}).all||[];var ft=cy==='all'?allT:allT.filter(function(e){return e.y===cy});
     el.innerHTML=sc(ft.length,'🎭 Plays','#a78bfa');return}
   // Movie/show/all — compute counts
-  var mw=0,ew=0;D.c.m.filter(function(m){return cy==='all'||m.month.startsWith(cy)}).forEach(function(m){mw+=m.movies;ew+=m.episodes});
+  var mw=0,ew=0,rt=0,rtm=0,rts=0;D.c.m.filter(function(m){return cy==='all'||m.month.startsWith(cy)}).forEach(function(m){mw+=m.movies;ew+=m.episodes;rt+=(m.rt||0);rtm+=(m.rt_m||0);rts+=(m.rt_s||0)});
+  var totalDays=Math.round(rt/60/24*10)/10;var movieDays=Math.round(rtm/60/24*10)/10;var showDays=Math.round(rts/60/24*10)/10;
   var s=D.c.s;var h2='';
-  if(ct==='movie'){h2=sc(mw.toLocaleString(),'🎞️ Movies','var(--ac)')+sc((s.movie_runtime_days||0),'⏱️ Days','#b0b0b0')}
-  else if(ct==='show'){var seasonCount2=0;D.c.m.filter(function(m){return cy==='all'||m.month.startsWith(cy)}).forEach(function(m){seasonCount2+=m.seasons||0});h2=sc(s.unique_shows,'📺 Shows','var(--pu)')+sc(seasonCount2,'📦 Seasons','var(--pu)')+sc(ew.toLocaleString(),'🔢 Episodes','var(--pu)')+sc((s.show_runtime_days||0),'⏱️ Days','#b0b0b0')}
+  if(ct==='movie'){h2=sc(mw.toLocaleString(),'🎞️ Movies','var(--ac)')+sc(movieDays,'⏱️ Days','#b0b0b0')}
+  else if(ct==='show'){var seasonCount2=0;D.c.m.filter(function(m){return cy==='all'||m.month.startsWith(cy)}).forEach(function(m){seasonCount2+=m.seasons||0});h2=sc(s.unique_shows,'📺 Shows','var(--pu)')+sc(seasonCount2,'📦 Seasons','var(--pu)')+sc(ew.toLocaleString(),'🔢 Episodes','var(--pu)')+sc(showDays,'⏱️ Days','#b0b0b0')}
   else{
     // Row 1: Watches, Days, Movies, Shows, Episodes, Books
     var seasonCount=0;D.c.m.filter(function(m){return cy==='all'||m.month.startsWith(cy)}).forEach(function(m){seasonCount+=m.seasons||0});
-    h2=sc(s.total_watches.toLocaleString(),'👁️ Watches','#b0b0b0')+sc(s.total_runtime_days,'⏱️ Days','#b0b0b0')+sc(s.unique_movies,'🎞️ Movies','var(--ac)')+sc(s.unique_shows,'📺 Shows','var(--pu)')+sc(seasonCount,'📦 Seasons','var(--pu)')+sc(s.episode_watches.toLocaleString(),'🔢 Episodes','var(--pu)');
+    h2=sc((mw+ew).toLocaleString(),'👁️ Watches','#b0b0b0')+sc(totalDays,'⏱️ Days','#b0b0b0')+sc(mw.toLocaleString(),'🎞️ Movies','var(--ac)')+sc(s.unique_shows,'📺 Shows','var(--pu)')+sc(seasonCount,'📦 Seasons','var(--pu)')+sc(ew.toLocaleString(),'🔢 Episodes','var(--pu)');
     if(D.gr&&D.gr.total){var grAll=D.gr.all||[];var grF=cy==='all'?grAll:grAll.filter(function(b){return b.yr===cy});h2+=sc(grF.length,'📚 Books','#fbbf24')+sc(grF.reduce(function(s,b){return s+b.p},0).toLocaleString(),'📖 Pages','#fbbf24')}
     // Row 2: Scrobbles, Artists, Albums, Concerts, Sets, Plays
     if(D.lfm&&D.lfm.total){var lfmY=cy!=='all'&&D.lfm.yearly?(D.lfm.yearly.find(function(y){return y.yr===cy})||{}):{s:D.lfm.total,a:D.lfm.artists,al:D.lfm.albums};h2+=sc((lfmY.s||0).toLocaleString(),'🎧 Scrobbles','#1db954')+sc((lfmY.a||0).toLocaleString(),'🎤 Artists','#1db954')+sc((lfmY.al||0).toLocaleString(),'💿 Albums','#1db954')}

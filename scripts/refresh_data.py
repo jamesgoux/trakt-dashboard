@@ -328,7 +328,7 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
             myd[k]["yd"][yr] += 1
 
     # Charts
-    monthly = defaultdict(lambda: {"movies": 0, "episodes": 0})
+    monthly = defaultdict(lambda: {"movies": 0, "episodes": 0, "rt": 0, "rt_m": 0, "rt_s": 0})
     yearly = defaultdict(lambda: {"movies": 0, "episodes": 0, "total": 0})
     genre_movie = Counter(); genre_show = Counter()
     genre_movie_y = defaultdict(Counter); genre_show_y = defaultdict(Counter)
@@ -357,8 +357,13 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
     for e in entries:
         if not e["watched_at"]: continue
         m = e["watched_at"][:7]; y = e["watched_at"][:4]
-        if e["type"] == "movie": monthly[m]["movies"] += 1; yearly[y]["movies"] += 1
-        else: monthly[m]["episodes"] += 1; yearly[y]["episodes"] += 1
+        rt = int(e["runtime"]) if e["runtime"] else 0
+        if e["type"] == "movie":
+            monthly[m]["movies"] += 1; yearly[y]["movies"] += 1
+            monthly[m]["rt"] += rt; monthly[m]["rt_m"] += rt
+        else:
+            monthly[m]["episodes"] += 1; yearly[y]["episodes"] += 1
+            monthly[m]["rt"] += rt; monthly[m]["rt_s"] += rt
         yearly[y]["total"] += 1
         if e["genres"]:
             slug = e["trakt_slug"]
