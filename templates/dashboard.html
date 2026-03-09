@@ -127,7 +127,7 @@ body{overflow-x:hidden}
 </div>
 <!-- MOVIES -->
 <div class="g2 med-s" data-med="all movie">
-<div id="sec-mov" class="cd s-m"><h3 id="mdh"><span class="i">🎞️</span>Movies by Watch Time</h3><div id="mdc" style="height:340px"></div></div>
+<div id="sec-mov" class="cd s-m"><h3 id="mdh"><span class="i">🎞️</span>Movies by Watch Time <span class="vtog" style="float:right"><button class="vb vb-on mv-sort" data-v="long" onclick="window._mvSort='long';movieCharts()">Longest</button><button class="vb mv-sort" data-v="short" onclick="window._mvSort='short';movieCharts()">Shortest</button></span></h3><div id="mdc" style="height:340px"></div></div>
 <div class="cd s-m" id="mrc-card"><h3 id="mrh"><span class="i">🔁</span>Most Rewatched</h3><div id="mrc" style="height:340px"></div></div>
 </div>
 <div class="g2 med-s" data-med="all movie show">
@@ -415,10 +415,12 @@ function renderLifeline(){
 function movieCharts(){
   if(ct==='show'){document.getElementById('mdc').parentElement.style.display='none';document.getElementById('mrc-card').style.display='none';return}
   document.getElementById('mdc').parentElement.style.display='';document.getElementById('mrc-card').style.display='';
+  window._mvSort=window._mvSort||'long';
   var da=[],ra=[];MYD.forEach(function(m){var w=0;if(cy==='all'){Object.values(m.yd).forEach(function(c){w+=c})}else if(m.yd[cy]){w=m.yd[cy]}if(w>0){da.push({n:m.n,min:m.rt*w,w:w,yr:m.yr});if(w>1)ra.push({n:m.n,w:w,yr:m.yr})}});
-  da.sort(function(a,b){return b.min-a.min});da=da.slice(0,20);
+  if(window._mvSort==='short'){da.sort(function(a,b){return a.min-b.min})}else{da.sort(function(a,b){return b.min-a.min})}
+  da=da.slice(0,20);
   ra.sort(function(a,b){return b.w-a.w});ra=ra.slice(0,20);
-  document.getElementById('mdh').innerHTML='<span class="i">🎞️</span>Movies by Watch Time'+(cy!=='all'?' ('+cy+')':'');
+  document.querySelectorAll('.mv-sort').forEach(function(b){b.classList.toggle('vb-on',b.dataset.v===window._mvSort)});
   document.getElementById('mrh').innerHTML='<span class="i">🔁</span>Most Rewatched'+(cy!=='all'?' ('+cy+')':'');
   // Helper: find poster by movie name
   function mvSlug(n){return n.toLowerCase().replace(/[^a-z0-9]/g,'-')}
