@@ -311,7 +311,7 @@ function stats(){
     if(D.lfm&&D.lfm.total){var lfmY=cy!=='all'&&D.lfm.yearly?(D.lfm.yearly.find(function(y){return y.yr===cy})||{}):{s:D.lfm.total,a:D.lfm.artists,al:D.lfm.albums};h2+=sc((lfmY.s||0).toLocaleString(),'🎧 Scrobbles','#1db954')+sc((lfmY.a||0).toLocaleString(),'🎤 Artists','#1db954')+sc((lfmY.al||0).toLocaleString(),'💿 Albums','#1db954')}
     if(D.con&&D.con.total){var conR=D.con.recent||[];var conF=cy==='all'?conR:conR.filter(function(e){return e.yr===cy});var conEv={};conF.forEach(function(e){conEv[e.date+'|'+e.venue]=true});var conUA=conF.map(function(e){return e.artist}).filter(function(v,i,a){return a.indexOf(v)===i}).length;var conSongs=conF.reduce(function(s,e){return s+e.songs},0);h2+=sc(Object.keys(conEv).length,'🎸 Concerts','#e94560')+sc(conF.length,'🎤 Sets','#e94560')+sc(conUA,'🎙️ Artists','#e94560')+sc(conSongs,'🎵 Songs','#e94560')}
     if(D.th&&D.th.total){var thF=cy==='all'?(D.th.all||[]):(D.th.all||[]).filter(function(e){return e.y===cy});h2+=sc(thF.length,'🎭 Plays','#a78bfa')}
-    if(D.pc&&D.pc.total_podcasts){h2+=sc(D.pc.total_listened_hrs+'h','🎙️ Podcasts','#8b5cf6')+sc(D.pc.total_episodes,'📻 Episodes','#8b5cf6')+sc(D.pc.total_podcasts,'📡 Shows','#8b5cf6')}
+    if(D.pc&&D.pc.total_podcasts){var pcY=cy!=='all'&&D.pc.yearly?D.pc.yearly.find(function(y){return y.yr===cy}):null;var pcHrs=pcY?pcY.hrs:D.pc.total_listened_hrs;var pcEps=pcY?pcY.eps:D.pc.total_episodes;h2+=sc(pcHrs+'h','🎙️ Podcasts','#8b5cf6')+sc(pcEps,'📻 Episodes','#8b5cf6')+sc(D.pc.total_podcasts,'📡 Shows','#8b5cf6')}
   }
   el.innerHTML=h2;
 }

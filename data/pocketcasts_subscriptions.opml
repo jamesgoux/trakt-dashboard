@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+        <opml version="1.0">
+            <head>
+                <title>Pocket Casts Feeds</title>
+            </head>
+            <body>
+                <outline text="feeds">
+                    
+                                <outline
+                                    xmlUrl="https://feeds.npr.org/510310/podcast.xml"
+                                    type="rss"
+                                    text="The NPR Politics Podcast"
+                                />
+                            
+
+                                <outline
+                                    xmlUrl="https://anchor.fm/s/6ccc9108/podcast/rss"
+                                    type="rss"
+                                    text="Shut Up &amp; Sit Down"
+                                />
+                            
+
+                                <outline
+                                    xmlUrl="https://feeds.simplecast.com/sw7PGWfw"
+                                    type="rss"
+                                    text="Fantasy Footballers - Fantasy Football Podcast"
+                                />
+                            
+
+                                <outline
+                                    xmlUrl="https://feeds.megaphone.fm/nps"
+                                    type="rss"
+                                    text="The Next Picture Show"
+                                />
+                            
+
+                                <outline
+                                    xmlUrl="https://feeds.simplecast.com/xl36XBC2"
+                                    type="rss"
+                                    text="Serial"
+                                />
+                            
+
+                                <outline
+                                    xmlUrl="http://feed.thisamericanlife.org/talpodcast"
+                                    type="rss"
+                                    text="This American Life"
+                                />
+                            
+
+                                <outline
+                                    xmlUrl="https://feeds.simplecast.com/jBmUnkXF"
+                                    type="rss"
+                                    text="Fantasy Footballers Dynasty - Fantasy Football Podcast"
+                                />
+                            
+
+                                <outline
+                                    xmlUrl="https://www.patreon.com/rss/blankcheck?auth=u82BSNiJo7wtE7P2iBcaoPmUuWqm9npW"
+                                    type="rss"
+                                    text="Blank Check: Special Features"
+                                />
+                            
+
+                                <outline
+                                    xmlUrl="https://feeds.megaphone.fm/house-of-r"
+                                    type="rss"
+                                    text="House of R"
+                                />
+                            
+
+                                <outline
+                                    xmlUrl="https://www.omnycontent.com/d/playlist/e73c998e-6e60-432f-8610-ae210140c5b1/d28227f8-56d8-46d9-b2c5-b3d3012db5ab/83c52568-54c6-438a-8751-b3d3012db5c3/podcast.rss"
+                                    type="rss"
+                                    text="Filmspotting"
+                                />
+                            
+
+                                <outline
+                                    xmlUrl="https://feeds.acast.com/public/shows/62a222737c02140013aa4c03"
+                                    type="rss"
+                                    text="WTF with Marc Maron Podcast"
+                                />
+                            
+
+                                <outline
+                                    xmlUrl="https://feeds.megaphone.fm/blank-check"
+                                    type="rss"
+                                    text="Blank Check with Griffin &amp; David"
+                                />
+                            
+
+                                <outline
+                                    xmlUrl="https://feeds.acast.com/public/shows/62d997ae8fb68e00135146a4"
+                                    type="rss"
+                                    text="Decoding TV"
+                                />
+                            
+
+                                <outline
+                                    xmlUrl="https://www.patreon.com/rss/filmpodcast?auth=Dp-IANroBoOAxWh6C0ty9va-JlI-RB6t"
+                                    type="rss"
+                                    text="The Filmcast&#39;s Patreon Feed"
+                                />
+                            
+
+                                <outline
+                                    xmlUrl="https://rss.libsyn.com/shows/115435/destinations/655876.xml"
+                                    type="rss"
+                                    text="Board Game Barrage"
+                                />
+                            
+
+                                <outline
+                                    xmlUrl="https://audioboom.com/channels/4986729.rss"
+                                    type="rss"
+                                    text="A Cast of Kings - A Knight of the Seven Kingdoms Podcast"
+                                />
+                            
+
+                                <outline
+                                    xmlUrl="https://www.patreon.com/rss/filmpodcast?auth=JHlImSuhkgjKS0j25n3vbV3DFVN56nun"
+                                    type="rss"
+                                    text="The Filmcast&#39;s Patreon Feed"
+                                />
+                            
+
+                                <outline
+                                    xmlUrl="https://feeds.feedburner.com/TheQaWithJeffGoldsmith"
+                                    type="rss"
+                                    text="The Q&amp;A with Jeff Goldsmith"
+                                />
+                            
+
+                                <outline
+                                    xmlUrl="https://feeds.acast.com/public/shows/9b41cd90-c759-4ccb-98b1-16a633915c57"
+                                    type="rss"
+                                    text="Ghibliotheque - A Podcast About Animation and Studio Ghibli"
+                                />
+                            
+
+                                <outline
+                                    xmlUrl="https://feeds.feedburner.com/themothpodcast"
+                                    type="rss"
+                                    text="The Moth"
+                                />
+                            
+
+                                <outline
+                                    xmlUrl="https://feeds.simplecast.com/dCXMIpJz"
+                                    type="rss"
+                                    text="Last Podcast On The Left"
+                                />
+                            
+
+                                <outline
+                                    xmlUrl="https://feeds.megaphone.fm/xfiles-files"
+                                    type="rss"
+                                    text="Kumail Nanjiani&#39;s The X-Files Files"
+                                />
+                            
+
+                                <outline
+                                    xmlUrl="https://feeds.simplecast.com/lQwwDIs1"
+                                    type="rss"
+                                    text="More Perfect"
+                                />
+                            
+
+                                <outline
+                                    xmlUrl="https://feeds.megaphone.fm/sciencevs"
+                                    type="rss"
+                                    text="Science Vs"
+                                />
+                            
+
+                                <outline
+                                    xmlUrl="https://feeds.simplecast.com/EmVW7VGp"
+                                    type="rss"
+                                    text="Radiolab"
+                                />
+                            
+
+                                <outline
+                                    xmlUrl="http://feed.songexploder.net/SongExploder"
+                                    type="rss"
+                                    text="Song Exploder"
+                                />
+                            
+                </outline>
+            </body>
+        </opml>
