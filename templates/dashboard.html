@@ -162,21 +162,14 @@ body{overflow-x:hidden}
 <div class="cd s-m"><h3><span class="i">📺</span>Streaming Services</h3><div id="strc" style="height:280px"></div></div>
 <div class="cd s-m"><h3><span class="i">📱</span>Devices &amp; Formats</h3><div id="devc" style="height:280px"></div></div>
 </div>
-<!-- RATINGS (own section: graph → highest → lowest) -->
+<!-- RATINGS: 3 combined tiles with highest/lowest toggle -->
 <div class="g2 med-s" data-med="all movie">
 <div id="sec-ratings" class="cd fw s-m"><h3><span class="i">⭐</span>My Ratings (Letterboxd)</h3><div id="lbc" style="height:280px"></div></div>
 </div>
-<div class="g2 med-s" data-med="all movie">
-<div class="cd s-m"><h3><span class="i">🏆</span>My Highest Rated Movies (Letterboxd)</h3><div class="stb" id="myh-list" style="font-size:12px"></div></div>
-<div class="cd s-m"><h3><span class="i">💎</span>Highest Rated Movies (Trakt Community)</h3><div class="stb" id="mch-list" style="font-size:12px"></div></div>
-</div>
-<div class="g2 med-s" data-med="all movie">
-<div class="cd s-m"><h3><span class="i">👎</span>My Lowest Rated Movies (Letterboxd)</h3><div id="myl-list"></div></div>
-<div class="cd s-m"><h3><span class="i">📉</span>Lowest Rated Movies (Trakt Community)</h3><div id="mcl-list"></div></div>
-</div>
-<div class="g2 med-s" data-med="all show">
-<div class="cd s-s"><h3><span class="i">📺</span>Highest Rated TV (Trakt Community)</h3><div class="stb" id="sch-list" style="font-size:12px"></div></div>
-<div class="cd s-s"><h3><span class="i">📉</span>Lowest Rated TV (Trakt Community)</h3><div id="scl-list"></div></div>
+<div class="g3 med-s" data-med="all movie show">
+<div class="cd s-m"><h3><span class="i">⭐</span>My Movies (Letterboxd) <span class="vtog" style="float:right"><button class="vb vb-on rt-my" data-v="high" onclick="window._rtMy='high';document.querySelectorAll('.rt-my').forEach(function(b){b.classList.toggle('vb-on',b.dataset.v==='high')});renderRatings()">Highest</button><button class="vb rt-my" data-v="low" onclick="window._rtMy='low';document.querySelectorAll('.rt-my').forEach(function(b){b.classList.toggle('vb-on',b.dataset.v==='low')});renderRatings()">Lowest</button></span></h3><div class="stb" id="my-rat" style="font-size:12px"></div></div>
+<div class="cd s-m"><h3><span class="i">🎞️</span>Movies (Trakt Community) <span class="vtog" style="float:right"><button class="vb vb-on rt-mc" data-v="high" onclick="window._rtMc='high';document.querySelectorAll('.rt-mc').forEach(function(b){b.classList.toggle('vb-on',b.dataset.v==='high')});renderRatings()">Highest</button><button class="vb rt-mc" data-v="low" onclick="window._rtMc='low';document.querySelectorAll('.rt-mc').forEach(function(b){b.classList.toggle('vb-on',b.dataset.v==='low')});renderRatings()">Lowest</button></span></h3><div class="stb" id="mc-rat" style="font-size:12px"></div></div>
+<div class="cd s-s"><h3><span class="i">📺</span>TV (Trakt Community) <span class="vtog" style="float:right"><button class="vb vb-on rt-sc" data-v="high" onclick="window._rtSc='high';document.querySelectorAll('.rt-sc').forEach(function(b){b.classList.toggle('vb-on',b.dataset.v==='high')});renderRatings()">Highest</button><button class="vb rt-sc" data-v="low" onclick="window._rtSc='low';document.querySelectorAll('.rt-sc').forEach(function(b){b.classList.toggle('vb-on',b.dataset.v==='low')});renderRatings()">Lowest</button></span></h3><div class="stb" id="sc-rat" style="font-size:12px"></div></div>
 </div>
 <!-- FIRST + LAST WATCHES (same row) -->
 <div class="g2 med-s" data-med="all movie show">
@@ -1009,28 +1002,8 @@ function renderLetterboxd(){
     ch.push(clb);
   }else{lbEl.innerHTML='<div style="text-align:center;color:var(--t2);padding:40px">No Letterboxd data</div>'}
 
-  // Rating lists — filter by year
-  function filterByWatchYear(items){
-    if(cy==='all')return items;
-    return items.filter(function(i){return i.wy&&i.wy.indexOf(cy)>=0});
-  }
-  function ratingList(elId, items, rLabel, rColor, limit) {
-    var filtered=filterByWatchYear(items).slice(0, limit||20);
-    var el=document.getElementById(elId);if(!el){return}
-    if(!filtered.length){el.innerHTML='<div style="text-align:center;color:var(--t2);padding:20px">No data'+(cy!=='all'?' for '+cy:'')+'</div>';return}
-    var h='<table><thead><tr><th>#</th><th>Title</th><th>Year</th><th>'+rLabel+'</th></tr></thead><tbody>';
-    filtered.forEach(function(item,i){
-      h+='<tr><td style="color:var(--t2);font-size:10px">'+(i+1)+'</td><td style="font-weight:600">'+item.t+'</td><td style="color:var(--t2)">'+(item.yr||'')+'</td><td class="nm" style="color:'+rColor+'">'+item.r+'</td></tr>'
-    });
-    h+='</tbody></table>';el.innerHTML=h;
-  }
-  ratingList('myh-list',lb.myh||[],'★','#4ade80',20);
-  ratingList('mch-list',D.c.mch||[],'Rating','#60a5fa',20);
-  ratingList('sch-list',D.c.sch||[],'Rating','#a78bfa',20);
-
-  ratingList('myl-list',lb.myl||[],'★','#e94560',10);
-  ratingList('scl-list',D.c.scl||[],'Rating','#e94560',10);
-  ratingList('mcl-list',D.c.mcl||[],'Rating','#e94560',10);
+  // Rating lists rendered by standalone renderRatings()
+  renderRatings();
 
   // Helper: render pie or year-over-year bar for a tag category
   var catTitles=(tags.ct||{});
@@ -1150,6 +1123,28 @@ function renderLetterboxd(){
       }
     };
   });
+}
+
+function renderRatings(){
+  var lb=D.lb||{};
+  function filterByWatchYear(items){
+    if(cy==='all')return items;
+    return items.filter(function(i){return i.wy&&i.wy.indexOf(cy)>=0});
+  }
+  function ratingList(elId, items, rLabel, rColor, limit) {
+    var filtered=filterByWatchYear(items).slice(0, limit||20);
+    var el=document.getElementById(elId);if(!el){return}
+    if(!filtered.length){el.innerHTML='<div style="text-align:center;color:var(--t2);padding:20px">No data'+(cy!=='all'?' for '+cy:'')+'</div>';return}
+    var h='<table><thead><tr><th>#</th><th>Title</th><th>Year</th><th>'+rLabel+'</th></tr></thead><tbody>';
+    filtered.forEach(function(item,i){
+      h+='<tr><td style="color:var(--t2);font-size:10px">'+(i+1)+'</td><td style="font-weight:600">'+item.t+'</td><td style="color:var(--t2)">'+(item.yr||'')+'</td><td class="nm" style="color:'+rColor+'">'+item.r+'</td></tr>'
+    });
+    h+='</tbody></table>';el.innerHTML=h;
+  }
+  window._rtMy=window._rtMy||'high';window._rtMc=window._rtMc||'high';window._rtSc=window._rtSc||'high';
+  ratingList('my-rat',window._rtMy==='high'?(lb.myh||[]):(lb.myl||[]),'★',window._rtMy==='high'?'#4ade80':'#e94560',20);
+  ratingList('mc-rat',window._rtMc==='high'?(D.c.mch||[]):(D.c.mcl||[]),'Rating',window._rtMc==='high'?'#60a5fa':'#e94560',20);
+  ratingList('sc-rat',window._rtSc==='high'?(D.c.sch||[]):(D.c.scl||[]),'Rating',window._rtSc==='high'?'#a78bfa':'#e94560',20);
 }
 
 function renderGoodreads(){
