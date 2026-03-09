@@ -88,9 +88,9 @@ body{overflow-x:hidden}
 <div class="fbar">
 <h1><svg class="iris-logo" viewBox="0 0 512 512" width="28" height="28" style="vertical-align:middle;margin-right:6px"><defs><radialGradient id="ig" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#e94560"/><stop offset="45%" stop-color="#a78bfa"/><stop offset="100%" stop-color="#0f3460"/></radialGradient></defs><path d="M256 96C128 96 32 256 32 256s96 160 224 160 224-160 224-160S384 96 256 96z" fill="#1a1a2e" stroke="#a78bfa" stroke-width="12"/><circle cx="256" cy="256" r="100" fill="url(#ig)"/><circle cx="256" cy="256" r="40" fill="#0f0f0f"/><circle cx="230" cy="230" r="18" fill="rgba(255,255,255,0.4)"/></svg><span style="color:var(--ac);font-weight:800">iris</span> <span style="color:var(--t2);font-weight:400">// jamesgoux</span></h1>
 <div class="fctrls">
-<div class="fbtn"><label>Type</label><select id="gs"><option value="all">🌐 All</option><option value="movie">🎞️ Movies</option><option value="show">📺 Shows</option><option value="book">📚 Books</option><option value="music">🎧 Music</option><option value="concert">🎸 Concerts</option><option value="theater">🎭 Theater</option></select></div>
+<div class="fbtn"><label>Type</label><select id="gs"><option value="all">🌐 All</option><option value="movie">🎞️ Movies</option><option value="show">📺 Shows</option><option value="book">📚 Books</option><option value="music">🎧 Music</option><option value="concert">🎸 Concerts</option><option value="podcast">🎙️ Podcasts</option><option value="theater">🎭 Theater</option></select></div>
 <div class="fbtn"><label>Year</label><select id="ys"><option value="all">All Time</option></select></div>
-<div class="fbtn"><label>Jump</label><select id="jmp" onchange="if(this.value){document.getElementById(this.value).scrollIntoView({behavior:'smooth',block:'start'});this.value=''}"><option value="">...</option><option value="sec-tl">📈 Timeline</option><option value="sec-ll">🧬 Lifeline</option><option value="sec-act">🎭 Actors</option><option value="sec-crew">🎬 Directors/Writers</option><option value="sec-shows">📺 Top Shows</option><option value="sec-ttw">⏱️ Time to Watch</option><option value="sec-mov">🎞️ Movies</option><option value="sec-eps">📺 Episodes</option><option value="sec-time">🕐 Day & Time</option><option value="sec-meta">🎯 Genres/Trends</option><option value="sec-geo">🌍 Countries/Languages</option><option value="sec-vy">📅 Release Years</option><option value="sec-how">🖥️ How I Watch</option><option value="sec-ratings">⭐ Ratings</option><option value="sec-first">🌅 First Watches</option><option value="sec-rec">👁️ Last Watches</option><option value="sec-gr">📚 Books</option><option value="sec-lfm">🎧 Music</option><option value="sec-con">🎸 Concerts</option><option value="sec-th">🎭 Theater</option></select></div>
+<div class="fbtn"><label>Jump</label><select id="jmp" onchange="if(this.value){document.getElementById(this.value).scrollIntoView({behavior:'smooth',block:'start'});this.value=''}"><option value="">...</option><option value="sec-tl">📈 Timeline</option><option value="sec-ll">🧬 Lifeline</option><option value="sec-act">🎭 Actors</option><option value="sec-crew">🎬 Directors/Writers</option><option value="sec-shows">📺 Top Shows</option><option value="sec-ttw">⏱️ Time to Watch</option><option value="sec-mov">🎞️ Movies</option><option value="sec-eps">📺 Episodes</option><option value="sec-time">🕐 Day & Time</option><option value="sec-meta">🎯 Genres/Trends</option><option value="sec-geo">🌍 Countries/Languages</option><option value="sec-vy">📅 Release Years</option><option value="sec-how">🖥️ How I Watch</option><option value="sec-ratings">⭐ Ratings</option><option value="sec-first">🌅 First Watches</option><option value="sec-rec">👁️ Last Watches</option><option value="sec-gr">📚 Books</option><option value="sec-lfm">🎧 Music</option><option value="sec-con">🎸 Concerts</option><option value="sec-pc">🎙️ Podcasts</option><option value="sec-th">🎭 Theater</option></select></div>
 <button class="rbtn" onclick="location.reload()">&#x21bb;</button>
 </div>
 </div>
@@ -202,16 +202,16 @@ body{overflow-x:hidden}
 <div class="cd s-con"><h3><span class="i">🏟️</span>Venues</h3><div id="con-ven-chart" style="height:280px"></div></div>
 <div class="cd s-con"><h3><span class="i">🎵</span>Genres</h3><div id="con-genre-chart" style="height:280px"></div></div>
 </div>
+<!-- PODCASTS (Pocket Casts) -->
+<div class="g2 med-s" data-med="all podcast" id="pc-wrap" style="display:none">
+<div id="sec-pc" class="cd fw" style="border-left-color:#06b6d4"><h3><span class="i">🎙️</span>Top Podcasts (Pocket Casts)</h3><div id="pc-chart" style="height:350px"></div></div>
+</div>
 <!-- THEATER -->
 <div class="g2 med-s" data-med="all theater" id="th-wrap" style="display:none">
 <div id="sec-th" class="cd s-th"><h3><span class="i">🎭</span>Theater Ratings</h3><div id="thc" style="height:280px"></div></div>
 <div class="cd s-th"><h3><span class="i">🏷️</span>Theater Tags</h3><div id="th-tags" style="height:280px"></div></div>
 <div class="cd s-th"><h3><span class="i">🏛️</span>Top Theaters</h3><div id="th-venues" style="height:280px"></div></div>
 <div class="cd s-th"><h3><span class="i">👥</span>Theater Companions</h3><div id="th-companions" style="height:280px"></div></div>
-</div>
-<!-- PODCASTS (Pocket Casts) -->
-<div class="g2 med-s" data-med="all" id="pc-wrap" style="display:none">
-<div id="sec-pc" class="cd fw"><h3><span class="i">🎙️</span>Top Podcasts (Pocket Casts)</h3><div id="pc-chart" style="height:350px"></div></div>
 </div>
 <div class="cd fw s-g" style="margin-top:14px">
 <h3><span class="i">📤</span>Import Data</h3>
@@ -296,6 +296,10 @@ function stats(){
   if(ct==='theater'){
     var allT=(D.th||{}).all||[];var ft=cy==='all'?allT:allT.filter(function(e){return e.y===cy});
     el.innerHTML=sc(ft.length,'🎭 Plays','#a78bfa');return}
+  if(ct==='podcast'){
+    var pc=D.pc||{};var pcY=cy!=='all'&&pc.yearly?pc.yearly.find(function(y){return y.yr===cy}):null;
+    var pcHrs=pcY?pcY.hrs:pc.total_listened_hrs||0;var pcEps=pcY?pcY.eps:pc.total_episodes||0;
+    el.innerHTML=sc(pcHrs+'h','🎙️ Listened','#06b6d4')+sc(pcEps,'📻 Episodes','#06b6d4')+sc(pc.total_podcasts||0,'📡 Shows','#06b6d4');return}
   // Movie/show/all — compute counts
   var mw=0,ew=0,rt=0,rtm=0,rts=0;D.c.m.filter(function(m){return cy==='all'||m.month.startsWith(cy)}).forEach(function(m){mw+=m.movies;ew+=m.episodes;rt+=(m.rt||0);rtm+=(m.rt_m||0);rts+=(m.rt_s||0)});
   var totalDays=Math.round(rt/60/24*10)/10;var movieDays=Math.round(rtm/60/24*10)/10;var showDays=Math.round(rts/60/24*10)/10;
@@ -311,7 +315,7 @@ function stats(){
     if(D.lfm&&D.lfm.total){var lfmY=cy!=='all'&&D.lfm.yearly?(D.lfm.yearly.find(function(y){return y.yr===cy})||{}):{s:D.lfm.total,a:D.lfm.artists,al:D.lfm.albums};h2+=sc((lfmY.s||0).toLocaleString(),'🎧 Scrobbles','#1db954')+sc((lfmY.a||0).toLocaleString(),'🎤 Artists','#1db954')+sc((lfmY.al||0).toLocaleString(),'💿 Albums','#1db954')}
     if(D.con&&D.con.total){var conR=D.con.recent||[];var conF=cy==='all'?conR:conR.filter(function(e){return e.yr===cy});var conEv={};conF.forEach(function(e){conEv[e.date+'|'+e.venue]=true});var conUA=conF.map(function(e){return e.artist}).filter(function(v,i,a){return a.indexOf(v)===i}).length;var conSongs=conF.reduce(function(s,e){return s+e.songs},0);h2+=sc(Object.keys(conEv).length,'🎸 Concerts','#e94560')+sc(conF.length,'🎤 Sets','#e94560')+sc(conUA,'🎙️ Artists','#e94560')+sc(conSongs,'🎵 Songs','#e94560')}
     if(D.th&&D.th.total){var thF=cy==='all'?(D.th.all||[]):(D.th.all||[]).filter(function(e){return e.y===cy});h2+=sc(thF.length,'🎭 Plays','#a78bfa')}
-    if(D.pc&&D.pc.total_podcasts){var pcY=cy!=='all'&&D.pc.yearly?D.pc.yearly.find(function(y){return y.yr===cy}):null;var pcHrs=pcY?pcY.hrs:D.pc.total_listened_hrs;var pcEps=pcY?pcY.eps:D.pc.total_episodes;h2+=sc(pcHrs+'h','🎙️ Podcasts','#8b5cf6')+sc(pcEps,'📻 Episodes','#8b5cf6')+sc(D.pc.total_podcasts,'📡 Shows','#8b5cf6')}
+    if(D.pc&&D.pc.total_podcasts){var pcY=cy!=='all'&&D.pc.yearly?D.pc.yearly.find(function(y){return y.yr===cy}):null;var pcHrs=pcY?pcY.hrs:D.pc.total_listened_hrs;var pcEps=pcY?pcY.eps:D.pc.total_episodes;h2+=sc(pcHrs+'h','🎙️ Podcasts','#06b6d4')+sc(pcEps,'📻 Episodes','#06b6d4')+sc(D.pc.total_podcasts,'📡 Shows','#06b6d4')}
   }
   el.innerHTML=h2;
 }
@@ -1655,17 +1659,18 @@ function renderTheater(){
 
 function renderPodcasts(){
   var pc=D.pc;var wrap=document.getElementById('pc-wrap');
-  if(!pc||!pc.total_podcasts||ct!=='all'){if(wrap)wrap.style.display='none';return}
+  if(!pc||!pc.total_podcasts||(ct!=='all'&&ct!=='podcast')){if(wrap)wrap.style.display='none';return}
   wrap.style.display='';
   var top=pc.top||[];if(!top.length)return;
   var el=document.getElementById('pc-chart');
+  var existingChart=echarts.getInstanceByDom(el);if(existingChart)existingChart.dispose();
   var items=top.slice(0,15).reverse();
   var pcChart=echarts.init(el);
   pcChart.setOption({tooltip:{trigger:mob?'item':'axis',axisPointer:{type:'shadow'},...tt,formatter:function(p){return'<b>'+tp(p).name+'</b><br/>'+tp(p).value+'h ('+tp(p).data.eps+' eps)'}},
     grid:{left:gl(150),right:30,top:8,bottom:8},
     xAxis:{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},
     yAxis:{type:'category',data:items.map(function(d){return d.title}),axisLabel:{color:'#ccc',fontSize:10,interval:0},axisLine:{lineStyle:{color:'#333'}}},
-    series:[{type:'bar',data:items.map(function(d){return{value:d.listened_hrs,eps:d.played}}),itemStyle:{color:new echarts.graphic.LinearGradient(0,0,1,0,[{offset:0,color:'#0f3460'},{offset:1,color:'#8b5cf6'}])},barMaxWidth:18,label:{show:true,position:'right',color:'#8b5cf6',fontSize:10,formatter:function(p){return p.value+'h'}}}]});
+    series:[{type:'bar',data:items.map(function(d){return{value:d.listened_hrs,eps:d.played}}),itemStyle:{color:new echarts.graphic.LinearGradient(0,0,1,0,[{offset:0,color:'#0f3460'},{offset:1,color:'#06b6d4'}])},barMaxWidth:18,label:{show:true,position:'right',color:'#06b6d4',fontSize:10,formatter:function(p){return p.value+'h'}}}]});
   ch.push(pcChart);
 }
 
