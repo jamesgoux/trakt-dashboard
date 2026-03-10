@@ -10,7 +10,7 @@
 <title>Iris // jamesgoux</title>
 <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
 <style>
-:root{--bg:#0f0f0f;--sf:#1a1a2e;--ac:#fb923c;--tx:#eee;--t2:#999;--gr:#4ade80;--bl:#14b8a6;--pu:#14b8a6;--or:#fb923c;--tv:#14b8a6;--mv:#fb923c;--mu:#1db954;--bk:#fbbf24;--cn:#e94560;--th:#a78bfa}
+:root{--bg:#0f0f0f;--sf:#1a1a2e;--ac:#fb923c;--tx:#eee;--t2:#999;--gr:#4ade80;--bl:#14b8a6;--pu:#14b8a6;--or:#fb923c;--tv:#14b8a6;--mv:#fb923c;--mu:#1db954;--bk:#fbbf24;--cn:#3b82f6;--th:#a78bfa}
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:var(--bg);color:var(--tx);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;padding:0}
 .dash{max-width:1400px;margin:0 auto;padding:0 16px 16px}
@@ -44,7 +44,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
 .nm{font-weight:700;font-variant-numeric:tabular-nums}
 .nm-a{color:var(--ac)}.nm-b{color:var(--bl)}.nm-p{color:var(--pu)}.nm-o{color:var(--or)}
 .badge{display:inline-block;padding:1px 6px;border-radius:3px;font-size:10px;font-weight:600}
-.b-m{background:rgba(251,146,60,.15);color:var(--mv)}.b-e{background:rgba(20,184,166,.15);color:var(--tv)}.b-c{background:rgba(233,69,96,.15);color:var(--cn)}.b-th{background:rgba(167,139,250,.15);color:var(--th)}.b-bk{background:rgba(251,191,36,.15);color:var(--bk)}.b-pc{background:rgba(6,182,212,.15);color:#06b6d4}
+.b-m{background:rgba(251,146,60,.15);color:var(--mv)}.b-e{background:rgba(20,184,166,.15);color:var(--tv)}.b-c{background:rgba(59,130,246,.15);color:var(--cn)}.b-th{background:rgba(167,139,250,.15);color:var(--th)}.b-bk{background:rgba(251,191,36,.15);color:var(--bk)}.b-pc{background:rgba(239,68,68,.15);color:#ef4444}
 .pr{cursor:pointer}.pr:hover td{background:rgba(255,255,255,.04)}
 .pn{display:flex;align-items:center;gap:10px}
 .hs{width:44px;height:44px;border-radius:50%;object-fit:cover;background:#222;flex-shrink:0}
@@ -205,7 +205,7 @@ body{overflow-x:hidden}
 </div>
 <!-- PODCASTS (Pocket Casts) -->
 <div class="g2 med-s" data-med="all podcast" id="pc-wrap" style="display:none">
-<div id="sec-pc" class="cd fw" style="border-left-color:#06b6d4"><h3><span class="i">🎙️</span>Top Podcasts (Pocket Casts) <span class="vtog" style="float:right"><button class="vb vb-on pc-tog" data-v="hrs" onclick="window._pcMode='hrs';document.querySelectorAll('.pc-tog').forEach(function(b){b.classList.toggle('vb-on',b.dataset.v==='hrs')});renderPodcasts()">By Hours</button><button class="vb pc-tog" data-v="eps" onclick="window._pcMode='eps';document.querySelectorAll('.pc-tog').forEach(function(b){b.classList.toggle('vb-on',b.dataset.v==='eps')});renderPodcasts()">By Episodes</button></span></h3><div id="pc-chart" style="height:350px"></div></div>
+<div id="sec-pc" class="cd fw" style="border-left-color:#ef4444"><h3><span class="i">🎙️</span>Top Podcasts (Pocket Casts) <span class="vtog" style="float:right"><button class="vb vb-on pc-tog" data-v="hrs" onclick="window._pcMode='hrs';document.querySelectorAll('.pc-tog').forEach(function(b){b.classList.toggle('vb-on',b.dataset.v==='hrs')});renderPodcasts()">By Hours</button><button class="vb pc-tog" data-v="eps" onclick="window._pcMode='eps';document.querySelectorAll('.pc-tog').forEach(function(b){b.classList.toggle('vb-on',b.dataset.v==='eps')});renderPodcasts()">By Episodes</button></span></h3><div id="pc-chart" style="height:350px"></div></div>
 </div>
 <!-- THEATER -->
 <div class="g2 med-s" data-med="all theater" id="th-wrap" style="display:none">
@@ -293,7 +293,7 @@ function stats(){
     var allC=(D.con||{}).recent||[];var fc=cy==='all'?allC:allC.filter(function(e){return e.yr===cy});
     var ev={};fc.forEach(function(e){ev[e.date+'|'+e.venue]=true});
     var ua=fc.map(function(e){return e.artist}).filter(function(v,i,a){return a.indexOf(v)===i}).length;
-    el.innerHTML=sc(Object.keys(ev).length,'🎸 Concerts','#e94560')+sc(fc.length,'🎤 Sets','#e94560')+sc(ua,'🎙️ Artists','#e94560');return}
+    el.innerHTML=sc(Object.keys(ev).length,'🎸 Concerts','#3b82f6')+sc(fc.length,'🎤 Sets','#3b82f6')+sc(ua,'🎙️ Artists','#3b82f6');return}
   if(ct==='theater'){
     var allT=(D.th||{}).all||[];var ft=cy==='all'?allT:allT.filter(function(e){return e.y===cy});
     el.innerHTML=sc(ft.length,'🎭 Plays','#a78bfa');return}
@@ -301,7 +301,7 @@ function stats(){
     var pc=D.pc||{};var pcY=cy!=='all'&&pc.yearly?pc.yearly.find(function(y){return y.yr===cy}):null;
     var pcHrs=pcY?pcY.hrs:pc.total_listened_hrs||0;var pcEps=pcY?pcY.eps:pc.total_episodes||0;
     var pcDays=Math.round(pcHrs/24*10)/10;
-    el.innerHTML=sc(pc.total_podcasts||0,'📡 Shows','#06b6d4')+sc(pcEps,'📻 Episodes','#06b6d4')+sc(pcDays+'d','🎙️ Days Listened','#06b6d4');return}
+    el.innerHTML=sc(pc.total_podcasts||0,'📡 Shows','#ef4444')+sc(pcEps,'📻 Episodes','#ef4444')+sc(pcDays+'d','🎙️ Days Listened','#ef4444');return}
   // Movie/show/all — compute counts
   var mw=0,ew=0,rt=0,rtm=0,rts=0;D.c.m.filter(function(m){return cy==='all'||m.month.startsWith(cy)}).forEach(function(m){mw+=m.movies;ew+=m.episodes;rt+=(m.rt||0);rtm+=(m.rt_m||0);rts+=(m.rt_s||0)});
   var totalDays=Math.round(rt/60/24*10)/10;var movieDays=Math.round(rtm/60/24*10)/10;var showDays=Math.round(rts/60/24*10)/10;
@@ -312,9 +312,9 @@ function stats(){
     // Row 1: Watches, Days, Movies, Shows, Episodes, Books
     var seasonCount=0;D.c.m.filter(function(m){return cy==='all'||m.month.startsWith(cy)}).forEach(function(m){seasonCount+=m.seasons||0});
     h2=sc((mw+ew).toLocaleString(),'👁️ Watches','#b0b0b0')+sc(totalDays,'⏱️ Days','#b0b0b0')+sc(mw.toLocaleString(),'🎞️ Movies','var(--ac)')+sc(s.unique_shows,'📺 Shows','var(--pu)')+sc(seasonCount,'📦 Seasons','var(--pu)')+sc(ew.toLocaleString(),'🔢 Episodes','var(--pu)');
-    if(D.pc&&D.pc.total_podcasts){var pcY=cy!=='all'&&D.pc.yearly?D.pc.yearly.find(function(y){return y.yr===cy}):null;var pcHrs=pcY?pcY.hrs:D.pc.total_listened_hrs;var pcEps=pcY?pcY.eps:D.pc.total_episodes;var pcDays=Math.round(pcHrs/24*10)/10;h2+=sc(D.pc.total_podcasts,'📡 Podcasts','#06b6d4')+sc(pcEps,'📻 Pod Episodes','#06b6d4')+sc(pcDays+'d','🎙️ Pod Days','#06b6d4')}
+    if(D.pc&&D.pc.total_podcasts){var pcY=cy!=='all'&&D.pc.yearly?D.pc.yearly.find(function(y){return y.yr===cy}):null;var pcHrs=pcY?pcY.hrs:D.pc.total_listened_hrs;var pcEps=pcY?pcY.eps:D.pc.total_episodes;var pcDays=Math.round(pcHrs/24*10)/10;h2+=sc(D.pc.total_podcasts,'📡 Podcasts','#ef4444')+sc(pcEps,'📻 Pod Episodes','#ef4444')+sc(pcDays+'d','🎙️ Pod Days','#ef4444')}
     if(D.lfm&&D.lfm.total){var lfmY=cy!=='all'&&D.lfm.yearly?(D.lfm.yearly.find(function(y){return y.yr===cy})||{}):{s:D.lfm.total,a:D.lfm.artists,al:D.lfm.albums};h2+=sc((lfmY.s||0).toLocaleString(),'🎧 Scrobbles','#1db954')+sc((lfmY.a||0).toLocaleString(),'🎤 Artists','#1db954')+sc((lfmY.al||0).toLocaleString(),'💿 Albums','#1db954')}
-    if(D.con&&D.con.total){var conR=D.con.recent||[];var conF=cy==='all'?conR:conR.filter(function(e){return e.yr===cy});var conEv={};conF.forEach(function(e){conEv[e.date+'|'+e.venue]=true});var conUA=conF.map(function(e){return e.artist}).filter(function(v,i,a){return a.indexOf(v)===i}).length;var conSongs=conF.reduce(function(s,e){return s+e.songs},0);h2+=sc(Object.keys(conEv).length,'🎸 Concerts','#e94560')+sc(conF.length,'🎤 Sets','#e94560')+sc(conUA,'🎙️ Artists','#e94560')+sc(conSongs,'🎵 Songs','#e94560')}
+    if(D.con&&D.con.total){var conR=D.con.recent||[];var conF=cy==='all'?conR:conR.filter(function(e){return e.yr===cy});var conEv={};conF.forEach(function(e){conEv[e.date+'|'+e.venue]=true});var conUA=conF.map(function(e){return e.artist}).filter(function(v,i,a){return a.indexOf(v)===i}).length;var conSongs=conF.reduce(function(s,e){return s+e.songs},0);h2+=sc(Object.keys(conEv).length,'🎸 Concerts','#3b82f6')+sc(conF.length,'🎤 Sets','#3b82f6')+sc(conUA,'🎙️ Artists','#3b82f6')+sc(conSongs,'🎵 Songs','#3b82f6')}
     if(D.gr&&D.gr.total){var grAll=D.gr.all||[];var grF=cy==='all'?grAll:grAll.filter(function(b){return b.yr===cy});h2+=sc(grF.length,'📚 Books','#fbbf24')+sc(grF.reduce(function(s,b){return s+b.p},0).toLocaleString(),'📖 Pages','#fbbf24')}
     if(D.th&&D.th.total){var thF=cy==='all'?(D.th.all||[]):(D.th.all||[]).filter(function(e){return e.y===cy});h2+=sc(thF.length,'🎭 Plays','#a78bfa')}
   }
@@ -391,10 +391,10 @@ function renderLifeline(){
       {name:'Episodes',type:'bar',stack:'ll',data:posData.ep,itemStyle:{color:new echarts.graphic.LinearGradient(0,1,0,0,[{offset:0,color:'rgba(20,184,166,0.4)'},{offset:1,color:'#14b8a6'}])},barMaxWidth:bw},
       {name:'Books',type:'bar',stack:'ll',data:posData.bk,itemStyle:{color:new echarts.graphic.LinearGradient(0,1,0,0,[{offset:0,color:'rgba(251,191,36,0.4)'},{offset:1,color:'#fbbf24'}])},barMaxWidth:bw},
       {name:'Scrobbles',type:'bar',stack:'ll',data:negScScaled,itemStyle:{color:new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:'rgba(29,185,84,0.4)'},{offset:1,color:'#1db954'}])},barMaxWidth:bw},
-      {name:'Concerts',type:'bar',stack:'ll',data:negData.co,itemStyle:{color:new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:'rgba(233,69,96,0.4)'},{offset:1,color:'#e94560'}])},barMaxWidth:bw},
+      {name:'Concerts',type:'bar',stack:'ll',data:negData.co,itemStyle:{color:new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:'rgba(59,130,246,0.4)'},{offset:1,color:'#3b82f6'}])},barMaxWidth:bw},
       {name:'Plays',type:'bar',stack:'ll',data:negData.th,itemStyle:{color:new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:'rgba(167,139,250,0.4)'},{offset:1,color:'#a78bfa'}])},barMaxWidth:bw}
   ];
-  if(hasPcData)llSeries.push({name:'Podcasts',type:'bar',stack:'ll',data:negData.pc,itemStyle:{color:new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:'rgba(6,182,212,0.4)'},{offset:1,color:'#06b6d4'}])},barMaxWidth:bw});
+  if(hasPcData)llSeries.push({name:'Podcasts',type:'bar',stack:'ll',data:negData.pc,itemStyle:{color:new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:'rgba(239,68,68,0.4)'},{offset:1,color:'#ef4444'}])},barMaxWidth:bw});
 
   llChart.setOption({tooltip:{trigger:'axis',...tt,formatter:function(p){var day=days[p[0].dataIndex];var h='<b>'+day+'</b>';p.forEach(function(s){var v=Math.abs(s.value);if(v){if(s.seriesName==='Scrobbles'){v=Math.abs(negData.sc[p[0].dataIndex])}h+='<br/>'+s.marker+s.seriesName+': '+v}});return h}},
     legend:{data:llLeg,top:0,textStyle:{color:'#999',fontSize:9},type:'scroll',pageIconSize:16,pageButtonGap:10},
@@ -404,7 +404,7 @@ function renderLifeline(){
     series:llSeries});
   // Click to show chronological events for that day
   var typeIcons={ep:'📺',mv:'🎞️',sc:'🎧',bk:'📚',co:'🎸',th:'🎭',pc:'🎙️'};
-  var typeColors={ep:'var(--tv)',mv:'var(--mv)',sc:'var(--mu)',bk:'var(--bk)',co:'var(--cn)',th:'var(--th)',pc:'#06b6d4'};
+  var typeColors={ep:'var(--tv)',mv:'var(--mv)',sc:'var(--mu)',bk:'var(--bk)',co:'var(--cn)',th:'var(--th)',pc:'#ef4444'};
   llChart.on('click',function(p){
     var idx=p.dataIndex;var day=days[idx];if(!day||!ll[day])return;
     var ld=ll[day];var evts=ld.e||[];
@@ -575,22 +575,64 @@ function baseCharts(){
     if(showMo){tlSeries.push({name:'Movies',type:'bar',stack:'t',data:wkData.movies,itemStyle:{color:'#fb923c'},barMaxWidth:tlBarW});tlLeg.push('Movies')}
     if(showSe){tlSeries.push({name:'Seasons',type:'bar',stack:'t',data:wkData.seasons,itemStyle:{color:'#14b8a6'},barMaxWidth:tlBarW});tlLeg.push('Seasons')}
     if(showBk){tlSeries.push({name:'Books',type:'bar',stack:'t',data:wkData.books,itemStyle:{color:'#fbbf24'},barMaxWidth:tlBarW});tlLeg.push('Books')}
-    if(showCo){tlSeries.push({name:'Concerts',type:'bar',stack:'t',data:wkData.concerts,itemStyle:{color:'#e94560'},barMaxWidth:tlBarW});tlLeg.push('Concerts')}
+    if(showCo){tlSeries.push({name:'Concerts',type:'bar',stack:'t',data:wkData.concerts,itemStyle:{color:'#3b82f6'},barMaxWidth:tlBarW});tlLeg.push('Concerts')}
     if(showTh){tlSeries.push({name:'Theater',type:'bar',stack:'t',data:wkData.theater,itemStyle:{color:'#a78bfa'},barMaxWidth:tlBarW});tlLeg.push('Theater')}
-    if(showPc){tlSeries.push({name:'Podcasts',type:'bar',stack:'t',data:wkData.podcasts,itemStyle:{color:'#06b6d4'},barMaxWidth:tlBarW});tlLeg.push('Podcasts')}
+    if(showPc){tlSeries.push({name:'Podcasts',type:'bar',stack:'t',data:wkData.podcasts,itemStyle:{color:'#ef4444'},barMaxWidth:tlBarW});tlLeg.push('Podcasts')}
   }else{
     tlLabels=mf.map(function(d){return d.month});tlBarW=30;
     if(showMo){tlSeries.push({name:'Movies',type:'bar',stack:'t',data:mf.map(function(d){return d.movies}),itemStyle:{color:'#fb923c'},barMaxWidth:tlBarW});tlLeg.push('Movies')}
     if(showSe){tlSeries.push({name:'Seasons',type:'bar',stack:'t',data:mf.map(function(d){return d.seasons||0}),itemStyle:{color:'#14b8a6'},barMaxWidth:tlBarW});tlLeg.push('Seasons')}
     if(showBk&&Object.keys(grM).length){tlSeries.push({name:'Books',type:'bar',stack:'t',data:mf.map(function(d){return grM[d.month]||0}),itemStyle:{color:'#fbbf24'},barMaxWidth:tlBarW});tlLeg.push('Books')}
-    if(showCo&&Object.keys(conM).length){tlSeries.push({name:'Concerts',type:'bar',stack:'t',data:mf.map(function(d){return conM[d.month]||0}),itemStyle:{color:'#e94560'},barMaxWidth:tlBarW});tlLeg.push('Concerts')}
+    if(showCo&&Object.keys(conM).length){tlSeries.push({name:'Concerts',type:'bar',stack:'t',data:mf.map(function(d){return conM[d.month]||0}),itemStyle:{color:'#3b82f6'},barMaxWidth:tlBarW});tlLeg.push('Concerts')}
     if(showTh&&Object.keys(thM).length){tlSeries.push({name:'Theater',type:'bar',stack:'t',data:mf.map(function(d){return thM[d.month]||0}),itemStyle:{color:'#a78bfa'},barMaxWidth:tlBarW});tlLeg.push('Theater')}
-    if(showPc&&Object.keys(pcM).length){tlSeries.push({name:'Podcasts',type:'bar',stack:'t',data:mf.map(function(d){return pcM[d.month]||0}),itemStyle:{color:'#06b6d4'},barMaxWidth:tlBarW});tlLeg.push('Podcasts')}
+    if(showPc&&Object.keys(pcM).length){tlSeries.push({name:'Podcasts',type:'bar',stack:'t',data:mf.map(function(d){return pcM[d.month]||0}),itemStyle:{color:'#ef4444'},barMaxWidth:tlBarW});tlLeg.push('Podcasts')}
   }
-  c1.setOption({tooltip:{trigger:'axis',...tt},legend:{data:tlLeg.length>1?tlLeg:[],right:10,top:0,textStyle:{color:'#999'}},grid:{left:50,right:20,top:36,bottom:30},xAxis:{type:'category',data:tlLabels,axisLabel:{color:'#666',interval:0,rotate:45,fontSize:window._tlRes==='weekly'?8:10},axisLine:{lineStyle:{color:'#333'}}},yAxis:{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},series:tlSeries});
+  // Scrobbles line overlay (secondary y-axis) for monthly/weekly
+  var lfmMo=D.lfm&&D.lfm.monthly?D.lfm.monthly:[];
+  var lfmMoMap={};lfmMo.forEach(function(m){lfmMoMap[m.m]=m.s||0});
+  if((ct==='all'||ct==='music')&&lfmMo.length){
+    var scrobData;
+    if(window._tlRes==='weekly'){
+      scrobData=[];mf.forEach(function(d){var v=lfmMoMap[d.month]||0;for(var w=1;w<=4;w++)scrobData.push(Math.round(v/4))});
+    }else{
+      scrobData=mf.map(function(d){return lfmMoMap[d.month]||0});
+    }
+    tlSeries.push({name:'Scrobbles',type:'line',yAxisIndex:1,data:scrobData,itemStyle:{color:'#1db954'},lineStyle:{width:2},symbol:'circle',symbolSize:4});
+    tlLeg.push('Scrobbles');
+  }
+  // Podcasts line overlay (secondary y-axis) for monthly/weekly
+  if((ct==='all'||ct==='podcast')&&Object.keys(pcM).length){
+    var pcLineData;
+    if(window._tlRes==='weekly'){
+      pcLineData=[];mf.forEach(function(d){var v=pcM[d.month]||0;for(var w=1;w<=4;w++)pcLineData.push(Math.round(v/4))});
+    }else{
+      pcLineData=mf.map(function(d){return pcM[d.month]||0});
+    }
+    tlSeries.push({name:'Pod Episodes',type:'line',yAxisIndex:1,data:pcLineData,itemStyle:{color:'#ef4444'},lineStyle:{width:2},symbol:'circle',symbolSize:4});
+    tlLeg.push('Pod Episodes');
+  }
+  c1.setOption({tooltip:{trigger:'axis',...tt},legend:{data:tlLeg.length>1?tlLeg:[],right:10,top:0,textStyle:{color:'#999'}},grid:{left:50,right:40,top:36,bottom:30},xAxis:{type:'category',data:tlLabels,axisLabel:{color:'#666',interval:0,rotate:45,fontSize:window._tlRes==='weekly'?8:10},axisLine:{lineStyle:{color:'#333'}}},yAxis:[{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},{type:'value',position:'right',axisLabel:{show:false},splitLine:{show:false}}],series:tlSeries});
   if(ct==='all'&&tlLeg.length>1)legendIsolate(c1,tlLeg);
   c1.on('click',function(p){
-    var month=mf[p.dataIndex]?mf[p.dataIndex].month:p.name;
+    var month;
+    if(window._tlRes==='weekly'){
+      var monthIdx=Math.floor(p.dataIndex/4);
+      month=mf[monthIdx]?mf[monthIdx].month:p.name;
+    }else{
+      month=mf[p.dataIndex]?mf[p.dataIndex].month:p.name;
+    }
+    // If clicking on Scrobbles line, show top artists for that month
+    if(p.seriesName==='Scrobbles'){
+      var lfmMoDetail=lfmMo.find(function(m){return m.m===month});
+      if(!lfmMoDetail)return;
+      var ta=lfmMoDetail.ta||[];
+      var el=document.getElementById('tlc');
+      var ex=el.parentElement.querySelector('.chart-detail');if(ex){ex.remove();if(ex.dataset.val==='lfm-'+month)return}
+      var div=document.createElement('div');div.className='chart-detail';div.dataset.val='lfm-'+month;
+      var h='<span class="cd-close" onclick="this.parentElement.remove()">✕</span><b>'+month+' Scrobbles</b>';
+      if(ta.length){h+='<div style="margin-top:4px;font-size:10px;font-weight:600;color:var(--t2)">🎤 Top Artists</div>';ta.slice(0,8).forEach(function(a){h+='<div class="cd-item"><span>'+a.n+'</span><span class="nm" style="color:#1db954">'+a.c+'</span></div>'})}
+      div.innerHTML=h;el.parentElement.appendChild(div);return;
+    }
     var raw=mtData[month]||[];if(!raw.length)return;
     var allow=_legTypes(c1);
     var titles=raw.filter(function(t){return allow[t.type]});if(!titles.length)return;
@@ -872,13 +914,38 @@ function baseCharts(){
   if(yMo){yrSeries.push({name:'Movies',type:'bar',stack:'t',data:yr.map(function(d){return d.movies}),itemStyle:{color:'#fb923c'}});yrLeg.push('Movies')}
   if(ySe){yrSeries.push({name:'Seasons',type:'bar',stack:'t',data:yr.map(function(d){return d.seasons}),itemStyle:{color:'#14b8a6'}});yrLeg.push('Seasons')}
   if(yBk&&Object.keys(grY).length){yrSeries.push({name:'Books',type:'bar',stack:'t',data:yr.map(function(d){return grY[d.year]||0}),itemStyle:{color:'#fbbf24'}});yrLeg.push('Books')}
-  if(yCo&&Object.keys(conY).length){yrSeries.push({name:'Concerts',type:'bar',stack:'t',data:yr.map(function(d){return conY[d.year]||0}),itemStyle:{color:'#e94560'}});yrLeg.push('Concerts')}
+  if(yCo&&Object.keys(conY).length){yrSeries.push({name:'Concerts',type:'bar',stack:'t',data:yr.map(function(d){return conY[d.year]||0}),itemStyle:{color:'#3b82f6'}});yrLeg.push('Concerts')}
   if(yTh&&Object.keys(thY).length){yrSeries.push({name:'Theater',type:'bar',stack:'t',data:yr.map(function(d){return thY[d.year]||0}),itemStyle:{color:'#a78bfa'}});yrLeg.push('Theater')}
-  if(yPc&&Object.keys(pcY).length){yrSeries.push({name:'Podcasts',type:'bar',stack:'t',data:yr.map(function(d){return pcY[d.year]||0}),itemStyle:{color:'#06b6d4'}});yrLeg.push('Podcasts')}
-  c6.setOption({tooltip:{trigger:'axis',...tt,formatter:function(p){if(p[0]&&tp(p).axisValue==='2016')return'<b>2016</b><br/>Zeroed (outlier: 4,257)';return p.map(function(s){return s.marker+s.seriesName+': '+s.value}).join('<br/>')}},legend:{data:yrLeg.length>1?yrLeg:[],right:10,top:0,textStyle:{color:'#999'}},grid:{left:50,right:20,top:36,bottom:24},xAxis:{type:'category',data:yr.map(function(d){return d.year}),axisLabel:{color:'#666',fontSize:10},axisLine:{lineStyle:{color:'#333'}}},yAxis:{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},series:yrSeries});
+  if(yPc&&Object.keys(pcY).length){yrSeries.push({name:'Podcasts',type:'bar',stack:'t',data:yr.map(function(d){return pcY[d.year]||0}),itemStyle:{color:'#ef4444'}});yrLeg.push('Podcasts')}
+  // Scrobbles line overlay (secondary y-axis)
+  var lfmYr=D.lfm&&D.lfm.yearly?D.lfm.yearly:[];
+  var lfmYrMap={};lfmYr.forEach(function(y){lfmYrMap[y.yr]=y.s||0});
+  if((ct==='all'||ct==='music')&&lfmYr.length){
+    yrSeries.push({name:'Scrobbles',type:'line',yAxisIndex:1,data:yr.map(function(d){return lfmYrMap[d.year]||0}),itemStyle:{color:'#1db954'},lineStyle:{width:2},symbol:'circle',symbolSize:4});
+    yrLeg.push('Scrobbles');
+  }
+  // Podcasts line overlay (secondary y-axis)
+  var pcYrLine=D.c.pc_y||{};
+  if((ct==='all'||ct==='podcast')&&Object.keys(pcYrLine).length){
+    yrSeries.push({name:'Pod Episodes',type:'line',yAxisIndex:1,data:yr.map(function(d){return pcYrLine[d.year]||0}),itemStyle:{color:'#ef4444'},lineStyle:{width:2},symbol:'circle',symbolSize:4});
+    yrLeg.push('Pod Episodes');
+  }
+  c6.setOption({tooltip:{trigger:'axis',...tt,formatter:function(p){if(p[0]&&tp(p).axisValue==='2016')return'<b>2016</b><br/>Zeroed (outlier: 4,257)';return p.map(function(s){return s.marker+s.seriesName+': '+s.value}).join('<br/>')}},legend:{data:yrLeg.length>1?yrLeg:[],right:10,top:0,textStyle:{color:'#999'}},grid:{left:50,right:40,top:36,bottom:24},xAxis:{type:'category',data:yr.map(function(d){return d.year}),axisLabel:{color:'#666',fontSize:10},axisLine:{lineStyle:{color:'#333'}}},yAxis:[{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},{type:'value',position:'right',axisLabel:{show:false},splitLine:{show:false}}],series:yrSeries});
   if(ct==='all'&&yrLeg.length>1)legendIsolate(c6,yrLeg);
   c6.on('click',function(p){
     var year=yr[p.dataIndex]?yr[p.dataIndex].year:p.name;
+    // If clicking on Scrobbles line, show top artists for that year
+    if(p.seriesName==='Scrobbles'){
+      var lfmDetail=lfmYr.find(function(y){return y.yr===year});
+      if(!lfmDetail)return;
+      var ta=lfmDetail.ta||[];
+      var el=document.getElementById('yrc');
+      var ex=el.parentElement.querySelector('.chart-detail');if(ex){ex.remove();if(ex.dataset.val==='lfm-'+year)return}
+      var div=document.createElement('div');div.className='chart-detail';div.dataset.val='lfm-'+year;
+      var h='<span class="cd-close" onclick="this.parentElement.remove()">✕</span><b>'+year+' Scrobbles</b>';
+      if(ta.length){h+='<div style="margin-top:4px;font-size:10px;font-weight:600;color:var(--t2)">🎤 Top Artists</div>';ta.slice(0,8).forEach(function(a){h+='<div class="cd-item"><span>'+a.n+'</span><span class="nm" style="color:#1db954">'+a.c+'</span></div>'})}
+      div.innerHTML=h;el.parentElement.appendChild(div);return;
+    }
     var allow=_legTypes(c6);
     var allTitles={};
     Object.keys(mtData).filter(function(m){return m.startsWith(year)}).forEach(function(m){
@@ -1588,7 +1655,7 @@ function renderConcerts(){
       grid:{left:gl(140),right:30,top:8,bottom:8},
       xAxis:{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},
       yAxis:{type:'category',data:venSlice.map(function(d){return d.n}),axisLabel:{color:'#ccc',fontSize:10,interval:0},axisLine:{lineStyle:{color:'#333'}}},
-      series:[{type:'bar',data:venSlice.map(function(d){return d.c}),itemStyle:{color:LG('#0f3460','#e94560')},barMaxWidth:18,label:{show:true,position:'right',color:'#e94560',fontSize:10}}]});
+      series:[{type:'bar',data:venSlice.map(function(d){return d.c}),itemStyle:{color:LG('#0f3460','#3b82f6')},barMaxWidth:18,label:{show:true,position:'right',color:'#3b82f6',fontSize:10}}]});
     venChart.on('click',function(p){
       var v=venSlice[p.dataIndex];if(!v||!v.artists||!v.artists.length)return;
       var ex=venEl.parentElement.querySelector('.chart-detail');if(ex){ex.remove();if(ex.dataset.val===v.n)return}
@@ -1737,7 +1804,7 @@ function renderPodcasts(){
     grid:{left:gl(150),right:30,top:8,bottom:8},
     xAxis:{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},
     yAxis:{type:'category',data:items.map(function(d){return d.title}),axisLabel:{color:'#ccc',fontSize:10,interval:0},axisLine:{lineStyle:{color:'#333'}}},
-    series:[{type:'bar',data:items.map(function(d){return{value:isHrs?d.listened_hrs:d.played,eps:d.played,hrs:d.listened_hrs}}),itemStyle:{color:new echarts.graphic.LinearGradient(0,0,1,0,[{offset:0,color:'#0f3460'},{offset:1,color:'#06b6d4'}])},barMaxWidth:18,label:{show:true,position:'right',color:'#06b6d4',fontSize:10,formatter:function(p){return isHrs?p.value+'h':p.value+' eps'}}}]});
+    series:[{type:'bar',data:items.map(function(d){return{value:isHrs?d.listened_hrs:d.played,eps:d.played,hrs:d.listened_hrs}}),itemStyle:{color:new echarts.graphic.LinearGradient(0,0,1,0,[{offset:0,color:'#0f3460'},{offset:1,color:'#ef4444'}])},barMaxWidth:18,label:{show:true,position:'right',color:'#ef4444',fontSize:10,formatter:function(p){return isHrs?p.value+'h':p.value+' eps'}}}]});
   ch.push(pcChart);
 }
 
