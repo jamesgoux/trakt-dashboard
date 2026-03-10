@@ -211,13 +211,17 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
     for pid, info in people.items():
         if not ism(info["gender"]) and not isf(info["gender"]): continue
         tis = []; mc = sc = 0
+        max_recency = 0
         for ts in info["titles"]:
+            rec = slug_recency.get(ts, 0)
+            if rec > max_recency: max_recency = rec
             for pre, typ in [("movie:", "movie"), ("show:", "show")]:
                 k = pre + ts
                 if k in ti: tis.append(ti[k]); mc += (1 if typ == "movie" else 0); sc += (1 if typ == "show" else 0)
         if mc + sc >= 2:
-            pd.append({"n": info["name"], "g": "m" if ism(info["gender"]) else "f", "m": mc, "s": sc, "tt": mc+sc, "ti": tis})
-    pd.sort(key=lambda x: x["tt"], reverse=True)
+            pd.append({"n": info["name"], "g": "m" if ism(info["gender"]) else "f", "m": mc, "s": sc, "tt": mc+sc, "ti": tis, "_rec": max_recency})
+    pd.sort(key=lambda x: (x["tt"], x["_rec"]), reverse=True)
+    for p in pd: del p["_rec"]
 
     # Show year data
     syd = defaultdict(lambda: {"name": "", "yd": defaultdict(lambda: {"e": 0, "m": 0}), "net": ""})
@@ -629,13 +633,17 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
         cl = []
         for pid, info in crew_raw.items():
             tis = []; mc = sc = 0
+            max_rec = 0
             for ts in info["titles"]:
+                rec = slug_recency.get(ts, 0)
+                if rec > max_rec: max_rec = rec
                 for pre, typ in [("movie:", "movie"), ("show:", "show")]:
                     k = pre + ts
                     if k in ti: tis.append(ti[k]); mc += (1 if typ == "movie" else 0); sc += (1 if typ == "show" else 0)
             if mc + sc >= 2:
-                cl.append({"n": info["name"], "m": mc, "s": sc, "tt": mc + sc, "ti": tis})
-        cl.sort(key=lambda x: x["tt"], reverse=True)
+                cl.append({"n": info["name"], "m": mc, "s": sc, "tt": mc + sc, "ti": tis, "_rec": max_rec})
+        cl.sort(key=lambda x: (x["tt"], x["_rec"]), reverse=True)
+        for c in cl: del c["_rec"]
         return cl
 
     # Genre trends: year-over-year + month-over-month data for top genres
