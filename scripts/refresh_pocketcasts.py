@@ -120,8 +120,8 @@ for i, pod in enumerate(podcasts):
             old_played = snapshot.get(ep_uuid, -1)
 
             if ep_uuid not in history:
-                if old_played >= 0 and played > old_played:
-                    # Progress changed since last run — log with current timestamp
+                if old_played >= 0 and played > old_played and min(played, dur) >= 300:
+                    # Progress changed since last run, listened 5+ min — log with current timestamp
                     listen_date = now_date
                     history[ep_uuid] = {
                         "p": title,        # podcast name

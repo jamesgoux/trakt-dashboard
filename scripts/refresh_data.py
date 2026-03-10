@@ -1314,14 +1314,17 @@ if theater:
 # Podcast data from Pocket Casts
 if pc_data:
     data["pc"] = pc_data
-    # Add podcast monthly/yearly episode counts for timeline charts — POLL ONLY
+    # Add podcast monthly/yearly episode counts for timeline charts — real data only, >5min
     pc_poll_monthly = defaultdict(int)
     pc_poll_yearly = defaultdict(int)
     if os.path.exists("data/pocketcasts_history.json"):
         with open("data/pocketcasts_history.json") as f:
             _pch = json.load(f)
         for ev in _pch.values():
-            if ev.get("src") == "poll" and ev.get("d"):
+            if ev.get("src") in ("poll", "export") and ev.get("d"):
+                played = ev.get("played", 0) or 0
+                if played > 0 and played < 300:
+                    continue
                 d = ev["d"]
                 pc_poll_monthly[d[:7]] += 1
                 pc_poll_yearly[d[:4]] += 1
@@ -1329,7 +1332,10 @@ if pc_data:
     data["c"]["pc_y"] = dict(pc_poll_yearly)
     # Add podcast series to monthly title data (mt) for click detail
     for ev in _pch.values():
-        if ev.get("src") == "poll" and ev.get("d"):
+        if ev.get("src") in ("poll", "export") and ev.get("d"):
+            played = ev.get("played", 0) or 0
+            if played > 0 and played < 300:
+                continue
             mo = ev["d"][:7]
             pod_name = ev.get("p", "Unknown Podcast")
             if mo not in data["c"]["mt"]:
@@ -1630,20 +1636,33 @@ if theater:
             ll_counts[d]["th"] += 1
             ll_events[d].append({"t": "19:30", "n": "🎭 " + t["show"], "ty": "th"})
 
-# Podcasts — only include episodes with real poll data (not init/pub backfill)
+# Podcasts — include episodes with real dates (poll or export), min 5 min listened
 if os.path.exists("data/pocketcasts_history.json"):
     with open("data/pocketcasts_history.json") as f:
         pc_history = json.load(f)
-    pc_poll_count = 0
+    pc_ll_count = 0
     for ep_uuid, ev in pc_history.items():
-        if ev.get("src") == "poll":
-            d = ev.get("d", "")
-            if d and len(d) >= 10:
-                ll_counts[d]["pc"] += 1
-                ll_events[d].append({"t": "12:00", "n": "🎙️ " + ev.get("p", "") + " — " + ev.get("t", ""), "ty": "pc"})
-                pc_poll_count += 1
-    if pc_poll_count:
-        print(f"  Podcasts in lifeline: {pc_poll_count} polled episodes")
+        src = ev.get("src", "")
+        if src not in ("poll", "export"):
+            continue
+        # Skip episodes listened less than 5 minutes
+        played = ev.get("played", 0) or 0
+        if played > 0 and played < 300:
+            continue
+        d = ev.get("d", "")
+        if not d or len(d) < 10:
+            continue
+        # Convert to Pacific timezone if it looks like a UTC date
+        try:
+            dt = datetime.strptime(d, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+            d = dt.astimezone(_tz_pac).strftime("%Y-%m-%d")
+        except Exception:
+            pass
+        ll_counts[d]["pc"] += 1
+        ll_events[d].append({"t": "12:00", "n": "🎙️ " + ev.get("p", "") + " — " + ev.get("t", ""), "ty": "pc"})
+        pc_ll_count += 1
+    if pc_ll_count:
+        print(f"  Podcasts in lifeline: {pc_ll_count} episodes (poll+export, >5min)")
 
 # Build output: counts for bars + events only for recent 90 days
 event_cutoff = (datetime.now() - timedelta(days=90)).strftime("%Y-%m-%d")
