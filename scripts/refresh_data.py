@@ -711,8 +711,7 @@ entries.sort(key=lambda x: x["watched_at"], reverse=True)
 print(f"  Total: {len(entries)} entries (Trakt)")
 
 # ── Letterboxd backfill: merge old watches (2015-2022) not in Trakt ──
-# One-time operation — skip if already done
-if os.path.exists("data/letterboxd.json") and not os.path.exists("data/.lb_backfill_done"):
+if os.path.exists("data/letterboxd.json"):
     with open("data/letterboxd.json") as f:
         lb_data = json.load(f)
     
@@ -770,13 +769,8 @@ if os.path.exists("data/letterboxd.json") and not os.path.exists("data/.lb_backf
     if lb_added:
         entries.sort(key=lambda x: x["watched_at"], reverse=True)
         print(f"  Letterboxd backfill: +{lb_added} watches merged (2015-2022, deduped within 30 days)")
-        # Mark as done so this doesn't run again
-        with open("data/.lb_backfill_done", "w") as f:
-            f.write(datetime.now().strftime("%Y-%m-%d %H:%M"))
     else:
         print(f"  Letterboxd backfill: no new watches to merge")
-        with open("data/.lb_backfill_done", "w") as f:
-            f.write(datetime.now().strftime("%Y-%m-%d %H:%M"))
 
 print(f"  Total: {len(entries)} entries (after merge)")
 
