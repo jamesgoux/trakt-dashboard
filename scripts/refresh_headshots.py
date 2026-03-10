@@ -13,6 +13,9 @@ Daily run (default): 2000 items. 20-min run: 300 items.
 """
 
 import os, json, time, re, requests
+from datetime import datetime, timedelta
+
+SKIP_TTL_DAYS = 30  # re-check skipped people after this many days
 
 CLIENT_ID = os.environ.get("TRAKT_CLIENT_ID")
 BASE_URL = "https://api.trakt.tv"
@@ -227,7 +230,25 @@ def fetch_logos(budget):
 # ============================================================
 def fetch_headshots_for(label, priority, source_files, budget):
     hs = load_json("data/headshots.json")
-    skip = load_json("data/headshots_skip.json")  # names confirmed to have no TMDB image
+    skip_raw = load_json("data/headshots_skip.json")  # names confirmed to have no TMDB image
+
+    # Migrate old format (name -> tmdb_id) to new (name -> {id, ts}) and expire old entries
+    today = datetime.utcnow().strftime("%Y-%m-%d")
+    cutoff = (datetime.utcnow() - timedelta(days=SKIP_TTL_DAYS)).strftime("%Y-%m-%d")
+    skip = {}
+    expired = 0
+    for name, val in skip_raw.items():
+        if isinstance(val, dict):
+            if val.get("ts", "") >= cutoff:
+                skip[name] = val
+            else:
+                expired += 1
+        else:
+            # Old format — treat as fresh (migrate)
+            skip[name] = {"id": val, "ts": today}
+    if expired:
+        print(f"  Expired {expired} skip entries (>{SKIP_TTL_DAYS} days old)")
+
     slug_recency = load_json("data/slug_recency.json")
     vis = load_json("data/visible_priority.json")
 
@@ -275,8 +296,8 @@ def fetch_headshots_for(label, priority, source_files, budget):
                         if url:
                             hs[info["name"]] = url; count += 1
                         else:
-                            # Confirmed no TMDB image — skip in future runs
-                            skip[info["name"]] = tmdb_id
+                            # Confirmed no TMDB image — skip for SKIP_TTL_DAYS
+                            skip[info["name"]] = {"id": tmdb_id, "ts": today}
                             new_skips += 1
                     else:
                         h = fetch_tmdb_image_scrape(f"https://www.themoviedb.org/person/{tmdb_id}")
@@ -285,11 +306,11 @@ def fetch_headshots_for(label, priority, source_files, budget):
                             hs[info["name"]] = f"https://image.tmdb.org/t/p/w185/{h}"
                             count += 1
                         else:
-                            skip[info["name"]] = tmdb_id
+                            skip[info["name"]] = {"id": tmdb_id, "ts": today}
                             new_skips += 1
                 elif not tmdb_id:
                     # No TMDB ID at all — skip
-                    skip[info["name"]] = 0
+                    skip[info["name"]] = {"id": 0, "ts": today}
                     new_skips += 1
         except Exception as e:
             # Don't skip on errors — might be transient

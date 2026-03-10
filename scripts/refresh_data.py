@@ -1036,6 +1036,7 @@ data["lg"] = logos  # studio/network logos
 lb_ratings = {}  # tmdb_id -> {rating, liked, tags}
 lb_tags = Counter()
 lb_rating_dist = Counter()  # rating -> count
+lb_rating_dist_y = defaultdict(Counter)  # year -> rating -> count
 for key, entry in lb.items():
     tmdb_id = entry.get("tmdb_id")
     if tmdb_id:
@@ -1046,6 +1047,10 @@ for key, entry in lb.items():
         }
     if entry.get("rating"):
         lb_rating_dist[str(entry["rating"])] += 1
+        # Per-year distribution based on watch dates
+        watch_years = set(d[:4] for d in entry.get("dates", []) if d)
+        for wy in watch_years:
+            lb_rating_dist_y[wy][str(entry["rating"])] += 1
     for tag in entry.get("tags", []):
         lb_tags[tag] += 1
 
@@ -1234,6 +1239,7 @@ my_rated_low = sorted(my_rated, key=lambda x: x["r"])
 data["lb"] = {
     "ratings": lb_ratings,
     "dist": [{"r": r, "c": c} for r, c in sorted(lb_rating_dist.items())],
+    "dist_y": {y: [{"r": r, "c": c} for r, c in sorted(ct.items())] for y, ct in lb_rating_dist_y.items()},
     "tags": tag_data,
     "total": len(lb),
     "rated": sum(1 for e in lb.values() if e.get("rating")),
