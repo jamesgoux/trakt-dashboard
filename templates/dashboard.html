@@ -256,7 +256,22 @@ function findTitles(field,value){var r=[];if(field==='vy'){
 TL.forEach(function(t){if(t.yr===value){var ct2=cy==='all'?t.tot:((t.eby||{})[cy]||0);if(ct2>0&&(ct==='all'||ct===t.type||(ct==='show'&&t.type!=='movie')))r.push({t:t.t,type:t.type,ct:ct2})}});
 }else{for(var slug in SM){var m=SM[slug];var ok=false;if(field==='stu')ok=(m.stu||[]).indexOf(value)>=0;else if(field==='net')ok=m.net===value;else if(field==='ctry')ok=m.ctry===value;else if(field==='lang')ok=m.lang===value;else if(field==='genre')ok=(m.g||'').split(', ').indexOf(value)>=0;if(!ok)continue;var tl2=TL.filter(function(t){return t.t===m.t&&t.type===m.type});if(tl2.length>0){var t=tl2[0];var c2=cy==='all'?t.tot:((t.eby||{})[cy]||0);if(c2>0)r.push({t:m.t,type:m.type,ct:c2})}}}r.sort(function(a,b){return b.ct-a.ct});return r}
 function showDetail(el,field,value){var ex=el.parentElement.querySelector('.chart-detail');if(ex){ex.remove();if(ex.dataset.val===value)return}var ts=findTitles(field,value);if(!ts.length)return;var d=document.createElement('div');d.className='chart-detail';d.dataset.val=value;var h='<span class="cd-close" onclick="this.parentElement.remove()">✕</span><b>'+value+' ('+ts.length+')</b>';ts.slice(0,30).forEach(function(t){h+='<div class="cd-item"><span><span class="badge '+(t.type==='movie'?'b-m':'b-e')+'">'+t.type+'</span> '+t.t+'</span><span class="nm '+(t.type==='show'?'nm-b':'nm-a')+'">'+(t.type==='show'?t.ct+' eps':(t.ct>1?t.ct+'x':''))+'</span></div>'});d.innerHTML=h;el.parentElement.appendChild(d)}
-function addClick(chart,el,field,arr,key){chart.on('click',function(p){showDetail(el,field,p.name)})}
+function addClick(chart,el,field,arr,key){chart.on('click',function(p){
+  var name=p.name;
+  var ts=findTitles(field,name);
+  if(!ts.length){
+    // Fallback: show the value from the chart data
+    var item=arr.find(function(d){return d.n===name});
+    if(item){
+      var ex=el.parentElement.querySelector('.chart-detail');if(ex){ex.remove();if(ex.dataset.val===name)return}
+      var div=document.createElement('div');div.className='chart-detail';div.dataset.val=name;
+      div.innerHTML='<span class="cd-close" onclick="this.parentElement.remove()">✕</span><b>'+name+'</b><br/><span style="color:var(--t2)">'+(item.s||item.count||0)+' titles</span>';
+      el.parentElement.appendChild(div);
+    }
+    return;
+  }
+  showDetail(el,field,name);
+})}
 document.addEventListener('click',function(e){if(!e.target.closest('.chart-detail')&&!e.target.closest('canvas')){document.querySelectorAll('.chart-detail').forEach(function(d){d.remove()})}})
 
 // URL hash persistence
