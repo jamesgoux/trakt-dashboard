@@ -75,7 +75,7 @@ def normalize(concerts):
 
 def lookup_albums(concerts):
     """Use MusicBrainz to find album for each song. Cached in data/song_albums.json."""
-    MB_HEADERS = {"User-Agent": "Iris/1.0 (github.com/jamesgoux/trakt-dashboard)", "Accept": "application/json"}
+    MB_HEADERS = {"User-Agent": "Iris/1.0 (github.com/jamesgoux/iris-stats)", "Accept": "application/json"}
     cache = {}
     if os.path.exists("data/song_albums.json"):
         with open("data/song_albums.json") as f:

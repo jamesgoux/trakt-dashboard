@@ -2,7 +2,7 @@
 
 A personal media consumption dashboard aggregating data from **7 sources** into an auto-refreshing web dashboard.
 
-**Live:** [jamesgoux.github.io/trakt-dashboard](https://jamesgoux.github.io/trakt-dashboard/)
+**Live:** [jamesgoux.github.io/iris-stats](https://jamesgoux.github.io/iris-stats/)
 
 ## What it does
 
