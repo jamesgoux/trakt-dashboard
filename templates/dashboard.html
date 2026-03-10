@@ -1154,10 +1154,10 @@ function renderLetterboxd(){
     return items.filter(function(i){return i.wy&&i.wy.indexOf(cy)>=0});
   }
   // Rating distribution - Letterboxd
-  var allStars=['0.5','1.0','1.5','2.0','2.5','3.0','3.5','4.0','4.5','5.0'];
+  var allStars=['0.5','1','1.5','2','2.5','3','3.5','4','4.5','5'];
   var dist=cy==='all'?(lb.dist||[]):((lb.dist_y||{})[cy]||[]);var lbEl=document.getElementById('lbc');
   if(true){
-    var distMap={};dist.forEach(function(d){distMap[d.r]=d.c});
+    var distMap={};dist.forEach(function(d){distMap[String(parseFloat(d.r))]=d.c});
     var fullDist=allStars.map(function(s){return{r:s,c:distMap[s]||0}});
     var ratedCount=fullDist.reduce(function(s,d){return s+d.c},0);
     var ratedSum=fullDist.reduce(function(s,d){return s+parseFloat(d.r)*d.c},0);
@@ -1170,12 +1170,12 @@ function renderLetterboxd(){
       yAxis:{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},
       series:[{type:'bar',data:fullDist.map(function(d){var v=parseFloat(d.r);var t=v/5;return{value:d.c,itemStyle:{color:'rgba(251,146,60,'+Math.max(0.25,t)+')'}}}),barMaxWidth:24}]});
     clb.on('click',function(p){
-      var star=allStars[p.dataIndex];
-      var items=filterByWatchYear(lb.myh||[]).filter(function(i){return String(i.r)===star});
+      var star=parseFloat(allStars[p.dataIndex]);
+      var items=filterByWatchYear(lb.myh||[]).filter(function(i){return parseFloat(i.r)===star});
       if(!items.length)return;
       var el=document.getElementById('lbc');
-      var ex=el.parentElement.querySelector('.chart-detail');if(ex){ex.remove();if(ex.dataset.val===star)return}
-      var div=document.createElement('div');div.className='chart-detail';div.dataset.val=star;
+      var ex=el.parentElement.querySelector('.chart-detail');if(ex){ex.remove();if(ex.dataset.val===String(star))return}
+      var div=document.createElement('div');div.className='chart-detail';div.dataset.val=String(star);
       var h='<span class="cd-close" onclick="this.parentElement.remove()">✕</span><b>'+star+'★ ('+items.length+')</b>';
       items.slice(0,20).forEach(function(i){h+='<div class="cd-item"><span>'+i.t+'</span><span class="nm" style="color:#fb923c">'+i.r+'★</span></div>'});
       div.innerHTML=h;el.parentElement.appendChild(div);
@@ -1186,7 +1186,7 @@ function renderLetterboxd(){
   // Serializd TV rating distribution
   var sz=D.sz||{};var szDist=cy==='all'?(sz.dist||[]):((sz.dist_y||{})[cy]||[]);var szEl=document.getElementById('szc');
   if(szEl){
-    var szMap={};szDist.forEach(function(d){szMap[d.r]=d.c});
+    var szMap={};szDist.forEach(function(d){szMap[String(parseFloat(d.r))]=d.c});
     var szFull=allStars.map(function(s){return{r:s,c:szMap[s]||0}});
     var szCount=szFull.reduce(function(s,d){return s+d.c},0);
     var szSum=szFull.reduce(function(s,d){return s+parseFloat(d.r)*d.c},0);
@@ -1199,12 +1199,12 @@ function renderLetterboxd(){
       yAxis:{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},
       series:[{type:'bar',data:szFull.map(function(d){var v=parseFloat(d.r);var t=v/5;return{value:d.c,itemStyle:{color:'rgba(20,184,166,'+Math.max(0.25,t)+')'}}}),barMaxWidth:24}]});
     csz.on('click',function(p){
-      var star=allStars[p.dataIndex];
-      var items=filterByWatchYear(sz.szh||[]).filter(function(i){return String(i.r)===star});
+      var star=parseFloat(allStars[p.dataIndex]);
+      var items=filterByWatchYear(sz.szh||[]).filter(function(i){return parseFloat(i.r)===star});
       if(!items.length)return;
       var el=document.getElementById('szc');
-      var ex=el.parentElement.querySelector('.chart-detail');if(ex){ex.remove();if(ex.dataset.val===star)return}
-      var div=document.createElement('div');div.className='chart-detail';div.dataset.val=star;
+      var ex=el.parentElement.querySelector('.chart-detail');if(ex){ex.remove();if(ex.dataset.val===String(star))return}
+      var div=document.createElement('div');div.className='chart-detail';div.dataset.val=String(star);
       var h='<span class="cd-close" onclick="this.parentElement.remove()">✕</span><b>'+star+'★ ('+items.length+')</b>';
       items.slice(0,20).forEach(function(i){h+='<div class="cd-item"><span>'+i.t+'</span><span class="nm" style="color:#14b8a6">'+i.r+'★</span></div>'});
       div.innerHTML=h;el.parentElement.appendChild(div);
