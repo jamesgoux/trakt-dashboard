@@ -158,7 +158,7 @@ def fetch_cast_and_studios(entries):
                 _p = {pid: {"name": i["name"], "gender": i["gender"], "titles": list(i["titles"])} for pid, i in people.items()}
                 with open("data/people.json", "w") as f: json.dump(_p, f, separators=(',', ':'))
                 with open("data/studios.json", "w") as f: json.dump(slug_studios, f, separators=(',', ':'))
-            time.sleep(0.3)  # respect Trakt rate limits
+            time.sleep(0.8)  # respect Trakt rate limits (0.3 caused frequent 429s)
     print(f"  people: {len(people)}, studios: {len(slug_studios)}, directors: {len(directors)}, writers: {len(writers)}")
     people_out = {pid: {"name": i["name"], "gender": i["gender"], "titles": list(i["titles"])} for pid, i in people.items()}
     dir_out = {pid: {"name": i["name"], "titles": list(i["titles"])} for pid, i in directors.items()}
