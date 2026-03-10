@@ -1,0 +1,21 @@
+name: Explore Serializd API
+
+on:
+  workflow_dispatch:
+
+jobs:
+  explore:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: pip install requests
+      - name: Explore API
+        env:
+          SERIALIZD_EMAIL: ${{ secrets.SERIALIZD_EMAIL }}
+          SERIALIZD_PASSWORD: ${{ secrets.SERIALIZD_PASSWORD }}
+        run: python scripts/_explore_serializd.py
