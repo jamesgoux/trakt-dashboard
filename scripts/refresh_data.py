@@ -1612,6 +1612,7 @@ if os.path.exists("data/pocketcasts_history.json"):
             d = ev.get("d", "")
             if d and len(d) >= 10:
                 ll_counts[d]["pc"] += 1
+                ll_events[d].append({"t": "12:00", "n": "🎙️ " + ev.get("p", "") + " — " + ev.get("t", ""), "ty": "pc"})
                 pc_poll_count += 1
     if pc_poll_count:
         print(f"  Podcasts in lifeline: {pc_poll_count} polled episodes")

@@ -403,8 +403,8 @@ function renderLifeline(){
     yAxis:{type:'value',axisLabel:{color:'#666',formatter:function(v){return v>=0?v:''}},splitLine:{lineStyle:{color:'#222'}}},
     series:llSeries});
   // Click to show chronological events for that day
-  var typeIcons={ep:'📺',mv:'🎞️',sc:'🎧',bk:'📚',co:'🎸',th:'🎭'};
-  var typeColors={ep:'var(--tv)',mv:'var(--mv)',sc:'var(--mu)',bk:'var(--bk)',co:'var(--cn)',th:'var(--th)'};
+  var typeIcons={ep:'📺',mv:'🎞️',sc:'🎧',bk:'📚',co:'🎸',th:'🎭',pc:'🎙️'};
+  var typeColors={ep:'var(--tv)',mv:'var(--mv)',sc:'var(--mu)',bk:'var(--bk)',co:'var(--cn)',th:'var(--th)',pc:'#06b6d4'};
   llChart.on('click',function(p){
     var idx=p.dataIndex;var day=days[idx];if(!day||!ll[day])return;
     var ld=ll[day];var evts=ld.e||[];
@@ -423,6 +423,7 @@ function renderLifeline(){
       if(ld.bk)h+='<div class="cd-item"><span>📚 '+ld.bk+' books</span></div>';
       if(ld.co)h+='<div class="cd-item"><span>🎸 '+ld.co+' concerts</span></div>';
       if(ld.th)h+='<div class="cd-item"><span>🎭 '+ld.th+' plays</span></div>';
+      if(ld.pc)h+='<div class="cd-item"><span>🎙️ '+ld.pc+' podcast episodes</span></div>';
     }
     div.innerHTML=h;llEl.parentElement.appendChild(div);
   });
@@ -1707,7 +1708,7 @@ function renderStatus(){
   var hs_count=Object.keys(D.hs||{}).length;
   var ps_count=Object.keys(D.ps||{}).length;
   var el=document.getElementById('status');
-  el.innerHTML='<span>Actors: '+total_people+'</span><span>Headshots: '+hs_count+'</span><span>Posters: '+ps_count+'</span><span>Updated: 2026-03-10 03:31 UTC</span>';
+  el.innerHTML='<span>Actors: '+total_people+'</span><span>Headshots: '+hs_count+'</span><span>Posters: '+ps_count+'</span><span>Updated: 2026-03-10 03:32 UTC</span>';
 }
 
 function render(){ch.forEach(function(c){try{c.dispose()}catch(e){}});ch=[];
