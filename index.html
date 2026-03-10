@@ -83,7 +83,6 @@ body{overflow-x:hidden}
 .fbtn select{font-size:11px;padding:18px 8px 5px 8px}
 .fbtn label{font-size:8px;top:3px;left:6px}
 .rbtn{padding:5px 8px;font-size:13px;min-height:34px}
-#ll-sel{float:none;display:block;margin-top:4px}
 }
 </style></head><body>
 <div class="fbar">
@@ -103,7 +102,7 @@ body{overflow-x:hidden}
 </div>
 <!-- LIFELINE: 30-day activity -->
 <div class="g2 med-s" data-med="all movie show book music concert theater">
-<div id="sec-ll" class="cd fw s-t"><h3><span class="i">🧬</span>Lifeline <span id="ll-sel" class="vtog" style="float:right"></span></h3><div id="llc" style="height:280px"></div></div>
+<div id="sec-ll" class="cd fw s-t"><h3><span class="i">🧬</span>Lifeline</h3><div id="ll-sel" class="vtog" style="margin-bottom:4px"></div><div id="llc" style="height:280px"></div></div>
 </div>
 <div class="g2 med-s" data-med="all movie show">
 <div id="sec-act" class="cd s-a"><h3><span class="i">🎭</span>Most Watched Actors</h3><div class="stb"><table><thead><tr><th>#</th><th>Actor</th><th>Mov</th><th>Show</th><th>Total</th></tr></thead><tbody id="atb"></tbody></table></div></div>
@@ -1816,7 +1815,7 @@ function renderStatus(){
   var hs_count=Object.keys(D.hs||{}).length;
   var ps_count=Object.keys(D.ps||{}).length;
   var el=document.getElementById('status');
-  el.innerHTML='<span>Actors: '+total_people+'</span><span>Headshots: '+hs_count+'</span><span>Posters: '+ps_count+'</span><span>Updated: 2026-03-10 14:06 UTC</span>';
+  el.innerHTML='<span>Actors: '+total_people+'</span><span>Headshots: '+hs_count+'</span><span>Posters: '+ps_count+'</span><span>Updated: 2026-03-10 14:50 UTC</span>';
 }
 
 function render(){ch.forEach(function(c){try{c.dispose()}catch(e){}});ch=[];
