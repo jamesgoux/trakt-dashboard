@@ -1314,16 +1314,20 @@ if theater:
 # Podcast data from Pocket Casts
 if pc_data:
     data["pc"] = pc_data
-    # Add podcast monthly/yearly episode counts for timeline charts
-    pc_monthly = {}
-    pc_yearly = {}
-    for m in pc_data.get("monthly", []):
-        pc_monthly[m["month"]] = m["eps"]
-    for y in pc_data.get("yearly", []):
-        pc_yearly[y["yr"]] = y["eps"]
-    data["c"]["pc_m"] = pc_monthly
-    data["c"]["pc_y"] = pc_yearly
-    print(f"  Podcasts: {pc_data.get('total_podcasts', 0)} shows, {pc_data.get('total_listened_hrs', 0)}h listened")
+    # Add podcast monthly/yearly episode counts for timeline charts — POLL ONLY
+    pc_poll_monthly = defaultdict(int)
+    pc_poll_yearly = defaultdict(int)
+    if os.path.exists("data/pocketcasts_history.json"):
+        with open("data/pocketcasts_history.json") as f:
+            _pch = json.load(f)
+        for ev in _pch.values():
+            if ev.get("src") == "poll" and ev.get("d"):
+                d = ev["d"]
+                pc_poll_monthly[d[:7]] += 1
+                pc_poll_yearly[d[:4]] += 1
+    data["c"]["pc_m"] = dict(pc_poll_monthly)
+    data["c"]["pc_y"] = dict(pc_poll_yearly)
+    print(f"  Podcasts: {pc_data.get('total_podcasts', 0)} shows, {pc_data.get('total_listened_hrs', 0)}h listened, {sum(pc_poll_yearly.values())} polled episodes")
 
 # Merge concert + theater titles into monthly title lists (mt)
 mt = data["c"].get("mt", {})
