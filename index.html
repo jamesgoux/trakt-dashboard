@@ -621,10 +621,10 @@ function baseCharts(){
     }else{
       pcLineData=mf.map(function(d){return pcM[d.month]||0});
     }
-    tlSeries.push({name:'Pod Episodes',type:'line',yAxisIndex:1,data:pcLineData,itemStyle:{color:'#ef4444'},lineStyle:{width:2},symbol:'circle',symbolSize:4});
+    tlSeries.push({name:'Pod Episodes',type:'line',yAxisIndex:2,data:pcLineData,itemStyle:{color:'#ef4444'},lineStyle:{width:2},symbol:'circle',symbolSize:4});
     tlLeg.push('Pod Episodes');
   }
-  c1.setOption({tooltip:{trigger:'axis',...tt},legend:{data:tlLeg.length>1?tlLeg:[],right:10,top:0,textStyle:{color:'#999'}},grid:{left:50,right:40,top:36,bottom:30},xAxis:{type:'category',data:tlLabels,axisLabel:{color:'#666',interval:0,rotate:45,fontSize:window._tlRes==='weekly'?8:10},axisLine:{lineStyle:{color:'#333'}}},yAxis:[{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},{type:'value',position:'right',axisLabel:{show:false},splitLine:{show:false}}],series:tlSeries});
+  c1.setOption({tooltip:{trigger:'axis',...tt},legend:{data:tlLeg.length>1?tlLeg:[],right:10,top:0,textStyle:{color:'#999'}},grid:{left:50,right:40,top:36,bottom:30},xAxis:{type:'category',data:tlLabels,axisLabel:{color:'#666',interval:0,rotate:45,fontSize:window._tlRes==='weekly'?8:10},axisLine:{lineStyle:{color:'#333'}}},yAxis:[{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},{type:'value',position:'right',axisLabel:{show:false},splitLine:{show:false}},{type:'value',position:'right',axisLabel:{show:false},splitLine:{show:false}}],series:tlSeries});
   if(ct==='all'&&tlLeg.length>1)legendIsolate(c1,tlLeg);
   c1.on('click',function(p){
     var month;
@@ -943,10 +943,10 @@ function baseCharts(){
   // Podcasts line overlay (secondary y-axis)
   var pcYrLine=D.c.pc_y||{};
   if((ct==='all'||ct==='podcast')&&Object.keys(pcYrLine).length){
-    yrSeries.push({name:'Pod Episodes',type:'line',yAxisIndex:1,data:yr.map(function(d){return pcYrLine[d.year]||0}),itemStyle:{color:'#ef4444'},lineStyle:{width:2},symbol:'circle',symbolSize:4});
+    yrSeries.push({name:'Pod Episodes',type:'line',yAxisIndex:2,data:yr.map(function(d){return pcYrLine[d.year]||0}),itemStyle:{color:'#ef4444'},lineStyle:{width:2},symbol:'circle',symbolSize:4});
     yrLeg.push('Pod Episodes');
   }
-  c6.setOption({tooltip:{trigger:'axis',...tt,formatter:function(p){if(p[0]&&tp(p).axisValue==='2016')return'<b>2016</b><br/>Zeroed (outlier: 4,257)';return p.map(function(s){return s.marker+s.seriesName+': '+s.value}).join('<br/>')}},legend:{data:yrLeg.length>1?yrLeg:[],right:10,top:0,textStyle:{color:'#999'}},grid:{left:50,right:40,top:36,bottom:24},xAxis:{type:'category',data:yr.map(function(d){return d.year}),axisLabel:{color:'#666',fontSize:10},axisLine:{lineStyle:{color:'#333'}}},yAxis:[{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},{type:'value',position:'right',axisLabel:{show:false},splitLine:{show:false}}],series:yrSeries});
+  c6.setOption({tooltip:{trigger:'axis',...tt,formatter:function(p){if(p[0]&&tp(p).axisValue==='2016')return'<b>2016</b><br/>Zeroed (outlier: 4,257)';return p.map(function(s){return s.marker+s.seriesName+': '+s.value}).join('<br/>')}},legend:{data:yrLeg.length>1?yrLeg:[],right:10,top:0,textStyle:{color:'#999'}},grid:{left:50,right:40,top:36,bottom:24},xAxis:{type:'category',data:yr.map(function(d){return d.year}),axisLabel:{color:'#666',fontSize:10},axisLine:{lineStyle:{color:'#333'}}},yAxis:[{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},{type:'value',position:'right',axisLabel:{show:false},splitLine:{show:false}},{type:'value',position:'right',axisLabel:{show:false},splitLine:{show:false}}],series:yrSeries});
   if(ct==='all'&&yrLeg.length>1)legendIsolate(c6,yrLeg);
   c6.on('click',function(p){
     var year=yr[p.dataIndex]?yr[p.dataIndex].year:p.name;
@@ -1836,7 +1836,7 @@ function renderStatus(){
   var hs_count=Object.keys(D.hs||{}).length;
   var ps_count=Object.keys(D.ps||{}).length;
   var el=document.getElementById('status');
-  el.innerHTML='<span>Actors: '+total_people+'</span><span>Headshots: '+hs_count+'</span><span>Posters: '+ps_count+'</span><span>Updated: 2026-03-10 17:20 UTC</span>';
+  el.innerHTML='<span>Actors: '+total_people+'</span><span>Headshots: '+hs_count+'</span><span>Posters: '+ps_count+'</span><span>Updated: 2026-03-10 17:21 UTC</span>';
 }
 
 function render(){ch.forEach(function(c){try{c.dispose()}catch(e){}});ch=[];
