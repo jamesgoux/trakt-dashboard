@@ -335,6 +335,9 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
     genre_movie_y = defaultdict(Counter); genre_show_y = defaultdict(Counter)
     genre_titles = {}  # genre -> {"m": [movie titles], "s": [show titles]}
     dwc = Counter(); dwc_m = Counter(); dwc_s = Counter(); dwn = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"]
+    dwc_y = defaultdict(Counter)  # year -> day -> count
+    dwc_my = defaultdict(Counter)  # year -> day -> movie count
+    dwc_sy = defaultdict(Counter)  # year -> day -> show count
     hod = defaultdict(lambda: defaultdict(int))  # hour of day by year
     net_movies = Counter()  # count unique titles, not episodes
     net_shows = Counter()
@@ -434,8 +437,9 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
             dt_local = dt.astimezone(ZoneInfo("America/Los_Angeles"))
             dw_name = dwn[dt_local.weekday()]
             dwc[dw_name] += 1
-            if e["type"] == "movie": dwc_m[dw_name] += 1
-            else: dwc_s[dw_name] += 1
+            if e["type"] == "movie": dwc_m[dw_name] += 1; dwc_my[y][dw_name] += 1
+            else: dwc_s[dw_name] += 1; dwc_sy[y][dw_name] += 1
+            dwc_y[y][dw_name] += 1
             h_key = f"{dt_local.hour}_{e['type']}"
             hod[y][h_key] += 1
         except Exception: pass
@@ -677,6 +681,7 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
             "ga_y": {y: [{"genre": g, "count": (genre_movie_y[y][g] + genre_show_y[y][g]), "m": genre_movie_y[y][g], "s": genre_show_y[y][g]} for g, _ in (genre_movie_y[y] + genre_show_y[y]).most_common(20)] for y in set(list(genre_movie_y) + list(genre_show_y))},
             "gt": _build_genre_trends(genre_movie_y, genre_show_y),
             "dw": [{"day": d, "count": dwc.get(d, 0), "m": dwc_m.get(d, 0), "s": dwc_s.get(d, 0)} for d in dwn],
+            "dw_y": {y: [{"day": d, "count": dwc_y[y].get(d, 0), "m": dwc_my[y].get(d, 0), "s": dwc_sy[y].get(d, 0)} for d in dwn] for y in dwc_y},
             "hod": hod_all,
             "hod_y": hod_by_year,
             "net": [{"n": n, "s": net_shows[n]} for n in sorted(net_shows, key=net_shows.get, reverse=True)[:25]],
