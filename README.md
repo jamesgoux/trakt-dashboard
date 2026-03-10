@@ -6,8 +6,8 @@ A personal media consumption dashboard aggregating data from **7 sources** into 
 
 ## What it does
 
-- **Auto-refreshes every 20 minutes** — Trakt, Letterboxd, Goodreads, Last.fm, setlist.fm
-- **Daily full refresh** — cast, studios, crew, headshot/poster/logo backfill, book genres, artist genres
+- **Auto-refreshes every 20 minutes** — Trakt, Letterboxd, Goodreads, Last.fm, setlist.fm, Pocket Casts
+- **Full refresh every 2 hours** — cast, studios, crew, headshot/poster/logo backfill, book genres, artist genres, Last.fm daily scrobbles
 - **Mobile-first** — works as iOS home screen app with eye icon, orientation-aware
 - **No manual intervention** — runs entirely on GitHub Actions
 - **Type filter** — switch between All, Movies, Shows, Books, Music, Concerts, Theater
@@ -23,8 +23,9 @@ A personal media consumption dashboard aggregating data from **7 sources** into 
 | **Last.fm** | API | Scrobbles, top artists/albums/tracks, genres, weekly/monthly/yearly activity |
 | **setlist.fm** | API | Concert attendance, setlists, song counts, albums |
 | **Mezzanine** | CSV import | Theater diary (shows, venues, ratings, companions, tags) |
-| **TMDB** | Website scraping | Headshot photos, poster images, network/studio logos |
+| **TMDB** | API + scraping | Headshot photos, poster images, network/studio logos |
 | **MusicBrainz** | API | Artist genres for concerts |
+| **Pocket Casts** | API + GDPR export | Podcast listening history, episode counts, series data |
 
 ## Dashboard Sections
 
@@ -100,20 +101,19 @@ Drag-and-drop auto-detects Letterboxd diary or Mezzanine theater CSV.
 │   ├── mezzanine.csv             ← Theater diary export
 │   └── letterboxd_tags.csv       ← Letterboxd diary with tags
 └── .github/workflows/
-    ├── refresh-data.yml          ← Every 20 min: Letterboxd + Goodreads + Last.fm + Concerts + Trakt
-    └── refresh-headshots.yml     ← Daily 4:15am: full refresh + images + book genres + artist genres
+    ├── refresh-data.yml          ← Every 20 min + on push: fast refresh + quick image backfill
+    └── refresh-headshots.yml     ← Every 2 hours: full refresh + images + genres + daily scrobbles + cast/crew
 ```
 
 ## Setup
 
 1. Push to a public GitHub repo
 2. Add repository secrets:
-   - `TRAKT_CLIENT_ID` — Trakt API client ID
-   - `TRAKT_USERNAME` — Trakt username
-   - `SETLIST_FM_API_KEY` — setlist.fm API key
-   - `GOODREADS_USER_ID` — Goodreads user ID (from profile URL)
-   - `LASTFM_API_KEY` — Last.fm API key
-   - `LASTFM_USER` — Last.fm username
+   - `TRAKT_CLIENT_ID`, `TRAKT_USERNAME`, `TRAKT_CLIENT_SECRET`, `TRAKT_ACCESS_TOKEN`, `TRAKT_REFRESH_TOKEN`
+   - `TMDB_BEARER_TOKEN`, `TMDB_API_KEY`
+   - `SETLIST_FM_API_KEY`, `GOODREADS_USER_ID`
+   - `LASTFM_API_KEY`, `LASTFM_USER`
+   - `POCKETCASTS_EMAIL`, `POCKETCASTS_PASSWORD`
 3. Enable GitHub Pages (deploy from branch main/root)
 4. Run first refresh from Actions tab
 5. Bookmark the URL on your phone
