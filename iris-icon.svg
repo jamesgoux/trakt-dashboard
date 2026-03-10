@@ -6,6 +6,9 @@
       <stop offset="100%" stop-color="#0f3460"/>
     </radialGradient>
   </defs>
+  <!-- Dark background with rounded corners for iOS -->
+  <rect width="512" height="512" rx="90" fill="#0f0f0f"/>
+  <rect width="512" height="512" rx="90" fill="none" stroke="#a78bfa" stroke-width="6" stroke-opacity="0.4"/>
   <!-- Eye shape -->
   <path d="M256 96C128 96 32 256 32 256s96 160 224 160 224-160 224-160S384 96 256 96z" fill="#1a1a2e" stroke="#a78bfa" stroke-width="8"/>
   <!-- Iris circle -->
