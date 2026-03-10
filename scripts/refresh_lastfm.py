@@ -128,18 +128,38 @@ monthly_artist_plays = defaultdict(lambda: defaultdict(int))
 monthly_album_plays = defaultdict(lambda: defaultdict(int))
 
 # Seed from existing yearly/monthly totals
+# Track which periods will get new data so we don't double-count
+new_periods_y = set()
+new_periods_m = set()
+if last_fetched_ts:
+    try:
+        charts_data_pre = api("user.getweeklychartlist")
+        for ch in charts_data_pre.get("weeklychartlist", {}).get("chart", []):
+            if safe_int(ch["from"]) > last_fetched_ts:
+                dt = datetime.fromtimestamp(safe_int(ch["from"]))
+                new_periods_y.add(dt.strftime("%Y"))
+                new_periods_m.add(dt.strftime("%Y-%m"))
+    except Exception:
+        pass
+
 for y in existing.get("yearly", []):
-    yearly_scrobbles[y["yr"]] = y["s"]
+    if y["yr"] not in new_periods_y:
+        yearly_scrobbles[y["yr"]] = y["s"]
     for a in y.get("ta", []):
-        yearly_artist_plays[y["yr"]][a["n"]] = a["c"]
+        if y["yr"] not in new_periods_y:
+            yearly_artist_plays[y["yr"]][a["n"]] = a["c"]
     for a in y.get("tal", []):
-        yearly_album_plays[y["yr"]][a["n"]] = a["c"]
+        if y["yr"] not in new_periods_y:
+            yearly_album_plays[y["yr"]][a["n"]] = a["c"]
 for m in existing.get("monthly", []):
-    monthly_scrobbles[m["m"]] = m["s"]
+    if m["m"] not in new_periods_m:
+        monthly_scrobbles[m["m"]] = m["s"]
     for a in m.get("ta", []):
-        monthly_artist_plays[m["m"]][a["n"]] = a["c"]
+        if m["m"] not in new_periods_m:
+            monthly_artist_plays[m["m"]][a["n"]] = a["c"]
     for a in m.get("tal", []):
-        monthly_album_plays[m["m"]][a["n"]] = a["c"]
+        if m["m"] not in new_periods_m:
+            monthly_album_plays[m["m"]][a["n"]] = a["c"]
 
 weekly = list(old_weekly)
 weekly_details = dict(old_wd)

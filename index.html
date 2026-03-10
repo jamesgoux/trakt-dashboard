@@ -637,7 +637,11 @@ function baseCharts(){
     var el=document.getElementById('tlc');
     var ex=el.parentElement.querySelector('.chart-detail');if(ex){ex.remove();if(ex.dataset.val===month)return}
     var div=document.createElement('div');div.className='chart-detail';div.dataset.val=month;
-    div.innerHTML=_detailHtml(month+' ('+titles.length+' titles)',titles,50);el.parentElement.appendChild(div)});
+    var detailH2=_detailHtml(month+' ('+titles.length+' titles)',titles,50);
+    // Append top scrobble artists for this month
+    var lfmMoD=lfmMo.find(function(m2){return m2.m===month});
+    if(lfmMoD&&lfmMoD.ta&&lfmMoD.ta.length){detailH2+='<div style="margin-top:6px;font-size:10px;font-weight:600;color:var(--t2)">🎤 Top Artists ('+lfmMoD.ta.length+')</div>';lfmMoD.ta.slice(0,5).forEach(function(a){detailH2+='<div class="cd-item"><span>'+a.n+'</span><span class="nm" style="color:#1db954">'+a.c+'</span></div>'})}
+    div.innerHTML=detailH2;el.parentElement.appendChild(div)});
   ch.push(c1);
   }
 
@@ -951,11 +955,14 @@ function baseCharts(){
         if(!allTitles[t.t])allTitles[t.t]={type:t.type,count:0};
         allTitles[t.t].count+=t.c})});
     var flat=Object.entries(allTitles).map(function(e){return{t:e[0],type:e[1].type,c:e[1].count}});
-    if(!flat.length)return;
     var el=document.getElementById('yrc');
     var ex=el.parentElement.querySelector('.chart-detail');if(ex){ex.remove();if(ex.dataset.val===year)return}
     var div=document.createElement('div');div.className='chart-detail';div.dataset.val=year;
-    div.innerHTML=_detailHtml(year,flat);el.parentElement.appendChild(div)});
+    var detailH=_detailHtml(year,flat);
+    // Append top scrobble artists if available
+    var lfmD2=lfmYr.find(function(y){return y.yr===year});
+    if(lfmD2&&lfmD2.ta&&lfmD2.ta.length){detailH+='<div style="margin-top:6px;font-size:10px;font-weight:600;color:var(--t2)">🎤 Top Artists ('+lfmD2.ta.length+')</div>';lfmD2.ta.slice(0,5).forEach(function(a){detailH+='<div class="cd-item"><span>'+a.n+'</span><span class="nm" style="color:#1db954">'+a.c+'</span></div>'})}
+    div.innerHTML=detailH;el.parentElement.appendChild(div)});
   ch.push(c6);
   }
 
@@ -1811,7 +1818,7 @@ function renderStatus(){
   var hs_count=Object.keys(D.hs||{}).length;
   var ps_count=Object.keys(D.ps||{}).length;
   var el=document.getElementById('status');
-  el.innerHTML='<span>Actors: '+total_people+'</span><span>Headshots: '+hs_count+'</span><span>Posters: '+ps_count+'</span><span>Updated: 2026-03-10 06:29 UTC</span>';
+  el.innerHTML='<span>Actors: '+total_people+'</span><span>Headshots: '+hs_count+'</span><span>Posters: '+ps_count+'</span><span>Updated: 2026-03-10 06:34 UTC</span>';
 }
 
 function render(){ch.forEach(function(c){try{c.dispose()}catch(e){}});ch=[];
