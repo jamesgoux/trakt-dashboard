@@ -781,6 +781,41 @@ if os.path.exists("data/letterboxd.json"):
         print(f"  Letterboxd backfill: +{lb_added} watches merged (2015-2022, deduped within 30 days)")
     else:
         print(f"  Letterboxd backfill: no new watches to merge")
+    
+    # Also add undated watches (from watched.csv) — no date, only count on all-time
+    lb_undated = 0
+    for lb_key, lb_entry in lb_data.items():
+        if not lb_entry.get("undated"):
+            continue
+        title = lb_entry.get("title", "")
+        year = str(lb_entry.get("year", ""))
+        if not title:
+            continue
+        key = (title.lower(), year)
+        # Skip if already in Trakt by any date
+        if key in trakt_watches and trakt_watches[key]:
+            continue
+        entries.append({
+            "type": "movie",
+            "watched_at": "",  # no date
+            "title": title,
+            "year": year,
+            "runtime": "",
+            "genres": "",
+            "trakt_slug": "",
+            "tmdb_id": lb_entry.get("tmdb_id", ""),
+            "show_title": "",
+            "season": "",
+            "episode_number": "",
+            "network": "",
+            "country": "",
+            "language": "",
+            "trakt_rating": "",
+            "undated": True,
+        })
+        lb_undated += 1
+    if lb_undated:
+        print(f"  Letterboxd undated: +{lb_undated} movies added (all-time only)")
 
 print(f"  Total: {len(entries)} entries (after merge)")
 
