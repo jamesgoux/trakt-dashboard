@@ -63,7 +63,7 @@ for period in ["overall", "12month", "3month", "1month"]:
 
 top_tracks = []
 for period in ["overall", "12month", "3month", "1month"]:
-    data = api("user.gettoptracks", period=period, limit=20)
+    data = api("user.gettoptracks", period=period, limit=30)
     tracks = [{"n": t["name"], "a": t["artist"]["name"], "c": safe_int(t["playcount"])} for t in data.get("toptracks", {}).get("track", [])]
     top_tracks.append({"period": period, "tracks": tracks})
     time.sleep(0.3)

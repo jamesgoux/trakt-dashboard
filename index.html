@@ -191,9 +191,9 @@ body{overflow-x:hidden}
 <!-- MUSIC (Last.fm) -->
 <div class="g2 med-s" data-med="all music" id="lfm-wrap" style="display:none">
 <div id="sec-lfm" class="cd s-lfm"><h3><span class="i">🎧</span>Listening Activity <span class="vtog" style="float:right"><button class="vb vb-on lfm-met" data-v="s">Scrobbles</button><button class="vb lfm-met" data-v="a">Artists</button><button class="vb lfm-met" data-v="al">Albums</button></span></h3><div id="lfm-weekly" style="height:280px"></div></div>
-<div class="cd s-lfm"><h3><span class="i">🎤</span>Top Artists <span class="vtog" id="lfm-range-wrap" style="float:right"></span></h3><div id="lfm-artists" style="height:280px"></div></div>
+<div class="cd s-lfm"><h3><span class="i">🎤</span>Top Artists <span class="vtog" id="lfm-range-wrap" style="float:right"></span></h3><div id="lfm-artists" style="height:500px"></div></div>
 <div class="cd s-lfm"><h3><span class="i">💿</span>Top Albums</h3><div id="lfm-albums" style="height:280px"></div></div>
-<div class="cd s-lfm"><h3><span class="i">🎵</span>Top Tracks</h3><div id="lfm-tracks" style="height:280px"></div></div>
+<div class="cd s-lfm"><h3><span class="i">🎵</span>Top Tracks</h3><div id="lfm-tracks" style="height:600px"></div></div>
 <div class="cd s-lfm"><h3><span class="i">🏷️</span>Genres</h3><div id="lfm-genres" style="height:280px"></div></div>
 </div>
 <!-- CONCERTS (bottom) -->
@@ -1811,7 +1811,7 @@ function renderStatus(){
   var hs_count=Object.keys(D.hs||{}).length;
   var ps_count=Object.keys(D.ps||{}).length;
   var el=document.getElementById('status');
-  el.innerHTML='<span>Actors: '+total_people+'</span><span>Headshots: '+hs_count+'</span><span>Posters: '+ps_count+'</span><span>Updated: 2026-03-10 06:27 UTC</span>';
+  el.innerHTML='<span>Actors: '+total_people+'</span><span>Headshots: '+hs_count+'</span><span>Posters: '+ps_count+'</span><span>Updated: 2026-03-10 06:29 UTC</span>';
 }
 
 function render(){ch.forEach(function(c){try{c.dispose()}catch(e){}});ch=[];
