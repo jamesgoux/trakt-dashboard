@@ -1499,14 +1499,22 @@ if os.path.exists("data/lastfm.json"):
 
 # Lifeline: per-day activity with timestamped events for chronological display
 from datetime import timedelta
+from zoneinfo import ZoneInfo
+_tz_pac = ZoneInfo("America/Los_Angeles")
 ll_counts = defaultdict(lambda: {"ep": 0, "mv": 0, "bk": 0, "sc": 0, "co": 0, "th": 0, "pc": 0})
 ll_events = defaultdict(list)  # day -> [{t: time, n: name, ty: type}]
 
-# Episodes + Movies from Trakt (have full timestamps)
+# Episodes + Movies from Trakt (have full timestamps — convert UTC to Pacific)
 for e in entries:
     if not e.get("watched_at"): continue
-    d = e["watched_at"][:10]
-    ts = e["watched_at"][11:16] if len(e["watched_at"]) > 11 else "00:00"
+    try:
+        dt_utc = datetime.fromisoformat(e["watched_at"].replace("Z", "+00:00"))
+        dt_local = dt_utc.astimezone(_tz_pac)
+        d = dt_local.strftime("%Y-%m-%d")
+        ts = dt_local.strftime("%H:%M")
+    except Exception:
+        d = e["watched_at"][:10]
+        ts = e["watched_at"][11:16] if len(e["watched_at"]) > 11 else "00:00"
     if e["type"] == "episode":
         name = (e.get("show_title") or "") + " S" + str(e.get("season","")) + "E" + str(e.get("episode_number",""))
         ll_counts[d]["ep"] += 1
