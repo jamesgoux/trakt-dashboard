@@ -19,58 +19,134 @@ if not email or not password:
 print("Logging in...")
 r = requests.post(f"{BASE}/login", headers=HEADERS, json={"email": email, "password": password})
 print(f"Login status: {r.status_code}")
-if r.status_code != 200:
-    print(r.text[:500]); exit(1)
-
 login_data = r.json()
-print(f"Login response keys: {list(login_data.keys())}")
-token = login_data.get("token") or login_data.get("access_token") or login_data.get("accessToken")
+username = login_data.get("username", "")
+token = login_data.get("token", "")
+print(f"Username: {username}")
 if not token:
-    print(f"Full login response: {json.dumps(login_data, indent=2)[:1000]}")
-    exit(1)
+    print("No token!"); exit(1)
 
-print(f"Got token: {token[:20]}...")
-
-# Set auth cookie
+# Session with auth cookie
 session = requests.Session()
 session.headers.update(HEADERS)
 session.cookies.set("tvproject_credentials", token, domain=".serializd.com")
+# Also try as Authorization header
+session.headers["Authorization"] = f"Bearer {token}"
+session.headers["Cookie"] = f"tvproject_credentials={token}"
 
-# Try various profile/ratings endpoints
+# Broader endpoint exploration
 endpoints = [
-    "/user",
-    "/user/profile",
-    "/user/ratings",
-    "/user/reviews",
-    "/user/diary",
-    "/user/watched",
-    "/user/activity",
-    "/profile",
-    "/profile/ratings",
-    "/ratings",
-    "/getuserprofile",
-    "/getUserProfile",
+    # Profile patterns
+    f"/user/{username}",
+    f"/user/{username}/ratings",
+    f"/user/{username}/reviews",
+    f"/user/{username}/diary",
+    f"/user/{username}/watched",
+    f"/user/{username}/activity",
+    f"/user/{username}/shows",
+    f"/user/{username}/profile",
+    # getUserX patterns (common in Next.js/Vercel apps)
+    f"/getUserShows/{username}",
+    f"/getUserRatings/{username}",
+    f"/getUserReviews/{username}",
+    f"/getUserDiary/{username}",
+    f"/getUserWatched/{username}",
+    f"/getUserActivity/{username}",
+    f"/getUserProfile/{username}",
+    # camelCase patterns
+    f"/userShows/{username}",
+    f"/userRatings/{username}",
+    f"/userReviews/{username}",
+    f"/userProfile/{username}",
+    # Kebab patterns
+    f"/user-shows/{username}",
+    f"/user-ratings/{username}",
+    f"/user-profile/{username}",
+    # Show-specific (test with a known TMDB ID - Breaking Bad = 1396)
+    "/show/1396",
+    "/show/1396/reviews",
+    "/show/1396/ratings",
+    # Other patterns
+    "/me",
+    "/me/ratings",
+    "/me/shows",
+    "/account",
+    "/account/ratings",
+    "/diary",
+    "/reviews",
+    "/watched",
+    "/watchedShows",
+    "/getWatchedShows",
+    # POST endpoints (some APIs use POST for queries)
 ]
 
 for ep in endpoints:
     try:
         r2 = session.get(f"{BASE}{ep}", timeout=5)
         status = r2.status_code
-        body = r2.text[:200] if r2.status_code == 200 else r2.text[:100]
-        print(f"\n{ep}: {status}")
         if status == 200:
             try:
                 data = r2.json()
-                print(f"  Keys: {list(data.keys()) if isinstance(data, dict) else type(data).__name__}")
                 if isinstance(data, dict):
-                    for k, v in data.items():
+                    print(f"\n{ep}: 200 - keys: {list(data.keys())[:10]}")
+                    for k, v in list(data.items())[:5]:
                         if isinstance(v, list):
                             print(f"  {k}: list[{len(v)}]")
+                            if v: print(f"    first: {json.dumps(v[0])[:200]}")
                         elif isinstance(v, dict):
-                            print(f"  {k}: dict keys={list(v.keys())[:5]}")
+                            print(f"  {k}: dict keys={list(v.keys())[:8]}")
                         else:
-                            print(f"  {k}: {repr(v)[:80]}")
+                            print(f"  {k}: {repr(v)[:100]}")
+                elif isinstance(data, list):
+                    print(f"\n{ep}: 200 - list[{len(data)}]")
+                    if data: print(f"  first: {json.dumps(data[0])[:200]}")
+                else:
+                    print(f"\n{ep}: 200 - {type(data).__name__}: {str(data)[:100]}")
             except:
-                print(f"  Body: {body}")
+                print(f"\n{ep}: 200 - body: {r2.text[:200]}")
+        elif status != 404:
+            print(f"\n{ep}: {status} - {r2.text[:100]}")
+    except Exception as e:
+        print(f"\n{ep}: ERROR {e}")
+
+# Also try POST endpoints
+post_endpoints = [
+    ("/getUserShows", {"username": username}),
+    ("/getUserRatings", {"username": username}),
+    ("/getUserProfile", {"username": username}),
+    ("/getProfile", {"username": username}),
+    ("/getRatings", {"username": username}),
+    ("/getReviews", {"username": username}),
+    ("/getDiary", {"username": username}),
+    ("/getWatched", {"username": username}),
+    ("/getActivity", {"username": username}),
+    ("/getUserData", {"username": username}),
+]
+
+print("\n\n=== POST endpoints ===")
+for ep, body in post_endpoints:
+    try:
+        r3 = session.post(f"{BASE}{ep}", json=body, timeout=5)
+        status = r3.status_code
+        if status == 200:
+            try:
+                data = r3.json()
+                if isinstance(data, dict):
+                    print(f"\n{ep}: 200 - keys: {list(data.keys())[:10]}")
+                    for k, v in list(data.items())[:5]:
+                        if isinstance(v, list):
+                            print(f"  {k}: list[{len(v)}]")
+                            if v: print(f"    first: {json.dumps(v[0])[:200]}")
+                        elif isinstance(v, dict):
+                            print(f"  {k}: dict keys={list(v.keys())[:8]}")
+                        else:
+                            print(f"  {k}: {repr(v)[:100]}")
+                elif isinstance(data, list):
+                    print(f"\n{ep}: 200 - list[{len(data)}]")
+                    if data: print(f"  first: {json.dumps(data[0])[:200]}")
+            except:
+                print(f"\n{ep}: 200 - body: {r3.text[:200]}")
+        elif status != 404:
+            print(f"\n{ep}: {status} - {r3.text[:100]}")
     except Exception as e:
         print(f"\n{ep}: ERROR {e}")
