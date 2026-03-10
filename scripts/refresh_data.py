@@ -228,8 +228,8 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
             "season": str(e["season"])
         })
 
-    # Compute per-season delay: use median episode delay, filter bulk imports
-    season_delays = []  # [{show, slug, season, delay_days, watch_year}]
+    # Compute per-season delay
+    season_delays = []
     for (slug, sn), eps in season_eps.items():
         delays = []
         for ep in eps:
@@ -242,26 +242,24 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
             except Exception: pass
         if not delays or len(delays) < 4: continue
         avg_delay = sum(delays) / len(delays)
-        # Filter bulk imports: if avg delay < 1 day, almost certainly bulk-imported
-        if avg_delay < 1.0: continue
-        # Use the latest watch year for this season
         watch_year = max(ep["year"] for ep in eps if ep.get("year"))
+        # Exclude June 2016 bulk import
+        if watch_year == "2016" and any(ep["watched"][:7] == "2016-06" for ep in eps if ep.get("watched")):
+            continue
         season_delays.append({
             "show": eps[0]["show"], "slug": slug, "season": sn,
             "delay": round(avg_delay, 1), "eps": len(delays), "year": watch_year
         })
 
-    # Split into TTW (<365 days) and catch-up (>365 days)
+    # Split: TTW filters out <1 day (bulk imports), catch-up does NOT
     ttw_all = []
     catchup_all = []
     for sd in season_delays:
         label = sd["show"] + " S" + sd["season"].zfill(2)
-        entry = {"n": label, "avg": sd["delay"], "ct": sd["eps"]}
-        if sd["delay"] <= 365:
-            ttw_all.append(entry)
-        else:
-            avg_years = round(sd["delay"] / 365, 1)
-            catchup_all.append({"n": label, "avg": avg_years, "ct": sd["eps"]})
+        if sd["delay"] > 365:
+            catchup_all.append({"n": label, "avg": round(sd["delay"] / 365, 1), "ct": sd["eps"]})
+        elif sd["delay"] >= 1.0:
+            ttw_all.append({"n": label, "avg": sd["delay"], "ct": sd["eps"]})
 
     ttw_all.sort(key=lambda x: x["avg"])
     catchup_all.sort(key=lambda x: x["avg"])
@@ -272,7 +270,10 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
     for sd in season_delays:
         label = sd["show"] + " S" + sd["season"].zfill(2)
         yr = sd["year"]
-        if sd["delay"] <= 365:
+        if sd["delay"] > 365:
+            catchup_by_year[yr].append({"n": label, "avg": round(sd["delay"] / 365, 1), "ct": sd["eps"]})
+        elif sd["delay"] >= 1.0:
+            ttw_by_year[yr].append({"n": label, "avg": sd["delay"], "ct": sd["eps"]})
             ttw_by_year[yr].append({"n": label, "avg": sd["delay"], "ct": sd["eps"]})
         else:
             catchup_by_year[yr].append({"n": label, "avg": round(sd["delay"] / 365, 1), "ct": sd["eps"]})

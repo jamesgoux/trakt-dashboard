@@ -65,7 +65,8 @@ if not token:
 print("  Logged in")
 
 now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-now_date = now[:10]
+from zoneinfo import ZoneInfo
+now_date = datetime.now(ZoneInfo("America/Los_Angeles")).strftime("%Y-%m-%d")
 
 # Load previous snapshot for polling comparison
 snapshot = load_json("data/pocketcasts_snapshot.json")  # {ep_uuid: playedUpTo}
