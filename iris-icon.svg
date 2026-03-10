@@ -8,10 +8,8 @@
   </defs>
   <!-- Dark background -->
   <rect width="512" height="512" rx="90" fill="#0f0f0f"/>
-  <!-- Strong purple border -->
-  <rect width="512" height="512" rx="90" fill="none" stroke="#a78bfa" stroke-width="20"/>
-  <!-- Eye shape — purple filled -->
-  <path d="M256 96C128 96 32 256 32 256s96 160 224 160 224-160 224-160S384 96 256 96z" fill="#7c3aed" stroke="#c4b5fd" stroke-width="6"/>
+  <!-- Eye shape — purple filled, no stroke -->
+  <path d="M256 96C128 96 32 256 32 256s96 160 224 160 224-160 224-160S384 96 256 96z" fill="#7c3aed"/>
   <!-- Iris circle -->
   <circle cx="256" cy="256" r="100" fill="url(#iris)"/>
   <!-- Pupil -->
