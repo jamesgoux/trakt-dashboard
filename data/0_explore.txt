@@ -1,0 +1,202 @@
+﻿2026-03-10T21:49:13.6480727Z Current runner version: '2.332.0'
+2026-03-10T21:49:13.6505525Z ##[group]Runner Image Provisioner
+2026-03-10T21:49:13.6506369Z Hosted Compute Agent
+2026-03-10T21:49:13.6506932Z Version: 20260213.493
+2026-03-10T21:49:13.6507692Z Commit: 5c115507f6dd24b8de37d8bbe0bb4509d0cc0fa3
+2026-03-10T21:49:13.6508372Z Build Date: 2026-02-13T00:28:41Z
+2026-03-10T21:49:13.6509074Z Worker ID: {f21b76b1-3fcd-47ed-afa4-2ec7e5739231}
+2026-03-10T21:49:13.6509863Z Azure Region: centralus
+2026-03-10T21:49:13.6510417Z ##[endgroup]
+2026-03-10T21:49:13.6511800Z ##[group]Operating System
+2026-03-10T21:49:13.6512569Z Ubuntu
+2026-03-10T21:49:13.6513069Z 24.04.3
+2026-03-10T21:49:13.6513514Z LTS
+2026-03-10T21:49:13.6514376Z ##[endgroup]
+2026-03-10T21:49:13.6515060Z ##[group]Runner Image
+2026-03-10T21:49:13.6515690Z Image: ubuntu-24.04
+2026-03-10T21:49:13.6516215Z Version: 20260302.42.1
+2026-03-10T21:49:13.6517465Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260302.42/images/ubuntu/Ubuntu2404-Readme.md
+2026-03-10T21:49:13.6519014Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260302.42
+2026-03-10T21:49:13.6519939Z ##[endgroup]
+2026-03-10T21:49:13.6521092Z ##[group]GITHUB_TOKEN Permissions
+2026-03-10T21:49:13.6523190Z Contents: read
+2026-03-10T21:49:13.6523821Z Metadata: read
+2026-03-10T21:49:13.6524614Z Packages: read
+2026-03-10T21:49:13.6525094Z ##[endgroup]
+2026-03-10T21:49:13.6527154Z Secret source: Actions
+2026-03-10T21:49:13.6528134Z Prepare workflow directory
+2026-03-10T21:49:13.6862957Z Prepare all required actions
+2026-03-10T21:49:13.6902946Z Getting action download info
+2026-03-10T21:49:14.0166379Z Download action repository 'actions/checkout@v4' (SHA:34e114876b0b11c390a56381ad16ebd13914f8d5)
+2026-03-10T21:49:14.1491206Z Download action repository 'actions/setup-python@v5' (SHA:a26af69be951a213d495a4c3e4e4022e16d87065)
+2026-03-10T21:49:14.3322759Z Complete job name: explore
+2026-03-10T21:49:14.4043302Z ##[group]Run actions/checkout@v4
+2026-03-10T21:49:14.4044304Z with:
+2026-03-10T21:49:14.4044768Z   repository: jamesgoux/iris-stats
+2026-03-10T21:49:14.4045457Z   token: ***
+2026-03-10T21:49:14.4045866Z   ssh-strict: true
+2026-03-10T21:49:14.4046284Z   ssh-user: git
+2026-03-10T21:49:14.4046707Z   persist-credentials: true
+2026-03-10T21:49:14.4047171Z   clean: true
+2026-03-10T21:49:14.4047604Z   sparse-checkout-cone-mode: true
+2026-03-10T21:49:14.4048110Z   fetch-depth: 1
+2026-03-10T21:49:14.4048529Z   fetch-tags: false
+2026-03-10T21:49:14.4048957Z   show-progress: true
+2026-03-10T21:49:14.4049386Z   lfs: false
+2026-03-10T21:49:14.4049785Z   submodules: false
+2026-03-10T21:49:14.4050223Z   set-safe-directory: true
+2026-03-10T21:49:14.4050983Z ##[endgroup]
+2026-03-10T21:49:14.5129518Z Syncing repository: jamesgoux/iris-stats
+2026-03-10T21:49:14.5131216Z ##[group]Getting Git version info
+2026-03-10T21:49:14.5131916Z Working directory is '/home/runner/work/iris-stats/iris-stats'
+2026-03-10T21:49:14.5133020Z [command]/usr/bin/git version
+2026-03-10T21:49:14.5196382Z git version 2.53.0
+2026-03-10T21:49:14.5223164Z ##[endgroup]
+2026-03-10T21:49:14.5237947Z Temporarily overriding HOME='/home/runner/work/_temp/5a10025d-3fb9-43f2-9138-332e22496ca7' before making global git config changes
+2026-03-10T21:49:14.5239325Z Adding repository directory to the temporary git global config as a safe directory
+2026-03-10T21:49:14.5243380Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/iris-stats/iris-stats
+2026-03-10T21:49:14.5285142Z Deleting the contents of '/home/runner/work/iris-stats/iris-stats'
+2026-03-10T21:49:14.5288745Z ##[group]Initializing the repository
+2026-03-10T21:49:14.5292600Z [command]/usr/bin/git init /home/runner/work/iris-stats/iris-stats
+2026-03-10T21:49:14.5387337Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-03-10T21:49:14.5388544Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-03-10T21:49:14.5389480Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-03-10T21:49:14.5390432Z hint: call:
+2026-03-10T21:49:14.5390784Z hint:
+2026-03-10T21:49:14.5391774Z hint: 	git config --global init.defaultBranch <name>
+2026-03-10T21:49:14.5392887Z hint:
+2026-03-10T21:49:14.5393868Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-03-10T21:49:14.5395728Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-03-10T21:49:14.5397058Z hint:
+2026-03-10T21:49:14.5397767Z hint: 	git branch -m <name>
+2026-03-10T21:49:14.5398593Z hint:
+2026-03-10T21:49:14.5399710Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-03-10T21:49:14.5401509Z Initialized empty Git repository in /home/runner/work/iris-stats/iris-stats/.git/
+2026-03-10T21:49:14.5406971Z [command]/usr/bin/git remote add origin https://github.com/jamesgoux/iris-stats
+2026-03-10T21:49:14.5443237Z ##[endgroup]
+2026-03-10T21:49:14.5444812Z ##[group]Disabling automatic garbage collection
+2026-03-10T21:49:14.5448426Z [command]/usr/bin/git config --local gc.auto 0
+2026-03-10T21:49:14.5478197Z ##[endgroup]
+2026-03-10T21:49:14.5479428Z ##[group]Setting up auth
+2026-03-10T21:49:14.5485994Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-03-10T21:49:14.5518352Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-03-10T21:49:14.5851376Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-03-10T21:49:14.5883918Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-03-10T21:49:14.6117892Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-03-10T21:49:14.6150310Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-03-10T21:49:14.6415472Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-03-10T21:49:14.6451604Z ##[endgroup]
+2026-03-10T21:49:14.6452867Z ##[group]Fetching the repository
+2026-03-10T21:49:14.6461687Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +fd9f8b51cc8458e0552e64aa3311f5a5ad695e74:refs/remotes/origin/main
+2026-03-10T21:49:15.7062085Z From https://github.com/jamesgoux/iris-stats
+2026-03-10T21:49:15.7063924Z  * [new ref]         fd9f8b51cc8458e0552e64aa3311f5a5ad695e74 -> origin/main
+2026-03-10T21:49:15.7102098Z ##[endgroup]
+2026-03-10T21:49:15.7103450Z ##[group]Determining the checkout info
+2026-03-10T21:49:15.7105356Z ##[endgroup]
+2026-03-10T21:49:15.7110542Z [command]/usr/bin/git sparse-checkout disable
+2026-03-10T21:49:15.7157021Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-03-10T21:49:15.7187390Z ##[group]Checking out the ref
+2026-03-10T21:49:15.7192294Z [command]/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main
+2026-03-10T21:49:15.8017846Z Switched to a new branch 'main'
+2026-03-10T21:49:15.8019485Z branch 'main' set up to track 'origin/main'.
+2026-03-10T21:49:15.8028263Z ##[endgroup]
+2026-03-10T21:49:15.8069008Z [command]/usr/bin/git log -1 --format=%H
+2026-03-10T21:49:15.8092620Z fd9f8b51cc8458e0552e64aa3311f5a5ad695e74
+2026-03-10T21:49:15.8409106Z ##[group]Run actions/setup-python@v5
+2026-03-10T21:49:15.8410374Z with:
+2026-03-10T21:49:15.8411227Z   python-version: 3.11
+2026-03-10T21:49:15.8412221Z   check-latest: false
+2026-03-10T21:49:15.8413456Z   token: ***
+2026-03-10T21:49:15.8414735Z   update-environment: true
+2026-03-10T21:49:15.8415822Z   allow-prereleases: false
+2026-03-10T21:49:15.8416856Z   freethreaded: false
+2026-03-10T21:49:15.8417811Z ##[endgroup]
+2026-03-10T21:49:16.0142995Z ##[group]Installed versions
+2026-03-10T21:49:16.0236331Z Successfully set up CPython (3.11.14)
+2026-03-10T21:49:16.0239051Z ##[endgroup]
+2026-03-10T21:49:16.0386470Z ##[group]Run pip install requests
+2026-03-10T21:49:16.0387678Z [36;1mpip install requests[0m
+2026-03-10T21:49:16.0448374Z shell: /usr/bin/bash -e {0}
+2026-03-10T21:49:16.0449368Z env:
+2026-03-10T21:49:16.0450380Z   pythonLocation: /opt/hostedtoolcache/Python/3.11.14/x64
+2026-03-10T21:49:16.0451994Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.11.14/x64/lib/pkgconfig
+2026-03-10T21:49:16.0453599Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.14/x64
+2026-03-10T21:49:16.0455219Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.14/x64
+2026-03-10T21:49:16.0456685Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.14/x64
+2026-03-10T21:49:16.0458172Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.11.14/x64/lib
+2026-03-10T21:49:16.0459399Z ##[endgroup]
+2026-03-10T21:49:16.8662072Z Collecting requests
+2026-03-10T21:49:16.9626202Z   Downloading requests-2.32.5-py3-none-any.whl.metadata (4.9 kB)
+2026-03-10T21:49:17.0818881Z Collecting charset_normalizer<4,>=2 (from requests)
+2026-03-10T21:49:17.0959302Z   Downloading charset_normalizer-3.4.5-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (39 kB)
+2026-03-10T21:49:17.1386813Z Collecting idna<4,>=2.5 (from requests)
+2026-03-10T21:49:17.1532361Z   Downloading idna-3.11-py3-none-any.whl.metadata (8.4 kB)
+2026-03-10T21:49:17.1897649Z Collecting urllib3<3,>=1.21.1 (from requests)
+2026-03-10T21:49:17.2043299Z   Downloading urllib3-2.6.3-py3-none-any.whl.metadata (6.9 kB)
+2026-03-10T21:49:17.2328804Z Collecting certifi>=2017.4.17 (from requests)
+2026-03-10T21:49:17.2468931Z   Downloading certifi-2026.2.25-py3-none-any.whl.metadata (2.5 kB)
+2026-03-10T21:49:17.2646678Z Downloading requests-2.32.5-py3-none-any.whl (64 kB)
+2026-03-10T21:49:17.2939761Z Downloading charset_normalizer-3.4.5-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (193 kB)
+2026-03-10T21:49:17.3435098Z Downloading idna-3.11-py3-none-any.whl (71 kB)
+2026-03-10T21:49:17.3686024Z Downloading urllib3-2.6.3-py3-none-any.whl (131 kB)
+2026-03-10T21:49:17.4054300Z Downloading certifi-2026.2.25-py3-none-any.whl (153 kB)
+2026-03-10T21:49:17.4474735Z Installing collected packages: urllib3, idna, charset_normalizer, certifi, requests
+2026-03-10T21:49:17.6716300Z 
+2026-03-10T21:49:17.6727132Z Successfully installed certifi-2026.2.25 charset_normalizer-3.4.5 idna-3.11 requests-2.32.5 urllib3-2.6.3
+2026-03-10T21:49:17.8550410Z ##[group]Run python scripts/_explore_serializd.py
+2026-03-10T21:49:17.8550855Z [36;1mpython scripts/_explore_serializd.py[0m
+2026-03-10T21:49:17.8603202Z shell: /usr/bin/bash -e {0}
+2026-03-10T21:49:17.8603449Z env:
+2026-03-10T21:49:17.8603707Z   pythonLocation: /opt/hostedtoolcache/Python/3.11.14/x64
+2026-03-10T21:49:17.8604400Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.11.14/x64/lib/pkgconfig
+2026-03-10T21:49:17.8604848Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.14/x64
+2026-03-10T21:49:17.8605241Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.14/x64
+2026-03-10T21:49:17.8605614Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.14/x64
+2026-03-10T21:49:17.8605989Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.11.14/x64/lib
+2026-03-10T21:49:17.8606457Z   SERIALIZD_EMAIL: ***
+2026-03-10T21:49:17.8606694Z   SERIALIZD_PASSWORD: ***
+2026-03-10T21:49:17.8606939Z ##[endgroup]
+2026-03-10T21:49:19.9833414Z Logging in...
+2026-03-10T21:49:19.9834395Z Login status: 200
+2026-03-10T21:49:19.9835106Z Login response keys: ['username', 'token']
+2026-03-10T21:49:19.9835875Z Got token: ***
+2026-03-10T21:49:19.9836110Z 
+2026-03-10T21:49:19.9836231Z /user: 404
+2026-03-10T21:49:19.9836398Z 
+2026-03-10T21:49:19.9836524Z /user/profile: 404
+2026-03-10T21:49:19.9836717Z 
+2026-03-10T21:49:19.9836947Z /user/ratings: 404
+2026-03-10T21:49:19.9837155Z 
+2026-03-10T21:49:19.9920917Z /user/reviews: 404
+2026-03-10T21:49:19.9921203Z 
+2026-03-10T21:49:19.9921339Z /user/diary: 404
+2026-03-10T21:49:19.9921535Z 
+2026-03-10T21:49:19.9922144Z /user/watched: 404
+2026-03-10T21:49:19.9922397Z 
+2026-03-10T21:49:19.9922552Z /user/activity: 404
+2026-03-10T21:49:19.9922788Z 
+2026-03-10T21:49:19.9922942Z /profile: 404
+2026-03-10T21:49:19.9923152Z 
+2026-03-10T21:49:19.9923352Z /profile/ratings: 404
+2026-03-10T21:49:19.9923624Z 
+2026-03-10T21:49:19.9923767Z /ratings: 404
+2026-03-10T21:49:19.9923983Z 
+2026-03-10T21:49:19.9924316Z /getuserprofile: 404
+2026-03-10T21:49:19.9924588Z 
+2026-03-10T21:49:19.9924737Z /getUserProfile: 404
+2026-03-10T21:49:20.0100952Z Post job cleanup.
+2026-03-10T21:49:20.1744887Z Post job cleanup.
+2026-03-10T21:49:20.2702894Z [command]/usr/bin/git version
+2026-03-10T21:49:20.2739816Z git version 2.53.0
+2026-03-10T21:49:20.2783221Z Temporarily overriding HOME='/home/runner/work/_temp/0c68d72f-4ac1-475e-85ac-6388fc7ad551' before making global git config changes
+2026-03-10T21:49:20.2784783Z Adding repository directory to the temporary git global config as a safe directory
+2026-03-10T21:49:20.2789314Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/iris-stats/iris-stats
+2026-03-10T21:49:20.2826522Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-03-10T21:49:20.2860734Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-03-10T21:49:20.3123328Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-03-10T21:49:20.3150269Z http.https://github.com/.extraheader
+2026-03-10T21:49:20.3163406Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-03-10T21:49:20.3199959Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-03-10T21:49:20.3454220Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-03-10T21:49:20.3487240Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-03-10T21:49:20.3846590Z Cleaning up orphan processes

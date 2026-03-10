@@ -18,4 +18,14 @@ jobs:
         env:
           SERIALIZD_EMAIL: ${{ secrets.SERIALIZD_EMAIL }}
           SERIALIZD_PASSWORD: ${{ secrets.SERIALIZD_PASSWORD }}
-        run: python scripts/_explore_serializd.py
+        run: python scripts/_explore_serializd.py 2>&1 | tee /tmp/serializd_explore.txt
+      - name: Save output
+        if: always()
+        run: |
+          cp /tmp/serializd_explore.txt data/serializd_explore.txt || true
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/serializd_explore.txt
+          git diff --quiet --staged || git commit -m "Serializd API exploration output"
+          git pull --no-rebase -X ours origin main || true
+          git push || true

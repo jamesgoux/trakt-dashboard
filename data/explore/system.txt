@@ -1,0 +1,8 @@
+2026-03-10T21:49:10.4080000Z Requested labels: ubuntu-latest
+2026-03-10T21:49:10.4080000Z Job defined at: jamesgoux/iris-stats/.github/workflows/explore-serializd.yml@refs/heads/main
+2026-03-10T21:49:10.4080000Z Waiting for a runner to pick up this job...
+2026-03-10T21:49:10.4020000Z Evaluating explore.if
+2026-03-10T21:49:10.4020000Z Evaluating: success()
+2026-03-10T21:49:10.4020000Z Result: true
+2026-03-10T21:49:10.8070000Z Job is waiting for a hosted runner to come online.
+2026-03-10T21:49:10.8080000Z Job is about to start running on the hosted runner: GitHub Actions 1000001646
