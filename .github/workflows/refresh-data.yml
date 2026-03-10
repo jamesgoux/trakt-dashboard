@@ -50,6 +50,14 @@ jobs:
         run: python scripts/refresh_pocketcasts.py
         continue-on-error: true
 
+      - name: Refresh Serializd
+        env:
+          SERIALIZD_EMAIL: ${{ secrets.SERIALIZD_EMAIL }}
+          SERIALIZD_PASSWORD: ${{ secrets.SERIALIZD_PASSWORD }}
+        run: python scripts/refresh_serializd.py
+        continue-on-error: true
+        continue-on-error: true
+
       # Slower sources
       - name: Refresh Last.fm
         env:
