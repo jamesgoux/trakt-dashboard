@@ -21,7 +21,7 @@ body{background:var(--bg);color:var(--tx);font-family:-apple-system,BlinkMacSyst
 .fbtn:active{background:#333;transform:scale(.95)}
 .fbtn select{background:var(--sf);color:var(--tx);border:none;font-size:15px;cursor:pointer;-webkit-appearance:none;appearance:none;padding:10px 12px;width:100%;height:100%}
 .fbtn select option{background:var(--sf);color:var(--tx)}
-.hbtn{background:var(--sf);border:1px solid rgba(255,255,255,.1);color:var(--tx);border-radius:8px;padding:10px 16px;font-size:18px;cursor:pointer;min-height:44px;min-width:48px;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent;transition:background .15s,transform .1s}
+.hbtn{background:var(--sf);border:1px solid rgba(255,255,255,.1);color:var(--tx);border-radius:8px;padding:10px 16px;font-size:18px;cursor:pointer;min-height:44px;min-width:48px;display:flex;align-items:center;justify-content:center;line-height:1;-webkit-tap-highlight-color:transparent;transition:background .15s,transform .1s}
 .hbtn:active{background:#333;transform:scale(.92)}
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes pulse{0%{opacity:1}50%{opacity:.5}100%{opacity:1}}
@@ -147,7 +147,7 @@ body{overflow-x:hidden}
 </div>
 <!-- LIFELINE: 30-day activity -->
 <div class="g2 med-s" data-med="all movie show book music concert theater">
-<div id="sec-ll" class="cd fw s-t"><h3><span class="i">🧬</span>Lifeline <button class="vb" onclick="openLifelineFeed()" style="float:right;font-size:11px">📜 Full Feed</button></h3><div id="ll-sel" class="vtog" style="margin-bottom:4px"></div><div id="llc" style="height:280px"></div></div>
+<div id="sec-ll" class="cd fw s-t"><h3><span class="i">🧬</span>Lifeline <button onclick="openLifelineFeed()" style="float:right;font-size:12px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);color:var(--tx);border-radius:6px;padding:6px 12px;cursor:pointer;min-height:32px;-webkit-tap-highlight-color:transparent;transition:background .15s">📜 Full Feed</button></h3><div id="ll-sel" class="vtog" style="margin-bottom:4px"></div><div id="llc" style="height:280px"></div></div>
 </div>
 <div class="g2 med-s" data-med="all movie show">
 <div id="sec-act" class="cd s-a"><h3><span class="i">🎭</span>Most Watched Actors</h3><div class="stb"><table><thead><tr><th>#</th><th>Actor</th><th>Mov</th><th>Show</th><th>Total</th></tr></thead><tbody id="atb"></tbody></table></div></div>
@@ -167,8 +167,8 @@ body{overflow-x:hidden}
 </div>
 <!-- TTW + CATCH-UP (same row) -->
 <div class="g2 med-s" data-med="all show">
-<div id="sec-ttw" class="cd s-s"><h3><span class="i">⏱️</span>Time to Watch (avg days after air)</h3><div id="ttwc" style="height:400px"></div></div>
-<div class="cd s-s"><h3><span class="i">📚</span>Catch-Up Shows (watched 1+ years after air) <span class="vtog" style="float:right"><button class="vb vb-on cup-tog" data-v="long" onclick="window._cupMode='long';document.querySelectorAll('.cup-tog').forEach(function(b){b.classList.toggle('vb-on',b.dataset.v==='long')});renderCatchup()">Longest</button><button class="vb cup-tog" data-v="short" onclick="window._cupMode='short';document.querySelectorAll('.cup-tog').forEach(function(b){b.classList.toggle('vb-on',b.dataset.v==='short')});renderCatchup()">Shortest</button></span></h3><div id="cupc" style="height:400px"></div></div>
+<div id="sec-ttw" class="cd s-s"><h3><span class="i">⏱️</span>Time to Watch</h3><div id="ttwc" style="height:400px"></div></div>
+<div class="cd s-s"><h3><span class="i">📚</span>Catch-Up Shows <span class="vtog" style="float:right"><button class="vb vb-on cup-tog" data-v="long" onclick="window._cupMode='long';document.querySelectorAll('.cup-tog').forEach(function(b){b.classList.toggle('vb-on',b.dataset.v==='long')});renderCatchup()">Longest</button><button class="vb cup-tog" data-v="short" onclick="window._cupMode='short';document.querySelectorAll('.cup-tog').forEach(function(b){b.classList.toggle('vb-on',b.dataset.v==='short')});renderCatchup()">Shortest</button></span></h3><div id="cupc" style="height:400px"></div></div>
 </div>
 <!-- MOVIES -->
 <div class="g2 med-s" data-med="all movie">
@@ -191,7 +191,7 @@ body{overflow-x:hidden}
 <div id="sec-meta" class="cd s-g"><h3 id="gnh"><span class="i">🎯</span>Genres</h3><div id="gnc" style="height:360px"></div></div>
 </div>
 <div class="g2 med-s" data-med="all movie show" id="gt-wrap">
-<div class="cd fw s-g"><h3><span class="i">📈</span>Genre Trends (year over year %)</h3><div id="gtc" style="height:350px"></div></div>
+<div class="cd fw s-g"><h3><span class="i">📈</span>Genre Trends</h3><div id="gtc" style="height:350px"></div></div>
 </div>
 <div class="g2 med-s" data-med="all show">
 <div class="cd s-n"><h3><span class="i">📡</span>Top Networks</h3><div id="netc" style="height:360px"></div></div>
@@ -222,7 +222,7 @@ body{overflow-x:hidden}
 </div>
 <!-- PODCASTS (Pocket Casts) -->
 <div class="g2 med-s" data-med="all podcast" id="pc-wrap" style="display:none">
-<div id="sec-pc" class="cd fw" style="border-left-color:#ef4444"><h3><span class="i">🎙️</span>Top Podcasts (Pocket Casts) <span class="vtog" style="float:right"><button class="vb vb-on pc-tog" data-v="hrs" onclick="window._pcMode='hrs';document.querySelectorAll('.pc-tog').forEach(function(b){b.classList.toggle('vb-on',b.dataset.v==='hrs')});renderPodcasts()">By Hours</button><button class="vb pc-tog" data-v="eps" onclick="window._pcMode='eps';document.querySelectorAll('.pc-tog').forEach(function(b){b.classList.toggle('vb-on',b.dataset.v==='eps')});renderPodcasts()">By Episodes</button></span></h3><div id="pc-chart" style="height:350px"></div></div>
+<div id="sec-pc" class="cd fw" style="border-left-color:#ef4444"><h3><span class="i">🎙️</span>Top Podcasts <span class="vtog" style="float:right"><button class="vb vb-on pc-tog" data-v="hrs" onclick="window._pcMode='hrs';document.querySelectorAll('.pc-tog').forEach(function(b){b.classList.toggle('vb-on',b.dataset.v==='hrs')});renderPodcasts()">By Hours</button><button class="vb pc-tog" data-v="eps" onclick="window._pcMode='eps';document.querySelectorAll('.pc-tog').forEach(function(b){b.classList.toggle('vb-on',b.dataset.v==='eps')});renderPodcasts()">By Episodes</button></span></h3><div id="pc-chart" style="height:350px"></div></div>
 </div>
 <!-- MUSIC (Last.fm) -->
 <div class="g2 med-s" data-med="all music" id="lfm-wrap" style="display:none">
@@ -839,13 +839,13 @@ function baseCharts(){
       xLabels=md.months.map(function(m){return m.substring(5)});  // just MM
       rawData=md.data;
       zeroLabel=null;
-      document.querySelector('#gt-wrap h3').innerHTML='<span class="i">📈</span>Genre Trends — '+cy+' (monthly %)';
+      document.querySelector('#gt-wrap h3').innerHTML='<span class="i">📈</span>Genre Trends — '+cy+' Monthly';
     }else{
       // Yearly view
       xLabels=gt.years.slice();
       rawData=gt.data;
       zeroLabel='2016';
-      document.querySelector('#gt-wrap h3').innerHTML='<span class="i">📈</span>Genre Trends (year over year %)';
+      document.querySelector('#gt-wrap h3').innerHTML='<span class="i">📈</span>Genre Trends';
     }
 
     var gtTotals=xLabels.map(function(l,i){
