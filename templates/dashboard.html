@@ -228,8 +228,8 @@ body{overflow-x:hidden}
 <div class="g2 med-s" data-med="all music" id="lfm-wrap" style="display:none">
 <div id="sec-lfm" class="cd s-lfm"><h3><span class="i">🎧</span>Listening Activity <span class="vtog" style="float:right"><button class="vb vb-on lfm-met" data-v="s">Scrobbles</button><button class="vb lfm-met" data-v="a">Artists</button><button class="vb lfm-met" data-v="al">Albums</button></span></h3><div id="lfm-weekly" style="height:280px"></div></div>
 <div class="cd s-lfm"><h3><span class="i">🏷️</span>Genres</h3><div id="lfm-genres" style="height:280px"></div></div>
-<div class="cd s-lfm"><h3><span class="i">🎤</span>Top Artists <span class="vtog" id="lfm-range-wrap" style="float:right"></span></h3><div id="lfm-artists" style="height:500px"></div></div>
-<div class="cd s-lfm"><h3><span class="i">🎵</span>Top Tracks</h3><div id="lfm-tracks" style="height:500px"></div></div>
+<div class="cd s-lfm"><h3><span class="i">🎤</span>Top Artists <span class="vtog" id="lfm-range-wrap" style="float:right"></span></h3><div style="max-height:500px;overflow-y:auto"><div id="lfm-artists" style="height:700px"></div></div></div>
+<div class="cd s-lfm"><h3><span class="i">🎵</span>Top Tracks</h3><div style="max-height:500px;overflow-y:auto"><div id="lfm-tracks" style="height:700px"></div></div></div>
 <div class="cd fw s-lfm"><h3><span class="i">💿</span>Top Albums</h3><div id="lfm-albums" style="height:auto"></div></div>
 </div>
 <!-- CONCERTS -->
@@ -1752,13 +1752,13 @@ function renderLastfm(){
   var curArtists=(perData.find(function(p){return p.period===per})||perData[0]||{}).artists||[];
   var aEl=document.getElementById('lfm-artists');
   if(curArtists.length){
-    var aSlice=curArtists.slice(0,24).reverse();
+    var aSlice=curArtists.slice(0,40).reverse();
     var aChart=echarts.init(aEl);
     aChart.setOption({tooltip:{trigger:mob?'item':'axis',axisPointer:{type:'shadow'},...tt,formatter:function(p){return'<b>'+tp(p).name+'</b>: '+tp(p).value+' plays'}},
       grid:{left:gl(120),right:30,top:8,bottom:8},
       xAxis:{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},
       yAxis:{type:'category',data:aSlice.map(function(d){return d.n}),axisLabel:{color:'#ccc',fontSize:10,interval:0},axisLine:{lineStyle:{color:'#333'}}},
-      series:[{type:'bar',data:aSlice.map(function(d){return d.c}),itemStyle:{color:LG('#0f3460','#1db954')},barMaxWidth:18,label:{show:true,position:'right',color:'#1db954',fontSize:10}}]});
+      series:[{type:'bar',data:aSlice.map(function(d){return d.c}),itemStyle:{color:LG('#0f3460','#1db954')},barMaxWidth:14,label:{show:true,position:'right',color:'#1db954',fontSize:9}}]});
     ch.push(aChart);
   }
 
@@ -1767,13 +1767,13 @@ function renderLastfm(){
   var curTracks=(trData.find(function(p){return p.period===per})||trData[0]||{}).tracks||[];
   var tEl=document.getElementById('lfm-tracks');
   if(curTracks.length){
-    var tSlice=curTracks.slice(0,30).reverse();
+    var tSlice=curTracks.slice(0,40).reverse();
     var tChart=echarts.init(tEl);
     tChart.setOption({tooltip:{trigger:mob?'item':'axis',axisPointer:{type:'shadow'},...tt,formatter:function(p){var t=tSlice.find(function(x){return tp(p).name.indexOf(x.n.substring(0,15))>=0});return t?'<b>'+t.n+'</b><br/>'+t.a+'<br/>'+t.c+' plays':''}},
       grid:{left:gl(130),right:30,top:8,bottom:8},
       xAxis:{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},
       yAxis:{type:'category',data:tSlice.map(function(d){return d.n.length>22?d.n.substring(0,20)+'…':d.n}),axisLabel:{color:'#ccc',fontSize:9,interval:0},axisLine:{lineStyle:{color:'#333'}}},
-      series:[{type:'bar',data:tSlice.map(function(d){return d.c}),itemStyle:{color:LG('#0f3460','#14b8a6')},barMaxWidth:18,label:{show:true,position:'right',color:'#a78bfa',fontSize:9}}]});
+      series:[{type:'bar',data:tSlice.map(function(d){return d.c}),itemStyle:{color:LG('#0f3460','#14b8a6')},barMaxWidth:14,label:{show:true,position:'right',color:'#a78bfa',fontSize:9}}]});
     ch.push(tChart);
   }
 
@@ -1856,9 +1856,9 @@ function renderConcerts(){
     var venSlice=venues.slice(0,10).reverse();
     var venChart=echarts.init(venEl);
     venChart.setOption({tooltip:{trigger:mob?'item':'axis',axisPointer:{type:'shadow'},...tt,formatter:function(p){return'<b>'+tp(p).name+'</b>: '+tp(p).value+' shows'}},
-      grid:{left:gl(140),right:30,top:8,bottom:8},
+      grid:{left:gl(160),right:30,top:8,bottom:8},
       xAxis:{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},
-      yAxis:{type:'category',data:venSlice.map(function(d){return d.n}),axisLabel:{color:'#ccc',fontSize:10,interval:0},axisLine:{lineStyle:{color:'#333'}}},
+      yAxis:{type:'category',data:venSlice.map(function(d){return d.n}),axisLabel:{color:'#ccc',fontSize:10,interval:0,overflow:'truncate',width:mob?100:150},axisLine:{lineStyle:{color:'#333'}}},
       series:[{type:'bar',data:venSlice.map(function(d){return d.c}),itemStyle:{color:LG('#0f3460','#3b82f6')},barMaxWidth:18,label:{show:true,position:'right',color:'#3b82f6',fontSize:10}}]});
     venChart.on('click',function(p){
       var v=venSlice[p.dataIndex];if(!v||!v.artists||!v.artists.length)return;
@@ -2005,9 +2005,9 @@ function renderPodcasts(){
   var items=sorted.slice(0,15).reverse();
   var pcChart=echarts.init(el);
   pcChart.setOption({tooltip:{trigger:mob?'item':'axis',axisPointer:{type:'shadow'},...tt,formatter:function(p){return'<b>'+tp(p).name+'</b><br/>'+(isHrs?tp(p).value+'h ('+tp(p).data.eps+' eps)':tp(p).value+' eps ('+tp(p).data.hrs+'h)')}},
-    grid:{left:gl(180),right:30,top:8,bottom:8},
+    grid:{left:gl(200),right:30,top:8,bottom:8},
     xAxis:{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},
-    yAxis:{type:'category',data:items.map(function(d){return d.title}),axisLabel:{color:'#ccc',fontSize:10,interval:0},axisLine:{lineStyle:{color:'#333'}}},
+    yAxis:{type:'category',data:items.map(function(d){return d.title}),axisLabel:{color:'#ccc',fontSize:10,interval:0,overflow:'truncate',width:mob?110:190},axisLine:{lineStyle:{color:'#333'}}},
     series:[{type:'bar',data:items.map(function(d){return{value:isHrs?d.listened_hrs:d.played,eps:d.played,hrs:d.listened_hrs}}),itemStyle:{color:new echarts.graphic.LinearGradient(0,0,1,0,[{offset:0,color:'#0f3460'},{offset:1,color:'#ef4444'}])},barMaxWidth:18,label:{show:true,position:'right',color:'#ef4444',fontSize:10,formatter:function(p){return isHrs?p.value+'h':p.value+' eps'}}}]});
   ch.push(pcChart);
 }
@@ -2198,11 +2198,14 @@ function renderSports(){
     ch.push(spChart);
   }
 
-  // Teams chart
+  // Teams chart — colored by league
+  var teamLeague={};filtered.forEach(function(e){if(e.home_team&&e.league)teamLeague[e.home_team]=e.league;if(e.away_team&&e.league)teamLeague[e.away_team]=e.league});
   var teamCounts={};filtered.forEach(function(e){teamCounts[e.home_team]=(teamCounts[e.home_team]||0)+1;teamCounts[e.away_team]=(teamCounts[e.away_team]||0)+1});
   var teams=Object.entries(teamCounts).sort(function(a,b){return b[1]-a[1]}).slice(0,10).reverse();
+  var lgColMap={};var lgIdx=0;var lgCols2=['#0ea5e9','#fb923c','#4ade80','#a78bfa','#e94560','#fbbf24','#f472b6','#38bdf8'];
+  teams.forEach(function(t){var lg=teamLeague[t[0]]||'Other';if(!lgColMap[lg]){lgColMap[lg]=lgCols2[lgIdx%lgCols2.length];lgIdx++}});
   var tEl=document.getElementById('sp-teams');
-  if(teams.length){var tChart=echarts.init(tEl);tChart.setOption({tooltip:{trigger:mob?'item':'axis',axisPointer:{type:'shadow'},...tt},grid:{left:gl(140),right:30,top:8,bottom:8},xAxis:{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},yAxis:{type:'category',data:teams.map(function(t){return t[0]}),axisLabel:{color:'#ccc',fontSize:10,interval:0},axisLine:{lineStyle:{color:'#333'}}},series:[{type:'bar',data:teams.map(function(t){return t[1]}),itemStyle:{color:LG('#0f3460','#0ea5e9')},barMaxWidth:18,label:{show:true,position:'right',color:'#0ea5e9',fontSize:10}}]});ch.push(tChart)}
+  if(teams.length){var tChart=echarts.init(tEl);tChart.setOption({tooltip:{trigger:mob?'item':'axis',axisPointer:{type:'shadow'},...tt,formatter:function(p){var tn=tp(p).name;return'<b>'+tn+'</b> ('+((teamLeague[tn])||'')+')<br/>'+tp(p).value+' games'}},grid:{left:gl(140),right:30,top:8,bottom:8},xAxis:{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},yAxis:{type:'category',data:teams.map(function(t){return t[0]}),axisLabel:{color:'#ccc',fontSize:10,interval:0},axisLine:{lineStyle:{color:'#333'}}},series:[{type:'bar',data:teams.map(function(t){return{value:t[1],itemStyle:{color:lgColMap[teamLeague[t[0]]||'Other']||'#0ea5e9'}}}),barMaxWidth:18,label:{show:true,position:'right',color:'#ccc',fontSize:10}}]});ch.push(tChart)}
   else{tEl.innerHTML='<div style="text-align:center;color:var(--t2);padding:40px">No data</div>'}
 
   // How I Watched pie
