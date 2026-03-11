@@ -2010,7 +2010,7 @@ function openSportsAdd(){
   document.getElementById('sp-team-results').innerHTML='';
   // Scroll-to-load on the overlay
   var ov=document.getElementById('sp-overlay');
-  ov.onscroll=function(){if(ov.scrollTop+ov.clientHeight>=ov.scrollHeight-200)loadMoreSportsEvents()};
+  ov.onscroll=function(){if(ov.scrollTop+ov.clientHeight>=ov.scrollHeight-400)loadMoreSportsEvents()};
 }
 
 function closeSportsAdd(){
@@ -2043,31 +2043,39 @@ function loadTeamEvents(teamId,teamName){
   for(var y=curYear;y>=curYear-10;y--){window._spSeasons.push(y+'-'+(y+1));window._spSeasons.push(String(y))}
   document.getElementById('sp-ev-list').innerHTML='';
   document.getElementById('sp-ev-search').value='';
-  loadMoreSportsEvents();
+  // Load first 3 seasons immediately for a full screen of results
+  _spLoadBatch(3);
 }
 
-function loadMoreSportsEvents(){
+function _spLoadBatch(count){
   if(window._spSeasonIdx>=window._spSeasons.length)return;
   var loadEl=document.getElementById('sp-ev-loading');
   if(loadEl._loading)return;loadEl._loading=true;
   loadEl.textContent='Loading...';
-  var season=window._spSeasons[window._spSeasonIdx];
-  window._spSeasonIdx++;
-  fetch('https://www.thesportsdb.com/api/v1/json/3/searchevents.php?e='+encodeURIComponent(window._spTeamName)+'&s='+encodeURIComponent(season))
-    .then(function(r){return r.json()})
-    .then(function(d){
-      var events=d.event||[];
-      var existingIds={};window._spAllEvents.forEach(function(e){existingIds[e.idEvent]=true});
-      events.forEach(function(ev){if(!existingIds[ev.idEvent]){window._spAllEvents.push(ev);existingIds[ev.idEvent]=true}});
-      window._spAllEvents.sort(function(a,b){return b.dateEvent.localeCompare(a.dateEvent)});
-      filterSportsEvents();
-      loadEl._loading=false;
-      loadEl.textContent=window._spSeasonIdx<window._spSeasons.length?'Scroll for older events':'All events loaded';
-      if(events.length<5&&window._spSeasonIdx<window._spSeasons.length)loadMoreSportsEvents();
-    }).catch(function(){loadEl._loading=false;loadEl.textContent='Load failed — scroll to retry'});
+  var toLoad=Math.min(count,window._spSeasons.length-window._spSeasonIdx);
+  var fetches=[];
+  for(var i=0;i<toLoad;i++){
+    var season=window._spSeasons[window._spSeasonIdx+i];
+    fetches.push(fetch('https://www.thesportsdb.com/api/v1/json/3/searchevents.php?e='+encodeURIComponent(window._spTeamName)+'&s='+encodeURIComponent(season)).then(function(r){return r.json()}).catch(function(){return{event:[]}}));
+  }
+  window._spSeasonIdx+=toLoad;
+  Promise.all(fetches).then(function(results){
+    var existingIds={};window._spAllEvents.forEach(function(e){existingIds[e.idEvent]=true});
+    var added=0;
+    results.forEach(function(d){(d.event||[]).forEach(function(ev){if(!existingIds[ev.idEvent]){window._spAllEvents.push(ev);existingIds[ev.idEvent]=true;added++}})});
+    window._spAllEvents.sort(function(a,b){return b.dateEvent.localeCompare(a.dateEvent)});
+    filterSportsEvents();
+    loadEl._loading=false;
+    var more=window._spSeasonIdx<window._spSeasons.length;
+    loadEl.textContent=more?'Scroll for older events':'All events loaded';
+    // If we got very few new results, keep loading
+    if(added<10&&more)_spLoadBatch(2);
+  });
 }
 
-function _spAbbr(name){if(!name)return'';var w=name.split(' ');if(w.length===1)return name.substring(0,3).toUpperCase();return w.map(function(s){return s[0]}).join('').toUpperCase().substring(0,3)}
+function loadMoreSportsEvents(){_spLoadBatch(2)}
+
+function _spAbbr(name){if(!name)return'';var w=name.split(' ');if(w.length===1)return name.substring(0,3).toUpperCase();return w.map(function(s){return s[0]}).join('').toUpperCase().substring(0,4)}
 function _spBadge(url,size){return url?'<img src="'+url+'" style="width:'+size+'px;height:'+size+'px;object-fit:contain;vertical-align:middle">':''}
 
 function filterSportsEvents(){
@@ -2079,19 +2087,28 @@ function filterSportsEvents(){
   });
   var listEl=document.getElementById('sp-ev-list');if(!listEl)return;
   var addedIds={};SP.forEach(function(s){addedIds[s.id]=true});
-  var h='<table style="width:100%;font-size:12px;table-layout:fixed"><thead><tr><th style="width:58px">Date</th><th>Home</th><th style="width:42px;text-align:center"></th><th>Away</th><th style="width:24px"></th></tr></thead><tbody>';
+  var tn=window._spTeamName||'';
+  var h='<div style="font-size:11px;color:var(--t2);margin-bottom:8px;padding:0 4px">💡 Only home games load automatically. Search an opponent name to find away games.</div>';
+  h+='<table style="width:100%;font-size:14px"><tbody>';
   filtered.forEach(function(ev){
-    var score=(ev.intHomeScore!=null&&ev.intHomeScore!=='')?ev.intHomeScore+'-'+ev.intAwayScore:'—';
+    var hs=Number(ev.intHomeScore),as2=Number(ev.intAwayScore);
+    var hasScore=ev.intHomeScore!=null&&ev.intHomeScore!=='';
+    var score=hasScore?ev.intHomeScore+' - '+ev.intAwayScore:'—';
+    var isHome=ev.strHomeTeam===tn;
+    var won=hasScore&&((isHome&&hs>as2)||(!isHome&&as2>hs));
+    var lost=hasScore&&((isHome&&hs<as2)||(!isHome&&as2<hs));
+    var rowColor=won?'rgba(74,222,128,.08)':lost?'rgba(239,68,68,.06)':'';
+    var scoreColor=won?'#4ade80':lost?'#ef4444':'var(--t2)';
     var added=addedIds[ev.idEvent];
     var evJson=JSON.stringify(ev).replace(/'/g,'&#39;').replace(/"/g,'&quot;');
     var localDate=_spDate(ev.dateEventLocal||ev.dateEvent);
-    var hWin=Number(ev.intHomeScore)>Number(ev.intAwayScore);var aWin=Number(ev.intAwayScore)>Number(ev.intHomeScore);
-    h+='<tr style="cursor:'+(added?'default':'pointer')+';opacity:'+(added?'.35':'1')+'" '+(added?'':'onclick="selectSportsEvent(this)" ')+'data-ev="'+evJson+'" title="'+(ev.strVenue||'')+'">';
-    h+='<td style="white-space:nowrap;color:var(--t2);font-size:10px">'+localDate+'</td>';
-    h+='<td style="font-weight:'+(hWin?'700':'400')+';overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+_spBadge(ev.strHomeTeamBadge,16)+' <span style="font-size:11px">'+_spAbbr(ev.strHomeTeam)+'</span></td>';
-    h+='<td style="text-align:center;font-weight:600;color:var(--sp);font-size:11px">'+(added?'✓':score)+'</td>';
-    h+='<td style="font-weight:'+(aWin?'700':'400')+';overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+_spBadge(ev.strAwayTeamBadge,16)+' <span style="font-size:11px">'+_spAbbr(ev.strAwayTeam)+'</span></td>';
-    h+='<td></td></tr>';
+    h+='<tr style="cursor:'+(added?'default':'pointer')+';opacity:'+(added?'.35':'1')+';background:'+rowColor+'" '+(added?'':'onclick="selectSportsEvent(this)" ')+'data-ev="'+evJson+'">';
+    h+='<td style="color:var(--t2);font-size:12px;padding:8px 4px;white-space:nowrap">'+localDate+'</td>';
+    h+='<td style="padding:8px 4px;text-align:right;font-weight:'+(hasScore&&hs>as2?'700':'400')+'">'+_spBadge(ev.strHomeTeamBadge,20)+' '+_spAbbr(ev.strHomeTeam)+'</td>';
+    h+='<td style="text-align:center;font-weight:700;color:'+scoreColor+';padding:8px 6px;white-space:nowrap">'+(added?'<span style="color:var(--sp)">✓</span>':score)+'</td>';
+    h+='<td style="padding:8px 4px;font-weight:'+(hasScore&&as2>hs?'700':'400')+'">'+_spAbbr(ev.strAwayTeam)+' '+_spBadge(ev.strAwayTeamBadge,20)+'</td>';
+    h+='<td style="font-size:11px;color:var(--t2);padding:8px 4px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(ev.strVenue||'')+'</td>';
+    h+='</tr>';
   });
   h+='</tbody></table>';
   if(!filtered.length&&ql)h='<div style="color:var(--t2);padding:20px;text-align:center">No matches for "'+ql+'"</div>';
