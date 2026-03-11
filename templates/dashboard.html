@@ -2550,12 +2550,6 @@ function _unFetchEp(baseShow,epNum,allShows,origIdx){
     var tempShows=allShows.slice();tempShows[origIdx]=newShow;
     _unRenderDetail(tempShows,origIdx);
   }
-  };
-  // Remove old listeners before adding new
-  if(ov._prevSwStart){ov.removeEventListener('touchstart',ov._prevSwStart);ov.removeEventListener('touchend',ov._prevSwEnd)}
-  ov.addEventListener('touchstart',ov._swStart,{passive:true});
-  ov.addEventListener('touchend',ov._swEnd);
-  ov._prevSwStart=ov._swStart;ov._prevSwEnd=ov._swEnd;
 }
 
 function markWatchedAt(slug,season,episode,epTraktId,when){
