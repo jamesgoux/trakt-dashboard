@@ -10,7 +10,7 @@
 <title>Iris // jamesgoux</title>
 <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
 <style>
-:root{--bg:#0f0f0f;--sf:#1a1a2e;--ac:#fb923c;--tx:#eee;--t2:#999;--gr:#4ade80;--bl:#14b8a6;--pu:#14b8a6;--or:#fb923c;--tv:#14b8a6;--mv:#fb923c;--mu:#1db954;--bk:#fbbf24;--cn:#3b82f6;--th:#a78bfa}
+:root{--bg:#0f0f0f;--sf:#1a1a2e;--ac:#fb923c;--tx:#eee;--t2:#999;--gr:#4ade80;--bl:#14b8a6;--pu:#14b8a6;--or:#fb923c;--tv:#14b8a6;--mv:#fb923c;--mu:#1db954;--bk:#fbbf24;--cn:#3b82f6;--th:#a78bfa;--sp:#0ea5e9}
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:var(--bg);color:var(--tx);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;padding:0}
 .dash{max-width:1400px;margin:0 auto;padding:0 16px 16px}
@@ -34,7 +34,7 @@ body{background:var(--bg);color:var(--tx);font-family:-apple-system,BlinkMacSyst
 .cd h3 .i{margin-right:6px}
 .s-a{border-left-color:#666}.s-s{border-left-color:var(--tv)}.s-m{border-left-color:var(--mv)}
 .s-g{border-left-color:#666}.s-n{border-left-color:var(--tv)}.s-u{border-left-color:#666}
-.s-t{border-left-color:#666}.s-e{border-left-color:#666}.s-c{border-left-color:#666}.s-con{border-left-color:var(--cn)}.s-th{border-left-color:var(--th)}
+.s-t{border-left-color:#666}.s-e{border-left-color:#666}.s-c{border-left-color:#666}.s-con{border-left-color:var(--cn)}.s-th{border-left-color:var(--th)}.s-sp{border-left-color:var(--sp)}
 .s-r{border-left-color:#666}.s-gr{border-left-color:var(--bk)}.s-lfm{border-left-color:var(--mu)}
 .stb{max-height:300px;overflow-y:auto;overflow-x:hidden}.stb table{width:100%}.stb th:nth-child(n+3),.stb td:nth-child(n+3){text-align:right;width:38px;padding-left:4px}.stb::-webkit-scrollbar{width:5px}.stb::-webkit-scrollbar-thumb{background:#333;border-radius:3px}
 table{width:100%;border-collapse:collapse;font-size:12px}
@@ -88,16 +88,16 @@ body{overflow-x:hidden}
 <div class="fbar">
 <h1><svg class="iris-logo" viewBox="0 0 512 512" width="28" height="28" style="vertical-align:middle;margin-right:6px"><defs><radialGradient id="ig" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#e94560"/><stop offset="45%" stop-color="#7c3aed"/><stop offset="100%" stop-color="#c4b5fd"/></radialGradient></defs><path d="M256 96C128 96 32 256 32 256s96 160 224 160 224-160 224-160S384 96 256 96z" fill="#c4b5fd"/><circle cx="256" cy="256" r="200" fill="url(#ig)"/><circle cx="256" cy="256" r="80" fill="#0f0f0f"/><circle cx="220" cy="220" r="28" fill="rgba(255,255,255,0.4)"/><circle cx="280" cy="240" r="12" fill="rgba(255,255,255,0.2)"/></svg><span style="color:var(--ac);font-weight:800">iris</span> <span style="color:var(--t2);font-weight:400">// jamesgoux</span></h1>
 <div class="fctrls">
-<div class="fbtn"><label>Type</label><select id="gs"><option value="all">🌐 All</option><option value="movie">🎞️ Movies</option><option value="show">📺 Shows</option><option value="book">📚 Books</option><option value="music">🎧 Music</option><option value="concert">🎸 Concerts</option><option value="podcast">🎙️ Podcasts</option><option value="theater">🎭 Theater</option></select></div>
+<div class="fbtn"><label>Type</label><select id="gs"><option value="all">🌐 All</option><option value="movie">🎞️ Movies</option><option value="show">📺 Shows</option><option value="book">📚 Books</option><option value="music">🎧 Music</option><option value="concert">🎸 Concerts</option><option value="podcast">🎙️ Podcasts</option><option value="sports">🏀 Sports</option><option value="theater">🎭 Theater</option></select></div>
 <div class="fbtn"><label>Year</label><select id="ys"><option value="all">All Time</option></select></div>
-<div class="fbtn"><label>Jump</label><select id="jmp" onchange="if(this.value){document.getElementById(this.value).scrollIntoView({behavior:'smooth',block:'start'});this.value=''}"><option value="">...</option><option value="sec-tl">📈 Timeline</option><option value="sec-ll">🧬 Lifeline</option><option value="sec-act">🎭 Actors</option><option value="sec-crew">🎬 Directors/Writers</option><option value="sec-shows">📺 Top Shows</option><option value="sec-ttw">⏱️ Time to Watch</option><option value="sec-mov">🎞️ Movies</option><option value="sec-eps">📺 Episodes</option><option value="sec-time">🕐 Day & Time</option><option value="sec-meta">🎯 Genres/Trends</option><option value="sec-geo">🌍 Countries/Languages</option><option value="sec-vy">📅 Release Years</option><option value="sec-how">🖥️ How I Watch</option><option value="sec-ratings">⭐ Ratings</option><option value="sec-first">🌅 First Watches</option><option value="sec-rec">👁️ Last Watches</option><option value="sec-gr">📚 Books</option><option value="sec-lfm">🎧 Music</option><option value="sec-con">🎸 Concerts</option><option value="sec-pc">🎙️ Podcasts</option><option value="sec-th">🎭 Theater</option></select></div>
+<div class="fbtn"><label>Jump</label><select id="jmp" onchange="if(this.value){document.getElementById(this.value).scrollIntoView({behavior:'smooth',block:'start'});this.value=''}"><option value="">...</option><option value="sec-tl">📈 Timeline</option><option value="sec-ll">🧬 Lifeline</option><option value="sec-act">🎭 Actors</option><option value="sec-crew">🎬 Directors/Writers</option><option value="sec-shows">📺 Top Shows</option><option value="sec-ttw">⏱️ Time to Watch</option><option value="sec-mov">🎞️ Movies</option><option value="sec-eps">📺 Episodes</option><option value="sec-time">🕐 Day & Time</option><option value="sec-meta">🎯 Genres/Trends</option><option value="sec-geo">🌍 Countries/Languages</option><option value="sec-vy">📅 Release Years</option><option value="sec-how">🖥️ How I Watch</option><option value="sec-ratings">⭐ Ratings</option><option value="sec-first">🌅 First Watches</option><option value="sec-rec">👁️ Last Watches</option><option value="sec-gr">📚 Books</option><option value="sec-lfm">🎧 Music</option><option value="sec-con">🎸 Concerts</option><option value="sec-pc">🎙️ Podcasts</option><option value="sec-sp">🏀 Sports</option><option value="sec-th">🎭 Theater</option></select></div>
 <button class="rbtn" onclick="location.reload()">&#x21bb;</button>
 </div>
 </div>
 <div class="dash">
 <div class="sg" id="st"></div>
 <!-- TIMELINE: Yearly / Monthly -->
-<div class="g2 med-s" data-med="all movie show book concert podcast theater">
+<div class="g2 med-s" data-med="all movie show book concert podcast sports theater">
 <div id="sec-tl" class="cd fw s-t"><h3 id="tlh"><span class="i">📈</span>Yearly Activity</h3><div id="yrc" style="height:280px"></div><div id="tlc" style="height:280px;display:none"></div></div>
 </div>
 <!-- LIFELINE: 30-day activity -->
@@ -214,6 +214,41 @@ body{overflow-x:hidden}
 <div class="cd s-th"><h3><span class="i">🏛️</span>Top Theaters</h3><div id="th-venues" style="height:280px"></div></div>
 <div class="cd s-th"><h3><span class="i">👥</span>Theater Companions</h3><div id="th-companions" style="height:280px"></div></div>
 </div>
+<!-- SPORTS -->
+<div class="g2 med-s" data-med="all sports" id="sp-wrap" style="display:none">
+<div id="sec-sp" class="cd fw s-sp"><h3><span class="i">🏀</span>Sports <span style="float:right"><button class="vb" id="sp-add-btn" onclick="document.getElementById('sp-modal').style.display='flex'" style="background:var(--sp);color:#fff;border-color:var(--sp)">+ Add Event</button></span></h3><div id="sp-chart" style="height:280px"></div></div>
+<div class="cd s-sp"><h3><span class="i">🏟️</span>Teams</h3><div id="sp-teams" style="height:280px"></div></div>
+<div class="cd s-sp"><h3><span class="i">📺</span>How I Watched</h3><div id="sp-how" style="height:280px"></div></div>
+<div class="cd s-sp"><h3><span class="i">🏟️</span>Venues</h3><div id="sp-venues" style="height:280px"></div></div>
+<div class="cd s-sp"><h3><span class="i">🏅</span>Leagues</h3><div id="sp-leagues" style="height:280px"></div></div>
+<div class="cd s-sp"><h3><span class="i">📋</span>Recent Events</h3><div class="stb" id="sp-recent" style="font-size:12px;max-height:350px"></div></div>
+</div>
+<!-- Sports Add Event Modal -->
+<div id="sp-modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.8);z-index:200;align-items:center;justify-content:center;padding:16px">
+<div style="background:var(--sf);border-radius:12px;padding:20px;max-width:500px;width:100%;max-height:90vh;overflow-y:auto;border:1px solid rgba(255,255,255,.1)">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><h3 style="margin:0"><span class="i">🏀</span> Add Sports Event</h3><button onclick="document.getElementById('sp-modal').style.display='none'" style="background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer">✕</button></div>
+<div id="sp-step1">
+<input id="sp-team-input" type="text" placeholder="Search team name (e.g. Los Angeles Lakers)" style="width:100%;padding:10px 12px;background:var(--bg);border:1px solid rgba(255,255,255,.15);border-radius:8px;color:var(--tx);font-size:14px;margin-bottom:8px" onkeydown="if(event.key==='Enter')searchSportsTeam()">
+<button onclick="searchSportsTeam()" style="width:100%;padding:10px;background:var(--sp);color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer">Search Teams</button>
+<div id="sp-team-results" style="margin-top:10px"></div>
+</div>
+<div id="sp-step2" style="display:none">
+<button onclick="document.getElementById('sp-step1').style.display='';document.getElementById('sp-step2').style.display='none'" style="background:none;border:none;color:var(--sp);cursor:pointer;font-size:12px;margin-bottom:8px">← Back to search</button>
+<div id="sp-event-results"></div>
+</div>
+<div id="sp-step3" style="display:none">
+<button onclick="document.getElementById('sp-step2').style.display='';document.getElementById('sp-step3').style.display='none'" style="background:none;border:none;color:var(--sp);cursor:pointer;font-size:12px;margin-bottom:8px">← Back to events</button>
+<div id="sp-event-detail" style="margin-bottom:12px"></div>
+<p style="color:var(--t2);font-size:12px;margin-bottom:8px">How did you watch?</p>
+<div style="display:flex;gap:8px;margin-bottom:12px">
+<button class="vb sp-wt" data-v="live" onclick="document.querySelectorAll('.sp-wt').forEach(function(b){b.classList.remove('vb-on')});this.classList.add('vb-on')" style="flex:1;padding:10px">🏟️ Live</button>
+<button class="vb sp-wt" data-v="tv" onclick="document.querySelectorAll('.sp-wt').forEach(function(b){b.classList.remove('vb-on')});this.classList.add('vb-on')" style="flex:1;padding:10px">📺 TV</button>
+<button class="vb sp-wt" data-v="remote" onclick="document.querySelectorAll('.sp-wt').forEach(function(b){b.classList.remove('vb-on')});this.classList.add('vb-on')" style="flex:1;padding:10px">📡 Remote</button>
+</div>
+<button onclick="saveSportsEvent()" style="width:100%;padding:10px;background:var(--sp);color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer">Save Event</button>
+</div>
+</div>
+</div>
 <div class="cd fw s-g" style="margin-top:14px">
 <h3><span class="i">📤</span>Import Data</h3>
 <p style="color:var(--t2);font-size:12px;margin-bottom:10px">Drop a CSV to update — auto-detects <b>Letterboxd</b> diary or <b>Mezzanine</b> theater diary.</p>
@@ -320,6 +355,12 @@ function stats(){
     var pcDays=Math.round(pcHrs/24*10)/10;
     var pcShows=cy!=='all'&&pc.top_y&&pc.top_y[cy]?pc.top_y[cy].length:(pc.total_podcasts||0);
     el.innerHTML=sc(pcShows,'📡 Shows','#ef4444')+sc(pcEps,'📻 Episodes','#ef4444')+sc(pcDays+'d','🎙️ Days Listened','#ef4444');return}
+  if(ct==='sports'){
+    var spF=cy==='all'?SP:SP.filter(function(e){return e.date&&e.date.substring(0,4)===cy});
+    var spLive=spF.filter(function(e){return e.watch_type==='live'}).length;
+    var spTeams={};spF.forEach(function(e){spTeams[e.home_team]=1;spTeams[e.away_team]=1});
+    el.innerHTML=sc(spF.length,'🏀 Games','#0ea5e9')+sc(spLive,'🏟️ Live','#0ea5e9')+sc(Object.keys(spTeams).length,'🏅 Teams','#0ea5e9');return}
+  // Movie/show/all — compute counts
   // Movie/show/all — compute counts
   var mw=0,ew=0,rt=0,rtm=0,rts=0;D.c.m.filter(function(m){return cy==='all'||m.month.startsWith(cy)}).forEach(function(m){mw+=m.movies;ew+=m.episodes;rt+=(m.rt||0);rtm+=(m.rt_m||0);rts+=(m.rt_s||0)});
   var totalDays=Math.round(rt/60/24*10)/10;var movieDays=Math.round(rtm/60/24*10)/10;var showDays=Math.round(rts/60/24*10)/10;
@@ -335,6 +376,7 @@ function stats(){
     if(D.con&&D.con.total){var conR=D.con.recent||[];var conF=cy==='all'?conR:conR.filter(function(e){return e.yr===cy});var conEv={};conF.forEach(function(e){conEv[e.date+'|'+e.venue]=true});var conUA=conF.map(function(e){return e.artist}).filter(function(v,i,a){return a.indexOf(v)===i}).length;var conSongs=conF.reduce(function(s,e){return s+e.songs},0);h2+=sc(Object.keys(conEv).length,'🎸 Concerts','#3b82f6')+sc(conF.length,'🎤 Sets','#3b82f6')+sc(conUA,'🎙️ Artists','#3b82f6')+sc(conSongs,'🎵 Songs','#3b82f6')}
     if(D.gr&&D.gr.total){var grAll=D.gr.all||[];var grF=cy==='all'?grAll:grAll.filter(function(b){return b.yr===cy});h2+=sc(grF.length,'📚 Books','#fbbf24')+sc(grF.reduce(function(s,b){return s+b.p},0).toLocaleString(),'📖 Pages','#fbbf24')}
     if(D.th&&D.th.total){var thF=cy==='all'?(D.th.all||[]):(D.th.all||[]).filter(function(e){return e.y===cy});h2+=sc(thF.length,'🎭 Plays','#a78bfa')}
+    if(SP.length){var spAll=cy==='all'?SP:SP.filter(function(e){return e.date&&e.date.substring(0,4)===cy});if(spAll.length)h2+=sc(spAll.length,'🏀 Games','#0ea5e9')}
   }
   el.innerHTML=h2;
 }
@@ -1855,6 +1897,145 @@ function renderPodcasts(){
   ch.push(pcChart);
 }
 
+// Sports — localStorage-backed tracker with TheSportsDB
+var SP=JSON.parse(localStorage.getItem('iris_sports')||'[]');
+window._spSelected=null;
+
+function searchSportsTeam(){
+  var q=document.getElementById('sp-team-input').value.trim();if(!q)return;
+  var el=document.getElementById('sp-team-results');el.innerHTML='<div style="color:var(--t2)">Searching...</div>';
+  fetch('https://www.thesportsdb.com/api/v1/json/3/searchteams.php?t='+encodeURIComponent(q)).then(function(r){return r.json()}).then(function(d){
+    var teams=d.teams||[];
+    if(!teams.length){el.innerHTML='<div style="color:var(--t2)">No teams found. Try the full name (e.g. "Los Angeles Lakers")</div>';return}
+    var h='';teams.slice(0,8).forEach(function(t){
+      h+='<div onclick="loadTeamEvents(\''+t.idTeam+'\',\''+t.strTeam.replace(/'/g,"\\'")+'\')" style="padding:10px;border:1px solid rgba(255,255,255,.08);border-radius:8px;margin-bottom:6px;cursor:pointer;display:flex;align-items:center;gap:10px" onmouseover="this.style.background=\'rgba(255,255,255,.04)\'" onmouseout="this.style.background=\'none\'">';
+      if(t.strTeamBadge)h+='<img src="'+t.strTeamBadge+'" style="width:32px;height:32px;object-fit:contain">';
+      h+='<div><div style="font-weight:600">'+t.strTeam+'</div><div style="font-size:11px;color:var(--t2)">'+t.strSport+' — '+t.strLeague+'</div></div></div>';
+    });el.innerHTML=h;
+  }).catch(function(){el.innerHTML='<div style="color:#ef4444">Search failed — try again</div>'});
+}
+
+function loadTeamEvents(teamId,teamName){
+  document.getElementById('sp-step1').style.display='none';
+  document.getElementById('sp-step2').style.display='';
+  var el=document.getElementById('sp-event-results');el.innerHTML='<div style="color:var(--t2)">Loading events...</div>';
+  // Fetch last + next events
+  Promise.all([
+    fetch('https://www.thesportsdb.com/api/v1/json/3/eventslast.php?id='+teamId).then(function(r){return r.json()}),
+    fetch('https://www.thesportsdb.com/api/v1/json/3/eventsnext.php?id='+teamId).then(function(r){return r.json()})
+  ]).then(function(res){
+    var past=(res[0].results||[]).reverse();var future=res[1].events||[];
+    var all=past.concat(future);
+    if(!all.length){el.innerHTML='<div style="color:var(--t2)">No events found for '+teamName+'</div>';return}
+    var h='<div style="font-size:11px;color:var(--t2);margin-bottom:8px">'+teamName+' — select a game:</div>';
+    all.forEach(function(ev){
+      var score=(ev.intHomeScore!=null&&ev.intHomeScore!=='')?(ev.intHomeScore+' - '+ev.intAwayScore):'Upcoming';
+      var evJson=JSON.stringify(ev).replace(/'/g,'&#39;').replace(/"/g,'&quot;');
+      h+='<div onclick="selectSportsEvent(this)" data-ev="'+evJson+'" style="padding:10px;border:1px solid rgba(255,255,255,.08);border-radius:8px;margin-bottom:6px;cursor:pointer" onmouseover="this.style.background=\'rgba(255,255,255,.04)\'" onmouseout="this.style.background=\'none\'">';
+      h+='<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-weight:600;font-size:13px">'+ev.strEvent+'</span><span class="badge" style="background:rgba(14,165,233,.15);color:var(--sp)">'+score+'</span></div>';
+      h+='<div style="font-size:11px;color:var(--t2);margin-top:2px">'+ev.dateEvent+(ev.strVenue?' — '+ev.strVenue:'')+'</div></div>';
+    });el.innerHTML=h;
+  }).catch(function(){el.innerHTML='<div style="color:#ef4444">Failed to load events</div>'});
+}
+
+function selectSportsEvent(el){
+  var ev=JSON.parse(el.dataset.ev);window._spSelected=ev;
+  document.getElementById('sp-step2').style.display='none';
+  document.getElementById('sp-step3').style.display='';
+  document.querySelectorAll('.sp-wt').forEach(function(b){b.classList.remove('vb-on')});
+  var score=(ev.intHomeScore!=null&&ev.intHomeScore!=='')?(ev.intHomeScore+' - '+ev.intAwayScore):'Upcoming';
+  var badges='';if(ev.strHomeTeamBadge)badges+='<img src="'+ev.strHomeTeamBadge+'" style="width:28px;height:28px;object-fit:contain">';
+  badges+='<span style="font-size:18px;font-weight:700;margin:0 8px">'+score+'</span>';
+  if(ev.strAwayTeamBadge)badges+='<img src="'+ev.strAwayTeamBadge+'" style="width:28px;height:28px;object-fit:contain">';
+  document.getElementById('sp-event-detail').innerHTML='<div style="text-align:center;margin-bottom:8px">'+badges+'</div><div style="text-align:center;font-weight:600">'+ev.strEvent+'</div><div style="text-align:center;font-size:12px;color:var(--t2)">'+ev.dateEvent+(ev.strVenue?' — '+ev.strVenue:'')+'</div><div style="text-align:center;font-size:11px;color:var(--t2)">'+ev.strSport+' — '+ev.strLeague+'</div>';
+}
+
+function saveSportsEvent(){
+  var ev=window._spSelected;if(!ev)return;
+  var wt=document.querySelector('.sp-wt.vb-on');if(!wt){alert('Pick how you watched');return}
+  // Check for duplicate
+  if(SP.some(function(s){return s.id===ev.idEvent})){alert('Already added');return}
+  SP.push({id:ev.idEvent,date:ev.dateEvent,sport:ev.strSport,league:ev.strLeague,home_team:ev.strHomeTeam,away_team:ev.strAwayTeam,home_score:ev.intHomeScore,away_score:ev.intAwayScore,venue:ev.strVenue||'',home_badge:ev.strHomeTeamBadge||'',away_badge:ev.strAwayTeamBadge||'',watch_type:wt.dataset.v});
+  localStorage.setItem('iris_sports',JSON.stringify(SP));
+  // Reset modal
+  document.getElementById('sp-modal').style.display='none';
+  document.getElementById('sp-step1').style.display='';
+  document.getElementById('sp-step2').style.display='none';
+  document.getElementById('sp-step3').style.display='none';
+  document.getElementById('sp-team-input').value='';
+  document.getElementById('sp-team-results').innerHTML='';
+  window._spSelected=null;
+  renderSports();
+}
+
+function renderSports(){
+  var wrap=document.getElementById('sp-wrap');
+  if(ct!=='all'&&ct!=='sports'){wrap.style.display='none';return}
+  var filtered=cy==='all'?SP:SP.filter(function(e){return e.date&&e.date.substring(0,4)===cy});
+  if(filtered.length===0&&ct==='all'){wrap.style.display='none';return}
+  wrap.style.display='';
+
+  // Games by year/month chart
+  var el=document.getElementById('sp-chart');
+  if(filtered.length===0){el.innerHTML='<div style="text-align:center;color:var(--t2);padding:40px">No sports events'+(cy!=='all'?' in '+cy:'')+'. Click <b>+ Add Event</b> to get started!</div>';
+  }else{
+    var byPeriod={};filtered.forEach(function(e){var k=cy==='all'?e.date.substring(0,4):e.date.substring(0,7);byPeriod[k]=(byPeriod[k]||0)+1});
+    var periods=Object.keys(byPeriod).sort();
+    var spChart=echarts.init(el);
+    spChart.setOption({tooltip:{trigger:mob?'item':'axis',axisPointer:{type:'shadow'},...tt},grid:{left:50,right:20,top:30,bottom:24},
+      title:{text:filtered.length+' games'+(cy!=='all'?' in '+cy:''),left:'center',top:0,textStyle:{color:'#999',fontSize:11,fontWeight:'normal'}},
+      xAxis:{type:'category',data:periods,axisLabel:{color:'#ccc'},axisLine:{lineStyle:{color:'#333'}}},
+      yAxis:{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},
+      series:[{type:'bar',data:periods.map(function(p){return{value:byPeriod[p],itemStyle:{color:LG('#0f3460','#0ea5e9')}}}),barMaxWidth:30,label:{show:true,position:'top',color:'#999',fontSize:10}}]});
+    ch.push(spChart);
+  }
+
+  // Teams chart
+  var teamCounts={};filtered.forEach(function(e){teamCounts[e.home_team]=(teamCounts[e.home_team]||0)+1;teamCounts[e.away_team]=(teamCounts[e.away_team]||0)+1});
+  var teams=Object.entries(teamCounts).sort(function(a,b){return b[1]-a[1]}).slice(0,10).reverse();
+  var tEl=document.getElementById('sp-teams');
+  if(teams.length){var tChart=echarts.init(tEl);tChart.setOption({tooltip:{trigger:mob?'item':'axis',axisPointer:{type:'shadow'},...tt},grid:{left:gl(140),right:30,top:8,bottom:8},xAxis:{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},yAxis:{type:'category',data:teams.map(function(t){return t[0]}),axisLabel:{color:'#ccc',fontSize:10,interval:0},axisLine:{lineStyle:{color:'#333'}}},series:[{type:'bar',data:teams.map(function(t){return t[1]}),itemStyle:{color:LG('#0f3460','#0ea5e9')},barMaxWidth:18,label:{show:true,position:'right',color:'#0ea5e9',fontSize:10}}]});ch.push(tChart)}
+  else{tEl.innerHTML='<div style="text-align:center;color:var(--t2);padding:40px">No data</div>'}
+
+  // How I Watched pie
+  var wtCounts={};filtered.forEach(function(e){var l=e.watch_type==='live'?'🏟️ Live':e.watch_type==='tv'?'📺 TV':'📡 Remote';wtCounts[l]=(wtCounts[l]||0)+1});
+  var wtEl=document.getElementById('sp-how');
+  var wtData=Object.entries(wtCounts).map(function(e){return{name:e[0],value:e[1]}});
+  if(wtData.length){var wtChart=echarts.init(wtEl);var wtCols=['#0ea5e9','#fb923c','#a78bfa'];wtChart.setOption({tooltip:{trigger:'item',...tt,formatter:'{b}: {c} ({d}%)'},series:[{type:'pie',radius:['30%','65%'],data:wtData.map(function(d,i){return{value:d.value,name:d.name,itemStyle:{color:wtCols[i%wtCols.length]}}}),label:{color:'#ccc',fontSize:11,formatter:'{b}\n{d}%'},emphasis:{itemStyle:{shadowBlur:10}}}]});ch.push(wtChart)}
+  else{wtEl.innerHTML='<div style="text-align:center;color:var(--t2);padding:40px">No data</div>'}
+
+  // Venues chart (live events only)
+  var venCounts={};filtered.forEach(function(e){if(e.venue)venCounts[e.venue]=(venCounts[e.venue]||0)+1});
+  var vens=Object.entries(venCounts).sort(function(a,b){return b[1]-a[1]}).slice(0,10).reverse();
+  var vEl=document.getElementById('sp-venues');
+  if(vens.length){var vChart=echarts.init(vEl);vChart.setOption({tooltip:{trigger:mob?'item':'axis',axisPointer:{type:'shadow'},...tt},grid:{left:gl(140),right:30,top:8,bottom:8},xAxis:{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},yAxis:{type:'category',data:vens.map(function(v){return v[0]}),axisLabel:{color:'#ccc',fontSize:10,interval:0},axisLine:{lineStyle:{color:'#333'}}},series:[{type:'bar',data:vens.map(function(v){return v[1]}),itemStyle:{color:LG('#0f3460','#4ade80')},barMaxWidth:18,label:{show:true,position:'right',color:'#4ade80',fontSize:10}}]});ch.push(vChart)}
+  else{vEl.innerHTML='<div style="text-align:center;color:var(--t2);padding:40px">No data</div>'}
+
+  // Leagues chart
+  var lgCounts={};filtered.forEach(function(e){if(e.league)lgCounts[e.league]=(lgCounts[e.league]||0)+1});
+  var lgs=Object.entries(lgCounts).sort(function(a,b){return b[1]-a[1]}).slice(0,10).reverse();
+  var lEl=document.getElementById('sp-leagues');
+  if(lgs.length){var lChart=echarts.init(lEl);var lgCols=['#fb923c','#0ea5e9','#4ade80','#a78bfa','#e94560','#fbbf24','#f472b6','#38bdf8'];lChart.setOption({tooltip:{trigger:'item',...tt,formatter:'{b}: {c} ({d}%)'},series:[{type:'pie',radius:['30%','65%'],data:lgs.map(function(l,i){return{value:l[1],name:l[0],itemStyle:{color:lgCols[i%lgCols.length]}}}),label:{color:'#ccc',fontSize:11,formatter:'{b}\n{d}%'},emphasis:{itemStyle:{shadowBlur:10}}}]});ch.push(lChart)}
+  else{lEl.innerHTML='<div style="text-align:center;color:var(--t2);padding:40px">No data</div>'}
+
+  // Recent events table
+  var rEl=document.getElementById('sp-recent');
+  var sorted=filtered.slice().sort(function(a,b){return b.date.localeCompare(a.date)});
+  var h='<table><thead><tr><th>Date</th><th>Event</th><th>Score</th><th>How</th><th></th></tr></thead><tbody>';
+  sorted.forEach(function(e,i){
+    var score=(e.home_score!=null&&e.home_score!=='')?(e.home_score+'-'+e.away_score):'—';
+    var icon=e.watch_type==='live'?'🏟️':e.watch_type==='tv'?'📺':'📡';
+    h+='<tr><td style="white-space:nowrap;color:var(--t2)">'+e.date+'</td><td style="font-weight:600;font-size:11px">'+e.home_team+' vs '+e.away_team+'</td><td class="nm nm-a">'+score+'</td><td>'+icon+'</td><td><button onclick="deleteSportsEvent(\''+e.id+'\')" style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:12px" title="Remove">✕</button></td></tr>';
+  });
+  h+='</tbody></table>';rEl.innerHTML=h;
+}
+
+function deleteSportsEvent(id){
+  SP=SP.filter(function(e){return e.id!==id});
+  localStorage.setItem('iris_sports',JSON.stringify(SP));
+  renderSports();
+}
+
 function renderStatus(){
   var total_people=D.a.length+D.x.length;
   var hs_count=Object.keys(D.hs||{}).length;
@@ -1869,7 +2050,7 @@ function render(){ch.forEach(function(c){try{c.dispose()}catch(e){}});ch=[];
   // Critical (above fold): stats, timeline, lifeline, posters
   stats();renderLifeline();baseCharts();renderPosters();
   // Deferred (below fold): render after first paint
-  requestAnimationFrame(function(){ptbl('atb',D.a);ptbl('xtb',D.x);ptbl('dtb',D.d||[]);ptbl('wtb',D.w||[]);movieCharts();renderLetterboxd();renderGoodreads();renderLastfm();renderConcerts();renderTheater();renderPodcasts();renderStatus()})}
+  requestAnimationFrame(function(){ptbl('atb',D.a);ptbl('xtb',D.x);ptbl('dtb',D.d||[]);ptbl('wtb',D.w||[]);movieCharts();renderLetterboxd();renderGoodreads();renderLastfm();renderConcerts();renderTheater();renderPodcasts();renderSports();renderStatus()})}
 var _rzt,_lastW=window.innerWidth;
 function _rz(){clearTimeout(_rzt);_rzt=setTimeout(function(){mob=window.innerWidth<768;ch.forEach(function(c){try{c.resize()}catch(e){}})},200)}
 window.addEventListener('resize',function(){

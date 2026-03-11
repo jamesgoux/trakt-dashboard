@@ -10,8 +10,8 @@
 2. ~~**Show posters not obeying the 50% image fallback rule**~~ ✅ DONE
    Top Shows now falls back to side-by-side bar charts (By Duration + By Episodes) when fewer than 50% of shows have poster images.
 
-3. **Better image backfill catch-up strategy**
-   Need a smarter approach to backfilling missing images so gaps get filled faster.
+3. ~~**Better image backfill catch-up strategy**~~ ✅ DONE
+   Smarter backfill approach implemented — gaps get filled faster.
 
 4. ~~**Prioritize visible empty posters on "All Time" for image backfill**~~ ✅ DONE
    Headshot/poster backfill now prioritizes people and shows visible on the "all time / all types" dashboard page before falling back to most-recent-first. Directors and writers also get a larger budget share.
