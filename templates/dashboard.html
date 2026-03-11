@@ -278,14 +278,15 @@ body{overflow-x:hidden}
 <div class="cd s-sp"><h3><span class="i">📋</span>Recent Events</h3><div class="stb" id="sp-recent" style="font-size:12px;max-height:350px"></div></div>
 </div>
 <!-- Sports Add Event Overlay -->
-<div id="sp-overlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg);z-index:300;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain">
+<div id="sp-overlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg);z-index:300;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;transition:transform .3s ease;will-change:transform">
 <div style="position:sticky;top:0;z-index:301;background:rgba(15,15,15,.97);backdrop-filter:blur(8px);padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:space-between">
+<button onclick="closeSportsAdd()" style="background:none;border:1px solid rgba(255,255,255,.1);color:var(--t2);border-radius:8px;padding:8px 14px;font-size:14px;cursor:pointer;min-height:44px;min-width:44px;display:flex;align-items:center;justify-content:center">←</button>
 <h2 style="font-size:18px;font-weight:700;margin:0" id="sp-ov-title"><span class="i">🏟️</span> Add Sports Event</h2>
-<button onclick="closeSportsAdd()" style="background:none;border:1px solid rgba(255,255,255,.1);color:var(--t2);border-radius:8px;padding:6px 12px;font-size:14px;cursor:pointer">✕</button>
 </div>
 <div style="max-width:700px;margin:0 auto;padding:16px">
 <div id="sp-ov-search">
-<input id="sp-team-input" type="text" placeholder="Search team name (e.g. Los Angeles Lakers)" style="width:100%;padding:12px;background:var(--sf);border:1px solid rgba(255,255,255,.15);border-radius:8px;color:var(--tx);font-size:15px;margin-bottom:10px" onkeydown="if(event.key==='Enter')searchSportsTeam()">
+<input id="sp-team-input" type="text" placeholder="Search team name..." style="width:100%;padding:14px 16px;background:var(--sf);border:1px solid rgba(255,255,255,.15);border-radius:10px;color:var(--tx);font-size:16px;margin-bottom:12px;-webkit-appearance:none" oninput="_spLiveSearch(this.value)">
+<div id="sp-frequent-teams"></div>
 <div id="sp-team-results"></div>
 </div>
 <div id="sp-ov-events" style="display:none">
@@ -2090,7 +2091,8 @@ function _spToast(msg,color){
 function _spDate(d){if(!d)return'';var p=d.split('-');if(p.length!==3)return d;return p[1]+'/'+p[2]+'/'+p[0]}
 
 function openSportsAdd(){
-  document.getElementById('sp-overlay').style.display='';
+  var ov=document.getElementById('sp-overlay');
+  ov.style.display='';ov.style.transform='';
   _lockBody();
   document.getElementById('sp-ov-search').style.display='';
   document.getElementById('sp-ov-events').style.display='none';
@@ -2098,10 +2100,35 @@ function openSportsAdd(){
   document.getElementById('sp-ov-title').innerHTML='<span class="i">🏟️</span> Add Sports Event';
   document.getElementById('sp-team-input').value='';
   document.getElementById('sp-team-results').innerHTML='';
+  // Show frequent teams (from existing events)
+  var freq={};SP.forEach(function(e){if(e.my_team){if(!freq[e.my_team])freq[e.my_team]={n:e.my_team,c:0,badge:''};freq[e.my_team].c++;if(!freq[e.my_team].badge){freq[e.my_team].badge=(e.my_team===e.home_team?e.home_badge:e.away_badge)||''}}});
+  var freqArr=Object.values(freq).sort(function(a,b){return b.c-a.c}).slice(0,6);
+  var fEl=document.getElementById('sp-frequent-teams');
+  if(freqArr.length){
+    var fh='<div style="margin-bottom:12px"><div style="font-size:11px;color:var(--t2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">Your Teams</div><div style="display:flex;flex-wrap:wrap;gap:8px">';
+    freqArr.forEach(function(t){fh+='<button onclick="document.getElementById(\'sp-team-input\').value=\''+t.n.replace(/'/g,"\\'")+'\';_spLiveSearch(\''+t.n.replace(/'/g,"\\'")+'\');searchSportsTeam()" style="display:flex;align-items:center;gap:6px;padding:10px 14px;background:var(--sf);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:var(--tx);font-size:13px;cursor:pointer;min-height:44px">'+(t.badge?'<img src="'+t.badge+'" style="width:20px;height:20px;object-fit:contain">':'')+t.n+' <span style="color:var(--t2)">('+t.c+')</span></button>'});
+    fh+='</div></div>';fEl.innerHTML=fh;
+  }else{fEl.innerHTML=''}
   // Scroll-to-load on the overlay
-  var ov=document.getElementById('sp-overlay');
   ov.onscroll=function(){if(ov.scrollTop+ov.clientHeight>=ov.scrollHeight-400)loadMoreSportsEvents()};
 }
+
+// Live search: frequent teams at top + TheSportsDB results
+var _spSearchTimer=null;
+function _spLiveSearch(q){
+  clearTimeout(_spSearchTimer);
+  if(!q||q.length<2){document.getElementById('sp-team-results').innerHTML='';return}
+  _spSearchTimer=setTimeout(function(){searchSportsTeam()},400);
+}
+
+// Slide-to-dismiss for Add Event overlay
+(function(){
+  var ov=document.getElementById('sp-overlay');if(!ov)return;
+  var sx=0,sy=0,tracking=false,moved=false;
+  ov.addEventListener('touchstart',function(e){sx=e.touches[0].clientX;sy=e.touches[0].clientY;tracking=true;moved=false;ov.style.transition='none'},{passive:true});
+  ov.addEventListener('touchmove',function(e){if(!tracking)return;var dx=e.touches[0].clientX-sx,dy=Math.abs(e.touches[0].clientY-sy);if(!moved&&dy>20){tracking=false;return}if(dx>10){moved=true;ov.style.transform='translateX('+dx+'px)'}},{passive:true});
+  ov.addEventListener('touchend',function(){if(!tracking&&!moved)return;tracking=false;var dx=parseInt(ov.style.transform.replace(/[^0-9.-]/g,''))||0;ov.style.transition='transform .3s ease';if(dx>window.innerWidth*0.35){ov.style.transform='translateX(100%)';setTimeout(function(){ov.style.display='none';ov.style.transform='';_unlockBody()},320)}else{ov.style.transform=''}moved=false},{passive:true});
+})();
 
 function closeSportsAdd(){
   document.getElementById('sp-overlay').style.display='none';
