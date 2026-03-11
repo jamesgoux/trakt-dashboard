@@ -56,7 +56,6 @@ jobs:
           SERIALIZD_PASSWORD: ${{ secrets.SERIALIZD_PASSWORD }}
         run: python scripts/refresh_serializd.py
         continue-on-error: true
-        continue-on-error: true
 
       # Slower sources
       - name: Refresh Last.fm

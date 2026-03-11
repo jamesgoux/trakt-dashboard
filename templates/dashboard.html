@@ -140,7 +140,7 @@ body{overflow-x:hidden}
 </div>
 <!-- TOP SHOWS POSTERS -->
 <div class="g2 med-s" data-med="all show">
-<div id="sec-shows" class="cd fw s-s"><h3><span class="i">📺</span>Top Shows <span class="vtog" style="float:right"><button class="vb" id="ss-eps" onclick="window._showSort='eps';document.getElementById('ss-eps').classList.add('vb-on');document.getElementById('ss-dur').classList.remove('vb-on');renderPosters(true)">By Episodes</button><button class="vb vb-on" id="ss-dur" onclick="window._showSort='dur';document.getElementById('ss-dur').classList.add('vb-on');document.getElementById('ss-eps').classList.remove('vb-on');renderPosters(true)">By Duration</button></span></h3><div id="poster-grid" style="display:flex;flex-wrap:wrap;gap:10px;overflow-x:auto;padding:4px 0"></div></div>
+<div id="sec-shows" class="cd fw s-s"><h3><span class="i">📺</span>Most Watched Shows <span class="vtog" style="float:right"><button class="vb" id="ss-eps" onclick="window._showSort='eps';document.getElementById('ss-eps').classList.add('vb-on');document.getElementById('ss-dur').classList.remove('vb-on');renderPosters(true)">By Episodes</button><button class="vb vb-on" id="ss-dur" onclick="window._showSort='dur';document.getElementById('ss-dur').classList.add('vb-on');document.getElementById('ss-eps').classList.remove('vb-on');renderPosters(true)">By Duration</button></span></h3><div id="poster-grid" style="display:flex;flex-wrap:wrap;gap:10px;overflow-x:auto;padding:4px 0"></div></div>
 </div>
 <!-- EPISODES WATCHED -->
 <div class="g2 med-s" data-med="all show">
@@ -153,12 +153,23 @@ body{overflow-x:hidden}
 </div>
 <!-- MOVIES -->
 <div class="g2 med-s" data-med="all movie">
-<div id="sec-mov" class="cd fw s-m"><h3 id="mdh"><span class="i">🎞️</span>Movies <span class="vtog" style="float:right"><button class="vb vb-on mv-mode" data-v="long" onclick="window._mvMode='long';movieCharts(true)">Longest</button><button class="vb mv-mode" data-v="short" onclick="window._mvMode='short';movieCharts(true)">Shortest</button><button class="vb mv-mode" data-v="rewatch" onclick="window._mvMode='rewatch';movieCharts(true)">Rewatched</button></span></h3><div id="mdc" class="cover-grid"></div></div>
+<div id="sec-mov" class="cd fw s-m"><h3 id="mdh"><span class="i">🎞️</span>Watched Movies <span class="vtog" style="float:right"><button class="vb vb-on mv-mode" data-v="long" onclick="window._mvMode='long';movieCharts(true)">Longest</button><button class="vb mv-mode" data-v="short" onclick="window._mvMode='short';movieCharts(true)">Shortest</button><button class="vb mv-mode" data-v="rewatch" onclick="window._mvMode='rewatch';movieCharts(true)">Rewatched</button></span></h3><div id="mdc" class="cover-grid"></div></div>
+</div>
+<!-- RATINGS: movie row then TV row -->
+<div class="g3 med-s" data-med="all movie">
+<div id="sec-ratings" class="cd s-m"><h3><span class="i">⭐</span>My Movie Ratings (Letterboxd)</h3><div id="lbc" style="height:280px"></div></div>
+<div class="cd s-m"><h3><span class="i">⭐</span>My Movies (Letterboxd) <span class="vtog" style="float:right"><button class="vb vb-on rt-tog" data-v="high" onclick="window._rtMode='high';document.querySelectorAll('.rt-tog').forEach(function(b){b.classList.toggle('vb-on',b.dataset.v==='high')});renderRatings()">Highest</button><button class="vb rt-tog" data-v="low" onclick="window._rtMode='low';document.querySelectorAll('.rt-tog').forEach(function(b){b.classList.toggle('vb-on',b.dataset.v==='low')});renderRatings()">Lowest</button></span></h3><div class="stb" id="my-rat" style="font-size:12px"></div></div>
+<div class="cd s-m"><h3><span class="i">🎞️</span>Community Movies (Trakt) <span class="vtog" style="float:right"><button class="vb vb-on rt-tog" data-v="high" onclick="window._rtMode='high';document.querySelectorAll('.rt-tog').forEach(function(b){b.classList.toggle('vb-on',b.dataset.v==='high')});renderRatings()">Highest</button><button class="vb rt-tog" data-v="low" onclick="window._rtMode='low';document.querySelectorAll('.rt-tog').forEach(function(b){b.classList.toggle('vb-on',b.dataset.v==='low')});renderRatings()">Lowest</button></span></h3><div class="stb" id="mc-rat" style="font-size:12px"></div></div>
+</div>
+<div class="g3 med-s" data-med="all show">
+<div id="sec-sz-ratings" class="cd s-s"><h3><span class="i">⭐</span>My TV Ratings (Serializd)</h3><div id="szc" style="height:280px"></div></div>
+<div class="cd s-s"><h3><span class="i">📺</span>My Seasons (Serializd) <span class="vtog" style="float:right"><button class="vb vb-on rt-tog" data-v="high" onclick="window._rtMode='high';document.querySelectorAll('.rt-tog').forEach(function(b){b.classList.toggle('vb-on',b.dataset.v==='high')});renderRatings()">Highest</button><button class="vb rt-tog" data-v="low" onclick="window._rtMode='low';document.querySelectorAll('.rt-tog').forEach(function(b){b.classList.toggle('vb-on',b.dataset.v==='low')});renderRatings()">Lowest</button></span></h3><div class="stb" id="sz-rat" style="font-size:12px"></div></div>
+<div class="cd s-s"><h3><span class="i">📺</span>Community TV (Trakt) <span class="vtog" style="float:right"><button class="vb vb-on rt-tog" data-v="high" onclick="window._rtMode='high';document.querySelectorAll('.rt-tog').forEach(function(b){b.classList.toggle('vb-on',b.dataset.v==='high')});renderRatings()">Highest</button><button class="vb rt-tog" data-v="low" onclick="window._rtMode='low';document.querySelectorAll('.rt-tog').forEach(function(b){b.classList.toggle('vb-on',b.dataset.v==='low')});renderRatings()">Lowest</button></span></h3><div class="stb" id="sc-rat" style="font-size:12px"></div></div>
 </div>
 <div class="g3 med-s" data-med="all movie show">
-<div id="sec-meta" class="cd s-g"><h3 id="gnh"><span class="i">🎯</span>Genres</h3><div id="gnc" style="height:360px"></div></div>
 <div id="sec-time" class="cd s-t"><h3><span class="i">📅</span>Day of Week</h3><div id="dwc" style="height:360px"></div></div>
 <div class="cd s-t"><h3><span class="i">🕐</span>Time of Day</h3><div id="hodc" style="height:360px"></div></div>
+<div id="sec-meta" class="cd s-g"><h3 id="gnh"><span class="i">🎯</span>Genres</h3><div id="gnc" style="height:360px"></div></div>
 </div>
 <div class="g2 med-s" data-med="all movie show" id="gt-wrap">
 <div class="cd fw s-g"><h3><span class="i">📈</span>Genre Trends (year over year %)</h3><div id="gtc" style="height:350px"></div></div>
@@ -169,8 +180,8 @@ body{overflow-x:hidden}
 </div>
 <!-- GEO -->
 <div class="g2 med-s" data-med="all movie show">
-<div id="sec-geo" class="cd s-e"><h3><span class="i">🌍</span>Countries</h3><div id="ctryc" style="height:320px"></div></div>
-<div class="cd s-e"><h3><span class="i">💬</span>Languages</h3><div id="langc" style="height:320px"></div></div>
+<div id="sec-geo" class="cd s-e"><h3><span class="i">🌍</span>Countries</h3><div id="ctryc"></div></div>
+<div class="cd s-e"><h3><span class="i">💬</span>Languages</h3><div id="langc"></div></div>
 </div>
 <!-- RELEASE YEARS -->
 <div class="g2 med-s" data-med="all movie show">
@@ -185,34 +196,14 @@ body{overflow-x:hidden}
 <div class="cd s-m"><h3><span class="i">📺</span>Streaming Services</h3><div id="strc" style="height:280px"></div></div>
 <div class="cd s-m"><h3><span class="i">📱</span>Devices &amp; Formats</h3><div id="devc" style="height:280px"></div></div>
 </div>
-<!-- RATINGS: combined tiles with highest/lowest toggle -->
-<div class="g2 med-s" data-med="all movie">
-<div id="sec-ratings" class="cd fw s-m"><h3><span class="i">⭐</span>My Ratings (Letterboxd)</h3><div id="lbc" style="height:280px"></div></div>
-</div>
-<div class="g2 med-s" data-med="all show">
-<div id="sec-sz-ratings" class="cd fw s-m"><h3><span class="i">⭐</span>My TV Ratings (Serializd)</h3><div id="szc" style="height:280px"></div></div>
-</div>
-<div class="g3 med-s" data-med="all movie show">
-<div class="cd s-m"><h3><span class="i">⭐</span>My Movies (Letterboxd) <span class="vtog" style="float:right"><button class="vb vb-on rt-tog" data-v="high" onclick="window._rtMode='high';document.querySelectorAll('.rt-tog').forEach(function(b){b.classList.toggle('vb-on',b.dataset.v==='high')});renderRatings()">Highest</button><button class="vb rt-tog" data-v="low" onclick="window._rtMode='low';document.querySelectorAll('.rt-tog').forEach(function(b){b.classList.toggle('vb-on',b.dataset.v==='low')});renderRatings()">Lowest</button></span></h3><div class="stb" id="my-rat" style="font-size:12px"></div></div>
-<div class="cd s-m"><h3><span class="i">📺</span>My Shows (Serializd) <span class="vtog" style="float:right"><button class="vb vb-on rt-tog" data-v="high" onclick="window._rtMode='high';document.querySelectorAll('.rt-tog').forEach(function(b){b.classList.toggle('vb-on',b.dataset.v==='high')});renderRatings()">Highest</button><button class="vb rt-tog" data-v="low" onclick="window._rtMode='low';document.querySelectorAll('.rt-tog').forEach(function(b){b.classList.toggle('vb-on',b.dataset.v==='low')});renderRatings()">Lowest</button></span></h3><div class="stb" id="sz-rat" style="font-size:12px"></div></div>
-<div class="cd s-m"><h3><span class="i">🎞️</span>Movies (Trakt Community) <span class="vtog" style="float:right"><button class="vb vb-on rt-tog" data-v="high" onclick="window._rtMode='high';document.querySelectorAll('.rt-tog').forEach(function(b){b.classList.toggle('vb-on',b.dataset.v==='high')});renderRatings()">Highest</button><button class="vb rt-tog" data-v="low" onclick="window._rtMode='low';document.querySelectorAll('.rt-tog').forEach(function(b){b.classList.toggle('vb-on',b.dataset.v==='low')});renderRatings()">Lowest</button></span></h3><div class="stb" id="mc-rat" style="font-size:12px"></div></div>
-<div class="cd s-s"><h3><span class="i">📺</span>TV (Trakt Community) <span class="vtog" style="float:right"><button class="vb vb-on rt-tog" data-v="high" onclick="window._rtMode='high';document.querySelectorAll('.rt-tog').forEach(function(b){b.classList.toggle('vb-on',b.dataset.v==='high')});renderRatings()">Highest</button><button class="vb rt-tog" data-v="low" onclick="window._rtMode='low';document.querySelectorAll('.rt-tog').forEach(function(b){b.classList.toggle('vb-on',b.dataset.v==='low')});renderRatings()">Lowest</button></span></h3><div class="stb" id="sc-rat" style="font-size:12px"></div></div>
-</div>
 <!-- FIRST + LAST WATCHES (same row) -->
 <div class="g2 med-s" data-med="all movie show">
 <div class="cd s-r" id="sec-first"><h3><span class="i">🌅</span>First Watches</h3><table><thead><tr><th>Title</th><th>Type</th><th>Date</th></tr></thead><tbody id="ftb"></tbody></table></div>
 <div id="sec-rec" class="cd s-r"><h3><span class="i">👁️</span>Last Watches</h3><table><thead><tr><th>Title</th><th>Type</th><th>Date</th></tr></thead><tbody id="rtb"></tbody></table></div>
 </div>
-<!-- BOOKS (Goodreads) -->
-<div class="g2 med-s" data-med="all book" id="gr-wrap" style="display:none">
-<div id="sec-gr" class="cd s-gr"><h3><span class="i">📚</span>Books Read <span class="vtog" style="float:right"><button class="vb vb-on gr-tog" data-v="books">By Books</button><button class="vb gr-tog" data-v="pages">By Pages</button></span></h3><div id="grc" style="height:280px"></div></div>
-<div class="cd s-gr"><h3><span class="i">📖</span>Time to Read</h3><div id="gr-ttr-wrap" style="max-height:280px;overflow-y:auto"><div id="gr-ttr" style="height:280px"></div></div></div>
-<div class="cd s-gr"><h3><span class="i">✍️</span>Most Read Authors</h3><div id="gr-auth" style="height:280px"></div></div>
-<div class="cd s-gr"><h3><span class="i">⭐</span>Book Ratings</h3><div id="gr-dist" style="height:280px"></div></div>
-<div class="cd s-gr"><h3><span class="i">📏</span>By Pages <span class="vtog" style="float:right"><button class="vb vb-on gr-pg" data-v="long" onclick="window._grPg='long';renderGoodreads()">Longest</button><button class="vb gr-pg" data-v="short" onclick="window._grPg='short';renderGoodreads()">Shortest</button></span></h3><div id="gr-pages"></div></div>
-<div class="cd s-gr"><h3><span class="i">⭐</span>By Rating <span class="vtog" style="float:right"><button class="vb vb-on gr-rt" data-v="high" onclick="window._grRt='high';renderGoodreads()">Highest</button><button class="vb gr-rt" data-v="low" onclick="window._grRt='low';renderGoodreads()">Lowest</button></span></h3><div id="gr-rating"></div></div>
-<div class="cd s-gr"><h3><span class="i">🏷️</span>Genres (Community)</h3><div id="gr-genres" style="height:280px"></div></div>
-<div class="cd s-gr"><h3><span class="i">📂</span>My Shelves</h3><div id="gr-shelves" style="height:280px"></div></div>
+<!-- PODCASTS (Pocket Casts) -->
+<div class="g2 med-s" data-med="all podcast" id="pc-wrap" style="display:none">
+<div id="sec-pc" class="cd fw" style="border-left-color:#ef4444"><h3><span class="i">🎙️</span>Top Podcasts (Pocket Casts) <span class="vtog" style="float:right"><button class="vb vb-on pc-tog" data-v="hrs" onclick="window._pcMode='hrs';document.querySelectorAll('.pc-tog').forEach(function(b){b.classList.toggle('vb-on',b.dataset.v==='hrs')});renderPodcasts()">By Hours</button><button class="vb pc-tog" data-v="eps" onclick="window._pcMode='eps';document.querySelectorAll('.pc-tog').forEach(function(b){b.classList.toggle('vb-on',b.dataset.v==='eps')});renderPodcasts()">By Episodes</button></span></h3><div id="pc-chart" style="height:350px"></div></div>
 </div>
 <!-- MUSIC (Last.fm) -->
 <div class="g2 med-s" data-med="all music" id="lfm-wrap" style="display:none">
@@ -222,16 +213,23 @@ body{overflow-x:hidden}
 <div class="cd s-lfm"><h3><span class="i">🎵</span>Top Tracks</h3><div id="lfm-tracks" style="height:500px"></div></div>
 <div class="cd fw s-lfm"><h3><span class="i">💿</span>Top Albums</h3><div id="lfm-albums" style="height:auto"></div></div>
 </div>
-<!-- CONCERTS (bottom) -->
+<!-- CONCERTS -->
 <div class="g2 med-s" data-med="all concert" id="con-wrap" style="display:none">
 <div id="sec-con" class="cd s-con"><h3><span class="i">🎸</span>Concerts <span class="vtog" style="float:right"><button class="vb vb-on con-tog" data-v="shows">By Shows</button><button class="vb con-tog" data-v="sets">By Sets</button><button class="vb con-tog" data-v="songs">By Songs</button></span></h3><div id="conc" style="height:280px"></div></div>
 <div class="cd s-con"><h3><span class="i">🎤</span>Most Seen Artists</h3><div class="stb" id="con-artists" style="font-size:12px"></div></div>
 <div class="cd s-con"><h3><span class="i">🏟️</span>Venues</h3><div id="con-ven-chart" style="height:280px"></div></div>
 <div class="cd s-con"><h3><span class="i">🎵</span>Genres</h3><div id="con-genre-chart" style="height:280px"></div></div>
 </div>
-<!-- PODCASTS (Pocket Casts) -->
-<div class="g2 med-s" data-med="all podcast" id="pc-wrap" style="display:none">
-<div id="sec-pc" class="cd fw" style="border-left-color:#ef4444"><h3><span class="i">🎙️</span>Top Podcasts (Pocket Casts) <span class="vtog" style="float:right"><button class="vb vb-on pc-tog" data-v="hrs" onclick="window._pcMode='hrs';document.querySelectorAll('.pc-tog').forEach(function(b){b.classList.toggle('vb-on',b.dataset.v==='hrs')});renderPodcasts()">By Hours</button><button class="vb pc-tog" data-v="eps" onclick="window._pcMode='eps';document.querySelectorAll('.pc-tog').forEach(function(b){b.classList.toggle('vb-on',b.dataset.v==='eps')});renderPodcasts()">By Episodes</button></span></h3><div id="pc-chart" style="height:350px"></div></div>
+<!-- BOOKS (Goodreads) -->
+<div class="g2 med-s" data-med="all book" id="gr-wrap" style="display:none">
+<div id="sec-gr" class="cd s-gr"><h3><span class="i">📚</span>Books Read <span class="vtog" style="float:right"><button class="vb vb-on gr-tog" data-v="books">By Books</button><button class="vb gr-tog" data-v="pages">By Pages</button></span></h3><div id="grc" style="height:280px"></div></div>
+<div class="cd s-gr"><h3><span class="i">⭐</span>Book Ratings</h3><div id="gr-dist" style="height:280px"></div></div>
+<div class="cd s-gr"><h3><span class="i">✍️</span>Most Read Authors</h3><div id="gr-auth" style="height:280px"></div></div>
+<div class="cd s-gr"><h3><span class="i">📖</span>Time to Read</h3><div id="gr-ttr-wrap" style="max-height:280px;overflow-y:auto"><div id="gr-ttr" style="height:280px"></div></div></div>
+<div class="cd s-gr"><h3><span class="i">📏</span>By Pages <span class="vtog" style="float:right"><button class="vb vb-on gr-pg" data-v="long" onclick="window._grPg='long';renderGoodreads()">Longest</button><button class="vb gr-pg" data-v="short" onclick="window._grPg='short';renderGoodreads()">Shortest</button></span></h3><div id="gr-pages"></div></div>
+<div class="cd s-gr"><h3><span class="i">⭐</span>By Rating <span class="vtog" style="float:right"><button class="vb vb-on gr-rt" data-v="high" onclick="window._grRt='high';renderGoodreads()">Highest</button><button class="vb gr-rt" data-v="low" onclick="window._grRt='low';renderGoodreads()">Lowest</button></span></h3><div id="gr-rating"></div></div>
+<div class="cd s-gr"><h3><span class="i">🏷️</span>Genres (Community)</h3><div id="gr-genres" style="height:280px"></div></div>
+<div class="cd s-gr"><h3><span class="i">📂</span>My Shelves</h3><div id="gr-shelves" style="height:280px"></div></div>
 </div>
 <!-- THEATER -->
 <div class="g2 med-s" data-med="all theater" id="th-wrap" style="display:none">
@@ -374,7 +372,7 @@ function writeHash(){var p=new URLSearchParams();if(cy!=='all')p.set('y',cy);if(
 
 var ys=document.getElementById('ys');var yrs=new Set();D.c.m.forEach(function(m){yrs.add(m.month.substr(0,4))});
 Array.from(yrs).sort().reverse().forEach(function(y){var o=document.createElement('option');o.value=y;o.textContent=y;ys.appendChild(o)});
-ys.onchange=function(){cy=ys.value;writeHash();render()};
+ys.onchange=function(){cy=ys.value;window._llMonthExplicit=false;writeHash();render()};
 document.getElementById('gs').onchange=function(){ct=this.value;writeHash();render()};
 readHash();
 
@@ -443,7 +441,7 @@ if(ct==='movie'){if(m===0)return;sortVal=m}
 if(ct==='show'){if(s===0)return;sortVal=s}
 items.push({p:p,m:m,s:s,tot:m+s,sv:sortVal})});
 items.sort(function(a,b){return b.sv-a.sv});
-var rk=0;items.forEach(function(item){var p=item.p,m=item.m,s=item.s;rk++;var tot=item.tot;var img=HS[p.n]?'<img class="hs" src="'+HS[p.n]+'" loading="lazy" onerror="this.style.display=\'none\'" alt="">':'<div class="hp">'+p.n.charAt(0)+'</div>';var tr=document.createElement('tr');tr.className='pr';tr.innerHTML='<td style="color:var(--t2);font-size:10px;width:24px">'+rk+'</td><td><div class="pn">'+img+'<span>'+p.n+'</span></div></td><td class="nm" style="color:var(--mv)">'+m+'</td><td class="nm" style="color:var(--tv)">'+s+'</td><td class="nm" style="color:#999">'+tot+'</td>';tr.onclick=function(){var nx=tr.nextElementSibling;if(nx&&nx.classList.contains('dr')){nx.remove();return}document.querySelectorAll('.dr').forEach(function(r){r.remove()});if(!p.ti)return;var dr=document.createElement('tr');dr.className='dr';var h='<td colspan="5"><table>';p.ti.forEach(function(i){var t=TL[i];if(!t)return;var eb=cy==='all'?t.eby:fby(t.eby);var ct2=sm(eb);if(ct2===0&&cy!=='all')return;h+='<tr><td><span class="badge '+(t.type==='movie'?'b-m':'b-e')+'">'+t.type+'</span></td><td style="font-weight:600">'+t.t+'</td><td style="color:var(--t2)">'+(t.yr||'')+'</td><td class="nm '+(t.type==='show'?'nm-b':'nm-a')+'">'+(t.type==='show'?ct2+' eps':(ct2>1?ct2+'x':''))+'</td></tr>'});h+='</table></td>';dr.innerHTML=h;tr.after(dr)};tb.appendChild(tr)})}
+var rk=0;items.forEach(function(item){var p=item.p,m=item.m,s=item.s;rk++;var tot=item.tot;var img=HS[p.n]?'<img class="hs" src="'+HS[p.n]+'" loading="lazy" onerror="this.style.display=\'none\'" alt="">':'<div class="hp">'+p.n.charAt(0)+'</div>';var tr=document.createElement('tr');tr.className='pr';tr.innerHTML='<td style="color:var(--t2);font-size:10px;width:24px">'+rk+'</td><td><div class="pn">'+img+'<span>'+p.n+'</span></div></td><td class="nm" style="color:var(--mv)">'+m+'</td><td class="nm" style="color:var(--tv)">'+s+'</td><td class="nm" style="color:#999">'+tot+'</td>';tr.onclick=function(){var nx=tr.nextElementSibling;if(nx&&nx.classList.contains('dr')){nx.remove();return}document.querySelectorAll('.dr').forEach(function(r){r.remove()});if(!p.ti)return;var dr=document.createElement('tr');dr.className='dr';var h='<td colspan="5"><table>';p.ti.forEach(function(i){var t=TL[i];if(!t)return;var eb=cy==='all'?t.eby:fby(t.eby);var ct2=sm(eb);if(ct2===0&&cy!=='all')return;h+='<tr><td><span class="badge '+(t.type==='movie'?'b-m':'b-e')+'">'+t.type+'</span></td><td style="font-weight:600">'+t.t+'</td><td style="color:var(--t2)">'+(t.yr||'')+'</td><td class="nm '+(t.type==='show'?'nm-b':'nm-a')+'">'+(t.type==='movie'&&ct2>1?ct2+'x':'')+'</td></tr>'});h+='</table></td>';dr.innerHTML=h;tr.after(dr)};tb.appendChild(tr)})}
 
 function renderLifeline(){
   var ll=D.ll||{};var llEl=document.getElementById('llc');var llSel=document.getElementById('ll-sel');
@@ -460,10 +458,14 @@ function renderLifeline(){
     if(cy===curYr)opts+='<button class="vb ll-mo '+(window._llMonth==='last30'?'vb-on':'')+'" data-v="last30" style="font-size:9px">Last 30</button>';
     moList.forEach(function(m){opts+='<button class="vb ll-mo '+(window._llMonth===m?'vb-on':'')+'" data-v="'+m+'" style="font-size:9px">'+m.substring(5)+'</button>'});
     llSel.innerHTML=opts;
-    llSel.querySelectorAll('.ll-mo').forEach(function(btn){btn.onclick=function(){window._llMonth=btn.dataset.v;renderLifeline()}});
-    // Default: last30 for current year, last month for past years
-    if(cy!==curYr)window._llMonth=moList[moList.length-1]||'last30';
-    else if(window._llMonth!=='last30'&&moList.indexOf(window._llMonth)<0)window._llMonth='last30';
+    llSel.querySelectorAll('.ll-mo').forEach(function(btn){btn.onclick=function(){window._llMonth=btn.dataset.v;window._llMonthExplicit=true;renderLifeline()}});
+    // Default: last30 for current year, last month for past years — only if not explicitly set by user
+    if(!window._llMonthExplicit){
+      if(cy!==curYr)window._llMonth=moList[moList.length-1]||'last30';
+      else if(window._llMonth!=='last30'&&moList.indexOf(window._llMonth)<0)window._llMonth='last30';
+    }else if(moList.indexOf(window._llMonth)<0&&window._llMonth!=='last30'){
+      window._llMonth=moList[moList.length-1]||'last30';
+    }
   }else{
     window._llMonth='last30';
     llSel.innerHTML='';
@@ -511,8 +513,8 @@ function renderLifeline(){
   if(hasPcData)llSeries.push({name:'Podcasts',type:'bar',stack:'ll',data:negData.pc,itemStyle:{color:new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:'rgba(239,68,68,0.4)'},{offset:1,color:'#ef4444'}])},barMaxWidth:bw});
 
   llChart.setOption({tooltip:{trigger:'axis',...tt,formatter:function(p){var day=days[p[0].dataIndex];var h='<b>'+day+'</b>';p.forEach(function(s){var v=Math.abs(s.value);if(v){if(s.seriesName==='Scrobbles'){v=Math.abs(negData.sc[p[0].dataIndex])}h+='<br/>'+s.marker+s.seriesName+': '+v}});return h}},
-    legend:{data:llLeg,top:0,textStyle:{color:'#999',fontSize:9},type:'scroll',pageIconSize:16,pageButtonGap:10},
-    grid:{left:40,right:10,top:35,bottom:30},
+    legend:{data:llLeg,top:0,textStyle:{color:'#999',fontSize:9},type:'plain'},
+    grid:{left:40,right:10,top:50,bottom:30},
     xAxis:{type:'category',data:days.map(function(d){return d.substring(5)}),axisLabel:{color:'#666',fontSize:8,rotate:45,interval:0},axisLine:{lineStyle:{color:'#444'}}},
     yAxis:{type:'value',axisLabel:{color:'#666',formatter:function(v){return v>=0?v:''}},splitLine:{lineStyle:{color:'#222'}}},
     series:llSeries});
@@ -831,8 +833,8 @@ function baseCharts(){
       h+='<br/>';
       params.forEach(function(p){h+=p.marker+' '+p.seriesName+': '+p.value+'%<br/>'});
       return h}},
-      legend:{data:gt.genres.map(function(g){return(GE[g.toLowerCase()]||'')+' '+g}),top:0,textStyle:{color:'#999',fontSize:10},type:'scroll',pageIconSize:16,pageButtonGap:10},
-      grid:{left:50,right:20,top:40,bottom:30},
+      legend:{data:gt.genres.map(function(g){return(GE[g.toLowerCase()]||'')+' '+g}),top:0,textStyle:{color:'#999',fontSize:10},type:'plain'},
+      grid:{left:50,right:20,top:60,bottom:30},
       xAxis:{type:'category',data:xLabels,axisLabel:{color:'#666'},axisLine:{lineStyle:{color:'#333'}},boundaryGap:false},
       yAxis:{type:'value',axisLabel:{color:'#666',formatter:function(v){return v+'%'}},splitLine:{lineStyle:{color:'#222'}},max:100,min:0},
       series:gtSeries});
@@ -1119,6 +1121,8 @@ function renderCatchup(){
   var ctdAll=(cy!=='all'&&D.c.ctry_y&&D.c.ctry_y[cy]?D.c.ctry_y[cy]:(D.c.ctry||[]));
   var ctdTop=ctdAll[0];
   var ctd=ctdAll.slice(1,16).reverse();
+  var ctryH=Math.max(180,ctd.length*22+40);
+  document.getElementById('ctryc').style.height=ctryH+'px';
   if(ctdTop){document.getElementById('ctryc').parentElement.querySelector('h3').innerHTML='<span class="i">🌍</span>Countries <span style="font-size:11px;color:var(--t2);font-weight:normal">'+flag(ctdTop.n)+' '+(ctdTop.n||'').toUpperCase()+': '+ctdTop.count+'</span>'}
   var c7=echarts.init(document.getElementById('ctryc'));
   var ctrySeries=[];
@@ -1132,6 +1136,8 @@ function renderCatchup(){
   var lndAll=(cy!=='all'&&D.c.lang_y&&D.c.lang_y[cy]?D.c.lang_y[cy]:(D.c.lang||[]));
   var lndTop=lndAll[0];
   var lnd=lndAll.slice(1,16).reverse();
+  var langH=Math.max(180,lnd.length*22+40);
+  document.getElementById('langc').style.height=langH+'px';
   if(lndTop){document.getElementById('langc').parentElement.querySelector('h3').innerHTML='<span class="i">💬</span>Languages <span style="font-size:11px;color:var(--t2);font-weight:normal">🗣️ '+langName(lndTop.n)+': '+lndTop.count+'</span>'}
   var c8=echarts.init(document.getElementById('langc'));
   var langSeries=[];
@@ -1246,38 +1252,67 @@ function renderPosters(animate){
 
 function renderLetterboxd(){
   var lb=D.lb||{};var tags=lb.tags||{};
-  // Rating distribution
+  function filterByWatchYear(items){
+    if(cy==='all')return items;
+    return items.filter(function(i){return i.wy&&i.wy.indexOf(cy)>=0});
+  }
+  // Rating distribution - Letterboxd
+  var allStars=['0.5','1','1.5','2','2.5','3','3.5','4','4.5','5'];
   var dist=cy==='all'?(lb.dist||[]):((lb.dist_y||{})[cy]||[]);var lbEl=document.getElementById('lbc');
-  if(dist.length>0){
-    var ratedCount=dist.reduce(function(s,d){return s+d.c},0);
-    var ratedSum=dist.reduce(function(s,d){return s+parseFloat(d.r)*d.c},0);
+  if(true){
+    var distMap={};dist.forEach(function(d){distMap[String(parseFloat(d.r))]=d.c});
+    var fullDist=allStars.map(function(s){return{r:s,c:distMap[s]||0}});
+    var ratedCount=fullDist.reduce(function(s,d){return s+d.c},0);
+    var ratedSum=fullDist.reduce(function(s,d){return s+parseFloat(d.r)*d.c},0);
     var avgRating=ratedCount?Math.round(ratedSum/ratedCount*10)/10:0;
     var clb=echarts.init(lbEl);
     clb.setOption({tooltip:{trigger:mob?'item':'axis',axisPointer:{type:'shadow'},...tt,formatter:function(p){return tp(p).name+': '+tp(p).value+' films'}},
       grid:{left:50,right:20,top:30,bottom:24},
       title:{text:ratedCount+' rated, '+avgRating+'★ avg',left:'center',top:0,textStyle:{color:'#999',fontSize:11,fontWeight:'normal'}},
-      xAxis:{type:'category',data:dist.map(function(d){return d.r+'★'}),axisLabel:{color:'#ccc'},axisLine:{lineStyle:{color:'#333'}}},
+      xAxis:{type:'category',data:fullDist.map(function(d){return d.r+'★'}),axisLabel:{color:'#ccc',fontSize:9},axisLine:{lineStyle:{color:'#333'}}},
       yAxis:{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},
-      series:[{type:'bar',data:dist.map(function(d){return{value:d.c,itemStyle:{color:parseFloat(d.r)>=4?'#4ade80':parseFloat(d.r)>=3?'#60a5fa':parseFloat(d.r)>=2?'#fb923c':'#e94560'}}}),barMaxWidth:30}]});
+      series:[{type:'bar',data:fullDist.map(function(d){var v=parseFloat(d.r);var t=v/5;return{value:d.c,itemStyle:{color:'rgba(251,146,60,'+Math.max(0.25,t)+')'}}}),barMaxWidth:24}]});
+    clb.on('click',function(p){
+      var star=parseFloat(allStars[p.dataIndex]);
+      var items=filterByWatchYear(lb.myh||[]).filter(function(i){return parseFloat(i.r)===star});
+      if(!items.length)return;
+      var el=document.getElementById('lbc');
+      var ex=el.parentElement.querySelector('.chart-detail');if(ex){ex.remove();if(ex.dataset.val===String(star))return}
+      var div=document.createElement('div');div.className='chart-detail';div.dataset.val=String(star);
+      var h='<span class="cd-close" onclick="this.parentElement.remove()">✕</span><b>'+star+'★ ('+items.length+')</b>';
+      items.slice(0,20).forEach(function(i){h+='<div class="cd-item"><span>'+i.t+'</span><span class="nm" style="color:#fb923c">'+i.r+'★</span></div>'});
+      div.innerHTML=h;el.parentElement.appendChild(div);
+    });
     ch.push(clb);
-  }else{lbEl.innerHTML='<div style="text-align:center;color:var(--t2);padding:40px">No Letterboxd data'+(cy!=='all'?' for '+cy:'')+'</div>'}
+  }
 
   // Serializd TV rating distribution
   var sz=D.sz||{};var szDist=cy==='all'?(sz.dist||[]):((sz.dist_y||{})[cy]||[]);var szEl=document.getElementById('szc');
   if(szEl){
-    if(szDist.length>0){
-      var szCount=szDist.reduce(function(s,d){return s+d.c},0);
-      var szSum=szDist.reduce(function(s,d){return s+parseFloat(d.r)*d.c},0);
-      var szAvg=szCount?Math.round(szSum/szCount*10)/10:0;
-      var csz=echarts.init(szEl);
-      csz.setOption({tooltip:{trigger:mob?'item':'axis',axisPointer:{type:'shadow'},...tt,formatter:function(p){return tp(p).name+': '+tp(p).value+' seasons'}},
-        grid:{left:50,right:20,top:30,bottom:24},
-        title:{text:szCount+' rated, '+szAvg+'★ avg',left:'center',top:0,textStyle:{color:'#999',fontSize:11,fontWeight:'normal'}},
-        xAxis:{type:'category',data:szDist.map(function(d){return d.r+'★'}),axisLabel:{color:'#ccc'},axisLine:{lineStyle:{color:'#333'}}},
-        yAxis:{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},
-        series:[{type:'bar',data:szDist.map(function(d){return{value:d.c,itemStyle:{color:parseFloat(d.r)>=4?'#14b8a6':parseFloat(d.r)>=3?'#60a5fa':parseFloat(d.r)>=2?'#fb923c':'#e94560'}}}),barMaxWidth:30}]});
-      ch.push(csz);
-    }else{szEl.innerHTML='<div style="text-align:center;color:var(--t2);padding:40px">No Serializd data'+(cy!=='all'?' for '+cy:'')+'</div>'}
+    var szMap={};szDist.forEach(function(d){szMap[String(parseFloat(d.r))]=d.c});
+    var szFull=allStars.map(function(s){return{r:s,c:szMap[s]||0}});
+    var szCount=szFull.reduce(function(s,d){return s+d.c},0);
+    var szSum=szFull.reduce(function(s,d){return s+parseFloat(d.r)*d.c},0);
+    var szAvg=szCount?Math.round(szSum/szCount*10)/10:0;
+    var csz=echarts.init(szEl);
+    csz.setOption({tooltip:{trigger:mob?'item':'axis',axisPointer:{type:'shadow'},...tt,formatter:function(p){return tp(p).name+': '+tp(p).value+' seasons'}},
+      grid:{left:50,right:20,top:30,bottom:24},
+      title:{text:szCount+' rated, '+szAvg+'★ avg',left:'center',top:0,textStyle:{color:'#999',fontSize:11,fontWeight:'normal'}},
+      xAxis:{type:'category',data:szFull.map(function(d){return d.r+'★'}),axisLabel:{color:'#ccc',fontSize:9},axisLine:{lineStyle:{color:'#333'}}},
+      yAxis:{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},
+      series:[{type:'bar',data:szFull.map(function(d){var v=parseFloat(d.r);var t=v/5;return{value:d.c,itemStyle:{color:'rgba(20,184,166,'+Math.max(0.25,t)+')'}}}),barMaxWidth:24}]});
+    csz.on('click',function(p){
+      var star=parseFloat(allStars[p.dataIndex]);
+      var items=filterByWatchYear(sz.szh||[]).filter(function(i){return parseFloat(i.r)===star});
+      if(!items.length)return;
+      var el=document.getElementById('szc');
+      var ex=el.parentElement.querySelector('.chart-detail');if(ex){ex.remove();if(ex.dataset.val===String(star))return}
+      var div=document.createElement('div');div.className='chart-detail';div.dataset.val=String(star);
+      var h='<span class="cd-close" onclick="this.parentElement.remove()">✕</span><b>'+star+'★ ('+items.length+')</b>';
+      items.slice(0,20).forEach(function(i){h+='<div class="cd-item"><span>'+i.t+'</span><span class="nm" style="color:#14b8a6">'+i.r+'★</span></div>'});
+      div.innerHTML=h;el.parentElement.appendChild(div);
+    });
+    ch.push(csz);
   }
 
   // Rating lists rendered by standalone renderRatings()
@@ -1298,8 +1333,8 @@ function renderLetterboxd(){
       var series=top.map(function(n,i){return{name:n,type:'bar',stack:'t',data:yrs.map(function(y){
         var yd2=catData.y[y]||[];var found=yd2.find(function(d){return d.n===n});return found?found.c:0}),
         itemStyle:{color:colors[i%colors.length]},barMaxWidth:12}});
-      tc.setOption({tooltip:{trigger:'axis',...tt},legend:{data:top,top:0,textStyle:{color:'#999',fontSize:9},type:'scroll',pageIconSize:16,pageButtonGap:10},
-        grid:{left:40,right:10,top:35,bottom:24},
+      tc.setOption({tooltip:{trigger:'axis',...tt},legend:{data:top,top:0,textStyle:{color:'#999',fontSize:9},type:'plain'},
+        grid:{left:40,right:10,top:50,bottom:24},
         xAxis:{type:'category',data:yrs,axisLabel:{color:'#666',fontSize:10},axisLine:{lineStyle:{color:'#333'}}},
         yAxis:{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},series:series});
     }
@@ -1421,11 +1456,11 @@ function renderRatings(){
   }
   window._rtMode=window._rtMode||'high';
   var isHigh=window._rtMode==='high';
-  ratingList('my-rat',isHigh?(lb.myh||[]):(lb.myl||[]),'★',isHigh?'#4ade80':'#e94560',20);
+  ratingList('my-rat',isHigh?(lb.myh||[]):(lb.myl||[]),'★',isHigh?'#4ade80':'#fb923c',20);
   var sz=D.sz||{};
   ratingList('sz-rat',isHigh?(sz.szh||[]):(sz.szl||[]),'★',isHigh?'#14b8a6':'#e94560',20);
-  ratingList('mc-rat',isHigh?(D.c.mch||[]):(D.c.mcl||[]),'Rating',isHigh?'#60a5fa':'#e94560',20);
-  ratingList('sc-rat',isHigh?(D.c.sch||[]):(D.c.scl||[]),'Rating',isHigh?'#a78bfa':'#e94560',20);
+  ratingList('mc-rat',isHigh?(D.c.mch||[]):(D.c.mcl||[]),'Rating',isHigh?'#4ade80':'#fb923c',20);
+  ratingList('sc-rat',isHigh?(D.c.sch||[]):(D.c.scl||[]),'Rating',isHigh?'#14b8a6':'#e94560',20);
 }
 
 function renderGoodreads(){
@@ -1943,7 +1978,7 @@ function renderPodcasts(){
   var items=sorted.slice(0,15).reverse();
   var pcChart=echarts.init(el);
   pcChart.setOption({tooltip:{trigger:mob?'item':'axis',axisPointer:{type:'shadow'},...tt,formatter:function(p){return'<b>'+tp(p).name+'</b><br/>'+(isHrs?tp(p).value+'h ('+tp(p).data.eps+' eps)':tp(p).value+' eps ('+tp(p).data.hrs+'h)')}},
-    grid:{left:gl(150),right:30,top:8,bottom:8},
+    grid:{left:gl(180),right:30,top:8,bottom:8},
     xAxis:{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},
     yAxis:{type:'category',data:items.map(function(d){return d.title}),axisLabel:{color:'#ccc',fontSize:10,interval:0},axisLine:{lineStyle:{color:'#333'}}},
     series:[{type:'bar',data:items.map(function(d){return{value:isHrs?d.listened_hrs:d.played,eps:d.played,hrs:d.listened_hrs}}),itemStyle:{color:new echarts.graphic.LinearGradient(0,0,1,0,[{offset:0,color:'#0f3460'},{offset:1,color:'#ef4444'}])},barMaxWidth:18,label:{show:true,position:'right',color:'#ef4444',fontSize:10,formatter:function(p){return isHrs?p.value+'h':p.value+' eps'}}}]});

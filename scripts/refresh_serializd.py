@@ -69,18 +69,23 @@ for rev in all_reviews:
     if sid and sid not in show_cache:
         show_cache[sid] = None  # placeholder
 
-# Fetch show names (batch)
+# Fetch show names and season mappings
 print(f"Resolving {len(show_cache)} show names...")
+season_map = {}  # season_id -> season_number
 for i, sid in enumerate(list(show_cache.keys())):
-    # Check if we already have this show cached
-    if existing.get(str(sid), {}).get("name"):
+    # Check if we already have this show cached with seasons
+    if existing.get(str(sid), {}).get("name") and existing.get(str(sid), {}).get("seasons"):
         show_cache[sid] = existing[str(sid)]["name"]
+        for sn_id, sn_num in existing[str(sid)]["seasons"].items():
+            season_map[int(sn_id)] = sn_num
         continue
     try:
         r2 = session.get(f"{BASE}/show/{sid}", timeout=8)
         if r2.status_code == 200:
             show_data = r2.json()
             show_cache[sid] = show_data.get("name", f"Show {sid}")
+            for s in show_data.get("seasons", []):
+                season_map[s["id"]] = s["seasonNumber"]
         else:
             show_cache[sid] = f"Show {sid}"
     except Exception:
@@ -89,15 +94,25 @@ for i, sid in enumerate(list(show_cache.keys())):
         print(f"  {i+1}/{len(show_cache)} shows resolved")
     time.sleep(0.2)
 
-# Build output: keyed by TMDB show ID
+# Build output: keyed by TMDB show ID, only season-level ratings
 output = {}
+skipped_show_level = 0
 for rev in all_reviews:
     sid = str(rev.get("showId", ""))
     if not sid:
         continue
-    date = rev.get("dateAdded", "")[:10]  # YYYY-MM-DD
-    rating = rev.get("rating")  # 1-10
     season_id = rev.get("seasonId")
+    # Skip show-level ratings (no season_id) and episode-level
+    if not season_id:
+        skipped_show_level += 1
+        continue
+    season_num = season_map.get(season_id)
+    if season_num is None or season_num == 0:
+        skipped_show_level += 1
+        continue
+
+    date = rev.get("dateAdded", "")[:10]
+    rating = rev.get("rating")  # 1-10
     like = rev.get("like", False)
     name = show_cache.get(int(sid), f"Show {sid}")
 
@@ -105,13 +120,16 @@ for rev in all_reviews:
         output[sid] = {
             "name": name,
             "tmdb_id": int(sid),
-            "ratings": [],  # per-season ratings
+            "seasons": {str(s_id): s_num for s_id, s_num in season_map.items()
+                        if any(r2.get("seasonId") == s_id for r2 in all_reviews if str(r2.get("showId")) == sid)},
+            "ratings": [],
         }
 
     output[sid]["ratings"].append({
-        "r": rating / 2,  # Serializd uses 1-10, convert to 0.5-5.0 stars
+        "r": rating / 2,  # convert 1-10 to 0.5-5.0 stars
         "date": date,
         "season_id": season_id,
+        "sn": season_num,
         "like": like,
     })
 
@@ -119,4 +137,4 @@ for rev in all_reviews:
 with open("data/serializd.json", "w") as f:
     json.dump(output, f, separators=(',', ':'))
 
-print(f"Serializd: saved {len(output)} shows, {len(all_reviews)} ratings to data/serializd.json")
+print(f"Serializd: saved {len(output)} shows, {sum(len(s['ratings']) for s in output.values())} season ratings (skipped {skipped_show_level} show-level)")

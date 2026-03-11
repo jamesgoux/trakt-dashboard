@@ -1273,13 +1273,12 @@ if sz:
         ratings = show.get("ratings", [])
         if not ratings:
             continue
-        # Average rating across all seasons
-        avg_r = round(sum(r["r"] for r in ratings) / len(ratings), 1)
-        # Watch years from rating dates
-        wy = sorted(set(r["date"][:4] for r in ratings if r.get("date")))
-        sz_shows.append({"t": show["name"], "r": avg_r, "wy": wy, "yr": "", "ct": len(ratings)})
-
         for r in ratings:
+            sn = r.get("sn")
+            label = show["name"] + (" S" + str(sn).zfill(2) if sn else "")
+            wy = [r["date"][:4]] if r.get("date") else []
+            sz_shows.append({"t": label, "r": r["r"], "wy": wy, "yr": ""})
+
             bucket = str(r["r"])
             sz_dist[bucket] += 1
             sz_total += 1
