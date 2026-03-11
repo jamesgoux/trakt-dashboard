@@ -117,7 +117,8 @@ body{overflow-x:hidden}
 .dash{overflow-x:hidden;padding:0 10px 10px}
 .cd{padding:12px}
 .cd [id$="c"]:not(#mdc):not(#mrc):not(#gr-long):not(#gr-short):not(#gr-pages):not(#gr-rating):not(#gr-high):not(#gr-low){height:260px!important}
-.cover-grid .gi{width:60px}.cover-grid .gi img{width:60px;height:90px}.cover-grid .gi .bk-img{height:90px}.cover-grid .gi .al-cover{height:60px}.cover-grid .gi span{font-size:8px}
+.cover-grid .gi{width:60px}.cover-grid .gi img{width:60px;height:90px}.cover-grid .gi .bk-img{height:90px}.cover-grid .gi .al-cover{width:60px;height:60px}.cover-grid .gi span{font-size:8px}
+#lfm-albums .cover-grid{gap:8px}#lfm-albums .gi{width:calc((100% - 32px) / 5);min-width:56px;max-width:80px}#lfm-albums .gi .al-cover{width:100%;height:auto;aspect-ratio:1}
 .poster-item{width:60px}.poster-item img{width:60px;height:90px}.poster-ph{width:60px;height:90px}.poster-item span{font-size:8px}
 .fbar{padding:10px 12px}
 .fbar h1{display:none}
@@ -149,83 +150,83 @@ body{overflow-x:hidden}
 <div class="g2 med-s" data-med="all movie show book music concert theater">
 <div id="sec-ll" class="cd fw s-t"><h3><span class="i">🧬</span>Lifeline <button onclick="openLifelineFeed()" style="float:right;font-size:12px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);color:var(--tx);border-radius:6px;padding:6px 12px;cursor:pointer;min-height:32px;-webkit-tap-highlight-color:transparent;transition:background .15s">📜 Full Feed</button></h3><div id="ll-sel" class="vtog" style="margin-bottom:4px"></div><div id="llc" style="height:280px"></div></div>
 </div>
-<div class="g2 med-s" data-med="all movie show">
+<div class="g2 med-s" data-mob-hide="1" data-med="all movie show">
 <div id="sec-act" class="cd s-a"><h3><span class="i">🎭</span>Most Watched Actors</h3><div class="stb"><table><thead><tr><th>#</th><th>Actor</th><th>Mov</th><th>Show</th><th>Total</th></tr></thead><tbody id="atb"></tbody></table></div></div>
 <div class="cd s-a"><h3><span class="i">🎭</span>Most Watched Actresses</h3><div class="stb"><table><thead><tr><th>#</th><th>Actress</th><th>Mov</th><th>Show</th><th>Total</th></tr></thead><tbody id="xtb"></tbody></table></div></div>
 </div>
-<div class="g2 med-s" data-med="all movie show">
+<div class="g2 med-s" data-mob-hide="1" data-med="all movie show">
 <div id="sec-crew" class="cd s-c"><h3><span class="i">🎬</span>Most Watched Directors</h3><div class="stb"><table><thead><tr><th>#</th><th>Director</th><th>Mov</th><th>Show</th><th>Total</th></tr></thead><tbody id="dtb"></tbody></table></div></div>
 <div class="cd s-c"><h3><span class="i">✍️</span>Most Watched Writers</h3><div class="stb"><table><thead><tr><th>#</th><th>Writer</th><th>Mov</th><th>Show</th><th>Total</th></tr></thead><tbody id="wtb"></tbody></table></div></div>
 </div>
 <!-- TOP SHOWS POSTERS -->
-<div class="g2 med-s" data-med="all show">
+<div class="g2 med-s" data-mob-hide="1" data-med="all show">
 <div id="sec-shows" class="cd fw s-s"><h3><span class="i">📺</span>Most Watched Shows <span class="vtog" style="float:right"><button class="vb" id="ss-eps" onclick="window._showSort='eps';document.getElementById('ss-eps').classList.add('vb-on');document.getElementById('ss-dur').classList.remove('vb-on');renderPosters(true)">By Episodes</button><button class="vb vb-on" id="ss-dur" onclick="window._showSort='dur';document.getElementById('ss-dur').classList.add('vb-on');document.getElementById('ss-eps').classList.remove('vb-on');renderPosters(true)">By Duration</button></span></h3><div id="poster-grid" style="display:flex;flex-wrap:wrap;gap:10px;overflow-x:auto;padding:4px 0"></div></div>
 </div>
 <!-- EPISODES WATCHED -->
-<div class="g2 med-s" data-med="all show">
+<div class="g2 med-s" data-mob-hide="1" data-med="all show">
 <div id="sec-eps" class="cd fw s-s"><h3><span class="i">📺</span>Episodes Watched <span class="vtog" id="ep-res-wrap" style="float:right"></span></h3><div id="epcc" style="height:300px"></div></div>
 </div>
 <!-- TTW + CATCH-UP (same row) -->
-<div class="g2 med-s" data-med="all show">
+<div class="g2 med-s" data-mob-hide="1" data-med="all show">
 <div id="sec-ttw" class="cd s-s"><h3><span class="i">⏱️</span>Time to Watch</h3><div id="ttwc" style="height:400px"></div></div>
 <div class="cd s-s"><h3><span class="i">📚</span>Catch-Up Shows <span class="vtog" style="float:right"><button class="vb vb-on cup-tog" data-v="long" onclick="window._cupMode='long';document.querySelectorAll('.cup-tog').forEach(function(b){b.classList.toggle('vb-on',b.dataset.v==='long')});renderCatchup()">Longest</button><button class="vb cup-tog" data-v="short" onclick="window._cupMode='short';document.querySelectorAll('.cup-tog').forEach(function(b){b.classList.toggle('vb-on',b.dataset.v==='short')});renderCatchup()">Shortest</button></span></h3><div id="cupc" style="height:400px"></div></div>
 </div>
 <!-- MOVIES -->
-<div class="g2 med-s" data-med="all movie">
+<div class="g2 med-s" data-mob-hide="1" data-med="all movie">
 <div id="sec-mov" class="cd fw s-m"><h3 id="mdh"><span class="i">🎞️</span>Watched Movies <span class="vtog" style="float:right"><button class="vb vb-on mv-mode" data-v="long" onclick="window._mvMode='long';movieCharts(true)">Longest</button><button class="vb mv-mode" data-v="short" onclick="window._mvMode='short';movieCharts(true)">Shortest</button><button class="vb mv-mode" data-v="rewatch" onclick="window._mvMode='rewatch';movieCharts(true)">Rewatched</button></span></h3><div id="mdc" class="cover-grid"></div></div>
 </div>
 <!-- RATINGS: movie row then TV row -->
-<div class="g3 med-s" data-med="all movie">
+<div class="g3 med-s" data-mob-hide="1" data-med="all movie">
 <div id="sec-ratings" class="cd s-m"><h3><span class="i">⭐</span>My Movie Ratings (Letterboxd)</h3><div id="lbc" style="height:280px"></div></div>
 <div class="cd s-m"><h3><span class="i">⭐</span>My Movies (Letterboxd) <span class="vtog" style="float:right"><button class="vb vb-on rt-tog" data-v="high" onclick="window._rtMode='high';document.querySelectorAll('.rt-tog').forEach(function(b){b.classList.toggle('vb-on',b.dataset.v==='high')});renderRatings()">Highest</button><button class="vb rt-tog" data-v="low" onclick="window._rtMode='low';document.querySelectorAll('.rt-tog').forEach(function(b){b.classList.toggle('vb-on',b.dataset.v==='low')});renderRatings()">Lowest</button></span></h3><div class="stb" id="my-rat" style="font-size:12px"></div></div>
 <div class="cd s-m"><h3><span class="i">🎞️</span>Community Movies (Trakt) <span class="vtog" style="float:right"><button class="vb vb-on rt-tog" data-v="high" onclick="window._rtMode='high';document.querySelectorAll('.rt-tog').forEach(function(b){b.classList.toggle('vb-on',b.dataset.v==='high')});renderRatings()">Highest</button><button class="vb rt-tog" data-v="low" onclick="window._rtMode='low';document.querySelectorAll('.rt-tog').forEach(function(b){b.classList.toggle('vb-on',b.dataset.v==='low')});renderRatings()">Lowest</button></span></h3><div class="stb" id="mc-rat" style="font-size:12px"></div></div>
 </div>
-<div class="g3 med-s" data-med="all show">
+<div class="g3 med-s" data-mob-hide="1" data-med="all show">
 <div id="sec-sz-ratings" class="cd s-s"><h3><span class="i">⭐</span>My TV Ratings (Serializd)</h3><div id="szc" style="height:280px"></div></div>
 <div class="cd s-s"><h3><span class="i">📺</span>My Seasons (Serializd) <span class="vtog" style="float:right"><button class="vb vb-on rt-tog" data-v="high" onclick="window._rtMode='high';document.querySelectorAll('.rt-tog').forEach(function(b){b.classList.toggle('vb-on',b.dataset.v==='high')});renderRatings()">Highest</button><button class="vb rt-tog" data-v="low" onclick="window._rtMode='low';document.querySelectorAll('.rt-tog').forEach(function(b){b.classList.toggle('vb-on',b.dataset.v==='low')});renderRatings()">Lowest</button></span></h3><div class="stb" id="sz-rat" style="font-size:12px"></div></div>
 <div class="cd s-s"><h3><span class="i">📺</span>Community TV (Trakt) <span class="vtog" style="float:right"><button class="vb vb-on rt-tog" data-v="high" onclick="window._rtMode='high';document.querySelectorAll('.rt-tog').forEach(function(b){b.classList.toggle('vb-on',b.dataset.v==='high')});renderRatings()">Highest</button><button class="vb rt-tog" data-v="low" onclick="window._rtMode='low';document.querySelectorAll('.rt-tog').forEach(function(b){b.classList.toggle('vb-on',b.dataset.v==='low')});renderRatings()">Lowest</button></span></h3><div class="stb" id="sc-rat" style="font-size:12px"></div></div>
 </div>
-<div class="g3 med-s" data-med="all movie show">
+<div class="g3 med-s" data-mob-hide="1" data-med="all movie show">
 <div id="sec-time" class="cd s-t"><h3><span class="i">📅</span>Day of Week</h3><div id="dwc" style="height:360px"></div></div>
 <div class="cd s-t"><h3><span class="i">🕐</span>Time of Day</h3><div id="hodc" style="height:360px"></div></div>
 <div id="sec-meta" class="cd s-g"><h3 id="gnh"><span class="i">🎯</span>Genres</h3><div id="gnc" style="height:360px"></div></div>
 </div>
-<div class="g2 med-s" data-med="all movie show" id="gt-wrap">
+<div class="g2 med-s" data-mob-hide="1" data-med="all movie show" id="gt-wrap">
 <div class="cd fw s-g"><h3><span class="i">📈</span>Genre Trends</h3><div id="gtc" style="height:350px"></div></div>
 </div>
-<div class="g2 med-s" data-med="all show">
+<div class="g2 med-s" data-mob-hide="1" data-med="all show">
 <div class="cd s-n"><h3><span class="i">📡</span>Top Networks</h3><div id="netc" style="height:360px"></div></div>
 <div class="cd s-u"><h3><span class="i">🏢</span>Top Studios</h3><div id="stuc" style="height:360px"></div></div>
 </div>
 <!-- GEO -->
-<div class="g2 med-s" data-med="all movie show">
+<div class="g2 med-s" data-mob-hide="1" data-med="all movie show">
 <div id="sec-geo" class="cd s-e"><h3><span class="i">🌍</span>Countries</h3><div id="ctryc"></div></div>
 <div class="cd s-e"><h3><span class="i">💬</span>Languages</h3><div id="langc"></div></div>
 </div>
 <!-- RELEASE YEARS -->
-<div class="g2 med-s" data-med="all movie show">
+<div class="g2 med-s" data-mob-hide="1" data-med="all movie show">
 <div id="sec-vy" class="cd fw s-t"><h3><span class="i">📅</span>Content Release Years</h3><div class="vtog" style="margin:-6px 0 8px 0"><button class="vb vb-on vy-tog" data-v="year">Year</button><button class="vb vy-tog" data-v="decade">Decade</button><button class="vb vy-tog" data-v="pie">New vs Old</button></div><div id="vyc" style="height:300px"></div></div>
 </div>
 <!-- HOW I WATCH (own section) -->
-<div class="g2 med-s" data-med="all movie show">
+<div class="g2 med-s" data-mob-hide="1" data-med="all movie show">
 <div id="sec-how" class="cd s-m"><h3><span class="i">👥</span>Watched With</h3><div id="pplc" style="height:280px"></div></div>
 <div class="cd s-m"><h3><span class="i">🏠</span>Where I Watch <span class="vtog" style="float:right"><button class="vb vb-on lb-loc" data-v="simple">Home/Theater</button><button class="vb lb-loc" data-v="detail">All Locations</button></span></h3><div id="locc" style="height:280px"></div></div>
 </div>
-<div class="g2 med-s" data-med="all movie show">
+<div class="g2 med-s" data-mob-hide="1" data-med="all movie show">
 <div class="cd s-m"><h3><span class="i">📺</span>Streaming Services</h3><div id="strc" style="height:280px"></div></div>
 <div class="cd s-m"><h3><span class="i">📱</span>Devices &amp; Formats</h3><div id="devc" style="height:280px"></div></div>
 </div>
 <!-- FIRST + LAST WATCHES (same row) -->
-<div class="g2 med-s" data-med="all movie show">
+<div class="g2 med-s" data-mob-hide="1" data-med="all movie show">
 <div class="cd s-r" id="sec-first"><h3><span class="i">🌅</span>First Watches</h3><table><thead><tr><th>Title</th><th>Type</th><th>Date</th></tr></thead><tbody id="ftb"></tbody></table></div>
 <div id="sec-rec" class="cd s-r"><h3><span class="i">👁️</span>Last Watches</h3><table><thead><tr><th>Title</th><th>Type</th><th>Date</th></tr></thead><tbody id="rtb"></tbody></table></div>
 </div>
 <!-- PODCASTS (Pocket Casts) -->
-<div class="g2 med-s" data-med="all podcast" id="pc-wrap" style="display:none">
+<div class="g2 med-s" data-mob-hide="1" data-med="all podcast" id="pc-wrap" style="display:none">
 <div id="sec-pc" class="cd fw" style="border-left-color:#ef4444"><h3><span class="i">🎙️</span>Top Podcasts <span class="vtog" style="float:right"><button class="vb vb-on pc-tog" data-v="hrs" onclick="window._pcMode='hrs';document.querySelectorAll('.pc-tog').forEach(function(b){b.classList.toggle('vb-on',b.dataset.v==='hrs')});renderPodcasts()">By Hours</button><button class="vb pc-tog" data-v="eps" onclick="window._pcMode='eps';document.querySelectorAll('.pc-tog').forEach(function(b){b.classList.toggle('vb-on',b.dataset.v==='eps')});renderPodcasts()">By Episodes</button></span></h3><div id="pc-chart" style="height:350px"></div></div>
 </div>
 <!-- MUSIC (Last.fm) -->
-<div class="g2 med-s" data-med="all music" id="lfm-wrap" style="display:none">
+<div class="g2 med-s" data-mob-hide="1" data-med="all music" id="lfm-wrap" style="display:none">
 <div id="sec-lfm" class="cd s-lfm"><h3><span class="i">🎧</span>Listening Activity <span class="vtog" style="float:right"><button class="vb vb-on lfm-met" data-v="s">Scrobbles</button><button class="vb lfm-met" data-v="a">Artists</button><button class="vb lfm-met" data-v="al">Albums</button></span></h3><div id="lfm-weekly" style="height:280px"></div></div>
 <div class="cd s-lfm"><h3><span class="i">🏷️</span>Genres</h3><div id="lfm-genres" style="height:280px"></div></div>
 <div class="cd s-lfm"><h3><span class="i">🎤</span>Top Artists <span class="vtog" id="lfm-range-wrap" style="float:right"></span></h3><div style="max-height:500px;overflow-y:auto"><div id="lfm-artists" style="height:700px"></div></div></div>
@@ -233,14 +234,14 @@ body{overflow-x:hidden}
 <div class="cd fw s-lfm"><h3><span class="i">💿</span>Top Albums</h3><div id="lfm-albums" style="height:auto"></div></div>
 </div>
 <!-- CONCERTS -->
-<div class="g2 med-s" data-med="all concert" id="con-wrap" style="display:none">
+<div class="g2 med-s" data-mob-hide="1" data-med="all concert" id="con-wrap" style="display:none">
 <div id="sec-con" class="cd s-con"><h3><span class="i">🎸</span>Concerts <span class="vtog" style="float:right"><button class="vb vb-on con-tog" data-v="shows">By Shows</button><button class="vb con-tog" data-v="sets">By Sets</button><button class="vb con-tog" data-v="songs">By Songs</button></span></h3><div id="conc" style="height:280px"></div></div>
 <div class="cd s-con"><h3><span class="i">🎤</span>Most Seen Artists</h3><div class="stb" id="con-artists" style="font-size:12px"></div></div>
 <div class="cd s-con"><h3><span class="i">🏟️</span>Venues</h3><div id="con-ven-chart" style="height:280px"></div></div>
 <div class="cd s-con"><h3><span class="i">🎵</span>Genres</h3><div id="con-genre-chart" style="height:280px"></div></div>
 </div>
 <!-- BOOKS (Goodreads) -->
-<div class="g2 med-s" data-med="all book" id="gr-wrap" style="display:none">
+<div class="g2 med-s" data-mob-hide="1" data-med="all book" id="gr-wrap" style="display:none">
 <div id="sec-gr" class="cd s-gr"><h3><span class="i">📚</span>Books Read <span class="vtog" style="float:right"><button class="vb vb-on gr-tog" data-v="books">By Books</button><button class="vb gr-tog" data-v="pages">By Pages</button></span></h3><div id="grc" style="height:280px"></div></div>
 <div class="cd s-gr"><h3><span class="i">⭐</span>Book Ratings</h3><div id="gr-dist" style="height:280px"></div></div>
 <div class="cd s-gr"><h3><span class="i">✍️</span>Most Read Authors</h3><div id="gr-auth" style="height:280px"></div></div>
@@ -251,14 +252,14 @@ body{overflow-x:hidden}
 <div class="cd s-gr"><h3><span class="i">📂</span>My Shelves</h3><div id="gr-shelves" style="height:280px"></div></div>
 </div>
 <!-- THEATER -->
-<div class="g2 med-s" data-med="all theater" id="th-wrap" style="display:none">
+<div class="g2 med-s" data-mob-hide="1" data-med="all theater" id="th-wrap" style="display:none">
 <div id="sec-th" class="cd s-th"><h3><span class="i">🎭</span>Theater Ratings</h3><div id="thc" style="height:280px"></div></div>
 <div class="cd s-th"><h3><span class="i">🏷️</span>Theater Tags</h3><div id="th-tags" style="height:280px"></div></div>
 <div class="cd s-th"><h3><span class="i">🏛️</span>Top Theaters</h3><div id="th-venues" style="height:280px"></div></div>
 <div class="cd s-th"><h3><span class="i">👥</span>Theater Companions</h3><div id="th-companions" style="height:280px"></div></div>
 </div>
 <!-- SPORTS -->
-<div class="g2 med-s" data-med="all sports" id="sp-wrap" style="display:none">
+<div class="g2 med-s" data-mob-hide="1" data-med="all sports" id="sp-wrap" style="display:none">
 <div id="sec-sp" class="cd fw s-sp"><h3><span class="i">🏀</span>Sports <span style="float:right"><button class="vb" onclick="openSportsAdd()" style="background:var(--sp);color:#fff;border-color:var(--sp)">+ Add Event</button></span></h3><div id="sp-chart" style="height:280px"></div></div>
 <div class="cd s-sp"><h3><span class="i">🏟️</span>Teams</h3><div id="sp-teams" style="height:280px"></div></div>
 <div class="cd s-sp"><h3><span class="i">📺</span>How I Watched</h3><div id="sp-how" style="height:280px"></div></div>
@@ -2625,7 +2626,14 @@ function renderStatus(){
 
 function render(){ch.forEach(function(c){try{c.dispose()}catch(e){}});ch=[];
   // Show/hide sections based on medium filter
-  document.querySelectorAll('.med-s').forEach(function(el){var meds=el.dataset.med||'';el.style.display=meds.indexOf(ct)>=0?'':'none'});
+  var mobileAll=mob&&ct==='all';
+  document.querySelectorAll('.med-s').forEach(function(el){
+    var meds=el.dataset.med||'';
+    if(meds.indexOf(ct)<0){el.style.display='none';return}
+    // M1: On mobile + "All", hide below-fold detail sections
+    if(mobileAll&&el.dataset.mobHide){el.style.display='none';return}
+    el.style.display='';
+  });
   // Critical (above fold): stats, timeline, lifeline, posters
   stats();renderLifeline();baseCharts();renderPosters();
   // Deferred (below fold): render after first paint
