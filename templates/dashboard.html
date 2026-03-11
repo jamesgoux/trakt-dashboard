@@ -86,9 +86,9 @@ tr:hover td{background:rgba(255,255,255,.02)}
 .un-show{font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .un-ep{font-size:12px;color:var(--t2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .un-meta{display:flex;gap:6px;align-items:center;margin-top:4px;font-size:10px;color:var(--t2)}
-.un-stream{display:flex;gap:4px;align-items:center;position:absolute;top:8px;right:52px}
+.un-stream{display:flex;gap:4px;align-items:center;flex-shrink:0}
 .un-stream img{width:18px;height:18px;border-radius:4px}
-.un-stream.un-stream-below{top:28px}
+
 .un-prog-wrap{margin-top:6px}
 .un-prog{height:18px;background:rgba(255,255,255,.06);border-radius:4px;overflow:hidden;border:1px solid rgba(255,255,255,.08);position:relative}
 .un-prog-bar{height:100%;background:linear-gradient(90deg,var(--tv),rgba(20,184,166,.5));border-radius:3px;transition:width .3s}
@@ -101,7 +101,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
 .un-del-btn:hover{background:#ef4444;color:#fff}
 .un-detail{background:var(--sf);border-radius:12px;border:1px solid rgba(255,255,255,.08);padding:20px;max-width:500px;margin:20px auto}
 .un-detail img{width:100%;border-radius:8px;margin-bottom:12px;max-height:280px;object-fit:cover}
-@media(max-width:768px){.un-grid{grid-template-columns:1fr;padding:10px}.un-stream{top:auto;bottom:8px;right:52px}}
+@media(max-width:768px){.un-grid{grid-template-columns:1fr;padding:10px}}
 @media(max-width:768px){
 .g2,.g3{grid-template-columns:1fr}
 .sg{grid-template-columns:repeat(3,1fr)}
@@ -2352,7 +2352,9 @@ function openUpNext(){
     if(poster)c+='<img class="un-poster" src="'+poster+'" loading="lazy" onerror="this.style.display=\'none\'" alt="">';
     else c+='<div class="un-poster-ph">📺</div>';
     c+='<div class="un-info">';
-    c+='<div class="un-show">'+s.show+'</div>';
+    c+='<div style="display:flex;align-items:center;gap:6px"><div class="un-show" style="flex:1;min-width:0">'+s.show+'</div>';
+    if(!isRecent&&s.stream&&s.stream.length){c+='<div class="un-stream">';s.stream.forEach(function(st){c+='<img src="'+st.i+'" title="'+st.n+'" loading="lazy">'});c+='</div>'}
+    c+='</div>';
     c+='<div class="un-ep">S'+String(s.season).padStart(2,'0')+'E'+String(s.episode).padStart(2,'0');
     if(s.ep_title)c+=' — '+s.ep_title;
     c+='</div>';
@@ -2361,12 +2363,6 @@ function openUpNext(){
       c+='<div class="un-prog-wrap"><div class="un-prog"><div class="un-prog-bar" style="width:'+pct+'%"></div>';
       c+='<div class="un-prog-text"><span>'+(s.ep_runtime?_unFmtMin(s.ep_runtime):'')+'</span><span>'+(s.eps_left||0)+' eps · '+_unFmtMin(s.remaining_min)+'</span></div>';
       c+='</div></div>';
-      // Streaming icons top-right
-      if(s.stream&&s.stream.length){
-        c+='<div class="un-stream'+(s.is_new?' un-stream-below':'')+'">';
-        s.stream.forEach(function(st){c+='<img src="'+st.i+'" title="'+st.n+'" loading="lazy">'});
-        c+='</div>';
-      }
       if(s.is_new)c+='<div class="un-new">New</div>';
       c+='<button onclick="event.stopPropagation();markWatched(\''+s.slug.replace(/'/g,"\\'")+'\','+s.season+','+s.episode+','+(s.ep_trakt_id||0)+',this)" class="un-watch-btn" title="Mark watched">✓</button>';
     }else{
@@ -2449,19 +2445,23 @@ function _unRenderDetail(allShows,idx){
   h+='</div></div>';
   el.innerHTML=h;
   // Swipe = next/prev episode in the SAME SERIES
-  var wrap=document.getElementById('un-detail-wrap');
-  var startX=0,startY=0;
-  wrap.addEventListener('touchstart',function(ev){startX=ev.touches[0].clientX;startY=ev.touches[0].clientY},{passive:true});
-  wrap.addEventListener('touchend',function(ev){
-    var dx=ev.changedTouches[0].clientX-startX;
-    var dy=ev.changedTouches[0].clientY-startY;
-    if(Math.abs(dx)<50||Math.abs(dy)>Math.abs(dx))return;
-    // Find the adjacent episode in the same show
+  var ov=document.getElementById('un-overlay');
+  var _swX=0,_swY=0;
+  ov._swStart=function(ev){_swX=ev.touches[0].clientX;_swY=ev.touches[0].clientY};
+  ov._swEnd=function(ev){
+    var dx=ev.changedTouches[0].clientX-_swX;
+    var dy=ev.changedTouches[0].clientY-_swY;
+    if(Math.abs(dx)<60||Math.abs(dy)>Math.abs(dx)*0.7)return;
     var targetEp=dx>0?show.episode-1:show.episode+1;
     if(targetEp<1)return;
     var next=allShows.find(function(x){return x.slug===show.slug&&x.season===show.season&&x.episode===targetEp});
     if(next){var ni=allShows.indexOf(next);_unRenderDetail(allShows,ni)}
-  });
+  };
+  // Remove old listeners before adding new
+  if(ov._prevSwStart){ov.removeEventListener('touchstart',ov._prevSwStart);ov.removeEventListener('touchend',ov._prevSwEnd)}
+  ov.addEventListener('touchstart',ov._swStart,{passive:true});
+  ov.addEventListener('touchend',ov._swEnd);
+  ov._prevSwStart=ov._swStart;ov._prevSwEnd=ov._swEnd;
 }
 
 function markWatchedAt(slug,season,episode,epTraktId,when){
