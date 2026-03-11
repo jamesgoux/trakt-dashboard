@@ -2426,12 +2426,12 @@ function _unRenderDetail(allShows,idx){
   var prevIdx=idx>0?idx-1:-1;
   var nextIdx=idx<allShows.length-1?idx+1:-1;
   var h='<div class="un-detail" id="un-detail-wrap">';
-  // Top nav: back + episode nav
+  // Top nav: back + episode nav (swipe/click navigates episodes in same series)
   h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">';
   h+='<button onclick="openUpNext()" style="background:var(--sf);border:1px solid rgba(255,255,255,.1);color:var(--tx);border-radius:8px;padding:10px 16px;font-size:14px;cursor:pointer;-webkit-tap-highlight-color:transparent">← Back</button>';
   h+='<div style="display:flex;gap:8px">';
-  if(prevIdx>=0)h+='<button onclick="_unRenderDetail(window._unAllShows,'+prevIdx+')" style="background:var(--sf);border:1px solid rgba(255,255,255,.1);color:var(--tx);border-radius:8px;padding:10px 16px;font-size:16px;cursor:pointer;min-width:48px;-webkit-tap-highlight-color:transparent">◀</button>';
-  if(nextIdx>=0)h+='<button onclick="_unRenderDetail(window._unAllShows,'+nextIdx+')" style="background:var(--sf);border:1px solid rgba(255,255,255,.1);color:var(--tx);border-radius:8px;padding:10px 16px;font-size:16px;cursor:pointer;min-width:48px;-webkit-tap-highlight-color:transparent">▶</button>';
+  if(show.episode>1)h+='<button onclick="_unFetchEp(window._unAllShows['+idx+'],'+(show.episode-1)+',window._unAllShows,'+idx+')" style="background:var(--sf);border:1px solid rgba(255,255,255,.1);color:var(--tx);border-radius:8px;padding:10px 16px;font-size:16px;cursor:pointer;min-width:48px;-webkit-tap-highlight-color:transparent">◀</button>';
+  h+='<button onclick="_unFetchEp(window._unAllShows['+idx+'],'+(show.episode+1)+',window._unAllShows,'+idx+')" style="background:var(--sf);border:1px solid rgba(255,255,255,.1);color:var(--tx);border-radius:8px;padding:10px 16px;font-size:16px;cursor:pointer;min-width:48px;-webkit-tap-highlight-color:transparent">▶</button>';
   h+='</div></div>';
   window._unAllShows=allShows;
   if(show.ep_still)h+='<img src="'+show.ep_still+'" alt="" style="width:100%;border-radius:10px;margin-bottom:14px;max-height:280px;object-fit:cover">';
@@ -2463,8 +2463,49 @@ function _unRenderDetail(allShows,idx){
     var dx=ev.changedTouches[0].clientX-_swX;
     var dy=ev.changedTouches[0].clientY-_swY;
     if(Math.abs(dx)<40||Math.abs(dy)>Math.abs(dx))return;
-    var targetIdx=dx>0?idx-1:idx+1;
-    if(targetIdx>=0&&targetIdx<allShows.length)_unRenderDetail(allShows,targetIdx);
+    var targetEp=dx>0?show.episode-1:show.episode+1;
+    if(targetEp<1)return;
+    // Fetch episode info from TMDB on-the-fly
+    _unFetchEp(show,targetEp,allShows,idx);
+  };
+  // Remove old listeners before adding new
+  if(ov._prevSwStart){ov.removeEventListener('touchstart',ov._prevSwStart);ov.removeEventListener('touchend',ov._prevSwEnd)}
+  ov.addEventListener('touchstart',ov._swStart,{passive:true});
+  ov.addEventListener('touchend',ov._swEnd);
+  ov._prevSwStart=ov._swStart;ov._prevSwEnd=ov._swEnd;
+  // Scroll to top
+  ov.scrollTop=0;
+}
+
+function _unFetchEp(baseShow,epNum,allShows,origIdx){
+  if(!baseShow.tmdb_id)return;
+  var url='https://api.themoviedb.org/3/tv/'+baseShow.tmdb_id+'/season/'+baseShow.season+'/episode/'+epNum+'?api_key='+((D.un||{}).tmdb_key||'');
+  // If no TMDB key embedded, just update the episode number without details
+  var newShow=JSON.parse(JSON.stringify(baseShow));
+  newShow.episode=epNum;
+  newShow.ep_title='';
+  newShow.ep_overview='';
+  newShow.ep_still='';
+  newShow.ep_aired='';
+  newShow.ep_runtime=baseShow.ep_runtime;
+  // Try TMDB fetch
+  if((D.un||{}).tmdb_key){
+    fetch(url).then(function(r){return r.json()}).then(function(d){
+      if(d.name)newShow.ep_title=d.name;
+      if(d.overview)newShow.ep_overview=d.overview.substring(0,200);
+      if(d.still_path)newShow.ep_still='https://image.tmdb.org/t/p/w780'+d.still_path;
+      if(d.air_date)newShow.ep_aired=d.air_date;
+      if(d.runtime)newShow.ep_runtime=d.runtime;
+      var tempShows=allShows.slice();tempShows[origIdx]=newShow;
+      _unRenderDetail(tempShows,origIdx);
+    }).catch(function(){
+      var tempShows=allShows.slice();tempShows[origIdx]=newShow;
+      _unRenderDetail(tempShows,origIdx);
+    });
+  }else{
+    var tempShows=allShows.slice();tempShows[origIdx]=newShow;
+    _unRenderDetail(tempShows,origIdx);
+  }
   };
   // Remove old listeners before adding new
   if(ov._prevSwStart){ov.removeEventListener('touchstart',ov._prevSwStart);ov.removeEventListener('touchend',ov._prevSwEnd)}

@@ -219,7 +219,7 @@ def run():
     new_items = sorted([r for r in results if r["is_new"]], key=lambda x: x.get("last_watched", ""), reverse=True)
     rest = sorted([r for r in results if not r["is_new"]], key=lambda x: x.get("last_watched", ""), reverse=True)
 
-    output = {"shows": new_items + rest, "recent": recent}
+    output = {"shows": new_items + rest, "recent": recent, "tmdb_key": TMDB_API_KEY}
 
     os.makedirs("data", exist_ok=True)
     with open("data/up_next.json", "w") as f:
