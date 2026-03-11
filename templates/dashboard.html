@@ -78,7 +78,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
 .ll-summary{display:flex;flex-wrap:wrap;gap:8px;padding:4px 0}
 .ll-pill{font-size:11px;padding:4px 10px;border-radius:12px;font-weight:600}
 .un-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;padding:16px;max-width:1200px;margin:0 auto}
-.un-card{background:var(--sf);border-radius:10px;border:1px solid rgba(255,255,255,.06);overflow:hidden;display:flex;gap:12px;padding:12px;padding-right:52px;position:relative;transition:background .2s;cursor:pointer}
+.un-card{background:var(--sf);border-radius:10px;border:1px solid rgba(255,255,255,.06);overflow:hidden;display:flex;gap:12px;padding:12px;padding-right:60px;position:relative;transition:background .2s;cursor:pointer}
 .un-card:hover{background:#1e1e3a}
 .un-poster{width:60px;height:90px;border-radius:6px;object-fit:cover;background:#222;flex-shrink:0}
 .un-poster-ph{width:60px;height:90px;border-radius:6px;background:linear-gradient(135deg,#1a1a2e,#0f3460);display:flex;align-items:center;justify-content:center;font-size:20px;color:var(--t2);flex-shrink:0}
@@ -325,8 +325,8 @@ Drop CSV here or <span style="color:var(--bl);text-decoration:underline">click t
 <!-- Up Next Overlay -->
 <div id="un-overlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg);z-index:300;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain">
 <div style="position:sticky;top:0;z-index:301;background:rgba(15,15,15,.97);backdrop-filter:blur(8px);padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:space-between">
-<h2 style="font-size:18px;font-weight:700;margin:0"><span class="i">📺</span> Up Next</h2>
-<button onclick="closeUpNext()" style="background:none;border:1px solid rgba(255,255,255,.1);color:var(--t2);border-radius:8px;padding:8px 14px;font-size:14px;cursor:pointer">✕ Close</button>
+<div style="display:flex;align-items:center;gap:10px"><button onclick="closeUpNext()" style="background:none;border:1px solid rgba(255,255,255,.1);color:var(--t2);border-radius:8px;padding:8px 14px;font-size:14px;cursor:pointer;min-height:44px;min-width:44px;display:flex;align-items:center;justify-content:center">←</button><h2 style="font-size:18px;font-weight:700;margin:0"><span class="i">📺</span> Up Next</h2></div>
+<div></div>
 </div>
 <div id="un-content"></div>
 </div>
@@ -2365,7 +2365,7 @@ function openUpNext(){
     // Find poster from shows data if not on the item
     var poster=s.poster;
     if(!poster){var match=ud.shows.find(function(x){return x.slug===s.slug});if(match)poster=match.poster}
-    var c='<div class="un-card" onclick="'+(isRecent?'':'showEpDetail(this)')+'" data-slug="'+s.slug+'" data-s="'+s.season+'" data-e="'+s.episode+'" data-eid="'+(s.ep_trakt_id||0)+'" data-tmdb="'+(s.tmdb_id||'')+'">';
+    var c='<div class="un-card'+(isRecent?'':' un-card-tap')+'" data-slug="'+s.slug+'" data-s="'+s.season+'" data-e="'+s.episode+'" data-eid="'+(s.ep_trakt_id||0)+'" data-tmdb="'+(s.tmdb_id||'')+'">';
     if(poster)c+='<img class="un-poster" src="'+poster+'" loading="lazy" onerror="this.style.display=\'none\'" alt="">';
     else c+='<div class="un-poster-ph">📺</div>';
     c+='<div class="un-info">';
@@ -2415,6 +2415,13 @@ function openUpNext(){
   setTimeout(function(){var anchor=document.getElementById('un-default-scroll');if(anchor)anchor.scrollIntoView({behavior:'auto',block:'start'})},50);
 }
 
+// Delegated click handler for Up Next cards (U1: reliable click targets)
+document.getElementById('un-content').addEventListener('click',function(e){
+  var card=e.target.closest('.un-card-tap');
+  if(!card)return;
+  if(e.target.closest('.un-watch-btn,.un-del-btn'))return;
+  showEpDetail(card);
+});
 function showEpDetail(card){
   var slug=card.dataset.slug,s=parseInt(card.dataset.s),e=parseInt(card.dataset.e),eid=card.dataset.eid,tmdb=card.dataset.tmdb;
   var ud=_unData();
@@ -2448,7 +2455,7 @@ function _unBuildPanel(show){
   var slug2=show.slug.replace(/'/g,"\\'");
   var h='<div class="un-detail">';
   h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">';
-  h+='<button onclick="openUpNext()" style="background:var(--sf);border:1px solid rgba(255,255,255,.1);color:var(--tx);border-radius:8px;padding:10px 16px;font-size:14px;cursor:pointer">← Back</button>';
+  h+='<button onclick="openUpNext()" style="background:var(--sf);border:1px solid rgba(255,255,255,.1);color:var(--tx);border-radius:8px;padding:10px 16px;font-size:14px;cursor:pointer;min-height:44px">← Up Next</button>';
   h+='<div style="display:flex;gap:8px">';
   if(show.episode>1)h+='<button onclick="_crNav(-1)" style="background:var(--sf);border:1px solid rgba(255,255,255,.1);color:var(--tx);border-radius:8px;padding:10px 16px;font-size:16px;cursor:pointer;min-width:48px">◀</button>';
   h+='<button onclick="_crNav(1)" style="background:var(--sf);border:1px solid rgba(255,255,255,.1);color:var(--tx);border-radius:8px;padding:10px 16px;font-size:16px;cursor:pointer;min-width:48px">▶</button>';
@@ -2510,8 +2517,30 @@ function _unRenderDetail(allShows,idx){
     else{car.style.transform='translateX(-33.333%)'}
   };
   document.getElementById('un-overlay').scrollTop=0;
-  _unPrefetch(show,show.episode-1);
-  _unPrefetch(show,show.episode+1);
+  // Prefetch adjacent episodes and re-render panels when data arrives (U5/U6)
+  _unPrefetchAndUpdate(show,show.episode-1,allShows,idx);
+  _unPrefetchAndUpdate(show,show.episode+1,allShows,idx);
+  _unPrefetch(show,show.episode-2);
+  _unPrefetch(show,show.episode+2);
+}
+
+function _unPrefetchAndUpdate(base,epNum,allShows,idx){
+  if(epNum<1||!base.tmdb_id)return;
+  var k=_epCacheKey(base.tmdb_id,base.season,epNum);
+  if(_epCache[k])return;
+  var tk=(D.un||{}).tmdb_key||'';
+  if(!tk)return;
+  fetch('https://api.themoviedb.org/3/tv/'+base.tmdb_id+'/season/'+base.season+'/episode/'+epNum+'?api_key='+tk)
+    .then(function(r){return r.json()})
+    .then(function(d){
+      if(d.status_code)return;
+      _epCache[k]={ep_title:d.name||'',ep_overview:(d.overview||'').substring(0,200),ep_still:d.still_path?'https://image.tmdb.org/t/p/w780'+d.still_path:'',ep_aired:d.air_date||'',ep_runtime:d.runtime||base.ep_runtime};
+      // Re-render carousel panels with new data
+      if(_crBase&&_crBase.slug===base.slug&&_crBase.season===base.season){
+        var ts=allShows.slice();ts[idx]=Object.assign({},base);
+        _unRenderDetail(ts,idx);
+      }
+    }).catch(function(){});
 }
 
 function _crNav(dir){
@@ -2568,6 +2597,20 @@ function closeUpNext(){
   document.getElementById('un-overlay').style.display='none';
   _unlockBody();
 }
+// Swipe from left edge to dismiss Up Next (U4)
+(function(){
+  var ov=document.getElementById('un-overlay');if(!ov)return;
+  var sx=0,sy=0,tracking=false;
+  ov.addEventListener('touchstart',function(e){
+    if(e.touches[0].clientX<30){sx=e.touches[0].clientX;sy=e.touches[0].clientY;tracking=true}
+  },{passive:true});
+  ov.addEventListener('touchmove',function(e){
+    if(!tracking)return;
+    var dx=e.touches[0].clientX-sx,dy=Math.abs(e.touches[0].clientY-sy);
+    if(dx>80&&dy<50){tracking=false;closeUpNext()}
+  },{passive:true});
+  ov.addEventListener('touchend',function(){tracking=false},{passive:true});
+})();
 
 function renderStatus(){
   var total_people=D.a.length+D.x.length;
