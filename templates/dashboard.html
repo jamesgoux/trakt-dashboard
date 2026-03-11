@@ -142,7 +142,7 @@ body{overflow-x:hidden}
 <h1><svg class="iris-logo" viewBox="0 0 512 512" width="28" height="28" style="vertical-align:middle;margin-right:6px"><defs><radialGradient id="ig" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#e94560"/><stop offset="45%" stop-color="#7c3aed"/><stop offset="100%" stop-color="#c4b5fd"/></radialGradient></defs><path d="M256 96C128 96 32 256 32 256s96 160 224 160 224-160 224-160S384 96 256 96z" fill="#c4b5fd"/><circle cx="256" cy="256" r="200" fill="url(#ig)"/><circle cx="256" cy="256" r="80" fill="#0f0f0f"/><circle cx="220" cy="220" r="28" fill="rgba(255,255,255,0.4)"/><circle cx="280" cy="240" r="12" fill="rgba(255,255,255,0.2)"/></svg><span style="color:var(--ac);font-weight:800">iris</span> <span style="color:var(--t2);font-weight:400">// jamesgoux</span></h1>
 <div class="fctrls">
 <svg class="iris-logo-mob" viewBox="0 0 512 512" width="24" height="24" style="display:none;vertical-align:middle;flex-shrink:0"><defs><radialGradient id="igm" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#e94560"/><stop offset="45%" stop-color="#7c3aed"/><stop offset="100%" stop-color="#c4b5fd"/></radialGradient></defs><path d="M256 96C128 96 32 256 32 256s96 160 224 160 224-160 224-160S384 96 256 96z" fill="#c4b5fd"/><circle cx="256" cy="256" r="200" fill="url(#igm)"/><circle cx="256" cy="256" r="80" fill="#0f0f0f"/><circle cx="220" cy="220" r="28" fill="rgba(255,255,255,0.4)"/></svg>
-<div class="fbtn"><select id="gs"><option value="all">🌐 All</option><option value="movie">🎞️ Movies</option><option value="show">📺 Shows</option><option value="book">📚 Books</option><option value="music">🎧 Music</option><option value="concert">🎸 Concerts</option><option value="podcast">🎙️ Podcasts</option><option value="sports">🏀 Sports</option><option value="theater">🎭 Theater</option></select></div>
+<div class="fbtn"><select id="gs"><option value="all">🌐 All</option><option value="movie">🎞️ Movies</option><option value="show">📺 Shows</option><option value="book">📚 Books</option><option value="music">🎧 Music</option><option value="concert">🎸 Concerts</option><option value="podcast">🎙️ Podcasts</option><option value="sports">🏟️ Sports</option><option value="theater">🎭 Theater</option></select></div>
 <div class="fbtn"><select id="ys"><option value="all">All Time</option></select></div>
 <button class="hbtn" id="refresh-btn" onclick="this.querySelector('.rf-icon').classList.add('hbtn-spin');this.style.color='var(--ac)';document.querySelector('.fbar').classList.add('fbar-pulse');setTimeout(function(){location.reload()},900)" title="Refresh"><span class="rf-icon" style="display:inline-block">↻</span></button>
 <div style="position:relative"><button class="hbtn" onclick="var m=document.getElementById('jmp-menu');m.style.display=m.style.display==='block'?'none':'block'" title="Jump to section" style="font-size:16px;line-height:44px;padding:0 16px">☰</button><div id="jmp-menu" style="display:none;position:absolute;right:0;top:100%;margin-top:6px;background:var(--sf);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:6px 0;min-width:200px;max-height:70vh;overflow-y:auto;z-index:150;box-shadow:0 8px 30px rgba(0,0,0,.5)"></div></div>
@@ -269,7 +269,7 @@ body{overflow-x:hidden}
 </div>
 <!-- SPORTS -->
 <div class="g2 med-s" data-med="all sports" id="sp-wrap" style="display:none">
-<div id="sec-sp" class="cd fw s-sp"><h3><span class="i">🏀</span>Sports <span style="float:right"><button class="vb" onclick="openSportsAdd()" style="background:var(--sp);color:#fff;border-color:var(--sp)">+ Add Event</button></span></h3><div id="sp-chart" style="height:280px"></div></div>
+<div id="sec-sp" class="cd fw s-sp"><h3><span class="i">🏟️</span>Sports <span style="float:right"><button class="vb" onclick="openSportsAdd()" style="background:var(--sp);color:#fff;border-color:var(--sp)">+ Add Event</button></span></h3><div id="sp-chart" style="height:280px"></div></div>
 <div class="cd s-sp"><h3><span class="i">🏟️</span>Teams</h3><div id="sp-teams" style="height:280px"></div></div>
 <div class="cd s-sp"><h3><span class="i">📺</span>How I Watched</h3><div id="sp-how" style="height:280px"></div></div>
 <div class="cd s-sp"><h3><span class="i">🏟️</span>Venues</h3><div id="sp-venues" style="height:280px"></div></div>
@@ -279,7 +279,7 @@ body{overflow-x:hidden}
 <!-- Sports Add Event Overlay -->
 <div id="sp-overlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg);z-index:300;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain">
 <div style="position:sticky;top:0;z-index:301;background:rgba(15,15,15,.97);backdrop-filter:blur(8px);padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:space-between">
-<h2 style="font-size:18px;font-weight:700;margin:0" id="sp-ov-title"><span class="i">🏀</span> Add Sports Event</h2>
+<h2 style="font-size:18px;font-weight:700;margin:0" id="sp-ov-title"><span class="i">🏟️</span> Add Sports Event</h2>
 <button onclick="closeSportsAdd()" style="background:none;border:1px solid rgba(255,255,255,.1);color:var(--t2);border-radius:8px;padding:6px 12px;font-size:14px;cursor:pointer">✕</button>
 </div>
 <div style="max-width:700px;margin:0 auto;padding:16px">
@@ -289,7 +289,7 @@ body{overflow-x:hidden}
 </div>
 <div id="sp-ov-events" style="display:none">
 <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
-<button onclick="document.getElementById('sp-ov-search').style.display='';document.getElementById('sp-ov-events').style.display='none';document.getElementById('sp-ov-title').innerHTML='<span class=i>🏀</span> Add Sports Event'" style="background:none;border:none;color:var(--sp);cursor:pointer;font-size:13px">← Teams</button>
+<button onclick="document.getElementById('sp-ov-search').style.display='';document.getElementById('sp-ov-events').style.display='none';document.getElementById('sp-ov-title').innerHTML='<span class=i>🏟️</span> Add Sports Event'" style="background:none;border:none;color:var(--sp);cursor:pointer;font-size:13px">← Teams</button>
 <input id="sp-ev-search" type="text" placeholder="Filter opponent, venue, date..." oninput="filterSportsEvents()" style="flex:1;padding:8px 12px;background:var(--sf);border:1px solid rgba(255,255,255,.15);border-radius:6px;color:var(--tx);font-size:13px">
 </div>
 <div id="sp-ev-list"></div>
@@ -407,7 +407,7 @@ readHash();
 
 // Jump menu popup
 (function(){
-var jmpItems=[['sec-tl','📈 Timeline'],['sec-ll','🧬 Lifeline'],['sec-act','🎭 Actors'],['sec-crew','🎬 Directors/Writers'],['sec-shows','📺 Top Shows'],['sec-eps','📺 Episodes'],['sec-ttw','⏱️ Time to Watch'],['sec-mov','🎞️ Movies'],['sec-ratings','⭐ Movie Ratings'],['sec-sz-ratings','⭐ TV Ratings'],['sec-time','🕐 Day & Time'],['sec-meta','🎯 Genres'],['sec-geo','🌍 Countries/Languages'],['sec-vy','📅 Release Years'],['sec-how','🖥️ How I Watch'],['sec-first','🌅 First Watches'],['sec-rec','👁️ Last Watches'],['sec-pc','🎙️ Podcasts'],['sec-lfm','🎧 Music'],['sec-con','🎸 Concerts'],['sec-gr','📚 Books'],['sec-th','🎭 Theater'],['sec-sp','🏀 Sports']];
+var jmpItems=[['sec-tl','📈 Timeline'],['sec-ll','🧬 Lifeline'],['sec-act','🎭 Actors'],['sec-crew','🎬 Directors/Writers'],['sec-shows','📺 Top Shows'],['sec-eps','📺 Episodes'],['sec-ttw','⏱️ Time to Watch'],['sec-mov','🎞️ Movies'],['sec-ratings','⭐ Movie Ratings'],['sec-sz-ratings','⭐ TV Ratings'],['sec-time','🕐 Day & Time'],['sec-meta','🎯 Genres'],['sec-geo','🌍 Countries/Languages'],['sec-vy','📅 Release Years'],['sec-how','🖥️ How I Watch'],['sec-first','🌅 First Watches'],['sec-rec','👁️ Last Watches'],['sec-pc','🎙️ Podcasts'],['sec-lfm','🎧 Music'],['sec-con','🎸 Concerts'],['sec-gr','📚 Books'],['sec-th','🎭 Theater'],['sec-sp','🏟️ Sports']];
 var jm=document.getElementById('jmp-menu');
 jmpItems.forEach(function(item){var a=document.createElement('div');a.textContent=item[1];a.style.cssText='padding:8px 16px;cursor:pointer;font-size:13px;white-space:nowrap';a.onmouseover=function(){a.style.background='rgba(255,255,255,.06)'};a.onmouseout=function(){a.style.background='none'};a.onclick=function(){var el=document.getElementById(item[0]);if(el)el.scrollIntoView({behavior:'smooth',block:'start'});jm.style.display='none'};jm.appendChild(a)});
 document.addEventListener('click',function(e){if(!e.target.closest('#jmp-menu')&&!e.target.closest('[onclick*="jmp-menu"]'))jm.style.display='none'});
@@ -447,7 +447,7 @@ function stats(){
     var spF=cy==='all'?SP:SP.filter(function(e){return e.date&&e.date.substring(0,4)===cy});
     var spLive=spF.filter(function(e){return e.watch_type==='live'}).length;
     var spTeams={};spF.forEach(function(e){spTeams[e.home_team]=1;spTeams[e.away_team]=1});
-    el.innerHTML=sc(spF.length,'🏀 Games','#0ea5e9')+sc(spLive,'🏟️ Live','#0ea5e9')+sc(Object.keys(spTeams).length,'🏅 Teams','#0ea5e9');return}
+    el.innerHTML=sc(spF.length,'🏟️ Games','#0ea5e9')+sc(spLive,'🏟️ Live','#0ea5e9')+sc(Object.keys(spTeams).length,'🏅 Teams','#0ea5e9');return}
   // Movie/show/all — compute counts
   // Movie/show/all — compute counts
   var mw=0,ew=0,rt=0,rtm=0,rts=0;D.c.m.filter(function(m){return cy==='all'||m.month.startsWith(cy)}).forEach(function(m){mw+=m.movies;ew+=m.episodes;rt+=(m.rt||0);rtm+=(m.rt_m||0);rts+=(m.rt_s||0)});
@@ -465,7 +465,7 @@ function stats(){
       if(D.con&&D.con.total){var conR=D.con.recent||[];var conF=cy==='all'?conR:conR.filter(function(e){return e.yr===cy});var conEv={};conF.forEach(function(e){conEv[e.date+'|'+e.venue]=true});h2+=sc(Object.keys(conEv).length,'🎸 Concerts','#3b82f6')}
       if(D.gr&&D.gr.total){var grF=cy==='all'?(D.gr.all||[]):(D.gr.all||[]).filter(function(b){return b.yr===cy});h2+=sc(grF.length,'📚 Books','#fbbf24')}
       if(D.th&&D.th.total){var thF=cy==='all'?(D.th.all||[]):(D.th.all||[]).filter(function(e){return e.y===cy});if(thF.length)h2+=sc(thF.length,'🎭 Plays','#a78bfa')}
-      if(SP.length){var spAll=cy==='all'?SP:SP.filter(function(e){return e.date&&e.date.substring(0,4)===cy});if(spAll.length)h2+=sc(spAll.length,'🏀 Games','#0ea5e9')}
+      if(SP.length){var spAll=cy==='all'?SP:SP.filter(function(e){return e.date&&e.date.substring(0,4)===cy});if(spAll.length)h2+=sc(spAll.length,'🏟️ Games','#0ea5e9')}
     }else{
       h2=sc((mw+ew).toLocaleString(),'👁️ Watches','#b0b0b0')+sc(totalDays,'⏱️ Days','#b0b0b0')+sc((cy==='all'?s.unique_movies:mw).toLocaleString(),'🎞️ Movies','var(--ac)')+sc(s.unique_shows,'📺 Shows','var(--pu)')+sc(seasonCount,'📦 Seasons','var(--pu)')+sc(ew.toLocaleString(),'🔢 Episodes','var(--pu)');
       if(D.pc&&D.pc.total_podcasts){var pcY=cy!=='all'&&D.pc.yearly?D.pc.yearly.find(function(y){return y.yr===cy}):null;var pcHrs=pcY?pcY.hrs:D.pc.total_listened_hrs;var pcEps=pcY?pcY.eps:D.pc.total_episodes;var pcDays=Math.round(pcHrs/24*10)/10;var pcShows=cy!=='all'&&D.pc.top_y&&D.pc.top_y[cy]?D.pc.top_y[cy].length:D.pc.total_podcasts;h2+=sc(pcShows,'📡 Podcasts','#ef4444')+sc(pcEps,'📻 Pod Episodes','#ef4444')+sc(pcDays+'d','🎙️ Pod Days','#ef4444')}
@@ -473,7 +473,7 @@ function stats(){
       if(D.con&&D.con.total){var conR=D.con.recent||[];var conF=cy==='all'?conR:conR.filter(function(e){return e.yr===cy});var conEv={};conF.forEach(function(e){conEv[e.date+'|'+e.venue]=true});var conUA=conF.map(function(e){return e.artist}).filter(function(v,i,a){return a.indexOf(v)===i}).length;var conSongs=conF.reduce(function(s,e){return s+e.songs},0);h2+=sc(Object.keys(conEv).length,'🎸 Concerts','#3b82f6')+sc(conF.length,'🎤 Sets','#3b82f6')+sc(conUA,'🎙️ Artists','#3b82f6')+sc(conSongs,'🎵 Songs','#3b82f6')}
       if(D.gr&&D.gr.total){var grAll=D.gr.all||[];var grF=cy==='all'?grAll:grAll.filter(function(b){return b.yr===cy});h2+=sc(grF.length,'📚 Books','#fbbf24')+sc(grF.reduce(function(s,b){return s+b.p},0).toLocaleString(),'📖 Pages','#fbbf24')}
       if(D.th&&D.th.total){var thF=cy==='all'?(D.th.all||[]):(D.th.all||[]).filter(function(e){return e.y===cy});h2+=sc(thF.length,'🎭 Plays','#a78bfa')}
-      if(SP.length){var spAll=cy==='all'?SP:SP.filter(function(e){return e.date&&e.date.substring(0,4)===cy});if(spAll.length)h2+=sc(spAll.length,'🏀 Games','#0ea5e9')}
+      if(SP.length){var spAll=cy==='all'?SP:SP.filter(function(e){return e.date&&e.date.substring(0,4)===cy});if(spAll.length)h2+=sc(spAll.length,'🏟️ Games','#0ea5e9')}
     }
   }
   el.innerHTML=h2;
@@ -2044,7 +2044,7 @@ function openSportsAdd(){
   document.getElementById('sp-ov-search').style.display='';
   document.getElementById('sp-ov-events').style.display='none';
   document.getElementById('sp-ov-confirm').style.display='none';
-  document.getElementById('sp-ov-title').innerHTML='<span class="i">🏀</span> Add Sports Event';
+  document.getElementById('sp-ov-title').innerHTML='<span class="i">🏟️</span> Add Sports Event';
   document.getElementById('sp-team-input').value='';
   document.getElementById('sp-team-results').innerHTML='';
   // Scroll-to-load on the overlay
@@ -2074,7 +2074,7 @@ function searchSportsTeam(){
 function loadTeamEvents(teamId,teamName){
   document.getElementById('sp-ov-search').style.display='none';
   document.getElementById('sp-ov-events').style.display='';
-  document.getElementById('sp-ov-title').innerHTML='<span class="i">🏀</span> '+teamName;
+  document.getElementById('sp-ov-title').innerHTML='<span class="i">🏟️</span> '+teamName;
   window._spTeamId=teamId;window._spTeamName=teamName;
   window._spAllEvents=[];window._spSeasonIdx=0;
   var curYear=new Date().getFullYear();
