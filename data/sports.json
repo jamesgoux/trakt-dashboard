@@ -28,5 +28,50 @@
     "away_badge": "https://r2.thesportsdb.com/images/media/team/badge/f9zk3l1617527686.png",
     "watch_type": "live",
     "my_team": "Los Angeles Dodgers"
+  },
+  {
+    "id": "2392759",
+    "date": "2026-02-23",
+    "sport": "Baseball",
+    "league": "MLB",
+    "home_team": "Los Angeles Dodgers",
+    "away_team": "Seattle Mariners",
+    "home_score": "3",
+    "away_score": "0",
+    "venue": "Camelback Ranch",
+    "home_badge": "https://r2.thesportsdb.com/images/media/team/badge/p2oj631663889783.png",
+    "away_badge": "https://r2.thesportsdb.com/images/media/team/badge/39x9ph1521903933.png",
+    "watch_type": "live",
+    "my_team": "Los Angeles Dodgers"
+  },
+  {
+    "id": "2388721",
+    "date": "2026-08-15",
+    "sport": "Baseball",
+    "league": "MLB",
+    "home_team": "Los Angeles Dodgers",
+    "away_team": "Milwaukee Brewers",
+    "home_score": null,
+    "away_score": null,
+    "venue": "Dodger Stadium",
+    "home_badge": "https://r2.thesportsdb.com/images/media/team/badge/p2oj631663889783.png",
+    "away_badge": "https://r2.thesportsdb.com/images/media/team/badge/08kh2a1595775193.png",
+    "watch_type": "live",
+    "my_team": "Los Angeles Dodgers"
+  },
+  {
+    "id": "2388822",
+    "date": "2026-08-22",
+    "sport": "Baseball",
+    "league": "MLB",
+    "home_team": "Los Angeles Dodgers",
+    "away_team": "Pittsburgh Pirates",
+    "home_score": null,
+    "away_score": null,
+    "venue": "Dodger Stadium",
+    "home_badge": "https://r2.thesportsdb.com/images/media/team/badge/p2oj631663889783.png",
+    "away_badge": "https://r2.thesportsdb.com/images/media/team/badge/kw6uqr1617527138.png",
+    "watch_type": "live",
+    "my_team": "Los Angeles Dodgers"
   }
 ]
