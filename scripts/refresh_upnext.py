@@ -80,6 +80,7 @@ def fetch_recent_history():
             "ep_title": ep.get("title", ""),
             "watched_at": e.get("watched_at", ""),
             "ep_id": e.get("id", 0),
+            "ep_aired": (ep.get("first_aired") or "")[:10],
         })
     return items
 

@@ -88,6 +88,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
 .un-meta{display:flex;gap:6px;align-items:center;margin-top:4px;font-size:10px;color:var(--t2)}
 .un-stream{display:flex;gap:4px;align-items:center;position:absolute;top:8px;right:52px}
 .un-stream img{width:18px;height:18px;border-radius:4px}
+.un-stream.un-stream-below{top:28px}
 .un-prog-wrap{margin-top:6px}
 .un-prog{height:18px;background:rgba(255,255,255,.06);border-radius:4px;overflow:hidden;border:1px solid rgba(255,255,255,.08);position:relative}
 .un-prog-bar{height:100%;background:linear-gradient(90deg,var(--tv),rgba(20,184,166,.5));border-radius:3px;transition:width .3s}
@@ -2344,8 +2345,11 @@ function openUpNext(){
   function card(s,isRecent){
     var key=s.slug+'|'+s.season+'|'+s.episode;
     var pct=s.aired_total?Math.round(s.completed/s.aired_total*100):0;
+    // Find poster from shows data if not on the item
+    var poster=s.poster;
+    if(!poster){var match=ud.shows.find(function(x){return x.slug===s.slug});if(match)poster=match.poster}
     var c='<div class="un-card" onclick="'+(isRecent?'':'showEpDetail(this)')+'" data-slug="'+s.slug+'" data-s="'+s.season+'" data-e="'+s.episode+'" data-eid="'+(s.ep_trakt_id||0)+'" data-tmdb="'+(s.tmdb_id||'')+'">';
-    if(s.poster)c+='<img class="un-poster" src="'+s.poster+'" loading="lazy" onerror="this.style.display=\'none\'" alt="">';
+    if(poster)c+='<img class="un-poster" src="'+poster+'" loading="lazy" onerror="this.style.display=\'none\'" alt="">';
     else c+='<div class="un-poster-ph">📺</div>';
     c+='<div class="un-info">';
     c+='<div class="un-show">'+s.show+'</div>';
@@ -2353,16 +2357,16 @@ function openUpNext(){
     if(s.ep_title)c+=' — '+s.ep_title;
     c+='</div>';
     if(!isRecent){
-      // Streaming icons
-      if(s.stream&&s.stream.length){
-        c+='<div class="un-stream">';
-        s.stream.forEach(function(st){c+='<img src="'+st.i+'" title="'+st.n+'" loading="lazy">'});
-        c+='</div>';
-      }
       // Progress bar with text inside
       c+='<div class="un-prog-wrap"><div class="un-prog"><div class="un-prog-bar" style="width:'+pct+'%"></div>';
       c+='<div class="un-prog-text"><span>'+(s.ep_runtime?_unFmtMin(s.ep_runtime):'')+'</span><span>'+(s.eps_left||0)+' eps · '+_unFmtMin(s.remaining_min)+'</span></div>';
       c+='</div></div>';
+      // Streaming icons top-right
+      if(s.stream&&s.stream.length){
+        c+='<div class="un-stream'+(s.is_new?' un-stream-below':'')+'">';
+        s.stream.forEach(function(st){c+='<img src="'+st.i+'" title="'+st.n+'" loading="lazy">'});
+        c+='</div>';
+      }
       if(s.is_new)c+='<div class="un-new">New</div>';
       c+='<button onclick="event.stopPropagation();markWatched(\''+s.slug.replace(/'/g,"\\'")+'\','+s.season+','+s.episode+','+(s.ep_trakt_id||0)+',this)" class="un-watch-btn" title="Mark watched">✓</button>';
     }else{
@@ -2413,14 +2417,16 @@ function showEpDetail(card){
 function _unRenderDetail(allShows,idx){
   var show=allShows[idx];
   var el=document.getElementById('un-content');
+  var prevEp='S'+String(show.season).padStart(2,'0')+'E'+String(show.episode-1).padStart(2,'0');
+  var nextEp='S'+String(show.season).padStart(2,'0')+'E'+String(show.episode+1).padStart(2,'0');
   var h='<div class="un-detail" id="un-detail-wrap">';
   h+='<button onclick="openUpNext()" style="background:none;border:none;color:var(--sp);cursor:pointer;font-size:13px;margin-bottom:12px">← Back</button>';
-  // Episode still
   if(show.ep_still)h+='<img src="'+show.ep_still+'" alt="" style="width:100%;border-radius:8px;margin-bottom:12px;max-height:280px;object-fit:cover">';
   h+='<div style="font-size:20px;font-weight:700;margin-bottom:4px">'+show.show+'</div>';
-  h+='<div style="font-size:14px;color:var(--t2);margin-bottom:8px">S'+String(show.season).padStart(2,'0')+'E'+String(show.episode).padStart(2,'0');
+  h+='<div style="font-size:14px;color:var(--t2);margin-bottom:4px">S'+String(show.season).padStart(2,'0')+'E'+String(show.episode).padStart(2,'0');
   if(show.ep_title)h+=' — '+show.ep_title;
   h+='</div>';
+  if(show.ep_aired)h+='<div style="font-size:12px;color:var(--t2);margin-bottom:8px">📅 '+show.ep_aired+'</div>';
   if(show.stream&&show.stream.length){
     h+='<div style="display:flex;gap:6px;margin-bottom:12px">';
     show.stream.forEach(function(st){h+='<img src="'+st.i+'" title="'+st.n+'" style="width:24px;height:24px;border-radius:4px">'});
@@ -2428,11 +2434,10 @@ function _unRenderDetail(allShows,idx){
   }
   if(show.ep_runtime)h+='<div style="font-size:12px;color:var(--t2);margin-bottom:8px">'+_unFmtMin(show.ep_runtime)+' episode</div>';
   if(show.ep_overview)h+='<p style="font-size:13px;color:var(--t2);line-height:1.5;margin-bottom:16px">'+show.ep_overview+'</p>';
-  // Swipe hint
-  var hasPrev=idx>0,hasNext=idx<allShows.length-1;
+  // Swipe hint — prev/next EPISODE in the series
   h+='<div style="display:flex;justify-content:space-between;margin-bottom:16px;font-size:12px;color:var(--t2)">';
-  h+='<span>'+(hasPrev?'← swipe right: '+allShows[idx-1].show:'')+'</span>';
-  h+='<span>'+(hasNext?allShows[idx+1].show+' →':'')+'</span>';
+  h+='<span>'+(show.episode>1?'← '+prevEp:'')+'</span>';
+  h+='<span>'+nextEp+' →</span>';
   h+='</div>';
   // Mark watched
   var slug2=show.slug.replace(/'/g,"\\'");
@@ -2443,17 +2448,19 @@ function _unRenderDetail(allShows,idx){
   h+='<div style="display:flex;gap:8px"><input type="datetime-local" id="un-custom-date" style="flex:1;padding:10px;background:var(--bg);border:1px solid rgba(255,255,255,.15);border-radius:8px;color:var(--tx);font-size:13px"><button onclick="markWatchedAt(\''+slug2+'\','+show.season+','+show.episode+','+(show.ep_trakt_id||0)+',document.getElementById(\'un-custom-date\').value)" style="padding:10px 16px;background:var(--sf);color:var(--tx);border:1px solid rgba(255,255,255,.1);border-radius:8px;font-size:13px;cursor:pointer">Set</button></div>';
   h+='</div></div>';
   el.innerHTML=h;
-  // Swipe handling
+  // Swipe = next/prev episode in the SAME SERIES
   var wrap=document.getElementById('un-detail-wrap');
-  var startX=0,startY=0,swiping=false;
-  wrap.addEventListener('touchstart',function(ev){startX=ev.touches[0].clientX;startY=ev.touches[0].clientY;swiping=true});
+  var startX=0,startY=0;
+  wrap.addEventListener('touchstart',function(ev){startX=ev.touches[0].clientX;startY=ev.touches[0].clientY},{passive:true});
   wrap.addEventListener('touchend',function(ev){
-    if(!swiping)return;swiping=false;
     var dx=ev.changedTouches[0].clientX-startX;
     var dy=ev.changedTouches[0].clientY-startY;
     if(Math.abs(dx)<50||Math.abs(dy)>Math.abs(dx))return;
-    if(dx>0&&idx>0){_unRenderDetail(allShows,idx-1)}
-    else if(dx<0&&idx<allShows.length-1){_unRenderDetail(allShows,idx+1)}
+    // Find the adjacent episode in the same show
+    var targetEp=dx>0?show.episode-1:show.episode+1;
+    if(targetEp<1)return;
+    var next=allShows.find(function(x){return x.slug===show.slug&&x.season===show.season&&x.episode===targetEp});
+    if(next){var ni=allShows.indexOf(next);_unRenderDetail(allShows,ni)}
   });
 }
 
