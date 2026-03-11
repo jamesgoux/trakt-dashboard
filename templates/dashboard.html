@@ -90,7 +90,7 @@ body{overflow-x:hidden}
 <div class="fctrls">
 <div class="fbtn"><label>Type</label><select id="gs"><option value="all">🌐 All</option><option value="movie">🎞️ Movies</option><option value="show">📺 Shows</option><option value="book">📚 Books</option><option value="music">🎧 Music</option><option value="concert">🎸 Concerts</option><option value="podcast">🎙️ Podcasts</option><option value="theater">🎭 Theater</option></select></div>
 <div class="fbtn"><label>Year</label><select id="ys"><option value="all">All Time</option></select></div>
-<div class="fbtn"><label>Jump</label><select id="jmp" onchange="if(this.value){document.getElementById(this.value).scrollIntoView({behavior:'smooth',block:'start'});this.value=''}"><option value="">...</option><option value="sec-tl">📈 Timeline</option><option value="sec-ll">🧬 Lifeline</option><option value="sec-act">🎭 Actors</option><option value="sec-crew">🎬 Directors/Writers</option><option value="sec-shows">📺 Top Shows</option><option value="sec-ttw">⏱️ Time to Watch</option><option value="sec-mov">🎞️ Movies</option><option value="sec-eps">📺 Episodes</option><option value="sec-time">🕐 Day & Time</option><option value="sec-meta">🎯 Genres/Trends</option><option value="sec-geo">🌍 Countries/Languages</option><option value="sec-vy">📅 Release Years</option><option value="sec-how">🖥️ How I Watch</option><option value="sec-ratings">⭐ Ratings</option><option value="sec-first">🌅 First Watches</option><option value="sec-rec">👁️ Last Watches</option><option value="sec-gr">📚 Books</option><option value="sec-lfm">🎧 Music</option><option value="sec-con">🎸 Concerts</option><option value="sec-pc">🎙️ Podcasts</option><option value="sec-th">🎭 Theater</option></select></div>
+<div class="fbtn"><label>Jump</label><select id="jmp" onchange="if(this.value){document.getElementById(this.value).scrollIntoView({behavior:'smooth',block:'start'});this.value=''}"><option value="">...</option><option value="sec-tl">📈 Timeline</option><option value="sec-ll">🧬 Lifeline</option><option value="sec-act">🎭 Actors</option><option value="sec-crew">🎬 Directors/Writers</option><option value="sec-shows">📺 Top Shows</option><option value="sec-ttw">⏱️ Time to Watch</option><option value="sec-mov">🎞️ Movies</option><option value="sec-eps">📺 Episodes</option><option value="sec-time">🕐 Day & Time</option><option value="sec-meta">🎯 Genres/Trends</option><option value="sec-geo">🌍 Countries/Languages</option><option value="sec-vy">📅 Release Years</option><option value="sec-how">🖥️ How I Watch</option><option value="sec-ratings">⭐ Ratings</option><option value="sec-first">🌅 First Watches</option><option value="sec-rec">👁️ Last Watches</option><option value="sec-pc">🎙️ Podcasts</option><option value="sec-lfm">🎧 Music</option><option value="sec-con">🎸 Concerts</option><option value="sec-gr">📚 Books</option><option value="sec-th">🎭 Theater</option></select></div>
 <button class="rbtn" onclick="location.reload()">&#x21bb;</button>
 </div>
 </div>
@@ -175,6 +175,25 @@ body{overflow-x:hidden}
 <div class="cd s-r" id="sec-first"><h3><span class="i">🌅</span>First Watches</h3><table><thead><tr><th>Title</th><th>Type</th><th>Date</th></tr></thead><tbody id="ftb"></tbody></table></div>
 <div id="sec-rec" class="cd s-r"><h3><span class="i">👁️</span>Last Watches</h3><table><thead><tr><th>Title</th><th>Type</th><th>Date</th></tr></thead><tbody id="rtb"></tbody></table></div>
 </div>
+<!-- PODCASTS (Pocket Casts) -->
+<div class="g2 med-s" data-med="all podcast" id="pc-wrap" style="display:none">
+<div id="sec-pc" class="cd fw" style="border-left-color:#ef4444"><h3><span class="i">🎙️</span>Top Podcasts (Pocket Casts) <span class="vtog" style="float:right"><button class="vb vb-on pc-tog" data-v="hrs" onclick="window._pcMode='hrs';document.querySelectorAll('.pc-tog').forEach(function(b){b.classList.toggle('vb-on',b.dataset.v==='hrs')});renderPodcasts()">By Hours</button><button class="vb pc-tog" data-v="eps" onclick="window._pcMode='eps';document.querySelectorAll('.pc-tog').forEach(function(b){b.classList.toggle('vb-on',b.dataset.v==='eps')});renderPodcasts()">By Episodes</button></span></h3><div id="pc-chart" style="height:350px"></div></div>
+</div>
+<!-- MUSIC (Last.fm) -->
+<div class="g2 med-s" data-med="all music" id="lfm-wrap" style="display:none">
+<div id="sec-lfm" class="cd s-lfm"><h3><span class="i">🎧</span>Listening Activity <span class="vtog" style="float:right"><button class="vb vb-on lfm-met" data-v="s">Scrobbles</button><button class="vb lfm-met" data-v="a">Artists</button><button class="vb lfm-met" data-v="al">Albums</button></span></h3><div id="lfm-weekly" style="height:280px"></div></div>
+<div class="cd s-lfm"><h3><span class="i">🏷️</span>Genres</h3><div id="lfm-genres" style="height:280px"></div></div>
+<div class="cd s-lfm"><h3><span class="i">🎤</span>Top Artists <span class="vtog" id="lfm-range-wrap" style="float:right"></span></h3><div id="lfm-artists" style="height:500px"></div></div>
+<div class="cd s-lfm"><h3><span class="i">🎵</span>Top Tracks</h3><div id="lfm-tracks" style="height:500px"></div></div>
+<div class="cd fw s-lfm"><h3><span class="i">💿</span>Top Albums</h3><div id="lfm-albums" style="height:auto"></div></div>
+</div>
+<!-- CONCERTS -->
+<div class="g2 med-s" data-med="all concert" id="con-wrap" style="display:none">
+<div id="sec-con" class="cd s-con"><h3><span class="i">🎸</span>Concerts <span class="vtog" style="float:right"><button class="vb vb-on con-tog" data-v="shows">By Shows</button><button class="vb con-tog" data-v="sets">By Sets</button><button class="vb con-tog" data-v="songs">By Songs</button></span></h3><div id="conc" style="height:280px"></div></div>
+<div class="cd s-con"><h3><span class="i">🎤</span>Most Seen Artists</h3><div class="stb" id="con-artists" style="font-size:12px"></div></div>
+<div class="cd s-con"><h3><span class="i">🏟️</span>Venues</h3><div id="con-ven-chart" style="height:280px"></div></div>
+<div class="cd s-con"><h3><span class="i">🎵</span>Genres</h3><div id="con-genre-chart" style="height:280px"></div></div>
+</div>
 <!-- BOOKS (Goodreads) -->
 <div class="g2 med-s" data-med="all book" id="gr-wrap" style="display:none">
 <div id="sec-gr" class="cd s-gr"><h3><span class="i">📚</span>Books Read <span class="vtog" style="float:right"><button class="vb vb-on gr-tog" data-v="books">By Books</button><button class="vb gr-tog" data-v="pages">By Pages</button></span></h3><div id="grc" style="height:280px"></div></div>
@@ -185,25 +204,6 @@ body{overflow-x:hidden}
 <div class="cd s-gr"><h3><span class="i">⭐</span>By Rating <span class="vtog" style="float:right"><button class="vb vb-on gr-rt" data-v="high" onclick="window._grRt='high';renderGoodreads()">Highest</button><button class="vb gr-rt" data-v="low" onclick="window._grRt='low';renderGoodreads()">Lowest</button></span></h3><div id="gr-rating"></div></div>
 <div class="cd s-gr"><h3><span class="i">🏷️</span>Genres (Community)</h3><div id="gr-genres" style="height:280px"></div></div>
 <div class="cd s-gr"><h3><span class="i">📂</span>My Shelves</h3><div id="gr-shelves" style="height:280px"></div></div>
-</div>
-<!-- MUSIC (Last.fm) -->
-<div class="g2 med-s" data-med="all music" id="lfm-wrap" style="display:none">
-<div id="sec-lfm" class="cd s-lfm"><h3><span class="i">🎧</span>Listening Activity <span class="vtog" style="float:right"><button class="vb vb-on lfm-met" data-v="s">Scrobbles</button><button class="vb lfm-met" data-v="a">Artists</button><button class="vb lfm-met" data-v="al">Albums</button></span></h3><div id="lfm-weekly" style="height:280px"></div></div>
-<div class="cd s-lfm"><h3><span class="i">🏷️</span>Genres</h3><div id="lfm-genres" style="height:280px"></div></div>
-<div class="cd s-lfm"><h3><span class="i">🎤</span>Top Artists <span class="vtog" id="lfm-range-wrap" style="float:right"></span></h3><div id="lfm-artists" style="height:500px"></div></div>
-<div class="cd s-lfm"><h3><span class="i">🎵</span>Top Tracks</h3><div id="lfm-tracks" style="height:500px"></div></div>
-<div class="cd fw s-lfm"><h3><span class="i">💿</span>Top Albums</h3><div id="lfm-albums" style="height:auto"></div></div>
-</div>
-<!-- CONCERTS (bottom) -->
-<div class="g2 med-s" data-med="all concert" id="con-wrap" style="display:none">
-<div id="sec-con" class="cd s-con"><h3><span class="i">🎸</span>Concerts <span class="vtog" style="float:right"><button class="vb vb-on con-tog" data-v="shows">By Shows</button><button class="vb con-tog" data-v="sets">By Sets</button><button class="vb con-tog" data-v="songs">By Songs</button></span></h3><div id="conc" style="height:280px"></div></div>
-<div class="cd s-con"><h3><span class="i">🎤</span>Most Seen Artists</h3><div class="stb" id="con-artists" style="font-size:12px"></div></div>
-<div class="cd s-con"><h3><span class="i">🏟️</span>Venues</h3><div id="con-ven-chart" style="height:280px"></div></div>
-<div class="cd s-con"><h3><span class="i">🎵</span>Genres</h3><div id="con-genre-chart" style="height:280px"></div></div>
-</div>
-<!-- PODCASTS (Pocket Casts) -->
-<div class="g2 med-s" data-med="all podcast" id="pc-wrap" style="display:none">
-<div id="sec-pc" class="cd fw" style="border-left-color:#ef4444"><h3><span class="i">🎙️</span>Top Podcasts (Pocket Casts) <span class="vtog" style="float:right"><button class="vb vb-on pc-tog" data-v="hrs" onclick="window._pcMode='hrs';document.querySelectorAll('.pc-tog').forEach(function(b){b.classList.toggle('vb-on',b.dataset.v==='hrs')});renderPodcasts()">By Hours</button><button class="vb pc-tog" data-v="eps" onclick="window._pcMode='eps';document.querySelectorAll('.pc-tog').forEach(function(b){b.classList.toggle('vb-on',b.dataset.v==='eps')});renderPodcasts()">By Episodes</button></span></h3><div id="pc-chart" style="height:350px"></div></div>
 </div>
 <!-- THEATER -->
 <div class="g2 med-s" data-med="all theater" id="th-wrap" style="display:none">
@@ -418,7 +418,7 @@ function renderLifeline(){
   if(hasPcData)llSeries.push({name:'Podcasts',type:'bar',stack:'ll',data:negData.pc,itemStyle:{color:new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:'rgba(239,68,68,0.4)'},{offset:1,color:'#ef4444'}])},barMaxWidth:bw});
 
   llChart.setOption({tooltip:{trigger:'axis',...tt,formatter:function(p){var day=days[p[0].dataIndex];var h='<b>'+day+'</b>';p.forEach(function(s){var v=Math.abs(s.value);if(v){if(s.seriesName==='Scrobbles'){v=Math.abs(negData.sc[p[0].dataIndex])}h+='<br/>'+s.marker+s.seriesName+': '+v}});return h}},
-    legend:{data:llLeg,top:0,textStyle:{color:'#999',fontSize:9},type:'scroll',pageIconSize:16,pageButtonGap:10},
+    legend:{data:llLeg,top:0,textStyle:{color:'#999',fontSize:9},type:'plain'},
     grid:{left:40,right:10,top:35,bottom:30},
     xAxis:{type:'category',data:days.map(function(d){return d.substring(5)}),axisLabel:{color:'#666',fontSize:8,rotate:45,interval:0},axisLine:{lineStyle:{color:'#444'}}},
     yAxis:{type:'value',axisLabel:{color:'#666',formatter:function(v){return v>=0?v:''}},splitLine:{lineStyle:{color:'#222'}}},
@@ -738,7 +738,7 @@ function baseCharts(){
       h+='<br/>';
       params.forEach(function(p){h+=p.marker+' '+p.seriesName+': '+p.value+'%<br/>'});
       return h}},
-      legend:{data:gt.genres.map(function(g){return(GE[g.toLowerCase()]||'')+' '+g}),top:0,textStyle:{color:'#999',fontSize:10},type:'scroll',pageIconSize:16,pageButtonGap:10},
+      legend:{data:gt.genres.map(function(g){return(GE[g.toLowerCase()]||'')+' '+g}),top:0,textStyle:{color:'#999',fontSize:10},type:'plain'},
       grid:{left:50,right:20,top:40,bottom:30},
       xAxis:{type:'category',data:xLabels,axisLabel:{color:'#666'},axisLine:{lineStyle:{color:'#333'}},boundaryGap:false},
       yAxis:{type:'value',axisLabel:{color:'#666',formatter:function(v){return v+'%'}},splitLine:{lineStyle:{color:'#222'}},max:100,min:0},
@@ -1238,7 +1238,7 @@ function renderLetterboxd(){
       var series=top.map(function(n,i){return{name:n,type:'bar',stack:'t',data:yrs.map(function(y){
         var yd2=catData.y[y]||[];var found=yd2.find(function(d){return d.n===n});return found?found.c:0}),
         itemStyle:{color:colors[i%colors.length]},barMaxWidth:12}});
-      tc.setOption({tooltip:{trigger:'axis',...tt},legend:{data:top,top:0,textStyle:{color:'#999',fontSize:9},type:'scroll',pageIconSize:16,pageButtonGap:10},
+      tc.setOption({tooltip:{trigger:'axis',...tt},legend:{data:top,top:0,textStyle:{color:'#999',fontSize:9},type:'plain'},
         grid:{left:40,right:10,top:35,bottom:24},
         xAxis:{type:'category',data:yrs,axisLabel:{color:'#666',fontSize:10},axisLine:{lineStyle:{color:'#333'}}},
         yAxis:{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},series:series});
