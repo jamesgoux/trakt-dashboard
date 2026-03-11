@@ -9,11 +9,15 @@ from utils import retry_request
 
 CLIENT_ID = os.environ.get("TRAKT_CLIENT_ID")
 USERNAME = os.environ.get("TRAKT_USERNAME")
+ACCESS_TOKEN = os.environ.get("TRAKT_ACCESS_TOKEN", "")
 BASE = "https://api.trakt.tv"
 HEADERS = {"Content-Type": "application/json", "trakt-api-version": "2", "trakt-api-key": CLIENT_ID}
+AUTH_HEADERS = {**HEADERS, "Authorization": f"Bearer {ACCESS_TOKEN}"} if ACCESS_TOKEN else HEADERS
 
 if not CLIENT_ID or not USERNAME:
     print("ERROR: Set TRAKT_CLIENT_ID and TRAKT_USERNAME"); sys.exit(1)
+if not ACCESS_TOKEN:
+    print("WARNING: TRAKT_ACCESS_TOKEN not set — progress endpoint requires OAuth")
 
 # How many days a "new" episode stays pinned
 NEW_PIN_DAYS = 30
@@ -21,7 +25,7 @@ NEW_PIN_DAYS = 30
 def run():
     print("Fetching watched shows...")
     r = retry_request("get", f"{BASE}/users/{USERNAME}/watched/shows?extended=full",
-                      headers=HEADERS, timeout=15)
+                      headers=AUTH_HEADERS, timeout=15)
     if not r or r.status_code != 200:
         print(f"Failed to fetch watched shows: {r.status_code if r else 'no response'}")
         return
@@ -56,7 +60,7 @@ def run():
 
         # Fetch progress for this show
         r2 = retry_request("get", f"{BASE}/shows/{slug}/progress/watched?extended=full",
-                           headers=HEADERS, timeout=10)
+                           headers=AUTH_HEADERS, timeout=10)
         if not r2 or r2.status_code != 200:
             time.sleep(0.3)
             continue
