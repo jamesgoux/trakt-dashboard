@@ -66,6 +66,13 @@ tr:hover td{background:rgba(255,255,255,.02)}
 .chart-detail .cd-close{float:right;cursor:pointer;color:var(--t2);font-size:14px}
 .status{text-align:center;padding:20px;color:var(--t2);font-size:11px;border-top:1px solid rgba(255,255,255,.04);margin-top:20px}
 .status span{margin:0 10px}
+.ll-day{margin-bottom:20px}.ll-day-hdr{font-size:13px;font-weight:700;color:var(--t2);padding:6px 0;border-bottom:1px solid rgba(255,255,255,.06);margin-bottom:8px;position:sticky;top:52px;background:var(--bg);z-index:1}
+.ll-evt{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.03)}.ll-evt:last-child{border:none}
+.ll-time{font-size:11px;color:#666;min-width:40px;font-variant-numeric:tabular-nums;padding-top:2px}
+.ll-dot{width:8px;height:8px;border-radius:50%;margin-top:5px;flex-shrink:0}
+.ll-name{font-size:13px;line-height:1.4}
+.ll-summary{display:flex;flex-wrap:wrap;gap:8px;padding:4px 0}
+.ll-pill{font-size:11px;padding:4px 10px;border-radius:12px;font-weight:600}
 @media(max-width:768px){
 .g2,.g3{grid-template-columns:1fr}
 .sg{grid-template-columns:repeat(3,1fr)}
@@ -102,7 +109,7 @@ body{overflow-x:hidden}
 </div>
 <!-- LIFELINE: 30-day activity -->
 <div class="g2 med-s" data-med="all movie show book music concert theater">
-<div id="sec-ll" class="cd fw s-t"><h3><span class="i">🧬</span>Lifeline</h3><div id="ll-sel" class="vtog" style="margin-bottom:4px"></div><div id="llc" style="height:280px"></div></div>
+<div id="sec-ll" class="cd fw s-t"><h3><span class="i">🧬</span>Lifeline <button class="vb" onclick="openLifelineFeed()" style="float:right;font-size:11px">📜 Full Feed</button></h3><div id="ll-sel" class="vtog" style="margin-bottom:4px"></div><div id="llc" style="height:280px"></div></div>
 </div>
 <div class="g2 med-s" data-med="all movie show">
 <div id="sec-act" class="cd s-a"><h3><span class="i">🎭</span>Most Watched Actors</h3><div class="stb"><table><thead><tr><th>#</th><th>Actor</th><th>Mov</th><th>Show</th><th>Total</th></tr></thead><tbody id="atb"></tbody></table></div></div>
@@ -259,6 +266,15 @@ Drop CSV here or <span style="color:var(--bl);text-decoration:underline">click t
 <div id="csv-status" style="margin-top:8px;font-size:11px;color:var(--t2)"></div>
 </div>
 <div class="status" id="status"></div>
+</div>
+<!-- Lifeline Full Feed Overlay -->
+<div id="ll-feed" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg);z-index:300;overflow-y:auto;-webkit-overflow-scrolling:touch">
+<div style="position:sticky;top:0;z-index:301;background:rgba(15,15,15,.97);backdrop-filter:blur(8px);padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:space-between">
+<h2 style="font-size:18px;font-weight:700;margin:0"><span class="i">🧬</span> Lifeline Feed</h2>
+<button onclick="closeLifelineFeed()" style="background:none;border:1px solid rgba(255,255,255,.1);color:var(--t2);border-radius:8px;padding:8px 14px;font-size:14px;cursor:pointer">✕ Close</button>
+</div>
+<div id="ll-feed-content" style="max-width:600px;margin:0 auto;padding:16px"></div>
+<div id="ll-feed-loading" style="text-align:center;padding:20px;color:var(--t2);font-size:12px;display:none">Loading more...</div>
 </div>
 <script>
 var D=__DASHBOARD_DATA__;
@@ -2034,6 +2050,70 @@ function deleteSportsEvent(id){
   SP=SP.filter(function(e){return e.id!==id});
   localStorage.setItem('iris_sports',JSON.stringify(SP));
   renderSports();
+}
+
+// Lifeline Full Feed
+var _llFeedDays=[];var _llFeedIdx=0;var _llFeedBatch=15;
+var _llTypeInfo={ep:{icon:'📺',color:'#14b8a6',label:'Episodes'},mv:{icon:'🎞️',color:'#fb923c',label:'Movies'},sc:{icon:'🎧',color:'#1db954',label:'Scrobbles'},bk:{icon:'📚',color:'#fbbf24',label:'Books'},co:{icon:'🎸',color:'#3b82f6',label:'Concerts'},th:{icon:'🎭',color:'#a78bfa',label:'Plays'},pc:{icon:'🎙️',color:'#ef4444',label:'Podcasts'}};
+var _llDayNames=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+var _llMonthNames=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+function _llFormatDate(ds){var d=new Date(ds+'T12:00:00');return _llDayNames[d.getDay()]+', '+_llMonthNames[d.getMonth()]+' '+d.getDate()+', '+d.getFullYear()}
+
+function openLifelineFeed(){
+  var ll=D.ll||{};
+  _llFeedDays=Object.keys(ll).filter(function(d){
+    if(cy!=='all'&&!d.startsWith(cy))return false;
+    var v=ll[d];return(v.ep||v.mv||v.sc||v.bk||v.co||v.th||v.pc);
+  }).sort().reverse();
+  _llFeedIdx=0;
+  document.getElementById('ll-feed-content').innerHTML='';
+  document.getElementById('ll-feed').style.display='';
+  document.body.style.overflow='hidden';
+  _llRenderBatch();
+  document.getElementById('ll-feed').onscroll=function(){
+    var el=document.getElementById('ll-feed');
+    if(el.scrollTop+el.clientHeight>=el.scrollHeight-200)_llRenderBatch();
+  };
+}
+
+function closeLifelineFeed(){
+  document.getElementById('ll-feed').style.display='none';
+  document.body.style.overflow='';
+}
+
+function _llRenderBatch(){
+  if(_llFeedIdx>=_llFeedDays.length)return;
+  var ll=D.ll||{};var container=document.getElementById('ll-feed-content');
+  var loading=document.getElementById('ll-feed-loading');loading.style.display='';
+  var end=Math.min(_llFeedIdx+_llFeedBatch,_llFeedDays.length);
+  for(var i=_llFeedIdx;i<end;i++){
+    var day=_llFeedDays[i];var v=ll[day];if(!v)continue;
+    var div=document.createElement('div');div.className='ll-day';
+    var hdr='<div class="ll-day-hdr">'+_llFormatDate(day)+'</div>';
+    var body='';
+    var evts=v.e||[];
+    if(evts.length){
+      // Detailed events — show each one
+      evts.forEach(function(e){
+        var info=_llTypeInfo[e.ty]||{icon:'❓',color:'#666'};
+        body+='<div class="ll-evt"><span class="ll-time">'+e.t+'</span><span class="ll-dot" style="background:'+info.color+'"></span><span class="ll-name" style="color:'+info.color+'">'+info.icon+' '+e.n+'</span></div>';
+      });
+    }else{
+      // Summary only — show pills
+      body+='<div class="ll-summary">';
+      ['ep','mv','bk','sc','co','th','pc'].forEach(function(ty){
+        var count=v[ty]||0;if(!count)return;
+        var info=_llTypeInfo[ty];
+        body+='<span class="ll-pill" style="background:'+info.color+'22;color:'+info.color+'">'+info.icon+' '+count+' '+info.label+'</span>';
+      });
+      body+='</div>';
+    }
+    div.innerHTML=hdr+body;container.appendChild(div);
+  }
+  _llFeedIdx=end;
+  loading.style.display=_llFeedIdx>=_llFeedDays.length?'none':'';
+  if(_llFeedIdx>=_llFeedDays.length){loading.textContent='That\'s everything';loading.style.display=''}
 }
 
 function renderStatus(){
