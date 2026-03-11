@@ -115,7 +115,7 @@ body{overflow-x:hidden}
 <div class="fctrls">
 <div class="fbtn"><label>Type</label><select id="gs"><option value="all">🌐 All</option><option value="movie">🎞️ Movies</option><option value="show">📺 Shows</option><option value="book">📚 Books</option><option value="music">🎧 Music</option><option value="concert">🎸 Concerts</option><option value="podcast">🎙️ Podcasts</option><option value="sports">🏀 Sports</option><option value="theater">🎭 Theater</option></select></div>
 <div class="fbtn"><label>Year</label><select id="ys"><option value="all">All Time</option></select></div>
-<div class="fbtn"><label>Jump</label><select id="jmp" onchange="if(this.value){document.getElementById(this.value).scrollIntoView({behavior:'smooth',block:'start'});this.value=''}"><option value="">...</option><option value="sec-tl">📈 Timeline</option><option value="sec-ll">🧬 Lifeline</option><option value="sec-act">🎭 Actors</option><option value="sec-crew">🎬 Directors/Writers</option><option value="sec-shows">📺 Top Shows</option><option value="sec-ttw">⏱️ Time to Watch</option><option value="sec-mov">🎞️ Movies</option><option value="sec-eps">📺 Episodes</option><option value="sec-time">🕐 Day & Time</option><option value="sec-meta">🎯 Genres/Trends</option><option value="sec-geo">🌍 Countries/Languages</option><option value="sec-vy">📅 Release Years</option><option value="sec-how">🖥️ How I Watch</option><option value="sec-ratings">⭐ Ratings</option><option value="sec-first">🌅 First Watches</option><option value="sec-rec">👁️ Last Watches</option><option value="sec-gr">📚 Books</option><option value="sec-lfm">🎧 Music</option><option value="sec-con">🎸 Concerts</option><option value="sec-pc">🎙️ Podcasts</option><option value="sec-sp">🏀 Sports</option><option value="sec-th">🎭 Theater</option></select></div>
+<div style="position:relative"><button class="rbtn" onclick="var m=document.getElementById('jmp-menu');m.style.display=m.style.display==='block'?'none':'block'" style="font-size:16px" title="Jump to section">☰</button><div id="jmp-menu" style="display:none;position:absolute;right:0;top:100%;margin-top:6px;background:var(--sf);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:6px 0;min-width:200px;max-height:70vh;overflow-y:auto;z-index:150;box-shadow:0 8px 30px rgba(0,0,0,.5)"></div></div>
 <button class="rbtn" onclick="location.reload()">&#x21bb;</button>
 <button class="rbtn" onclick="openUpNext()" title="Up Next" style="font-size:13px">📺 Up Next</button>
 </div>
@@ -375,6 +375,14 @@ Array.from(yrs).sort().reverse().forEach(function(y){var o=document.createElemen
 ys.onchange=function(){cy=ys.value;window._llMonthExplicit=false;writeHash();render()};
 document.getElementById('gs').onchange=function(){ct=this.value;writeHash();render()};
 readHash();
+
+// Jump menu popup
+(function(){
+var jmpItems=[['sec-tl','📈 Timeline'],['sec-ll','🧬 Lifeline'],['sec-act','🎭 Actors'],['sec-crew','🎬 Directors/Writers'],['sec-shows','📺 Top Shows'],['sec-eps','📺 Episodes'],['sec-ttw','⏱️ Time to Watch'],['sec-mov','🎞️ Movies'],['sec-ratings','⭐ Movie Ratings'],['sec-sz-ratings','⭐ TV Ratings'],['sec-time','🕐 Day & Time'],['sec-meta','🎯 Genres'],['sec-geo','🌍 Countries/Languages'],['sec-vy','📅 Release Years'],['sec-how','🖥️ How I Watch'],['sec-first','🌅 First Watches'],['sec-rec','👁️ Last Watches'],['sec-pc','🎙️ Podcasts'],['sec-lfm','🎧 Music'],['sec-con','🎸 Concerts'],['sec-gr','📚 Books'],['sec-th','🎭 Theater'],['sec-sp','🏀 Sports']];
+var jm=document.getElementById('jmp-menu');
+jmpItems.forEach(function(item){var a=document.createElement('div');a.textContent=item[1];a.style.cssText='padding:8px 16px;cursor:pointer;font-size:13px;white-space:nowrap';a.onmouseover=function(){a.style.background='rgba(255,255,255,.06)'};a.onmouseout=function(){a.style.background='none'};a.onclick=function(){var el=document.getElementById(item[0]);if(el)el.scrollIntoView({behavior:'smooth',block:'start'});jm.style.display='none'};jm.appendChild(a)});
+document.addEventListener('click',function(e){if(!e.target.closest('#jmp-menu')&&!e.target.closest('[onclick*="jmp-menu"]'))jm.style.display='none'});
+})();
 
 function fby(e){if(cy==='all')return e||{};var f={};if(e&&e[cy])f[cy]=e[cy];return f}
 function sm(e){return Object.values(e||{}).reduce(function(a,b){return a+b},0)}
@@ -2002,7 +2010,7 @@ function openSportsAdd(){
   document.getElementById('sp-team-results').innerHTML='';
   // Scroll-to-load on the overlay
   var ov=document.getElementById('sp-overlay');
-  ov.onscroll=function(){if(ov.scrollTop+ov.clientHeight>=ov.scrollHeight-200)loadMoreSportsEvents()};
+  ov.onscroll=function(){if(ov.scrollTop+ov.clientHeight>=ov.scrollHeight-400)loadMoreSportsEvents()};
 }
 
 function closeSportsAdd(){
@@ -2035,31 +2043,39 @@ function loadTeamEvents(teamId,teamName){
   for(var y=curYear;y>=curYear-10;y--){window._spSeasons.push(y+'-'+(y+1));window._spSeasons.push(String(y))}
   document.getElementById('sp-ev-list').innerHTML='';
   document.getElementById('sp-ev-search').value='';
-  loadMoreSportsEvents();
+  // Load first 3 seasons immediately for a full screen of results
+  _spLoadBatch(3);
 }
 
-function loadMoreSportsEvents(){
+function _spLoadBatch(count){
   if(window._spSeasonIdx>=window._spSeasons.length)return;
   var loadEl=document.getElementById('sp-ev-loading');
   if(loadEl._loading)return;loadEl._loading=true;
   loadEl.textContent='Loading...';
-  var season=window._spSeasons[window._spSeasonIdx];
-  window._spSeasonIdx++;
-  fetch('https://www.thesportsdb.com/api/v1/json/3/searchevents.php?e='+encodeURIComponent(window._spTeamName)+'&s='+encodeURIComponent(season))
-    .then(function(r){return r.json()})
-    .then(function(d){
-      var events=d.event||[];
-      var existingIds={};window._spAllEvents.forEach(function(e){existingIds[e.idEvent]=true});
-      events.forEach(function(ev){if(!existingIds[ev.idEvent]){window._spAllEvents.push(ev);existingIds[ev.idEvent]=true}});
-      window._spAllEvents.sort(function(a,b){return b.dateEvent.localeCompare(a.dateEvent)});
-      filterSportsEvents();
-      loadEl._loading=false;
-      loadEl.textContent=window._spSeasonIdx<window._spSeasons.length?'Scroll for older events':'All events loaded';
-      if(events.length<5&&window._spSeasonIdx<window._spSeasons.length)loadMoreSportsEvents();
-    }).catch(function(){loadEl._loading=false;loadEl.textContent='Load failed — scroll to retry'});
+  var toLoad=Math.min(count,window._spSeasons.length-window._spSeasonIdx);
+  var fetches=[];
+  for(var i=0;i<toLoad;i++){
+    var season=window._spSeasons[window._spSeasonIdx+i];
+    fetches.push(fetch('https://www.thesportsdb.com/api/v1/json/3/searchevents.php?e='+encodeURIComponent(window._spTeamName)+'&s='+encodeURIComponent(season)).then(function(r){return r.json()}).catch(function(){return{event:[]}}));
+  }
+  window._spSeasonIdx+=toLoad;
+  Promise.all(fetches).then(function(results){
+    var existingIds={};window._spAllEvents.forEach(function(e){existingIds[e.idEvent]=true});
+    var added=0;
+    results.forEach(function(d){(d.event||[]).forEach(function(ev){if(!existingIds[ev.idEvent]){window._spAllEvents.push(ev);existingIds[ev.idEvent]=true;added++}})});
+    window._spAllEvents.sort(function(a,b){return b.dateEvent.localeCompare(a.dateEvent)});
+    filterSportsEvents();
+    loadEl._loading=false;
+    var more=window._spSeasonIdx<window._spSeasons.length;
+    loadEl.textContent=more?'Scroll for older events':'All events loaded';
+    // If we got very few new results, keep loading
+    if(added<10&&more)_spLoadBatch(2);
+  });
 }
 
-function _spAbbr(name){if(!name)return'';var w=name.split(' ');if(w.length===1)return name.substring(0,3).toUpperCase();return w.map(function(s){return s[0]}).join('').toUpperCase().substring(0,3)}
+function loadMoreSportsEvents(){_spLoadBatch(2)}
+
+function _spAbbr(name){if(!name)return'';var w=name.split(' ');if(w.length===1)return name.substring(0,3).toUpperCase();return w.map(function(s){return s[0]}).join('').toUpperCase().substring(0,4)}
 function _spBadge(url,size){return url?'<img src="'+url+'" style="width:'+size+'px;height:'+size+'px;object-fit:contain;vertical-align:middle">':''}
 
 function filterSportsEvents(){
@@ -2071,19 +2087,28 @@ function filterSportsEvents(){
   });
   var listEl=document.getElementById('sp-ev-list');if(!listEl)return;
   var addedIds={};SP.forEach(function(s){addedIds[s.id]=true});
-  var h='<table style="width:100%;font-size:12px;table-layout:fixed"><thead><tr><th style="width:58px">Date</th><th>Home</th><th style="width:42px;text-align:center"></th><th>Away</th><th style="width:24px"></th></tr></thead><tbody>';
+  var tn=window._spTeamName||'';
+  var h='<div style="font-size:11px;color:var(--t2);margin-bottom:8px;padding:0 4px">💡 Only home games load automatically. Search an opponent name to find away games.</div>';
+  h+='<table style="width:100%;font-size:14px"><tbody>';
   filtered.forEach(function(ev){
-    var score=(ev.intHomeScore!=null&&ev.intHomeScore!=='')?ev.intHomeScore+'-'+ev.intAwayScore:'—';
+    var hs=Number(ev.intHomeScore),as2=Number(ev.intAwayScore);
+    var hasScore=ev.intHomeScore!=null&&ev.intHomeScore!=='';
+    var score=hasScore?ev.intHomeScore+' - '+ev.intAwayScore:'—';
+    var isHome=ev.strHomeTeam===tn;
+    var won=hasScore&&((isHome&&hs>as2)||(!isHome&&as2>hs));
+    var lost=hasScore&&((isHome&&hs<as2)||(!isHome&&as2<hs));
+    var rowColor=won?'rgba(74,222,128,.08)':lost?'rgba(239,68,68,.06)':'';
+    var scoreColor=won?'#4ade80':lost?'#ef4444':'var(--t2)';
     var added=addedIds[ev.idEvent];
     var evJson=JSON.stringify(ev).replace(/'/g,'&#39;').replace(/"/g,'&quot;');
     var localDate=_spDate(ev.dateEventLocal||ev.dateEvent);
-    var hWin=Number(ev.intHomeScore)>Number(ev.intAwayScore);var aWin=Number(ev.intAwayScore)>Number(ev.intHomeScore);
-    h+='<tr style="cursor:'+(added?'default':'pointer')+';opacity:'+(added?'.35':'1')+'" '+(added?'':'onclick="selectSportsEvent(this)" ')+'data-ev="'+evJson+'" title="'+(ev.strVenue||'')+'">';
-    h+='<td style="white-space:nowrap;color:var(--t2);font-size:10px">'+localDate+'</td>';
-    h+='<td style="font-weight:'+(hWin?'700':'400')+';overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+_spBadge(ev.strHomeTeamBadge,16)+' <span style="font-size:11px">'+_spAbbr(ev.strHomeTeam)+'</span></td>';
-    h+='<td style="text-align:center;font-weight:600;color:var(--sp);font-size:11px">'+(added?'✓':score)+'</td>';
-    h+='<td style="font-weight:'+(aWin?'700':'400')+';overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+_spBadge(ev.strAwayTeamBadge,16)+' <span style="font-size:11px">'+_spAbbr(ev.strAwayTeam)+'</span></td>';
-    h+='<td></td></tr>';
+    h+='<tr style="cursor:'+(added?'default':'pointer')+';opacity:'+(added?'.35':'1')+';background:'+rowColor+'" '+(added?'':'onclick="selectSportsEvent(this)" ')+'data-ev="'+evJson+'">';
+    h+='<td style="color:var(--t2);font-size:12px;padding:8px 4px;white-space:nowrap">'+localDate+'</td>';
+    h+='<td style="padding:8px 4px;text-align:right;font-weight:'+(hasScore&&hs>as2?'700':'400')+'">'+_spBadge(ev.strHomeTeamBadge,20)+' '+_spAbbr(ev.strHomeTeam)+'</td>';
+    h+='<td style="text-align:center;font-weight:700;color:'+scoreColor+';padding:8px 6px;white-space:nowrap">'+(added?'<span style="color:var(--sp)">✓</span>':score)+'</td>';
+    h+='<td style="padding:8px 4px;font-weight:'+(hasScore&&as2>hs?'700':'400')+'">'+_spAbbr(ev.strAwayTeam)+' '+_spBadge(ev.strAwayTeamBadge,20)+'</td>';
+    h+='<td style="font-size:11px;color:var(--t2);padding:8px 4px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(ev.strVenue||'')+'</td>';
+    h+='</tr>';
   });
   h+='</tbody></table>';
   if(!filtered.length&&ql)h='<div style="color:var(--t2);padding:20px;text-align:center">No matches for "'+ql+'"</div>';
