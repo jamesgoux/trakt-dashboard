@@ -121,12 +121,11 @@ body{overflow-x:hidden}
 .poster-item{width:60px}.poster-item img{width:60px;height:90px}.poster-ph{width:60px;height:90px}.poster-item span{font-size:8px}
 .fbar{padding:10px 12px}
 .fbar h1{display:none}
-.fbar .iris-logo-mob{display:inline-block}
+.fbar .iris-logo-mob{display:block!important;width:24px;height:24px;flex-shrink:0}
 .fbar{gap:6px}
-.fctrls{gap:5px;flex-wrap:nowrap}
-.fbtn{min-height:44px}
-.fbtn select{font-size:13px;padding:10px 8px}
-.hbtn{min-height:44px;padding:8px 12px;font-size:17px}
+.fctrls{gap:5px;flex-wrap:nowrap;align-items:center}
+.fbtn select{font-size:13px;padding:0 8px;line-height:44px;height:44px}
+.hbtn{min-height:44px;padding:8px 12px;font-size:20px}
 }
 </style></head><body>
 <div class="fbar">
@@ -2230,7 +2229,7 @@ function renderSports(){
   // Recent events table
   var rEl=document.getElementById('sp-recent');
   var sorted=filtered.slice().sort(function(a,b){return b.date.localeCompare(a.date)});
-  var h='<table style="width:100%;table-layout:fixed"><thead><tr><th style="width:60px">Date</th><th>Home</th><th style="width:36px;text-align:center">Score</th><th>Away</th><th style="width:30px"></th><th style="width:24px"></th></tr></thead><tbody>';
+  var h='<table style="width:100%;table-layout:fixed"><thead><tr><th style="width:56px">Date</th><th style="width:30%">Home</th><th style="width:40px;text-align:center">Score</th><th style="width:30%">Away</th><th style="width:26px"></th><th style="width:22px"></th></tr></thead><tbody>';
   sorted.forEach(function(e){
     var score=(e.home_score!=null&&e.home_score!=='')?(e.home_score+'-'+e.away_score):'—';
     var icon=e.watch_type==='live'?'🏟️':e.watch_type==='tv'?'📺':'📡';
