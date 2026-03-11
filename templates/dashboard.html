@@ -100,7 +100,11 @@ tr:hover td{background:rgba(255,255,255,.02)}
 .un-del-btn{position:absolute;top:0;right:0;width:48px;height:100%;border-radius:0 10px 10px 0;background:rgba(239,68,68,.04);border:none;border-left:1px solid rgba(255,255,255,.04);color:#ef4444;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;-webkit-tap-highlight-color:transparent}
 .un-del-btn:active{background:#ef4444;color:#fff}
 .un-del-btn:hover{background:#ef4444;color:#fff}
-.un-detail{background:var(--sf);border-radius:12px;border:1px solid rgba(255,255,255,.08);padding:20px;max-width:500px;margin:20px auto}
+.un-detail{background:var(--sf);border-radius:12px;border:1px solid rgba(255,255,255,.08);padding:20px;max-width:500px;margin:20px auto;transition:transform .25s ease,opacity .25s ease}
+.un-detail.slide-out-left{transform:translateX(-100%);opacity:0}
+.un-detail.slide-out-right{transform:translateX(100%);opacity:0}
+.un-detail.slide-in-left{transform:translateX(100%);opacity:0}
+.un-detail.slide-in-right{transform:translateX(-100%);opacity:0}
 .un-detail img{width:100%;border-radius:8px;margin-bottom:12px;max-height:280px;object-fit:cover}
 @media(max-width:768px){.un-grid{grid-template-columns:1fr;padding:10px}}
 @media(max-width:768px){
@@ -2422,8 +2426,8 @@ function _unRenderDetail(allShows,idx){
   h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">';
   h+='<button onclick="openUpNext()" style="background:var(--sf);border:1px solid rgba(255,255,255,.1);color:var(--tx);border-radius:8px;padding:10px 16px;font-size:14px;cursor:pointer;-webkit-tap-highlight-color:transparent">← Back</button>';
   h+='<div style="display:flex;gap:8px">';
-  if(show.episode>1)h+='<button onclick="_unNavEp(window._unAllShows[window._unIdx],'+(show.episode-1)+',window._unAllShows,window._unIdx)" style="background:var(--sf);border:1px solid rgba(255,255,255,.1);color:var(--tx);border-radius:8px;padding:10px 16px;font-size:16px;cursor:pointer;min-width:48px;-webkit-tap-highlight-color:transparent">◀</button>';
-  h+='<button onclick="_unNavEp(window._unAllShows[window._unIdx],'+(show.episode+1)+',window._unAllShows,window._unIdx)" style="background:var(--sf);border:1px solid rgba(255,255,255,.1);color:var(--tx);border-radius:8px;padding:10px 16px;font-size:16px;cursor:pointer;min-width:48px;-webkit-tap-highlight-color:transparent">▶</button>';
+  if(show.episode>1)h+='<button onclick="_unSlideNav(window._unAllShows[window._unIdx],'+(show.episode-1)+',window._unAllShows,window._unIdx,\'right\')" style="background:var(--sf);border:1px solid rgba(255,255,255,.1);color:var(--tx);border-radius:8px;padding:10px 16px;font-size:16px;cursor:pointer;min-width:48px;-webkit-tap-highlight-color:transparent">◀</button>';
+  h+='<button onclick="_unSlideNav(window._unAllShows[window._unIdx],'+(show.episode+1)+',window._unAllShows,window._unIdx,\'left\')" style="background:var(--sf);border:1px solid rgba(255,255,255,.1);color:var(--tx);border-radius:8px;padding:10px 16px;font-size:16px;cursor:pointer;min-width:48px;-webkit-tap-highlight-color:transparent">▶</button>';
   h+='</div></div>';
   if(show.ep_still)h+='<img src="'+show.ep_still+'" alt="" style="width:100%;border-radius:10px;margin-bottom:14px;max-height:280px;object-fit:cover">';
   h+='<div style="font-size:20px;font-weight:700;margin-bottom:4px">'+show.show+'</div>';
@@ -2438,13 +2442,13 @@ function _unRenderDetail(allShows,idx){
   }
   if(show.ep_runtime)h+='<div style="font-size:12px;color:var(--t2);margin-bottom:8px">⏱ '+_unFmtMin(show.ep_runtime)+'</div>';
   if(show.ep_overview)h+='<p style="font-size:13px;color:var(--t2);line-height:1.5;margin-bottom:16px">'+show.ep_overview+'</p>';
-  // Mark watched
-  h+='<div style="font-size:13px;font-weight:600;margin-bottom:8px">Mark as watched:</div>';
-  h+='<div style="display:flex;flex-direction:column;gap:8px">';
-  h+='<button onclick="markWatchedAt(\''+slug2+'\','+show.season+','+show.episode+','+(show.ep_trakt_id||0)+',\'now\')" style="padding:14px;background:var(--tv);color:#fff;border:none;border-radius:10px;font-size:15px;cursor:pointer;font-weight:600;-webkit-tap-highlight-color:transparent">✓ Just Now</button>';
-  if(show.ep_aired)h+='<button onclick="markWatchedAt(\''+slug2+'\','+show.season+','+show.episode+','+(show.ep_trakt_id||0)+',\''+show.ep_aired+'\')" style="padding:14px;background:var(--sf);color:var(--tx);border:1px solid rgba(255,255,255,.1);border-radius:10px;font-size:14px;cursor:pointer;-webkit-tap-highlight-color:transparent">📅 On Air Date ('+show.ep_aired+')</button>';
+  // Mark watched buttons
+  h+='<div style="display:flex;gap:8px;margin-bottom:8px">';
+  h+='<button onclick="markWatchedAt(\''+slug2+'\','+show.season+','+show.episode+','+(show.ep_trakt_id||0)+',\'now\')" style="flex:1;padding:14px;background:var(--tv);color:#fff;border:none;border-radius:10px;font-size:14px;cursor:pointer;font-weight:600;-webkit-tap-highlight-color:transparent">✓ Watched Now</button>';
+  if(show.ep_aired)h+='<button onclick="markWatchedAt(\''+slug2+'\','+show.season+','+show.episode+','+(show.ep_trakt_id||0)+',\''+show.ep_aired+'\')" style="flex:1;padding:14px;background:var(--sf);color:var(--tx);border:1px solid rgba(255,255,255,.1);border-radius:10px;font-size:14px;cursor:pointer;-webkit-tap-highlight-color:transparent">📅 Watched at Air</button>';
+  h+='</div>';
   h+='<div style="display:flex;gap:8px"><input type="datetime-local" id="un-custom-date" style="flex:1;padding:12px;background:var(--bg);border:1px solid rgba(255,255,255,.15);border-radius:10px;color:var(--tx);font-size:13px"><button onclick="markWatchedAt(\''+slug2+'\','+show.season+','+show.episode+','+(show.ep_trakt_id||0)+',document.getElementById(\'un-custom-date\').value)" style="padding:12px 16px;background:var(--sf);color:var(--tx);border:1px solid rgba(255,255,255,.1);border-radius:10px;font-size:13px;cursor:pointer;-webkit-tap-highlight-color:transparent">Set</button></div>';
-  h+='</div></div>';
+  h+='</div>';
   el.innerHTML=h;
   // Swipe = next/prev episode in the SAME SERIES
   var ov=document.getElementById('un-overlay');
@@ -2456,7 +2460,7 @@ function _unRenderDetail(allShows,idx){
     if(Math.abs(dx)<40||Math.abs(dy)>Math.abs(dx))return;
     var targetEp=dx>0?show.episode-1:show.episode+1;
     if(targetEp<1)return;
-    _unNavEp(show,targetEp,allShows,idx);
+    _unSlideNav(show,targetEp,allShows,idx,dx>0?'right':'left');
   };
   if(ov._prevSwStart){ov.removeEventListener('touchstart',ov._prevSwStart);ov.removeEventListener('touchend',ov._prevSwEnd)}
   ov.addEventListener('touchstart',ov._swStart,{passive:true});
@@ -2484,6 +2488,17 @@ function _unPrefetch(base,epNum){
       if(d.status_code)return;
       _epCache[k]={ep_title:d.name||'',ep_overview:(d.overview||'').substring(0,200),ep_still:d.still_path?'https://image.tmdb.org/t/p/w780'+d.still_path:'',ep_aired:d.air_date||'',ep_runtime:d.runtime||base.ep_runtime};
     }).catch(function(){});
+}
+
+function _unSlideNav(base,epNum,allShows,origIdx,dir){
+  if(epNum<1)return;
+  var wrap=document.getElementById('un-detail-wrap');
+  if(wrap){
+    wrap.classList.add(dir==='left'?'slide-out-left':'slide-out-right');
+    setTimeout(function(){_unNavEp(base,epNum,allShows,origIdx)},250);
+  }else{
+    _unNavEp(base,epNum,allShows,origIdx);
+  }
 }
 
 function _unNavEp(base,epNum,allShows,origIdx){
