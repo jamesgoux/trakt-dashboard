@@ -16,13 +16,15 @@ body{background:var(--bg);color:var(--tx);font-family:-apple-system,BlinkMacSyst
 .dash{max-width:1400px;margin:0 auto;padding:0 16px 16px}
 .fbar{position:sticky;top:0;z-index:100;background:rgba(15,15,15,.97);backdrop-filter:blur(8px);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:20px;border-bottom:1px solid rgba(255,255,255,.06)}
 .fbar h1{font-size:20px;font-weight:700}.fbar h1 span{color:var(--ac)}
-.fctrls{display:flex;align-items:center;gap:8px;flex-wrap:nowrap}
-.fbtn{background:var(--sf);border:1px solid rgba(255,255,255,.1);color:var(--tx);border-radius:8px;padding:0;font-size:14px;cursor:pointer;-webkit-tap-highlight-color:transparent;min-height:44px;position:relative;overflow:hidden}
+.fctrls{display:flex;align-items:center;gap:6px;flex-wrap:nowrap}
+.fbtn{background:var(--sf);border:1px solid rgba(255,255,255,.1);color:var(--tx);border-radius:8px;padding:0;font-size:14px;cursor:pointer;-webkit-tap-highlight-color:transparent;min-height:40px;position:relative;overflow:hidden}
 .fbtn:active{background:#222}
-.fbtn select{background:var(--sf);color:var(--tx);border:none;font-size:14px;cursor:pointer;-webkit-appearance:none;appearance:none;padding:24px 16px 8px 16px;width:100%;height:100%}
+.fbtn select{background:var(--sf);color:var(--tx);border:none;font-size:14px;cursor:pointer;-webkit-appearance:none;appearance:none;padding:10px 12px;width:100%;height:100%}
 .fbtn select option{background:var(--sf);color:var(--tx)}
-.fbtn label{font-size:10px;color:var(--t2);display:block;text-transform:uppercase;letter-spacing:.5px;position:absolute;top:4px;left:10px;pointer-events:none}
-.rbtn{background:none;border:1px solid rgba(255,255,255,.1);color:var(--t2);border-radius:8px;padding:10px 14px;font-size:16px;cursor:pointer;min-height:44px}
+.hbtn{background:var(--sf);border:1px solid rgba(255,255,255,.1);color:var(--tx);border-radius:8px;padding:8px 12px;font-size:15px;cursor:pointer;min-height:40px;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent}
+.hbtn:active{background:#222}
+@keyframes spin{to{transform:rotate(360deg)}}
+.hbtn-spin{animation:spin .6s ease}
 .sg{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:22px}
 .sc{background:var(--sf);border-radius:10px;padding:14px 12px;text-align:center;border:1px solid rgba(255,255,255,.06)}
 .sc .v{font-size:26px;font-weight:800;line-height:1.1}.sc .l{font-size:10px;color:var(--t2);margin-top:3px;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap}
@@ -104,20 +106,19 @@ body{overflow-x:hidden}
 .fbar h1{font-size:16px}
 .fbar{gap:6px}
 .fctrls{gap:4px;flex-wrap:nowrap}
-.fbtn{min-height:34px}
-.fbtn select{font-size:11px;padding:18px 8px 5px 8px}
-.fbtn label{font-size:8px;top:3px;left:6px}
-.rbtn{padding:5px 8px;font-size:13px;min-height:34px}
+.fbtn{min-height:36px}
+.fbtn select{font-size:12px;padding:8px 8px}
+.hbtn{min-height:36px;padding:6px 10px;font-size:14px}
 }
 </style></head><body>
 <div class="fbar">
 <h1><svg class="iris-logo" viewBox="0 0 512 512" width="28" height="28" style="vertical-align:middle;margin-right:6px"><defs><radialGradient id="ig" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#e94560"/><stop offset="45%" stop-color="#7c3aed"/><stop offset="100%" stop-color="#c4b5fd"/></radialGradient></defs><path d="M256 96C128 96 32 256 32 256s96 160 224 160 224-160 224-160S384 96 256 96z" fill="#c4b5fd"/><circle cx="256" cy="256" r="200" fill="url(#ig)"/><circle cx="256" cy="256" r="80" fill="#0f0f0f"/><circle cx="220" cy="220" r="28" fill="rgba(255,255,255,0.4)"/><circle cx="280" cy="240" r="12" fill="rgba(255,255,255,0.2)"/></svg><span style="color:var(--ac);font-weight:800">iris</span> <span style="color:var(--t2);font-weight:400">// jamesgoux</span></h1>
 <div class="fctrls">
-<div class="fbtn"><label>Type</label><select id="gs"><option value="all">🌐 All</option><option value="movie">🎞️ Movies</option><option value="show">📺 Shows</option><option value="book">📚 Books</option><option value="music">🎧 Music</option><option value="concert">🎸 Concerts</option><option value="podcast">🎙️ Podcasts</option><option value="sports">🏀 Sports</option><option value="theater">🎭 Theater</option></select></div>
-<div class="fbtn"><label>Year</label><select id="ys"><option value="all">All Time</option></select></div>
-<div style="position:relative"><button class="rbtn" onclick="var m=document.getElementById('jmp-menu');m.style.display=m.style.display==='block'?'none':'block'" style="font-size:16px" title="Jump to section">☰</button><div id="jmp-menu" style="display:none;position:absolute;right:0;top:100%;margin-top:6px;background:var(--sf);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:6px 0;min-width:200px;max-height:70vh;overflow-y:auto;z-index:150;box-shadow:0 8px 30px rgba(0,0,0,.5)"></div></div>
-<button class="rbtn" onclick="location.reload()">&#x21bb;</button>
-<button class="rbtn" onclick="openUpNext()" title="Up Next" style="font-size:13px">📺 Up Next</button>
+<div class="fbtn"><select id="gs"><option value="all">🌐 All</option><option value="movie">🎞️ Movies</option><option value="show">📺 Shows</option><option value="book">📚 Books</option><option value="music">🎧 Music</option><option value="concert">🎸 Concerts</option><option value="podcast">🎙️ Podcasts</option><option value="sports">🏀 Sports</option><option value="theater">🎭 Theater</option></select></div>
+<div class="fbtn"><select id="ys"><option value="all">All Time</option></select></div>
+<div style="position:relative"><button class="hbtn" onclick="var m=document.getElementById('jmp-menu');m.style.display=m.style.display==='block'?'none':'block'" title="Jump to section">☰</button><div id="jmp-menu" style="display:none;position:absolute;right:0;top:100%;margin-top:6px;background:var(--sf);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:6px 0;min-width:200px;max-height:70vh;overflow-y:auto;z-index:150;box-shadow:0 8px 30px rgba(0,0,0,.5)"></div></div>
+<button class="hbtn" id="refresh-btn" onclick="this.classList.add('hbtn-spin');setTimeout(function(){location.reload()},600)" title="Refresh">↻</button>
+<button class="hbtn" onclick="openUpNext()" title="Up Next">📺</button>
 </div>
 </div>
 <div class="dash">
@@ -2056,20 +2057,27 @@ function _spLoadBatch(count){
   var fetches=[];
   for(var i=0;i<toLoad;i++){
     var season=window._spSeasons[window._spSeasonIdx+i];
+    // Search both "TeamName" (home games) and try last-word variations
     fetches.push(fetch('https://www.thesportsdb.com/api/v1/json/3/searchevents.php?e='+encodeURIComponent(window._spTeamName)+'&s='+encodeURIComponent(season)).then(function(r){return r.json()}).catch(function(){return{event:[]}}));
   }
   window._spSeasonIdx+=toLoad;
   Promise.all(fetches).then(function(results){
     var existingIds={};window._spAllEvents.forEach(function(e){existingIds[e.idEvent]=true});
-    var added=0;
-    results.forEach(function(d){(d.event||[]).forEach(function(ev){if(!existingIds[ev.idEvent]){window._spAllEvents.push(ev);existingIds[ev.idEvent]=true;added++}})});
+    var added=0;var tn=window._spTeamName;
+    results.forEach(function(d){(d.event||[]).forEach(function(ev){
+      if(!existingIds[ev.idEvent]){
+        // Only keep events that actually involve our team
+        if((ev.strHomeTeam||'').indexOf(tn)>=0||(ev.strAwayTeam||'').indexOf(tn)>=0){
+          window._spAllEvents.push(ev);existingIds[ev.idEvent]=true;added++;
+        }
+      }
+    })});
     window._spAllEvents.sort(function(a,b){return b.dateEvent.localeCompare(a.dateEvent)});
     filterSportsEvents();
     loadEl._loading=false;
     var more=window._spSeasonIdx<window._spSeasons.length;
-    loadEl.textContent=more?'Scroll for older events':'All events loaded';
-    // If we got very few new results, keep loading
-    if(added<10&&more)_spLoadBatch(2);
+    loadEl.textContent=more?'Scroll for more':'All loaded';
+    if(added<10&&more)_spLoadBatch(3);
   });
 }
 
