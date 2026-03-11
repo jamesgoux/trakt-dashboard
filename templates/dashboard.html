@@ -91,9 +91,9 @@ tr:hover td{background:rgba(255,255,255,.02)}
 
 .un-prog-wrap{margin-top:4px}
 .un-prog{height:20px;background:rgba(255,255,255,.04);border-radius:6px;overflow:hidden;position:relative}
-.un-prog-bar{height:100%;background:linear-gradient(90deg,var(--tv),rgba(20,184,166,.4));border-radius:5px;transition:width .3s}
+.un-prog-bar{height:100%;background:var(--tv);opacity:.6;border-radius:5px;transition:width .3s}
 .un-prog-text{position:absolute;top:0;left:0;right:0;height:100%;display:flex;align-items:center;justify-content:space-between;padding:0 8px;font-size:9px;color:rgba(255,255,255,.8);font-weight:600;pointer-events:none}
-.un-new{position:absolute;top:8px;right:56px;background:#ef4444;color:#fff;font-size:8px;font-weight:700;padding:2px 6px;border-radius:4px;text-transform:uppercase;letter-spacing:.5px}
+.un-new{position:absolute;top:8px;left:8px;background:#ef4444;color:#fff;font-size:8px;font-weight:700;padding:2px 6px;border-radius:4px;text-transform:uppercase;letter-spacing:.5px;z-index:1}
 .un-section{padding:10px 16px 6px;max-width:1200px;margin:0 auto;font-size:11px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.8px}
 .un-watch-btn{position:absolute;top:0;right:0;width:48px;height:100%;border-radius:0 12px 12px 0;background:rgba(20,184,166,.06);border:none;border-left:1px solid rgba(255,255,255,.04);color:var(--tv);font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;-webkit-tap-highlight-color:transparent}
 .un-watch-btn:active{background:var(--tv);color:#fff}
@@ -2420,35 +2420,43 @@ function showEpDetail(card){
 function _unRenderDetail(allShows,idx){
   var show=allShows[idx];
   var el=document.getElementById('un-content');
-  var prevEp='S'+String(show.season).padStart(2,'0')+'E'+String(show.episode-1).padStart(2,'0');
-  var nextEp='S'+String(show.season).padStart(2,'0')+'E'+String(show.episode+1).padStart(2,'0');
+  var slug2=show.slug.replace(/'/g,"\\'");
+  // Find prev/next episodes in same series
+  var prevIdx=-1,nextIdx=-1;
+  for(var i=0;i<allShows.length;i++){
+    if(allShows[i].slug===show.slug){
+      if(allShows[i].episode===show.episode-1&&allShows[i].season===show.season)prevIdx=i;
+      if(allShows[i].episode===show.episode+1&&allShows[i].season===show.season)nextIdx=i;
+    }
+  }
   var h='<div class="un-detail" id="un-detail-wrap">';
-  h+='<button onclick="openUpNext()" style="background:none;border:none;color:var(--sp);cursor:pointer;font-size:13px;margin-bottom:12px">← Back</button>';
-  if(show.ep_still)h+='<img src="'+show.ep_still+'" alt="" style="width:100%;border-radius:8px;margin-bottom:12px;max-height:280px;object-fit:cover">';
+  // Top nav: back + episode nav
+  h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">';
+  h+='<button onclick="openUpNext()" style="background:var(--sf);border:1px solid rgba(255,255,255,.1);color:var(--tx);border-radius:8px;padding:10px 16px;font-size:14px;cursor:pointer;-webkit-tap-highlight-color:transparent">← Back</button>';
+  h+='<div style="display:flex;gap:8px">';
+  if(prevIdx>=0)h+='<button onclick="_unRenderDetail(window._unAllShows,'+prevIdx+')" style="background:var(--sf);border:1px solid rgba(255,255,255,.1);color:var(--tx);border-radius:8px;padding:10px 16px;font-size:16px;cursor:pointer;min-width:48px;-webkit-tap-highlight-color:transparent">◀</button>';
+  if(nextIdx>=0)h+='<button onclick="_unRenderDetail(window._unAllShows,'+nextIdx+')" style="background:var(--sf);border:1px solid rgba(255,255,255,.1);color:var(--tx);border-radius:8px;padding:10px 16px;font-size:16px;cursor:pointer;min-width:48px;-webkit-tap-highlight-color:transparent">▶</button>';
+  h+='</div></div>';
+  window._unAllShows=allShows;
+  if(show.ep_still)h+='<img src="'+show.ep_still+'" alt="" style="width:100%;border-radius:10px;margin-bottom:14px;max-height:280px;object-fit:cover">';
   h+='<div style="font-size:20px;font-weight:700;margin-bottom:4px">'+show.show+'</div>';
   h+='<div style="font-size:14px;color:var(--t2);margin-bottom:4px">S'+String(show.season).padStart(2,'0')+'E'+String(show.episode).padStart(2,'0');
   if(show.ep_title)h+=' — '+show.ep_title;
   h+='</div>';
   if(show.ep_aired)h+='<div style="font-size:12px;color:var(--t2);margin-bottom:8px">📅 '+show.ep_aired+'</div>';
   if(show.stream&&show.stream.length){
-    h+='<div style="display:flex;gap:6px;margin-bottom:12px">';
-    show.stream.forEach(function(st){h+='<img src="'+st.i+'" title="'+st.n+'" style="width:24px;height:24px;border-radius:4px">'});
+    h+='<div style="display:flex;gap:8px;margin-bottom:12px">';
+    show.stream.forEach(function(st){h+='<img src="'+st.i+'" title="'+st.n+'" style="width:28px;height:28px;border-radius:6px">'});
     h+='</div>';
   }
-  if(show.ep_runtime)h+='<div style="font-size:12px;color:var(--t2);margin-bottom:8px">'+_unFmtMin(show.ep_runtime)+' episode</div>';
+  if(show.ep_runtime)h+='<div style="font-size:12px;color:var(--t2);margin-bottom:8px">⏱ '+_unFmtMin(show.ep_runtime)+'</div>';
   if(show.ep_overview)h+='<p style="font-size:13px;color:var(--t2);line-height:1.5;margin-bottom:16px">'+show.ep_overview+'</p>';
-  // Swipe hint — prev/next EPISODE in the series
-  h+='<div style="display:flex;justify-content:space-between;margin-bottom:16px;font-size:12px;color:var(--t2)">';
-  h+='<span>'+(show.episode>1?'← '+prevEp:'')+'</span>';
-  h+='<span>'+nextEp+' →</span>';
-  h+='</div>';
   // Mark watched
-  var slug2=show.slug.replace(/'/g,"\\'");
   h+='<div style="font-size:13px;font-weight:600;margin-bottom:8px">Mark as watched:</div>';
   h+='<div style="display:flex;flex-direction:column;gap:8px">';
-  h+='<button onclick="markWatchedAt(\''+slug2+'\','+show.season+','+show.episode+','+(show.ep_trakt_id||0)+',\'now\')" style="padding:12px;background:var(--tv);color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer;font-weight:600">✓ Just Now</button>';
-  if(show.ep_aired)h+='<button onclick="markWatchedAt(\''+slug2+'\','+show.season+','+show.episode+','+(show.ep_trakt_id||0)+',\''+show.ep_aired+'\')" style="padding:12px;background:var(--sf);color:var(--tx);border:1px solid rgba(255,255,255,.1);border-radius:8px;font-size:14px;cursor:pointer">📅 On Air Date ('+show.ep_aired+')</button>';
-  h+='<div style="display:flex;gap:8px"><input type="datetime-local" id="un-custom-date" style="flex:1;padding:10px;background:var(--bg);border:1px solid rgba(255,255,255,.15);border-radius:8px;color:var(--tx);font-size:13px"><button onclick="markWatchedAt(\''+slug2+'\','+show.season+','+show.episode+','+(show.ep_trakt_id||0)+',document.getElementById(\'un-custom-date\').value)" style="padding:10px 16px;background:var(--sf);color:var(--tx);border:1px solid rgba(255,255,255,.1);border-radius:8px;font-size:13px;cursor:pointer">Set</button></div>';
+  h+='<button onclick="markWatchedAt(\''+slug2+'\','+show.season+','+show.episode+','+(show.ep_trakt_id||0)+',\'now\')" style="padding:14px;background:var(--tv);color:#fff;border:none;border-radius:10px;font-size:15px;cursor:pointer;font-weight:600;-webkit-tap-highlight-color:transparent">✓ Just Now</button>';
+  if(show.ep_aired)h+='<button onclick="markWatchedAt(\''+slug2+'\','+show.season+','+show.episode+','+(show.ep_trakt_id||0)+',\''+show.ep_aired+'\')" style="padding:14px;background:var(--sf);color:var(--tx);border:1px solid rgba(255,255,255,.1);border-radius:10px;font-size:14px;cursor:pointer;-webkit-tap-highlight-color:transparent">📅 On Air Date ('+show.ep_aired+')</button>';
+  h+='<div style="display:flex;gap:8px"><input type="datetime-local" id="un-custom-date" style="flex:1;padding:12px;background:var(--bg);border:1px solid rgba(255,255,255,.15);border-radius:10px;color:var(--tx);font-size:13px"><button onclick="markWatchedAt(\''+slug2+'\','+show.season+','+show.episode+','+(show.ep_trakt_id||0)+',document.getElementById(\'un-custom-date\').value)" style="padding:12px 16px;background:var(--sf);color:var(--tx);border:1px solid rgba(255,255,255,.1);border-radius:10px;font-size:13px;cursor:pointer;-webkit-tap-highlight-color:transparent">Set</button></div>';
   h+='</div></div>';
   el.innerHTML=h;
   // Swipe = next/prev episode in the SAME SERIES
@@ -2458,7 +2466,7 @@ function _unRenderDetail(allShows,idx){
   ov._swEnd=function(ev){
     var dx=ev.changedTouches[0].clientX-_swX;
     var dy=ev.changedTouches[0].clientY-_swY;
-    if(Math.abs(dx)<60||Math.abs(dy)>Math.abs(dx)*0.7)return;
+    if(Math.abs(dx)<40||Math.abs(dy)>Math.abs(dx))return;
     var targetEp=dx>0?show.episode-1:show.episode+1;
     if(targetEp<1)return;
     var next=allShows.find(function(x){return x.slug===show.slug&&x.season===show.season&&x.episode===targetEp});
