@@ -114,7 +114,7 @@ body{overflow-x:hidden}
 </div>
 <!-- TOP SHOWS POSTERS -->
 <div class="g2 med-s" data-med="all show">
-<div id="sec-shows" class="cd fw s-s"><h3><span class="i">📺</span>Top Shows <span class="vtog" style="float:right"><button class="vb" id="ss-eps" onclick="window._showSort='eps';document.getElementById('ss-eps').classList.add('vb-on');document.getElementById('ss-dur').classList.remove('vb-on');renderPosters(true)">By Episodes</button><button class="vb vb-on" id="ss-dur" onclick="window._showSort='dur';document.getElementById('ss-dur').classList.add('vb-on');document.getElementById('ss-eps').classList.remove('vb-on');renderPosters(true)">By Duration</button></span></h3><div id="poster-grid" style="display:flex;flex-wrap:wrap;gap:10px;overflow-x:auto;padding:4px 0"></div></div>
+<div id="sec-shows" class="cd fw s-s"><h3><span class="i">📺</span>Most Watched Shows <span class="vtog" style="float:right"><button class="vb" id="ss-eps" onclick="window._showSort='eps';document.getElementById('ss-eps').classList.add('vb-on');document.getElementById('ss-dur').classList.remove('vb-on');renderPosters(true)">By Episodes</button><button class="vb vb-on" id="ss-dur" onclick="window._showSort='dur';document.getElementById('ss-dur').classList.add('vb-on');document.getElementById('ss-eps').classList.remove('vb-on');renderPosters(true)">By Duration</button></span></h3><div id="poster-grid" style="display:flex;flex-wrap:wrap;gap:10px;overflow-x:auto;padding:4px 0"></div></div>
 </div>
 <!-- EPISODES WATCHED -->
 <div class="g2 med-s" data-med="all show">
@@ -127,7 +127,18 @@ body{overflow-x:hidden}
 </div>
 <!-- MOVIES -->
 <div class="g2 med-s" data-med="all movie">
-<div id="sec-mov" class="cd fw s-m"><h3 id="mdh"><span class="i">🎞️</span>Movies <span class="vtog" style="float:right"><button class="vb vb-on mv-mode" data-v="long" onclick="window._mvMode='long';movieCharts(true)">Longest</button><button class="vb mv-mode" data-v="short" onclick="window._mvMode='short';movieCharts(true)">Shortest</button><button class="vb mv-mode" data-v="rewatch" onclick="window._mvMode='rewatch';movieCharts(true)">Rewatched</button></span></h3><div id="mdc" class="cover-grid"></div></div>
+<div id="sec-mov" class="cd fw s-m"><h3 id="mdh"><span class="i">🎞️</span>Watched Movies <span class="vtog" style="float:right"><button class="vb vb-on mv-mode" data-v="long" onclick="window._mvMode='long';movieCharts(true)">Longest</button><button class="vb mv-mode" data-v="short" onclick="window._mvMode='short';movieCharts(true)">Shortest</button><button class="vb mv-mode" data-v="rewatch" onclick="window._mvMode='rewatch';movieCharts(true)">Rewatched</button></span></h3><div id="mdc" class="cover-grid"></div></div>
+</div>
+<!-- RATINGS: movie row then TV row -->
+<div class="g3 med-s" data-med="all movie">
+<div id="sec-ratings" class="cd s-m"><h3><span class="i">⭐</span>My Movie Ratings (Letterboxd)</h3><div id="lbc" style="height:280px"></div></div>
+<div class="cd s-m"><h3><span class="i">⭐</span>My Movies (Letterboxd) <span class="vtog" style="float:right"><button class="vb vb-on rt-tog" data-v="high" onclick="window._rtMode='high';document.querySelectorAll('.rt-tog').forEach(function(b){b.classList.toggle('vb-on',b.dataset.v==='high')});renderRatings()">Highest</button><button class="vb rt-tog" data-v="low" onclick="window._rtMode='low';document.querySelectorAll('.rt-tog').forEach(function(b){b.classList.toggle('vb-on',b.dataset.v==='low')});renderRatings()">Lowest</button></span></h3><div class="stb" id="my-rat" style="font-size:12px"></div></div>
+<div class="cd s-m"><h3><span class="i">🎞️</span>Community Movies (Trakt) <span class="vtog" style="float:right"><button class="vb vb-on rt-tog" data-v="high" onclick="window._rtMode='high';document.querySelectorAll('.rt-tog').forEach(function(b){b.classList.toggle('vb-on',b.dataset.v==='high')});renderRatings()">Highest</button><button class="vb rt-tog" data-v="low" onclick="window._rtMode='low';document.querySelectorAll('.rt-tog').forEach(function(b){b.classList.toggle('vb-on',b.dataset.v==='low')});renderRatings()">Lowest</button></span></h3><div class="stb" id="mc-rat" style="font-size:12px"></div></div>
+</div>
+<div class="g3 med-s" data-med="all show">
+<div id="sec-sz-ratings" class="cd s-s"><h3><span class="i">⭐</span>My TV Ratings (Serializd)</h3><div id="szc" style="height:280px"></div></div>
+<div class="cd s-s"><h3><span class="i">📺</span>My Seasons (Serializd) <span class="vtog" style="float:right"><button class="vb vb-on rt-tog" data-v="high" onclick="window._rtMode='high';document.querySelectorAll('.rt-tog').forEach(function(b){b.classList.toggle('vb-on',b.dataset.v==='high')});renderRatings()">Highest</button><button class="vb rt-tog" data-v="low" onclick="window._rtMode='low';document.querySelectorAll('.rt-tog').forEach(function(b){b.classList.toggle('vb-on',b.dataset.v==='low')});renderRatings()">Lowest</button></span></h3><div class="stb" id="sz-rat" style="font-size:12px"></div></div>
+<div class="cd s-s"><h3><span class="i">📺</span>Community TV (Trakt) <span class="vtog" style="float:right"><button class="vb vb-on rt-tog" data-v="high" onclick="window._rtMode='high';document.querySelectorAll('.rt-tog').forEach(function(b){b.classList.toggle('vb-on',b.dataset.v==='high')});renderRatings()">Highest</button><button class="vb rt-tog" data-v="low" onclick="window._rtMode='low';document.querySelectorAll('.rt-tog').forEach(function(b){b.classList.toggle('vb-on',b.dataset.v==='low')});renderRatings()">Lowest</button></span></h3><div class="stb" id="sc-rat" style="font-size:12px"></div></div>
 </div>
 <div class="g3 med-s" data-med="all movie show">
 <div id="sec-meta" class="cd s-g"><h3 id="gnh"><span class="i">🎯</span>Genres</h3><div id="gnc" style="height:360px"></div></div>
@@ -143,8 +154,8 @@ body{overflow-x:hidden}
 </div>
 <!-- GEO -->
 <div class="g2 med-s" data-med="all movie show">
-<div id="sec-geo" class="cd s-e"><h3><span class="i">🌍</span>Countries</h3><div id="ctryc" style="height:320px"></div></div>
-<div class="cd s-e"><h3><span class="i">💬</span>Languages</h3><div id="langc" style="height:320px"></div></div>
+<div id="sec-geo" class="cd s-e"><h3><span class="i">🌍</span>Countries</h3><div id="ctryc"></div></div>
+<div class="cd s-e"><h3><span class="i">💬</span>Languages</h3><div id="langc"></div></div>
 </div>
 <!-- RELEASE YEARS -->
 <div class="g2 med-s" data-med="all movie show">
@@ -159,17 +170,6 @@ body{overflow-x:hidden}
 <div class="cd s-m"><h3><span class="i">📺</span>Streaming Services</h3><div id="strc" style="height:280px"></div></div>
 <div class="cd s-m"><h3><span class="i">📱</span>Devices &amp; Formats</h3><div id="devc" style="height:280px"></div></div>
 </div>
-<!-- RATINGS: movie row then TV row -->
-<div class="g3 med-s" data-med="all movie">
-<div id="sec-ratings" class="cd s-m"><h3><span class="i">⭐</span>My Movie Ratings (Letterboxd)</h3><div id="lbc" style="height:280px"></div></div>
-<div class="cd s-m"><h3><span class="i">⭐</span>My Movies (Letterboxd) <span class="vtog" style="float:right"><button class="vb vb-on rt-tog" data-v="high" onclick="window._rtMode='high';document.querySelectorAll('.rt-tog').forEach(function(b){b.classList.toggle('vb-on',b.dataset.v==='high')});renderRatings()">Highest</button><button class="vb rt-tog" data-v="low" onclick="window._rtMode='low';document.querySelectorAll('.rt-tog').forEach(function(b){b.classList.toggle('vb-on',b.dataset.v==='low')});renderRatings()">Lowest</button></span></h3><div class="stb" id="my-rat" style="font-size:12px"></div></div>
-<div class="cd s-m"><h3><span class="i">🎞️</span>Community Movies (Trakt) <span class="vtog" style="float:right"><button class="vb vb-on rt-tog" data-v="high" onclick="window._rtMode='high';document.querySelectorAll('.rt-tog').forEach(function(b){b.classList.toggle('vb-on',b.dataset.v==='high')});renderRatings()">Highest</button><button class="vb rt-tog" data-v="low" onclick="window._rtMode='low';document.querySelectorAll('.rt-tog').forEach(function(b){b.classList.toggle('vb-on',b.dataset.v==='low')});renderRatings()">Lowest</button></span></h3><div class="stb" id="mc-rat" style="font-size:12px"></div></div>
-</div>
-<div class="g3 med-s" data-med="all show">
-<div id="sec-sz-ratings" class="cd s-s"><h3><span class="i">⭐</span>My TV Ratings (Serializd)</h3><div id="szc" style="height:280px"></div></div>
-<div class="cd s-s"><h3><span class="i">📺</span>My Seasons (Serializd) <span class="vtog" style="float:right"><button class="vb vb-on rt-tog" data-v="high" onclick="window._rtMode='high';document.querySelectorAll('.rt-tog').forEach(function(b){b.classList.toggle('vb-on',b.dataset.v==='high')});renderRatings()">Highest</button><button class="vb rt-tog" data-v="low" onclick="window._rtMode='low';document.querySelectorAll('.rt-tog').forEach(function(b){b.classList.toggle('vb-on',b.dataset.v==='low')});renderRatings()">Lowest</button></span></h3><div class="stb" id="sz-rat" style="font-size:12px"></div></div>
-<div class="cd s-s"><h3><span class="i">📺</span>Community TV (Trakt) <span class="vtog" style="float:right"><button class="vb vb-on rt-tog" data-v="high" onclick="window._rtMode='high';document.querySelectorAll('.rt-tog').forEach(function(b){b.classList.toggle('vb-on',b.dataset.v==='high')});renderRatings()">Highest</button><button class="vb rt-tog" data-v="low" onclick="window._rtMode='low';document.querySelectorAll('.rt-tog').forEach(function(b){b.classList.toggle('vb-on',b.dataset.v==='low')});renderRatings()">Lowest</button></span></h3><div class="stb" id="sc-rat" style="font-size:12px"></div></div>
-</div>
 <!-- FIRST + LAST WATCHES (same row) -->
 <div class="g2 med-s" data-med="all movie show">
 <div class="cd s-r" id="sec-first"><h3><span class="i">🌅</span>First Watches</h3><table><thead><tr><th>Title</th><th>Type</th><th>Date</th></tr></thead><tbody id="ftb"></tbody></table></div>
@@ -178,9 +178,9 @@ body{overflow-x:hidden}
 <!-- BOOKS (Goodreads) -->
 <div class="g2 med-s" data-med="all book" id="gr-wrap" style="display:none">
 <div id="sec-gr" class="cd s-gr"><h3><span class="i">📚</span>Books Read <span class="vtog" style="float:right"><button class="vb vb-on gr-tog" data-v="books">By Books</button><button class="vb gr-tog" data-v="pages">By Pages</button></span></h3><div id="grc" style="height:280px"></div></div>
-<div class="cd s-gr"><h3><span class="i">📖</span>Time to Read</h3><div id="gr-ttr-wrap" style="max-height:280px;overflow-y:auto"><div id="gr-ttr" style="height:280px"></div></div></div>
-<div class="cd s-gr"><h3><span class="i">✍️</span>Most Read Authors</h3><div id="gr-auth" style="height:280px"></div></div>
 <div class="cd s-gr"><h3><span class="i">⭐</span>Book Ratings</h3><div id="gr-dist" style="height:280px"></div></div>
+<div class="cd s-gr"><h3><span class="i">✍️</span>Most Read Authors</h3><div id="gr-auth" style="height:280px"></div></div>
+<div class="cd s-gr"><h3><span class="i">📖</span>Time to Read</h3><div id="gr-ttr-wrap" style="max-height:280px;overflow-y:auto"><div id="gr-ttr" style="height:280px"></div></div></div>
 <div class="cd s-gr"><h3><span class="i">📏</span>By Pages <span class="vtog" style="float:right"><button class="vb vb-on gr-pg" data-v="long" onclick="window._grPg='long';renderGoodreads()">Longest</button><button class="vb gr-pg" data-v="short" onclick="window._grPg='short';renderGoodreads()">Shortest</button></span></h3><div id="gr-pages"></div></div>
 <div class="cd s-gr"><h3><span class="i">⭐</span>By Rating <span class="vtog" style="float:right"><button class="vb vb-on gr-rt" data-v="high" onclick="window._grRt='high';renderGoodreads()">Highest</button><button class="vb gr-rt" data-v="low" onclick="window._grRt='low';renderGoodreads()">Lowest</button></span></h3><div id="gr-rating"></div></div>
 <div class="cd s-gr"><h3><span class="i">🏷️</span>Genres (Community)</h3><div id="gr-genres" style="height:280px"></div></div>
@@ -1022,6 +1022,8 @@ function renderCatchup(){
   var ctdAll=(cy!=='all'&&D.c.ctry_y&&D.c.ctry_y[cy]?D.c.ctry_y[cy]:(D.c.ctry||[]));
   var ctdTop=ctdAll[0];
   var ctd=ctdAll.slice(1,16).reverse();
+  var ctryH=Math.max(180,ctd.length*22+40);
+  document.getElementById('ctryc').style.height=ctryH+'px';
   if(ctdTop){document.getElementById('ctryc').parentElement.querySelector('h3').innerHTML='<span class="i">🌍</span>Countries <span style="font-size:11px;color:var(--t2);font-weight:normal">'+flag(ctdTop.n)+' '+(ctdTop.n||'').toUpperCase()+': '+ctdTop.count+'</span>'}
   var c7=echarts.init(document.getElementById('ctryc'));
   var ctrySeries=[];
@@ -1035,6 +1037,8 @@ function renderCatchup(){
   var lndAll=(cy!=='all'&&D.c.lang_y&&D.c.lang_y[cy]?D.c.lang_y[cy]:(D.c.lang||[]));
   var lndTop=lndAll[0];
   var lnd=lndAll.slice(1,16).reverse();
+  var langH=Math.max(180,lnd.length*22+40);
+  document.getElementById('langc').style.height=langH+'px';
   if(lndTop){document.getElementById('langc').parentElement.querySelector('h3').innerHTML='<span class="i">💬</span>Languages <span style="font-size:11px;color:var(--t2);font-weight:normal">🗣️ '+langName(lndTop.n)+': '+lndTop.count+'</span>'}
   var c8=echarts.init(document.getElementById('langc'));
   var langSeries=[];
