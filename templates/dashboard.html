@@ -115,7 +115,7 @@ body{overflow-x:hidden}
 <div class="fctrls">
 <div class="fbtn"><label>Type</label><select id="gs"><option value="all">🌐 All</option><option value="movie">🎞️ Movies</option><option value="show">📺 Shows</option><option value="book">📚 Books</option><option value="music">🎧 Music</option><option value="concert">🎸 Concerts</option><option value="podcast">🎙️ Podcasts</option><option value="sports">🏀 Sports</option><option value="theater">🎭 Theater</option></select></div>
 <div class="fbtn"><label>Year</label><select id="ys"><option value="all">All Time</option></select></div>
-<div class="fbtn"><label>Jump</label><select id="jmp" onchange="if(this.value){document.getElementById(this.value).scrollIntoView({behavior:'smooth',block:'start'});this.value=''}"><option value="">...</option><option value="sec-tl">📈 Timeline</option><option value="sec-ll">🧬 Lifeline</option><option value="sec-act">🎭 Actors</option><option value="sec-crew">🎬 Directors/Writers</option><option value="sec-shows">📺 Top Shows</option><option value="sec-eps">📺 Episodes</option><option value="sec-ttw">⏱️ Time to Watch</option><option value="sec-mov">🎞️ Movies</option><option value="sec-ratings">⭐ Movie Ratings</option><option value="sec-sz-ratings">⭐ TV Ratings</option><option value="sec-time">🕐 Day & Time</option><option value="sec-meta">🎯 Genres</option><option value="sec-geo">🌍 Countries/Languages</option><option value="sec-vy">📅 Release Years</option><option value="sec-how">🖥️ How I Watch</option><option value="sec-first">🌅 First Watches</option><option value="sec-rec">👁️ Last Watches</option><option value="sec-pc">🎙️ Podcasts</option><option value="sec-lfm">🎧 Music</option><option value="sec-con">🎸 Concerts</option><option value="sec-gr">📚 Books</option><option value="sec-th">🎭 Theater</option><option value="sec-sp">🏀 Sports</option></select></div>
+<div style="position:relative"><button class="rbtn" onclick="var m=document.getElementById('jmp-menu');m.style.display=m.style.display==='block'?'none':'block'" style="font-size:16px" title="Jump to section">☰</button><div id="jmp-menu" style="display:none;position:absolute;right:0;top:100%;margin-top:6px;background:var(--sf);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:6px 0;min-width:200px;max-height:70vh;overflow-y:auto;z-index:150;box-shadow:0 8px 30px rgba(0,0,0,.5)"></div></div>
 <button class="rbtn" onclick="location.reload()">&#x21bb;</button>
 <button class="rbtn" onclick="openUpNext()" title="Up Next" style="font-size:13px">📺 Up Next</button>
 </div>
@@ -375,6 +375,14 @@ Array.from(yrs).sort().reverse().forEach(function(y){var o=document.createElemen
 ys.onchange=function(){cy=ys.value;window._llMonthExplicit=false;writeHash();render()};
 document.getElementById('gs').onchange=function(){ct=this.value;writeHash();render()};
 readHash();
+
+// Jump menu popup
+(function(){
+var jmpItems=[['sec-tl','📈 Timeline'],['sec-ll','🧬 Lifeline'],['sec-act','🎭 Actors'],['sec-crew','🎬 Directors/Writers'],['sec-shows','📺 Top Shows'],['sec-eps','📺 Episodes'],['sec-ttw','⏱️ Time to Watch'],['sec-mov','🎞️ Movies'],['sec-ratings','⭐ Movie Ratings'],['sec-sz-ratings','⭐ TV Ratings'],['sec-time','🕐 Day & Time'],['sec-meta','🎯 Genres'],['sec-geo','🌍 Countries/Languages'],['sec-vy','📅 Release Years'],['sec-how','🖥️ How I Watch'],['sec-first','🌅 First Watches'],['sec-rec','👁️ Last Watches'],['sec-pc','🎙️ Podcasts'],['sec-lfm','🎧 Music'],['sec-con','🎸 Concerts'],['sec-gr','📚 Books'],['sec-th','🎭 Theater'],['sec-sp','🏀 Sports']];
+var jm=document.getElementById('jmp-menu');
+jmpItems.forEach(function(item){var a=document.createElement('div');a.textContent=item[1];a.style.cssText='padding:8px 16px;cursor:pointer;font-size:13px;white-space:nowrap';a.onmouseover=function(){a.style.background='rgba(255,255,255,.06)'};a.onmouseout=function(){a.style.background='none'};a.onclick=function(){var el=document.getElementById(item[0]);if(el)el.scrollIntoView({behavior:'smooth',block:'start'});jm.style.display='none'};jm.appendChild(a)});
+document.addEventListener('click',function(e){if(!e.target.closest('#jmp-menu')&&!e.target.closest('[onclick*="jmp-menu"]'))jm.style.display='none'});
+})();
 
 function fby(e){if(cy==='all')return e||{};var f={};if(e&&e[cy])f[cy]=e[cy];return f}
 function sm(e){return Object.values(e||{}).reduce(function(a,b){return a+b},0)}
