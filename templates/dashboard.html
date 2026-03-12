@@ -71,10 +71,10 @@ tr:hover td{background:rgba(255,255,255,.02)}
 .status{text-align:center;padding:20px;color:var(--t2);font-size:11px;border-top:1px solid rgba(255,255,255,.04);margin-top:20px}
 .status span{margin:0 10px}
 .ll-day{margin-bottom:24px}.ll-day-hdr{font-size:13px;font-weight:700;color:var(--t2);padding:8px 0 8px 54px;border-bottom:1px solid rgba(255,255,255,.06);margin-bottom:0;position:sticky;top:52px;background:var(--bg);z-index:1}
-.ll-day-evts{position:relative;padding:4px 0}
-.ll-day-evts::before{content:'';position:absolute;left:19px;top:0;bottom:0;width:2px;background:rgba(255,255,255,.08);transform:translateX(-50%)}
-.ll-evt{display:flex;align-items:flex-start;gap:14px;padding:6px 0;position:relative}
-.ll-metro-dot{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;position:relative;z-index:1;box-shadow:0 0 0 3px var(--bg)}
+.ll-day-evts{position:relative;padding:0}
+.ll-day-evts::before{content:'';position:absolute;left:19px;top:19px;bottom:19px;width:4px;background:rgba(255,255,255,.10);border-radius:2px;transform:translateX(-50%)}
+.ll-evt{display:flex;align-items:flex-start;gap:14px;padding:4px 0;position:relative}
+.ll-metro-dot{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;position:relative;z-index:1;box-shadow:0 0 0 4px var(--bg)}
 .ll-evt-body{flex:1;min-width:0;padding-top:8px}
 .ll-evt-body .ll-name{font-size:13px;line-height:1.4;color:var(--tx)}
 .ll-evt-body .ll-time{font-size:11px;color:#666;margin-top:1px;font-variant-numeric:tabular-nums}
@@ -2610,7 +2610,7 @@ function _llRenderBatch(){
       // Reverse: most recent first within the day
       filtered.slice().reverse().forEach(function(e){
         var info=_llTypeInfo[e.ty]||{icon:'❓',color:'#666'};
-        body+='<div class="ll-evt"><div class="ll-metro-dot" style="background:'+info.color+'30">'+info.icon+'</div><div class="ll-evt-body"><div class="ll-name">'+e.n+'</div><div class="ll-time">'+e.t+'</div></div></div>';
+        body+='<div class="ll-evt"><div class="ll-metro-dot" style="background:'+info.color+'">'+info.icon+'</div><div class="ll-evt-body"><div class="ll-name">'+e.n+'</div><div class="ll-time">'+e.t+'</div></div></div>';
       });
       body+='</div>';
     }else{
