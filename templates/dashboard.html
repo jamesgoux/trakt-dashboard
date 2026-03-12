@@ -275,7 +275,7 @@ body{overflow-x:hidden}
 </div>
 <!-- SPORTS -->
 <div class="g2 med-s" data-med="all sports" id="sp-wrap" style="display:none">
-<div id="sec-sp" class="cd fw s-sp"><h3><span class="i">🏟️</span>Sports <button onclick="openSportsAdd()" style="float:right;font-size:12px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);color:var(--tx);border-radius:6px;padding:6px 12px;cursor:pointer;min-height:32px;-webkit-tap-highlight-color:transparent;transition:background .15s">+ Add Event</button></h3><div id="sp-chart" style="height:280px"></div></div>
+<div id="sec-sp" class="cd fw s-sp"><h3><span class="i">🏟️</span>Sports <button onclick="openSportsAdd()" style="float:right;font-size:12px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);color:var(--tx);border-radius:6px;padding:6px 12px;cursor:pointer;min-height:32px;-webkit-tap-highlight-color:transparent;transition:background .15s">+ Add Event</button></h3><div class="vtog" id="sp-wt-filter" style="margin-bottom:6px"><button class="vb vb-on" onclick="_spSetWtFilter('all')">All</button><button class="vb" onclick="_spSetWtFilter('live')">🏟️ Live</button><button class="vb" onclick="_spSetWtFilter('tv')">📺 TV</button><button class="vb" onclick="_spSetWtFilter('remote')">📱 Stream</button></div><div id="sp-chart" style="height:280px"></div></div>
 <div class="cd s-sp"><h3><span class="i">🏟️</span>Teams</h3><div id="sp-teams" style="height:280px"></div></div>
 <div class="cd s-sp"><h3><span class="i">📺</span>How I Watched</h3><div id="sp-how" style="height:280px"></div></div>
 <div class="cd s-sp"><h3><span class="i">🏆</span>Win / Loss</h3><div id="sp-wl" style="height:280px"></div></div>
@@ -2467,10 +2467,18 @@ function saveSportsEvent(){
   },800);
 }
 
+var _spWtFilter='all';
+function _spSetWtFilter(v){
+  _spWtFilter=v;
+  document.querySelectorAll('#sp-wt-filter .vb').forEach(function(b){b.classList.toggle('vb-on',b.textContent.toLowerCase().indexOf(v)>=0||(v==='all'&&b.textContent==='All'))});
+  renderSports();
+}
+
 function renderSports(){
   var wrap=document.getElementById('sp-wrap');
   if(ct!=='all'&&ct!=='sports'){wrap.style.display='none';return}
   var filtered=cy==='all'?SP:SP.filter(function(e){return e.date&&e.date.substring(0,4)===cy});
+  if(_spWtFilter!=='all')filtered=filtered.filter(function(e){return e.watch_type===_spWtFilter});
   // Always show when sports filter is active (so user can add events)
   if(filtered.length===0&&ct!=='sports'){wrap.style.display='none';return}
   wrap.style.display='';
