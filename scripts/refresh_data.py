@@ -371,9 +371,17 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
                 sc += 1  # Count 1 per show for ranking (episode detail shown on click)
         if mc + sc >= 2:
             entry = {"n": info["name"], "g": "m" if ism(info["gender"]) else "f", "m": mc, "s": sc, "tt": mc+sc, "ti": tis, "_rec": max_recency}
-            # Add episode credits for year-accurate filtering
+            # Add episode credits as year-counts: {slug: {year: count}} — compact for bandwidth
             if person_eps:
-                entry["eps"] = person_eps
+                eps_yc = {}
+                for slug, ep_list in person_eps.items():
+                    yc = defaultdict(int)
+                    for ep in ep_list:
+                        yr = ep[2] if len(ep) > 2 else ""
+                        if yr: yc[yr] += 1
+                    total_eps_count = len(ep_list)
+                    eps_yc[slug] = {"t": total_eps_count, "y": dict(yc)} if yc else {"t": total_eps_count}
+                entry["eps"] = eps_yc
             pd.append(entry)
     pd.sort(key=lambda x: (x["tt"], x["_rec"]), reverse=True)
     for p in pd: del p["_rec"]
