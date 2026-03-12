@@ -2116,7 +2116,7 @@ function _spToast(msg,color){
   setTimeout(function(){t.style.opacity='0';setTimeout(function(){t.remove()},600)},2000);
 }
 
-function _spDate(d){if(!d)return'';var p=d.split('-');if(p.length!==3)return d;return parseInt(p[1])+'/'+parseInt(p[2])}
+function _spDate(d){if(!d)return'';var p=d.split('-');if(p.length!==3)return d;return parseInt(p[1])+'/'+parseInt(p[2])+'/'+p[0].substring(2)}
 
 function openSportsAdd(){
   var ov=document.getElementById('sp-overlay');
@@ -2169,7 +2169,7 @@ function quickLoadTeam(teamName){
   fetch('https://www.thesportsdb.com/api/v1/json/3/searchteams.php?t='+encodeURIComponent(teamName)).then(function(r){return r.json()}).then(function(d){
     var teams=d.teams||[];
     var match=teams.find(function(t){return t.strTeam===teamName})||teams[0];
-    if(match){loadTeamEvents(match.idTeam,match.strTeam)}
+    if(match){loadTeamEvents(match.idTeam,match.strTeam,match.strTeamBadge)}
     else{document.getElementById('sp-team-results').innerHTML='<div style="color:#ef4444;padding:10px">Team not found — try searching</div>'}
   }).catch(function(){document.getElementById('sp-team-results').innerHTML='<div style="color:#ef4444;padding:10px">Failed to load — try searching</div>'});
 }
@@ -2181,19 +2181,19 @@ function searchSportsTeam(){
     var teams=d.teams||[];
     if(!teams.length){el.innerHTML='<div style="color:var(--t2);padding:10px">No teams found. Try the full name (e.g. "Los Angeles Lakers")</div>';return}
     var h='';teams.slice(0,8).forEach(function(t){
-      h+='<div onclick="loadTeamEvents(\''+t.idTeam+'\',\''+t.strTeam.replace(/'/g,"\\'")+'\')" style="padding:14px 16px;margin-bottom:8px;background:var(--sf);border:1px solid rgba(255,255,255,.06);border-radius:10px;cursor:pointer;display:flex;align-items:center;gap:12px;min-height:56px;-webkit-tap-highlight-color:transparent;transition:background .15s" ontouchstart="this.style.background=\'#1e1e3a\'" ontouchend="this.style.background=\'var(--sf)\'">';
+      h+='<div onclick="loadTeamEvents(\''+t.idTeam+'\',\''+t.strTeam.replace(/'/g,"\\'")+'\',\''+(t.strTeamBadge||'').replace(/'/g,"\\'")+'\')" style="padding:14px 16px;margin-bottom:8px;background:var(--sf);border:1px solid rgba(255,255,255,.06);border-radius:10px;cursor:pointer;display:flex;align-items:center;gap:12px;min-height:56px;-webkit-tap-highlight-color:transparent;transition:background .15s" ontouchstart="this.style.background=\'#1e1e3a\'" ontouchend="this.style.background=\'var(--sf)\'">';
       if(t.strTeamBadge)h+='<img src="'+t.strTeamBadge+'" style="width:32px;height:32px;object-fit:contain">';
       h+='<div><div style="font-weight:600;font-size:15px">'+t.strTeam+'</div><div style="font-size:12px;color:var(--t2)">'+t.strSport+' · '+t.strLeague+'</div></div></div>';
     });el.innerHTML=h;
   }).catch(function(){el.innerHTML='<div style="color:#ef4444;padding:10px">Search failed — try again</div>'});
 }
 
-function loadTeamEvents(teamId,teamName){
+function loadTeamEvents(teamId,teamName,teamBadge){
   document.getElementById('sp-ov-search').style.display='none';
   document.getElementById('sp-ov-events').style.display='';
   document.getElementById('sp-ov-title').innerHTML='<span class="i">🏟️</span> '+teamName;
-  window._spTeamId=teamId;window._spTeamName=teamName;
-  window._spAllEvents=[];window._spSeasonIdx=0;
+  window._spTeamId=teamId;window._spTeamName=teamName;window._spTeamBadge=teamBadge||'';
+  window._spAllEvents=[];window._spSeasonIdx=0;window._spAwaySearched={};
   var curYear=new Date().getFullYear();
   window._spSeasons=[];
   for(var y=curYear;y>=curYear-10;y--){window._spSeasons.push(y+'-'+(y+1));window._spSeasons.push(String(y))}
@@ -2259,9 +2259,44 @@ function _spLoadBatch(count){
 
 function loadMoreSportsEvents(){_spLoadBatch(2)}
 
-var _spAbbrMap={'Arizona Cardinals':'ARI','Atlanta Falcons':'ATL','Baltimore Ravens':'BAL','Buffalo Bills':'BUF','Carolina Panthers':'CAR','Chicago Bears':'CHI','Cincinnati Bengals':'CIN','Cleveland Browns':'CLE','Dallas Cowboys':'DAL','Denver Broncos':'DEN','Detroit Lions':'DET','Green Bay Packers':'GB','Houston Texans':'HOU','Indianapolis Colts':'IND','Jacksonville Jaguars':'JAX','Kansas City Chiefs':'KC','Las Vegas Raiders':'LV','Los Angeles Chargers':'LAC','Los Angeles Rams':'LAR','Miami Dolphins':'MIA','Minnesota Vikings':'MIN','New England Patriots':'NE','New Orleans Saints':'NO','New York Giants':'NYG','New York Jets':'NYJ','Philadelphia Eagles':'PHI','Pittsburgh Steelers':'PIT','San Francisco 49ers':'SF','Seattle Seahawks':'SEA','Tampa Bay Buccaneers':'TB','Tennessee Titans':'TEN','Washington Commanders':'WSH','Los Angeles Lakers':'LAL','Boston Celtics':'BOS','Golden State Warriors':'GSW','Milwaukee Bucks':'MIL','Phoenix Suns':'PHX','Denver Nuggets':'DEN','Miami Heat':'MIA','New York Knicks':'NYK','Philadelphia 76ers':'PHI','Dallas Mavericks':'DAL','Los Angeles Clippers':'LAC','Brooklyn Nets':'BKN','Chicago Bulls':'CHI','Cleveland Cavaliers':'CLE','Sacramento Kings':'SAC','Oklahoma City Thunder':'OKC','Minnesota Timberwolves':'MIN','Indiana Pacers':'IND','Orlando Magic':'ORL','Atlanta Hawks':'ATL','Toronto Raptors':'TOR','Houston Rockets':'HOU','Memphis Grizzlies':'MEM','New Orleans Pelicans':'NOP','San Antonio Spurs':'SAS','Portland Trail Blazers':'POR','Utah Jazz':'UTA','Charlotte Hornets':'CHA','Detroit Pistons':'DET','Washington Wizards':'WAS','New York Yankees':'NYY','Boston Red Sox':'BOS','Los Angeles Dodgers':'LAD','Chicago Cubs':'CHC','San Francisco Giants':'SF','New York Mets':'NYM','St. Louis Cardinals':'STL','Houston Astros':'HOU','Atlanta Braves':'ATL','Philadelphia Phillies':'PHI'};
+var _spAbbrMap={
+// NFL
+'Arizona Cardinals':'ARI','Atlanta Falcons':'ATL','Baltimore Ravens':'BAL','Buffalo Bills':'BUF','Carolina Panthers':'CAR','Chicago Bears':'CHI','Cincinnati Bengals':'CIN','Cleveland Browns':'CLE','Dallas Cowboys':'DAL','Denver Broncos':'DEN','Detroit Lions':'DET','Green Bay Packers':'GB','Houston Texans':'HOU','Indianapolis Colts':'IND','Jacksonville Jaguars':'JAX','Kansas City Chiefs':'KC','Las Vegas Raiders':'LV','Los Angeles Chargers':'LAC','Los Angeles Rams':'LAR','Miami Dolphins':'MIA','Minnesota Vikings':'MIN','New England Patriots':'NE','New Orleans Saints':'NO','New York Giants':'NYG','New York Jets':'NYJ','Philadelphia Eagles':'PHI','Pittsburgh Steelers':'PIT','San Francisco 49ers':'SF','Seattle Seahawks':'SEA','Tampa Bay Buccaneers':'TB','Tennessee Titans':'TEN','Washington Commanders':'WSH',
+// NBA
+'Los Angeles Lakers':'LAL','Boston Celtics':'BOS','Golden State Warriors':'GSW','Milwaukee Bucks':'MIL','Phoenix Suns':'PHX','Denver Nuggets':'DEN','Miami Heat':'MIA','New York Knicks':'NYK','Philadelphia 76ers':'PHI','Dallas Mavericks':'DAL','Los Angeles Clippers':'LAC','Brooklyn Nets':'BKN','Chicago Bulls':'CHI','Cleveland Cavaliers':'CLE','Sacramento Kings':'SAC','Oklahoma City Thunder':'OKC','Minnesota Timberwolves':'MIN','Indiana Pacers':'IND','Orlando Magic':'ORL','Atlanta Hawks':'ATL','Toronto Raptors':'TOR','Houston Rockets':'HOU','Memphis Grizzlies':'MEM','New Orleans Pelicans':'NOP','San Antonio Spurs':'SAS','Portland Trail Blazers':'POR','Utah Jazz':'UTA','Charlotte Hornets':'CHA','Detroit Pistons':'DET','Washington Wizards':'WAS',
+// MLB
+'Arizona Diamondbacks':'ARI','Atlanta Braves':'ATL','Baltimore Orioles':'BAL','Boston Red Sox':'BOS','Chicago Cubs':'CHC','Chicago White Sox':'CWS','Cincinnati Reds':'CIN','Cleveland Guardians':'CLE','Colorado Rockies':'COL','Detroit Tigers':'DET','Houston Astros':'HOU','Kansas City Royals':'KC','Los Angeles Angels':'LAA','Los Angeles Dodgers':'LAD','Miami Marlins':'MIA','Milwaukee Brewers':'MIL','Minnesota Twins':'MIN','New York Mets':'NYM','New York Yankees':'NYY','Oakland Athletics':'OAK','Philadelphia Phillies':'PHI','Pittsburgh Pirates':'PIT','San Diego Padres':'SD','San Francisco Giants':'SF','Seattle Mariners':'SEA','St. Louis Cardinals':'STL','Tampa Bay Rays':'TB','Texas Rangers':'TEX','Toronto Blue Jays':'TOR','Washington Nationals':'WSH',
+// NHL
+'Boston Bruins':'BOS','New York Rangers':'NYR','Toronto Maple Leafs':'TOR','Montreal Canadiens':'MTL','Chicago Blackhawks':'CHI','Detroit Red Wings':'DET','Pittsburgh Penguins':'PIT','Washington Capitals':'WSH','Tampa Bay Lightning':'TBL','Colorado Avalanche':'COL','Vegas Golden Knights':'VGK','Florida Panthers':'FLA','Edmonton Oilers':'EDM','Carolina Hurricanes':'CAR','Dallas Stars':'DAL','New York Islanders':'NYI','Los Angeles Kings':'LAK','New Jersey Devils':'NJD','Nashville Predators':'NSH','Winnipeg Jets':'WPG','Vancouver Canucks':'VAN','Seattle Kraken':'SEA','Minnesota Wild':'MIN','St. Louis Blues':'STL','Calgary Flames':'CGY','Ottawa Senators':'OTT','Columbus Blue Jackets':'CBJ','Buffalo Sabres':'BUF','Philadelphia Flyers':'PHI','Anaheim Ducks':'ANA','San Jose Sharks':'SJS','Utah Hockey Club':'UTA'};
 function _spAbbr(name){if(!name)return'';if(_spAbbrMap[name])return _spAbbrMap[name];var w=name.split(' ');var last=w[w.length-1];return last.substring(0,3).toUpperCase()}
 function _spBadge(url,size){return url?'<img src="'+url+'" style="width:'+size+'px;height:'+size+'px;object-fit:contain;vertical-align:middle">':''}
+
+function _spSearchAway(opponent){
+  // Search opponent's home games to find our team's away games
+  var tn=window._spTeamName;if(!tn||!opponent)return;
+  var key=opponent.toLowerCase();
+  if(window._spAwaySearched[key])return;window._spAwaySearched[key]=true;
+  var loadEl=document.getElementById('sp-ev-loading');
+  if(loadEl)loadEl.textContent='Searching away games...';
+  // Search all loaded seasons for this opponent
+  var seasons=window._spSeasons.slice(0,Math.max(window._spSeasonIdx,6));
+  var uniq=[];seasons.forEach(function(s){if(uniq.indexOf(s)<0)uniq.push(s)});
+  var fetches=uniq.map(function(s){
+    return fetch('https://www.thesportsdb.com/api/v1/json/3/searchevents.php?e='+encodeURIComponent(opponent)+'&s='+encodeURIComponent(s)).then(function(r){return r.json()}).catch(function(){return{event:[]}});
+  });
+  Promise.all(fetches).then(function(results){
+    var existingIds={};window._spAllEvents.forEach(function(e){existingIds[e.idEvent]=true});
+    var added=0;
+    results.forEach(function(d){(d.event||[]).forEach(function(ev){
+      if(!existingIds[ev.idEvent]&&((ev.strAwayTeam||'').indexOf(tn)>=0||(ev.strHomeTeam||'').indexOf(tn)>=0)){
+        window._spAllEvents.push(ev);existingIds[ev.idEvent]=true;added++;
+      }
+    })});
+    window._spAllEvents.sort(function(a,b){return b.dateEvent.localeCompare(a.dateEvent)});
+    if(loadEl)loadEl.textContent=added?'Found '+added+' away games':'';
+    filterSportsEvents();
+  });
+}
 
 function filterSportsEvents(){
   var q=(document.getElementById('sp-ev-search')||{}).value||'';
@@ -2272,6 +2307,12 @@ function filterSportsEvents(){
     if(!ql)return true;
     return(ev.strEvent||'').toLowerCase().indexOf(ql)>=0||(ev.strVenue||'').toLowerCase().indexOf(ql)>=0||(ev.dateEvent||'').indexOf(ql)>=0||(ev.strHomeTeam||'').toLowerCase().indexOf(ql)>=0||(ev.strAwayTeam||'').toLowerCase().indexOf(ql)>=0;
   });
+  // Auto-search away games if filtering by opponent name and no/few results
+  if(ql&&ql.length>=3&&filtered.length<3){
+    // Try to find a matching team name for away game search
+    var knownTeams={};window._spAllEvents.forEach(function(ev){knownTeams[ev.strHomeTeam]=1;knownTeams[ev.strAwayTeam]=1});
+    Object.keys(knownTeams).forEach(function(t){if(t!==window._spTeamName&&t.toLowerCase().indexOf(ql)>=0)_spSearchAway(t)});
+  }
   // Auto-load more seasons if search has no results but more seasons available
   if(ql&&filtered.length===0&&window._spSeasonIdx<window._spSeasons.length){
     var loadEl=document.getElementById('sp-ev-loading');
@@ -2284,7 +2325,7 @@ function filterSportsEvents(){
   var listEl=document.getElementById('sp-ev-list');if(!listEl)return;
   var addedIds={};SP.forEach(function(s){addedIds[s.id]=true});
   var tn=window._spTeamName||'';
-  var h='<div style="font-size:11px;color:var(--t2);margin-bottom:8px;padding:0 4px">💡 Only home games load automatically. Search an opponent name to find away games.</div>';
+  var h='';
   h+='<table style="width:100%;font-size:14px"><tbody>';
   filtered.forEach(function(ev){
     var hs=Number(ev.intHomeScore),as2=Number(ev.intAwayScore);
@@ -2297,21 +2338,27 @@ function filterSportsEvents(){
     var scoreColor=won?'#4ade80':lost?'#ef4444':'var(--t2)';
     var added=addedIds[ev.idEvent];
     var evJson=JSON.stringify(ev).replace(/'/g,'&#39;').replace(/"/g,'&quot;');
-    var localDate=_spDate(ev.dateEventLocal||ev.dateEvent);
+    // Use dateEventLocal if available, adjust UTC dates with late times (evening US games roll over in UTC)
+    var evDate=ev.dateEventLocal||ev.dateEvent;
+    if(evDate===ev.dateEvent&&ev.strTime){var hr=parseInt(ev.strTime);if(hr>=2&&hr<=10){var dd=new Date(evDate+'T12:00:00');dd.setDate(dd.getDate()-1);evDate=dd.toISOString().substring(0,10)}}
+    var localDate=_spDate(evDate);
+    // Use cached badge for our team when API returns none
+    var homeBadge=ev.strHomeTeamBadge&&ev.strHomeTeamBadge!=='null'?ev.strHomeTeamBadge:(ev.strHomeTeam===tn?window._spTeamBadge:'');
+    var awayBadge=ev.strAwayTeamBadge&&ev.strAwayTeamBadge!=='null'?ev.strAwayTeamBadge:(ev.strAwayTeam===tn?window._spTeamBadge:'');
     h+='<tr style="cursor:'+(added?'default':'pointer')+';opacity:'+(added?'.35':'1')+';background:'+rowColor+'" '+(added?'':'onclick="selectSportsEvent(this)" ')+'data-ev="'+evJson+'">';
     h+='<td style="color:var(--t2);font-size:12px;padding:8px 4px;white-space:nowrap">'+localDate+'</td>';
     h+='<td style="padding:8px 4px;white-space:nowrap"><span style="display:inline-flex;align-items:center;gap:2px;justify-content:center;width:100%;font-variant-numeric:tabular-nums">';
-    h+='<span style="font-weight:'+(hasScore&&as2>hs?'700':'400')+';font-size:11px">'+_spAbbr(ev.strAwayTeam)+'</span>'+_spBadge(ev.strAwayTeamBadge,18);
+    h+='<span style="font-weight:'+(hasScore&&as2>hs?'700':'400')+';font-size:11px">'+_spAbbr(ev.strAwayTeam)+'</span>'+_spBadge(awayBadge,18);
     h+='<span style="font-weight:'+(hasScore&&as2>hs?'800':'500')+';min-width:14px;text-align:right">'+(added?'':as2)+'</span>';
     h+='<span style="color:var(--t2);margin:0 1px">'+(added?'<span style="color:var(--sp)">✓</span>':'–')+'</span>';
     h+='<span style="font-weight:'+(hasScore&&hs>as2?'800':'500')+';min-width:14px;text-align:left">'+(added?'':hs)+'</span>';
-    h+=_spBadge(ev.strHomeTeamBadge,18)+'<span style="font-weight:'+(hasScore&&hs>as2?'700':'400')+';font-size:11px">'+_spAbbr(ev.strHomeTeam)+'</span>';
+    h+=_spBadge(homeBadge,18)+'<span style="font-weight:'+(hasScore&&hs>as2?'700':'400')+';font-size:11px">'+_spAbbr(ev.strHomeTeam)+'</span>';
     h+='</span></td>';
     h+='<td style="font-size:11px;color:var(--t2);padding:8px 4px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(ev.strVenue||'')+'</td>';
     h+='</tr>';
   });
   h+='</tbody></table>';
-  if(!filtered.length&&ql){var moreSeasons=window._spSeasonIdx<window._spSeasons.length;h='<div style="color:var(--t2);padding:20px;text-align:center">No matches for "'+ql+'"'+(moreSeasons?'<br><span style="font-size:11px">Loading more seasons...</span>':'')+'</div>';}
+  if(!filtered.length&&ql){var moreSeasons=window._spSeasonIdx<window._spSeasons.length;h='<div style="color:var(--t2);padding:20px;text-align:center">No matches for "'+ql+'"'+(moreSeasons?'<br><span style="font-size:11px">Loading more seasons...</span>':'<br><span style="font-size:11px">Type an opponent name to search away games</span>')+'</div>';}
   listEl.innerHTML=h;
 }
 
