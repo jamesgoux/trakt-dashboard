@@ -269,11 +269,12 @@ def fetch_cast_and_studios(entries):
                     for ep_num in ep_nums:
                         wy = ep_watch_year.get((slug, season_num, ep_num), "")
                         ep_credits[pid][slug].add((season_num, ep_num, wy))
-                    if pid not in people or not people[pid]["name"]:
+                    # Always add show to person's titles (even if person already exists)
+                    people[pid]["titles"].add(slug)
+                    if not people[pid]["name"]:
                         people[pid]["name"] = c.get("name", "")
                         g = c.get("gender", 0)
                         if g in (1, 2): people[pid]["gender"] = g
-                        people[pid]["titles"].add(slug)
                 for ep_data in sdata.get("episodes", []):
                     ep_num = ep_data.get("episode_number")
                     if ep_num not in ep_nums: continue
@@ -282,7 +283,9 @@ def fetch_cast_and_studios(entries):
                         if not pid: continue
                         wy = ep_watch_year.get((slug, season_num, ep_num), "")
                         ep_credits[pid][slug].add((season_num, ep_num, wy))
-                        if pid not in people or not people[pid]["name"]:
+                        # Always add show to person's titles
+                        people[pid]["titles"].add(slug)
+                        if not people[pid]["name"]:
                             people[pid]["name"] = gs.get("name", "")
                             g = gs.get("gender", 0)
                             if g in (1, 2): people[pid]["gender"] = g
