@@ -2128,13 +2128,13 @@ function openSportsAdd(){
   document.getElementById('sp-ov-title').innerHTML='<span class="i">🏟️</span> Add Sports Event';
   document.getElementById('sp-team-input').value='';
   document.getElementById('sp-team-results').innerHTML='';
-  // Show frequent teams (from existing events)
+  // Show frequent teams (from existing events) — click goes straight to events
   var freq={};SP.forEach(function(e){if(e.my_team){if(!freq[e.my_team])freq[e.my_team]={n:e.my_team,c:0,badge:''};freq[e.my_team].c++;if(!freq[e.my_team].badge){freq[e.my_team].badge=(e.my_team===e.home_team?e.home_badge:e.away_badge)||''}}});
   var freqArr=Object.values(freq).sort(function(a,b){return b.c-a.c}).slice(0,6);
   var fEl=document.getElementById('sp-frequent-teams');
   if(freqArr.length){
     var fh='<div style="margin-bottom:12px"><div style="font-size:11px;color:var(--t2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">Your Teams</div><div style="display:flex;flex-wrap:wrap;gap:8px">';
-    freqArr.forEach(function(t){fh+='<button onclick="document.getElementById(\'sp-team-input\').value=\''+t.n.replace(/'/g,"\\'")+'\';_spLiveSearch(\''+t.n.replace(/'/g,"\\'")+'\');searchSportsTeam()" style="display:flex;align-items:center;gap:6px;padding:10px 14px;background:var(--sf);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:var(--tx);font-size:13px;cursor:pointer;min-height:44px">'+(t.badge?'<img src="'+t.badge+'" style="width:20px;height:20px;object-fit:contain">':'')+t.n+' <span style="color:var(--t2)">('+t.c+')</span></button>'});
+    freqArr.forEach(function(t){fh+='<button onclick="quickLoadTeam(\''+t.n.replace(/'/g,"\\'")+'\')" style="display:flex;align-items:center;gap:6px;padding:10px 14px;background:var(--sf);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:var(--tx);font-size:13px;cursor:pointer;min-height:44px">'+(t.badge?'<img src="'+t.badge+'" style="width:20px;height:20px;object-fit:contain">':'')+t.n+' <span style="color:var(--t2)">('+t.c+')</span></button>'});
     fh+='</div></div>';fEl.innerHTML=fh;
   }else{fEl.innerHTML=''}
   // Scroll-to-load on the overlay
@@ -2161,6 +2161,17 @@ function _spLiveSearch(q){
 function closeSportsAdd(){
   document.getElementById('sp-overlay').style.display='none';
   _unlockBody();
+}
+
+function quickLoadTeam(teamName){
+  // Skip search results — look up team ID and go straight to events
+  document.getElementById('sp-team-results').innerHTML='<div style="color:var(--t2);padding:10px">Loading '+teamName+'...</div>';
+  fetch('https://www.thesportsdb.com/api/v1/json/3/searchteams.php?t='+encodeURIComponent(teamName)).then(function(r){return r.json()}).then(function(d){
+    var teams=d.teams||[];
+    var match=teams.find(function(t){return t.strTeam===teamName})||teams[0];
+    if(match){loadTeamEvents(match.idTeam,match.strTeam)}
+    else{document.getElementById('sp-team-results').innerHTML='<div style="color:#ef4444;padding:10px">Team not found — try searching</div>'}
+  }).catch(function(){document.getElementById('sp-team-results').innerHTML='<div style="color:#ef4444;padding:10px">Failed to load — try searching</div>'});
 }
 
 function searchSportsTeam(){
