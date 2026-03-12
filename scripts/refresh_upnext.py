@@ -174,7 +174,7 @@ def run():
         tmdb_id = show.get("ids", {}).get("tmdb", "")
         ep_still = ""
         if tmdb_id and TMDB_API_KEY:
-            ep_still = fetch_ep_still(tmdb_id, next_s, next_n)
+            ep_still = fetch_ep_still(tmdb_id, next_ep.get("season", 1), next_ep.get("number", 1))
             time.sleep(0.15)
 
         # Streaming info (cache to avoid hammering JustWatch)
