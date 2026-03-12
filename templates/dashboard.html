@@ -75,7 +75,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
 .ll-evt{display:flex;gap:14px;position:relative}
 .ll-metro-col{width:38px;display:flex;flex-direction:column;align-items:center;flex-shrink:0}
 .ll-metro-dot{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;position:relative;z-index:2}
-.ll-metro-stem{width:10px;flex:1;border-radius:5px;z-index:1}
+.ll-metro-stem{width:10px;flex:1;z-index:1}
 .ll-evt:last-child .ll-metro-stem{display:none}
 .ll-evt-body{flex:1;min-width:0;padding:8px 0 12px}
 .ll-evt-body .ll-name{font-size:13px;line-height:1.4;color:var(--tx)}
@@ -2427,7 +2427,7 @@ function deleteSportsEvent(id){
 
 // Lifeline Full Feed
 var _llFeedDays=[];var _llFeedIdx=0;var _llFeedBatch=15;
-var _llTypeInfo={ep:{icon:'📺',color:'#14b8a6',label:'Episodes'},mv:{icon:'🎞️',color:'#fb923c',label:'Movies'},sc:{icon:'🎧',color:'#1db954',label:'Scrobbles'},bk:{icon:'📚',color:'#fbbf24',label:'Books'},co:{icon:'🎸',color:'#3b82f6',label:'Concerts'},th:{icon:'🎭',color:'#a78bfa',label:'Plays'},pc:{icon:'🎙️',color:'#ef4444',label:'Podcasts'}};
+var _llTypeInfo={ep:{icon:'📺',color:'#0d9e9e',label:'Episodes'},mv:{icon:'🎞️',color:'#fb923c',label:'Movies'},sc:{icon:'🎧',color:'#1db954',label:'Scrobbles'},bk:{icon:'📚',color:'#fbbf24',label:'Books'},co:{icon:'🎸',color:'#3b82f6',label:'Concerts'},th:{icon:'🎭',color:'#a78bfa',label:'Plays'},pc:{icon:'🎙️',color:'#ef4444',label:'Podcasts'}};
 var _llDayNames=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 var _llMonthNames=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 // Map dashboard type filter values to lifeline event types
