@@ -1974,20 +1974,19 @@ if os.path.exists("data/pocketcasts_history.json"):
     if pc_ll_count:
         print(f"  Podcasts in lifeline: {pc_ll_count} episodes (poll+export, >5min)")
 
-# Build output: counts for bars + events only for recent 90 days
-event_cutoff = (datetime.now() - timedelta(days=90)).strftime("%Y-%m-%d")
+# Build output: counts for bars + detailed events for all dates
 lifeline_all = {}
 for d in sorted(ll_counts.keys()):
     c = ll_counts[d]
     if c["ep"] or c["mv"] or c["bk"] or c["sc"] or c["co"] or c["th"] or c["pc"]:
         entry = {"ep": c["ep"], "mv": c["mv"], "bk": c["bk"],
                  "sc": c["sc"], "co": c["co"], "th": c["th"], "pc": c["pc"]}
-        # Only store detailed events for last 90 days (saves ~1MB)
-        if d >= event_cutoff:
-            evts = sorted(ll_events.get(d, []), key=lambda x: x["t"])
-            if c["sc"] and not any(e["ty"] == "sc" for e in evts):
-                evts.append({"t": "12:00", "n": "~" + str(c["sc"]) + " scrobbles (approx)", "ty": "sc"})
-            entry["e"] = evts[:80]
+        evts = sorted(ll_events.get(d, []), key=lambda x: x["t"])
+        # For days with scrobble counts but no individual tracks, add summary entry
+        if c["sc"] and not any(e["ty"] == "sc" for e in evts):
+            evts.append({"t": "12:00", "n": "~" + str(c["sc"]) + " scrobbles", "ty": "sc"})
+        if evts:
+            entry["e"] = evts[:100]
         lifeline_all[d] = entry
 data["ll"] = lifeline_all
 
