@@ -2009,6 +2009,12 @@ if os.path.exists("data/sports.json"):
         data["sp"] = sp_raw
         print(f"  Sports: {len(sp_raw)} events loaded from data/sports.json")
 
+# Inject Trakt credentials for client-side mark-as-watched
+_trakt_token = os.environ.get("TRAKT_ACCESS_TOKEN", "")
+if _trakt_token and CLIENT_ID:
+    data["_tc"] = CLIENT_ID
+    data["_tt"] = _trakt_token
+
 data_str = json.dumps(data, separators=(',', ':'), ensure_ascii=False)
 with open("templates/dashboard.html") as f:
     template = f.read()
