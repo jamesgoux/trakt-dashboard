@@ -2237,6 +2237,15 @@ function filterSportsEvents(){
     if(!ql)return true;
     return(ev.strEvent||'').toLowerCase().indexOf(ql)>=0||(ev.strVenue||'').toLowerCase().indexOf(ql)>=0||(ev.dateEvent||'').indexOf(ql)>=0||(ev.strHomeTeam||'').toLowerCase().indexOf(ql)>=0||(ev.strAwayTeam||'').toLowerCase().indexOf(ql)>=0;
   });
+  // Auto-load more seasons if search has no results but more seasons available
+  if(ql&&filtered.length===0&&window._spSeasonIdx<window._spSeasons.length){
+    var loadEl=document.getElementById('sp-ev-loading');
+    if(loadEl&&!loadEl._loading){
+      loadEl.textContent='Searching older seasons...';
+      _spLoadBatch(4);
+      return;
+    }
+  }
   var listEl=document.getElementById('sp-ev-list');if(!listEl)return;
   var addedIds={};SP.forEach(function(s){addedIds[s.id]=true});
   var tn=window._spTeamName||'';
@@ -2267,7 +2276,7 @@ function filterSportsEvents(){
     h+='</tr>';
   });
   h+='</tbody></table>';
-  if(!filtered.length&&ql)h='<div style="color:var(--t2);padding:20px;text-align:center">No matches for "'+ql+'"</div>';
+  if(!filtered.length&&ql){var moreSeasons=window._spSeasonIdx<window._spSeasons.length;h='<div style="color:var(--t2);padding:20px;text-align:center">No matches for "'+ql+'"'+(moreSeasons?'<br><span style="font-size:11px">Loading more seasons...</span>':'')+'</div>';}
   listEl.innerHTML=h;
 }
 
