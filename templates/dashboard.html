@@ -73,10 +73,10 @@ tr:hover td{background:rgba(255,255,255,.02)}
 .ll-day{margin-bottom:24px}.ll-day-hdr{font-size:13px;font-weight:700;color:var(--t2);padding:8px 0 8px 54px;border-bottom:1px solid rgba(255,255,255,.06);margin-bottom:0;position:sticky;top:52px;background:var(--bg);z-index:1}
 .ll-day-evts{position:relative;padding:0}
 .ll-evt{display:flex;gap:14px;position:relative}
-.ll-metro-col{width:38px;display:flex;flex-direction:column;align-items:center;flex-shrink:0}
-.ll-metro-dot{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;position:relative;z-index:2}
-.ll-metro-stem{width:10px;flex:1;z-index:1}
-.ll-evt:last-child .ll-metro-stem{display:none}
+.ll-evt::after{content:'';position:absolute;left:14px;top:0;bottom:0;width:10px;background:var(--mc,transparent);z-index:0}
+.ll-day-evts>.ll-evt:first-child::after{top:19px}
+.ll-day-evts>.ll-evt:last-child::after{display:none}
+.ll-metro-dot{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;position:relative;z-index:2}
 .ll-evt-body{flex:1;min-width:0;padding:8px 0 12px}
 .ll-evt-body .ll-name{font-size:13px;line-height:1.4;color:var(--tx)}
 .ll-evt-body .ll-time{font-size:11px;color:#666;margin-top:1px;font-variant-numeric:tabular-nums}
@@ -2427,7 +2427,7 @@ function deleteSportsEvent(id){
 
 // Lifeline Full Feed
 var _llFeedDays=[];var _llFeedIdx=0;var _llFeedBatch=15;
-var _llTypeInfo={ep:{icon:'📺',color:'#0d9e9e',label:'Episodes'},mv:{icon:'🎞️',color:'#fb923c',label:'Movies'},sc:{icon:'🎧',color:'#1db954',label:'Scrobbles'},bk:{icon:'📚',color:'#fbbf24',label:'Books'},co:{icon:'🎸',color:'#3b82f6',label:'Concerts'},th:{icon:'🎭',color:'#a78bfa',label:'Plays'},pc:{icon:'🎙️',color:'#ef4444',label:'Podcasts'}};
+var _llTypeInfo={ep:{icon:'📺',color:'#0a7d7d',label:'Episodes'},mv:{icon:'🎞️',color:'#c97530',label:'Movies'},sc:{icon:'🎧',color:'#189543',label:'Scrobbles'},bk:{icon:'📚',color:'#c99a1e',label:'Books'},co:{icon:'🎸',color:'#3068c5',label:'Concerts'},th:{icon:'🎭',color:'#8670c8',label:'Plays'},pc:{icon:'🎙️',color:'#c03636',label:'Podcasts'}};
 var _llDayNames=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 var _llMonthNames=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 // Map dashboard type filter values to lifeline event types
@@ -2521,7 +2521,7 @@ function _llRenderBatch(){
       // Reverse: most recent first within the day
       filtered.slice().reverse().forEach(function(e){
         var info=_llTypeInfo[e.ty]||{icon:'❓',color:'#666'};
-        body+='<div class="ll-evt"><div class="ll-metro-col"><div class="ll-metro-dot" style="background:'+info.color+'">'+info.icon+'</div><div class="ll-metro-stem" style="background:'+info.color+'"></div></div><div class="ll-evt-body"><div class="ll-name">'+e.n+'</div><div class="ll-time">'+e.t+'</div></div></div>';
+        body+='<div class="ll-evt" style="--mc:'+info.color+'"><div class="ll-metro-dot" style="background:'+info.color+'">'+info.icon+'</div><div class="ll-evt-body"><div class="ll-name">'+e.n+'</div><div class="ll-time">'+e.t+'</div></div></div>';
       });
       body+='</div>';
     }else{
