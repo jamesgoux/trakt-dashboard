@@ -2516,7 +2516,7 @@ function renderHealth(){
       title:{text:totalW+' workouts'+(cy!=='all'?' in '+cy:''),left:16,top:0,textStyle:{color:'#666',fontSize:11,fontWeight:'normal'}},
       xAxis:{type:'category',data:periods,axisLabel:{color:'#666',fontSize:10},axisLine:{lineStyle:{color:'#333'}}},
       yAxis:[{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},{type:'value',position:'right',axisLabel:{color:'#666'},splitLine:{show:false}}],
-      series:[{name:'Workouts',type:'bar',data:counts,itemStyle:{color:'var(--sp)'},barMaxWidth:20},
+      series:[{name:'Workouts',type:'bar',data:counts,itemStyle:{color:'#0ea5e9'},barMaxWidth:20},
         {name:'Hours',type:'line',yAxisIndex:1,data:durs,itemStyle:{color:'#fb923c'},lineStyle:{width:2},symbol:'circle',symbolSize:4}]});
     ch.push(hwChart);
   }else{chartEl.innerHTML='<div style="text-align:center;color:var(--t2);padding:40px">No workout data'+(cy!=='all'?' in '+cy:'')+'</div>'}
