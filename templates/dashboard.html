@@ -70,12 +70,15 @@ tr:hover td{background:rgba(255,255,255,.02)}
 .chart-detail .cd-close{float:right;cursor:pointer;color:var(--t2);font-size:14px}
 .status{text-align:center;padding:20px;color:var(--t2);font-size:11px;border-top:1px solid rgba(255,255,255,.04);margin-top:20px}
 .status span{margin:0 10px}
-.ll-day{margin-bottom:20px}.ll-day-hdr{font-size:13px;font-weight:700;color:var(--t2);padding:6px 0;border-bottom:1px solid rgba(255,255,255,.06);margin-bottom:8px;position:sticky;top:52px;background:var(--bg);z-index:1}
-.ll-evt{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.03)}.ll-evt:last-child{border:none}
-.ll-time{font-size:11px;color:#666;min-width:40px;font-variant-numeric:tabular-nums;padding-top:2px}
-.ll-dot{width:8px;height:8px;border-radius:50%;margin-top:5px;flex-shrink:0}
-.ll-name{font-size:13px;line-height:1.4}
-.ll-summary{display:flex;flex-wrap:wrap;gap:8px;padding:4px 0}
+.ll-day{margin-bottom:24px}.ll-day-hdr{font-size:13px;font-weight:700;color:var(--t2);padding:8px 0 8px 54px;border-bottom:1px solid rgba(255,255,255,.06);margin-bottom:0;position:sticky;top:52px;background:var(--bg);z-index:1}
+.ll-day-evts{position:relative;padding:4px 0}
+.ll-day-evts::after{content:'';position:absolute;left:19px;top:0;bottom:0;width:2px;background:rgba(255,255,255,.06);border-radius:1px}
+.ll-evt{display:flex;align-items:flex-start;gap:14px;padding:6px 0;position:relative}
+.ll-metro-dot{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;z-index:1;position:relative}
+.ll-evt-body{flex:1;min-width:0;padding-top:2px}
+.ll-evt-body .ll-name{font-size:13px;line-height:1.4;color:var(--tx)}
+.ll-evt-body .ll-time{font-size:11px;color:#666;margin-top:1px;font-variant-numeric:tabular-nums}
+.ll-summary{display:flex;flex-wrap:wrap;gap:8px;padding:8px 0 4px 54px}
 .ll-pill{font-size:11px;padding:4px 10px;border-radius:12px;font-weight:600}
 .un-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;padding:16px;max-width:1200px;margin:0 auto}
 .un-card{background:var(--sf);border-radius:10px;border:1px solid rgba(255,255,255,.06);overflow:hidden;display:flex;gap:12px;padding:12px;padding-right:60px;position:relative;transition:background .2s;cursor:pointer}
@@ -322,13 +325,13 @@ Drop CSV here or <span style="color:var(--bl);text-decoration:underline">click t
 <div class="status" id="status"></div>
 </div>
 <!-- Lifeline Full Feed Overlay -->
-<div id="ll-feed" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg);z-index:300;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain">
-<div style="position:sticky;top:0;z-index:301;background:rgba(15,15,15,.97);backdrop-filter:blur(8px);padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
-<h2 style="font-size:18px;font-weight:700;margin:0"><span class="i">🧬</span> Lifeline Feed</h2>
+<div id="ll-feed" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg);z-index:300;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;transition:transform .3s ease;will-change:transform">
+<div style="position:sticky;top:0;z-index:301;background:rgba(15,15,15,.97);backdrop-filter:blur(8px);padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;gap:12px">
+<button onclick="closeLifelineFeed()" style="background:none;border:1px solid rgba(255,255,255,.1);color:var(--t2);border-radius:8px;padding:8px 14px;font-size:14px;cursor:pointer;min-height:44px;min-width:44px;display:flex;align-items:center;justify-content:center">←</button>
+<h2 style="font-size:18px;font-weight:700;margin:0;flex:1"><span class="i">🧬</span> Lifeline Feed</h2>
 <div style="display:flex;gap:6px;align-items:center">
 <select id="ll-feed-type" onchange="ct=this.value;writeHash();openLifelineFeed()" style="padding:6px 8px;background:var(--sf);border:1px solid rgba(255,255,255,.1);border-radius:6px;color:var(--tx);font-size:12px"><option value="all">🌐 All</option><option value="movie">🎞️ Movies</option><option value="show">📺 Shows</option><option value="book">📚 Books</option><option value="music">🎧 Music</option><option value="concert">🎸 Concerts</option><option value="podcast">🎙️ Podcasts</option><option value="theater">🎭 Theater</option></select>
 <select id="ll-feed-year" onchange="cy=this.value;writeHash();openLifelineFeed()" style="padding:6px 8px;background:var(--sf);border:1px solid rgba(255,255,255,.1);border-radius:6px;color:var(--tx);font-size:12px"><option value="all">All Time</option></select>
-<button onclick="closeLifelineFeed()" style="background:none;border:1px solid rgba(255,255,255,.1);color:var(--t2);border-radius:8px;padding:6px 12px;font-size:14px;cursor:pointer">✕</button>
 </div>
 </div>
 <div id="ll-feed-content" style="max-width:600px;margin:0 auto;padding:16px"></div>
@@ -2469,8 +2472,32 @@ function openLifelineFeed(){
 
 function closeLifelineFeed(){
   document.getElementById('ll-feed').style.display='none';
+  document.getElementById('ll-feed').style.transform='';
   _unlockBody();
 }
+// Slide-to-dismiss Lifeline Feed — mirrors Up Next swipe behavior
+(function(){
+  var ov=document.getElementById('ll-feed');if(!ov)return;
+  var sx=0,sy=0,tracking=false,moved=false;
+  ov.addEventListener('touchstart',function(e){
+    sx=e.touches[0].clientX;sy=e.touches[0].clientY;tracking=true;moved=false;
+    ov.style.transition='none';
+  },{passive:true});
+  ov.addEventListener('touchmove',function(e){
+    if(!tracking)return;
+    var dx=e.touches[0].clientX-sx,dy=Math.abs(e.touches[0].clientY-sy);
+    if(!moved&&dy>20){tracking=false;return}
+    if(dx>10){moved=true;ov.style.transform='translateX('+dx+'px)'}
+  },{passive:true});
+  ov.addEventListener('touchend',function(){
+    if(!tracking&&!moved)return;tracking=false;
+    var dx=parseInt(ov.style.transform.replace(/[^0-9.-]/g,''))||0;
+    ov.style.transition='transform .3s ease';
+    if(dx>window.innerWidth*0.35){ov.style.transform='translateX(100%)';setTimeout(function(){ov.style.display='none';ov.style.transform='';_unlockBody()},320)}
+    else{ov.style.transform=''}
+    moved=false;
+  },{passive:true});
+})();
 
 function _llRenderBatch(){
   if(_llFeedIdx>=_llFeedDays.length)return;
@@ -2487,11 +2514,14 @@ function _llRenderBatch(){
     if(evts.length){
       // Filter by type if active
       var filtered=allowedTypes?evts.filter(function(e){return allowedTypes.indexOf(e.ty)>=0}):evts;
+      // Metro timeline: wrap events in container with vertical line
+      body+='<div class="ll-day-evts">';
       // Reverse: most recent first within the day
       filtered.slice().reverse().forEach(function(e){
         var info=_llTypeInfo[e.ty]||{icon:'❓',color:'#666'};
-        body+='<div class="ll-evt"><span class="ll-time">'+e.t+'</span><span class="ll-dot" style="background:'+info.color+'"></span><span class="ll-name" style="color:'+info.color+'">'+info.icon+' '+e.n+'</span></div>';
+        body+='<div class="ll-evt"><div class="ll-metro-dot" style="background:'+info.color+'18">'+info.icon+'</div><div class="ll-evt-body"><div class="ll-name">'+e.n+'</div><div class="ll-time">'+e.t+'</div></div></div>';
       });
+      body+='</div>';
     }else{
       // Summary only — show pills, filtered
       body+='<div class="ll-summary">';
