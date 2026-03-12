@@ -433,9 +433,9 @@ function sm(e){return Object.values(e||{}).reduce(function(a,b){return a+b},0)}
 // Type filter helper: does this entry type match current filter?
 function tmatch(type){return ct==='all'||(ct==='movie'&&type==='movie')||(ct==='show'&&type!=='movie')}
 
+function sc(val,label,color){if(val===0||val==='0'||val==='0★')return'';return'<div class="sc"><div class="v" style="color:'+color+'">'+val+'</div><div class="l">'+label+'</div></div>'}
 function stats(){
   var el=document.getElementById('st');
-  function sc(val,label,color){if(val===0||val==='0'||val==='0★')return'';return'<div class="sc"><div class="v" style="color:'+color+'">'+val+'</div><div class="l">'+label+'</div></div>'}
   // Single-medium filters
   if(ct==='music'){
     var lfm=D.lfm||{};var yrD=cy!=='all'&&lfm.yearly?(lfm.yearly.find(function(y){return y.yr===cy})||{}):{s:lfm.total,a:lfm.artists,al:lfm.albums};
