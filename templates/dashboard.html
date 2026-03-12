@@ -2809,48 +2809,22 @@ function renderStatus(){
   el.innerHTML='<span>Actors: '+total_people+'</span><span>Headshots: '+hs_count+'</span><span>Posters: '+ps_count+'</span><span>Updated: __BUILD_TIME__</span>';
 }
 
-// Lazy section renderer — only render sections when visible
-var _lazyRenderers={};var _lazyDirty={};
-var _sectionObs=new IntersectionObserver(function(entries){entries.forEach(function(e){
-  if(e.isIntersecting){var id=e.target.id||e.target.dataset.lazy;if(id&&_lazyDirty[id]&&_lazyRenderers[id]){_lazyDirty[id]=false;_lazyRenderers[id]()}}
-})},{rootMargin:'300px'});
-function _regLazy(id,fn){_lazyRenderers[id]=fn;var el=document.getElementById(id);if(!el){el=document.querySelector('[data-lazy="'+id+'"]')}if(el)_sectionObs.observe(el)}
-function _markAllDirty(){for(var k in _lazyRenderers)_lazyDirty[k]=true}
-function _renderIfVisible(id){
-  var el=document.getElementById(id)||document.querySelector('[data-lazy="'+id+'"]');
-  if(!el||!_lazyRenderers[id])return;
-  var r=el.getBoundingClientRect();
-  if(r.top<window.innerHeight+300){_lazyDirty[id]=false;_lazyRenderers[id]()}else{_lazyDirty[id]=true}
-}
-
 function render(){ch.forEach(function(c){try{c.dispose()}catch(e){}});ch=[];
   // Show/hide sections based on medium filter
   document.querySelectorAll('.med-s').forEach(function(el){var meds=el.dataset.med||'';el.style.display=meds.indexOf(ct)>=0?'':'none'});
-  // CRITICAL (above fold) — render immediately, no deferral
+  // CRITICAL (above fold) — render immediately
   stats();renderLifeline();baseCharts();renderPosters();
-  // Mark all lazy sections as dirty and render only visible ones
-  _markAllDirty();
+  // Batch 1: people tables + movies (next screen)
   requestAnimationFrame(function(){
-    // Render sections near viewport immediately
-    ['sec-act','sec-crew','sec-shows','sec-eps'].forEach(function(id){_renderIfVisible(id)});
-    requestAnimationFrame(function(){
-      ['sec-mov','sec-ratings','sec-meta','sec-time','sec-geo','sec-vy','sec-how','sec-first',
-       'pc-wrap','lfm-wrap','con-wrap','gr-wrap','th-wrap','sp-wrap'].forEach(function(id){_renderIfVisible(id)});
-      renderStatus();
-      var loader=document.getElementById('iris-loader');if(loader){loader.classList.add('fade-out');setTimeout(function(){loader.remove()},600)}
-    });
+    ptbl('atb',D.a);ptbl('xtb',D.x);ptbl('dtb',D.d||[]);ptbl('wtb',D.w||[]);
+    movieCharts();renderLetterboxd();
+    // Batch 2: all remaining sections — staggered with setTimeout to avoid jank
+    setTimeout(function(){renderGoodreads();renderLastfm()},0);
+    setTimeout(function(){renderConcerts();renderTheater()},50);
+    setTimeout(function(){renderPodcasts();renderSports();renderStatus()},100);
+    // Dismiss loader after batch 1 (user sees content immediately)
+    var loader=document.getElementById('iris-loader');if(loader){loader.classList.add('fade-out');setTimeout(function(){loader.remove()},600)}
   })}
-// Register lazy renderers for each section
-_regLazy('sec-act',function(){ptbl('atb',D.a);ptbl('xtb',D.x)});
-_regLazy('sec-crew',function(){ptbl('dtb',D.d||[]);ptbl('wtb',D.w||[])});
-_regLazy('sec-mov',function(){movieCharts()});
-_regLazy('sec-ratings',function(){renderLetterboxd()});
-_regLazy('pc-wrap',function(){renderPodcasts()});
-_regLazy('lfm-wrap',function(){renderLastfm()});
-_regLazy('con-wrap',function(){renderConcerts()});
-_regLazy('gr-wrap',function(){renderGoodreads()});
-_regLazy('th-wrap',function(){renderTheater()});
-_regLazy('sp-wrap',function(){renderSports()});
 var _rzt,_lastW=window.innerWidth;
 function _rz(){clearTimeout(_rzt);_rzt=setTimeout(function(){mob=window.innerWidth<768;ch.forEach(function(c){try{c.resize()}catch(e){}})},200)}
 window.addEventListener('resize',function(){
