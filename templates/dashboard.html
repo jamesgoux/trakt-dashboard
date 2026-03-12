@@ -297,7 +297,8 @@ body{overflow-x:hidden}
 <div id="sp-ov-events" style="display:none">
 <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
 <button onclick="document.getElementById('sp-ov-search').style.display='';document.getElementById('sp-ov-events').style.display='none';document.getElementById('sp-ov-title').innerHTML='<span class=i>🏟️</span> Add Sports Event'" style="background:none;border:none;color:var(--sp);cursor:pointer;font-size:13px">← Teams</button>
-<input id="sp-ev-search" type="text" placeholder="Filter opponent, venue, date..." oninput="filterSportsEvents()" style="flex:1;padding:8px 12px;background:var(--sf);border:1px solid rgba(255,255,255,.15);border-radius:6px;color:var(--tx);font-size:13px">
+<select id="sp-ev-year" onchange="jumpToSportsYear(this.value)" style="padding:8px;background:var(--sf);border:1px solid rgba(255,255,255,.15);border-radius:6px;color:var(--tx);font-size:13px"></select>
+<input id="sp-ev-search" type="text" placeholder="Filter opponent, venue..." oninput="filterSportsEvents()" style="flex:1;padding:8px 12px;background:var(--sf);border:1px solid rgba(255,255,255,.15);border-radius:6px;color:var(--tx);font-size:13px">
 </div>
 <div id="sp-ev-list"></div>
 <div id="sp-ev-loading" style="text-align:center;padding:16px;color:var(--t2);font-size:12px"></div>
@@ -2185,10 +2186,31 @@ function loadTeamEvents(teamId,teamName){
   var curYear=new Date().getFullYear();
   window._spSeasons=[];
   for(var y=curYear;y>=curYear-10;y--){window._spSeasons.push(y+'-'+(y+1));window._spSeasons.push(String(y))}
+  // Populate year selector
+  var yrSel=document.getElementById('sp-ev-year');
+  yrSel.innerHTML='<option value="all">All Years</option>';
+  for(var y2=curYear;y2>=curYear-10;y2--){var o=document.createElement('option');o.value=y2;o.textContent=y2;yrSel.appendChild(o)}
   document.getElementById('sp-ev-list').innerHTML='';
   document.getElementById('sp-ev-search').value='';
+  window._spYearFilter=null;
   // Load first 3 seasons immediately for a full screen of results
   _spLoadBatch(3);
+}
+
+function jumpToSportsYear(yr){
+  if(yr==='all'){window._spYearFilter=null;filterSportsEvents();return}
+  window._spYearFilter=yr;
+  // Check if we've already loaded this season
+  var have=window._spAllEvents.some(function(ev){return(ev.dateEvent||'').startsWith(yr)});
+  if(have){filterSportsEvents();return}
+  // Find the season index for this year and load from there
+  var targetSeasons=[yr+'-'+(parseInt(yr)+1),yr];
+  var idx=-1;window._spSeasons.forEach(function(s,i){if(idx<0&&targetSeasons.indexOf(s)>=0)idx=i});
+  if(idx>=0&&idx>=window._spSeasonIdx){
+    // Jump ahead: load from the target season onward
+    window._spSeasonIdx=idx;
+    _spLoadBatch(2);
+  }else{filterSportsEvents()}
 }
 
 function _spLoadBatch(count){
@@ -2233,7 +2255,9 @@ function _spBadge(url,size){return url?'<img src="'+url+'" style="width:'+size+'
 function filterSportsEvents(){
   var q=(document.getElementById('sp-ev-search')||{}).value||'';
   var ql=q.toLowerCase();
+  var yrF=window._spYearFilter||null;
   var filtered=window._spAllEvents.filter(function(ev){
+    if(yrF&&!(ev.dateEvent||'').startsWith(yrF))return false;
     if(!ql)return true;
     return(ev.strEvent||'').toLowerCase().indexOf(ql)>=0||(ev.strVenue||'').toLowerCase().indexOf(ql)>=0||(ev.dateEvent||'').indexOf(ql)>=0||(ev.strHomeTeam||'').toLowerCase().indexOf(ql)>=0||(ev.strAwayTeam||'').toLowerCase().indexOf(ql)>=0;
   });
