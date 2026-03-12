@@ -2583,10 +2583,15 @@ function openUpNext(){
     h+='</div>';
   }
   el.innerHTML=h;
-  document.getElementById('un-overlay').style.display='';
+  var ov=document.getElementById('un-overlay');
+  ov.style.display='';
+  ov.scrollTop=0;
   _lockBody();
   // Scroll to the "new" or "continue" section (past recently watched)
-  setTimeout(function(){var anchor=document.getElementById('un-default-scroll');if(anchor)anchor.scrollIntoView({behavior:'auto',block:'start'})},50);
+  requestAnimationFrame(function(){setTimeout(function(){
+    var anchor=document.getElementById('un-default-scroll');
+    if(anchor){anchor.scrollIntoView({behavior:'auto',block:'start'})}
+  },150)});
 }
 
 // Delegated click handler for Up Next cards (U1: reliable click targets)
