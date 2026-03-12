@@ -72,10 +72,12 @@ tr:hover td{background:rgba(255,255,255,.02)}
 .status span{margin:0 10px}
 .ll-day{margin-bottom:24px}.ll-day-hdr{font-size:13px;font-weight:700;color:var(--t2);padding:8px 0 8px 54px;border-bottom:1px solid rgba(255,255,255,.06);margin-bottom:0;position:sticky;top:52px;background:var(--bg);z-index:1}
 .ll-day-evts{position:relative;padding:0}
-.ll-day-evts::before{content:'';position:absolute;left:19px;top:19px;bottom:19px;width:4px;background:rgba(255,255,255,.10);border-radius:2px;transform:translateX(-50%)}
-.ll-evt{display:flex;align-items:flex-start;gap:14px;padding:4px 0;position:relative}
-.ll-metro-dot{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;position:relative;z-index:1;box-shadow:0 0 0 4px var(--bg)}
-.ll-evt-body{flex:1;min-width:0;padding-top:8px}
+.ll-evt{display:flex;gap:14px;position:relative}
+.ll-evt::after{content:'';position:absolute;left:14px;top:0;bottom:0;width:10px;background:var(--mc,transparent);z-index:0}
+.ll-day-evts>.ll-evt:first-child::after{top:19px}
+.ll-day-evts>.ll-evt:last-child::after{display:none}
+.ll-metro-dot{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;position:relative;z-index:2}
+.ll-evt-body{flex:1;min-width:0;padding:8px 0 12px}
 .ll-evt-body .ll-name{font-size:13px;line-height:1.4;color:var(--tx)}
 .ll-evt-body .ll-time{font-size:11px;color:#666;margin-top:1px;font-variant-numeric:tabular-nums}
 .ll-summary{display:flex;flex-wrap:wrap;gap:8px;padding:8px 0 4px 54px}
@@ -2336,9 +2338,9 @@ function filterSportsEvents(){
     var scoreColor=won?'#4ade80':lost?'#ef4444':'var(--t2)';
     var added=addedIds[ev.idEvent];
     var evJson=JSON.stringify(ev).replace(/'/g,'&#39;').replace(/"/g,'&quot;');
-    // Use dateEventLocal if available, adjust UTC dates with late times (evening US games roll over in UTC)
+    // Adjust UTC dates: US evening games have strTime 00:00-09:59 UTC (= previous day local)
     var evDate=ev.dateEventLocal||ev.dateEvent;
-    if(evDate===ev.dateEvent&&ev.strTime){var hr=parseInt(ev.strTime);if(hr>=2&&hr<=10){var dd=new Date(evDate+'T12:00:00');dd.setDate(dd.getDate()-1);evDate=dd.toISOString().substring(0,10)}}
+    if(ev.strTime){var hr=parseInt(ev.strTime);if(hr>=0&&hr<10){var dd=new Date(evDate+'T12:00:00');dd.setDate(dd.getDate()-1);evDate=dd.toISOString().substring(0,10)}}
     var localDate=_spDate(evDate);
     // Use cached badge for our team when API returns none
     var homeBadge=ev.strHomeTeamBadge&&ev.strHomeTeamBadge!=='null'?ev.strHomeTeamBadge:(ev.strHomeTeam===tn?window._spTeamBadge:'');
@@ -2417,8 +2419,8 @@ function renderSports(){
       var counts={};leagues[lg].forEach(function(e){var k=cy==='all'?e.date.substring(0,4):e.date.substring(0,7);counts[k]=(counts[k]||0)+1});
       return{name:lg,type:'bar',stack:'sp',data:periods.map(function(p){return counts[p]||0}),itemStyle:{color:_lgColor(lg)},barMaxWidth:30};
     });
-    spChart.setOption({tooltip:{trigger:'axis',...tt},legend:{data:lgNames,top:0,textStyle:{color:'#999',fontSize:10}},grid:{left:50,right:20,top:lgNames.length>1?36:30,bottom:24},
-      title:{text:filtered.length+' games'+(cy!=='all'?' in '+cy:''),left:'center',top:lgNames.length>1?20:0,textStyle:{color:'#999',fontSize:11,fontWeight:'normal'}},
+    spChart.setOption({tooltip:{trigger:'axis',...tt},legend:{data:lgNames.length>1?lgNames:[],right:10,top:0,textStyle:{color:'#999',fontSize:10}},grid:{left:50,right:20,top:36,bottom:24},
+      title:{text:filtered.length+' games'+(cy!=='all'?' in '+cy:''),left:16,top:0,textStyle:{color:'#666',fontSize:11,fontWeight:'normal'}},
       xAxis:{type:'category',data:periods,axisLabel:{color:'#ccc'},axisLine:{lineStyle:{color:'#333'}}},
       yAxis:{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},
       series:spSeries});
@@ -2610,7 +2612,7 @@ function _llRenderBatch(){
       // Reverse: most recent first within the day
       filtered.slice().reverse().forEach(function(e){
         var info=_llTypeInfo[e.ty]||{icon:'❓',color:'#666'};
-        body+='<div class="ll-evt"><div class="ll-metro-dot" style="background:'+info.color+'">'+info.icon+'</div><div class="ll-evt-body"><div class="ll-name">'+e.n+'</div><div class="ll-time">'+e.t+'</div></div></div>';
+        body+='<div class="ll-evt" style="--mc:'+info.color+'"><div class="ll-metro-dot" style="background:'+info.color+'">'+info.icon+'</div><div class="ll-evt-body"><div class="ll-name">'+e.n+'</div><div class="ll-time">'+e.t+'</div></div></div>';
       });
       body+='</div>';
     }else{
