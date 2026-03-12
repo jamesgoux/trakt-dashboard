@@ -2478,7 +2478,7 @@ function renderSports(){
   var wrap=document.getElementById('sp-wrap');
   if(ct!=='all'&&ct!=='sports'){wrap.style.display='none';return}
   var filtered=cy==='all'?SP:SP.filter(function(e){return e.date&&e.date.substring(0,4)===cy});
-  if(_spWtFilter!=='all')filtered=filtered.filter(function(e){return e.watch_type===_spWtFilter});
+  if(_spWtFilter&&_spWtFilter!=='all')filtered=filtered.filter(function(e){return e.watch_type===_spWtFilter});
   // Always show when sports filter is active (so user can add events)
   if(filtered.length===0&&ct!=='sports'){wrap.style.display='none';return}
   wrap.style.display='';
