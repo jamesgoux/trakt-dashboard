@@ -2240,15 +2240,18 @@ function _spLoadBatch(count){
   Promise.all(fetches).then(function(results){
     var existingIds={};window._spAllEvents.forEach(function(e){existingIds[e.idEvent]=true});
     var added=0;var tn=window._spTeamName;
-    var opponents={};
-    results.forEach(function(d){(d.event||[]).forEach(function(ev){
+    var homeRounds={};var leagueId=null;
+    var loadedSeasons=window._spSeasons.slice(window._spSeasonIdx-toLoad,window._spSeasonIdx);
+    results.forEach(function(d,di){(d.event||[]).forEach(function(ev){
       if(!existingIds[ev.idEvent]){
         if((ev.strHomeTeam||'').indexOf(tn)>=0||(ev.strAwayTeam||'').indexOf(tn)>=0){
           window._spAllEvents.push(ev);existingIds[ev.idEvent]=true;added++;
         }
       }
-      // Track opponents for away game fetch
-      if(ev.strAwayTeam&&ev.strAwayTeam!==tn)opponents[ev.strAwayTeam]=1;
+      if(!leagueId)leagueId=ev.idLeague;
+      var r=parseInt(ev.intRound)||0;
+      var sk=loadedSeasons[di]||'';
+      if(r>0&&r<100)homeRounds[sk+'|'+r]=true;
     })});
     window._spAllEvents.sort(function(a,b){return b.dateEvent.localeCompare(a.dateEvent)});
     filterSportsEvents();
@@ -2256,26 +2259,37 @@ function _spLoadBatch(count){
     var more=window._spSeasonIdx<window._spSeasons.length;
     loadEl.textContent=more?'Scroll for more':'All loaded';
     if(added<10&&more)_spLoadBatch(3);
-    // Auto-fetch away games: search each opponent's home games for the same seasons
-    var oppNames=Object.keys(opponents);
-    if(oppNames.length&&!window._spAwayDone){
-      window._spAwayDone={};
-      var loadedSeasons=window._spSeasons.slice(window._spSeasonIdx-toLoad,window._spSeasonIdx);
-      var awayFetches=[];
-      oppNames.forEach(function(opp){
-        loadedSeasons.forEach(function(s){
-          var key=opp+'|'+s;
-          if(!window._spAwayDone[key]){window._spAwayDone[key]=true;
-            awayFetches.push(fetch('https://www.thesportsdb.com/api/v1/json/3/searchevents.php?e='+encodeURIComponent(opp)+'&s='+encodeURIComponent(s)).then(function(r){return r.json()}).catch(function(){return{event:[]}}));
+    // Backfill away games via eventsround — fetch rounds missing from home games
+    if(leagueId&&added>0){
+      var awayRoundFetches=[];
+      loadedSeasons.forEach(function(s){
+        // Determine max round from home games for this season
+        var maxR=0;for(var r=1;r<=25;r++){if(homeRounds[s+'|'+r])maxR=Math.max(maxR,r)}
+        if(maxR<2)return;
+        for(var r=1;r<=maxR;r++){
+          if(!homeRounds[s+'|'+r]){
+            var rkey=s+'|'+r;
+            if(!window._spRoundsDone)window._spRoundsDone={};
+            if(!window._spRoundsDone[rkey]){window._spRoundsDone[rkey]=true;
+              awayRoundFetches.push(fetch('https://www.thesportsdb.com/api/v1/json/3/eventsround.php?id='+leagueId+'&r='+r+'&s='+encodeURIComponent(s)).then(function(r2){return r2.json()}).catch(function(){return{events:[]}}));
+            }
+          }
+        }
+        // Also fetch playoff rounds (125=wild card, 150=divisional, 175=championship, 200=super bowl)
+        [125,150,175,200,500].forEach(function(pr){
+          var rkey=s+'|'+pr;
+          if(!window._spRoundsDone)window._spRoundsDone={};
+          if(!window._spRoundsDone[rkey]){window._spRoundsDone[rkey]=true;
+            awayRoundFetches.push(fetch('https://www.thesportsdb.com/api/v1/json/3/eventsround.php?id='+leagueId+'&r='+pr+'&s='+encodeURIComponent(s)).then(function(r2){return r2.json()}).catch(function(){return{events:[]}}));
           }
         });
       });
-      if(awayFetches.length){
+      if(awayRoundFetches.length){
         loadEl.textContent='Loading away games...';
-        Promise.all(awayFetches).then(function(aResults){
+        Promise.all(awayRoundFetches).then(function(rResults){
           var aAdded=0;
-          aResults.forEach(function(d){(d.event||[]).forEach(function(ev){
-            if(!existingIds[ev.idEvent]&&((ev.strAwayTeam||'').indexOf(tn)>=0)){
+          rResults.forEach(function(d){(d.events||[]).forEach(function(ev){
+            if(!existingIds[ev.idEvent]&&((ev.strHomeTeam||'').indexOf(tn)>=0||(ev.strAwayTeam||'').indexOf(tn)>=0)){
               window._spAllEvents.push(ev);existingIds[ev.idEvent]=true;aAdded++;
             }
           })});
