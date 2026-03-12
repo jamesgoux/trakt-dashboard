@@ -2616,6 +2616,8 @@ function openLifelineFeed(){
   var filterHtml=filterText.length?'<div style="padding:8px 16px;max-width:600px;margin:0 auto;font-size:11px;color:var(--t2)">Filtered: '+filterText.join(' · ')+' <button onclick="cy=\'all\';ct=\'all\';document.getElementById(\'ys\').value=\'all\';document.getElementById(\'gs\').value=\'all\';writeHash();openLifelineFeed()" style="background:none;border:none;color:var(--sp);cursor:pointer;font-size:11px">Clear</button></div>':'';
   content.innerHTML=filterHtml;
   document.getElementById('ll-feed').style.display='';
+  // Dismiss any ECharts tooltips so they don't bleed through the overlay
+  ch.forEach(function(c){try{c.dispatchAction({type:'hideTip'})}catch(e){}});
   _lockBody();
   // Sync filter dropdowns
   var feedType=document.getElementById('ll-feed-type');if(feedType)feedType.value=ct;
