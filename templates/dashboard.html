@@ -356,6 +356,12 @@ Drop CSV here or <span style="color:var(--bl);text-decoration:underline">click t
 Drop BG Stats JSON or <span style="color:#ec4899;text-decoration:underline">click to browse</span>
 </div>
 <div id="bgs-status" style="margin-top:8px;font-size:11px;color:var(--t2)"></div>
+<p style="color:var(--t2);font-size:12px;margin:16px 0 10px">Drop a <b>GameTrack</b> games.csv export to update video game data.</p>
+<div id="gt-drop" style="border:2px dashed rgba(255,255,255,.1);border-radius:8px;padding:30px;text-align:center;cursor:pointer;color:var(--t2);font-size:13px;transition:border-color .2s">
+<input type="file" id="gt-file" accept=".csv" style="display:none">
+Drop GameTrack games.csv or <span style="color:#6366f1;text-decoration:underline">click to browse</span>
+</div>
+<div id="gt-status" style="margin-top:8px;font-size:11px;color:var(--t2)"></div>
 </div>
 <div class="status" id="status"></div>
 </div>
@@ -3761,6 +3767,102 @@ function commitBGS(content,parsed){
     if(r.ok){stat.textContent='✓ Uploaded! '+parsed.plays.length+' plays, '+parsed.players.length+' players. Will rebuild on next refresh.';stat.style.color='#4ade80'}
     else{r.json().then(function(d){stat.textContent='Upload failed: '+(d.message||r.status);stat.style.color='#ef4444';if(r.status===401)localStorage.removeItem('iris_gh_pat')})}
   }).catch(function(e){stat.textContent='Error: '+e.message;stat.style.color='#ef4444'});
+}
+})();
+
+// GameTrack CSV Importer — parses games.csv, builds gametrack.json, commits to repo
+(function(){
+var drop=document.getElementById('gt-drop');
+var inp=document.getElementById('gt-file');
+var stat=document.getElementById('gt-status');
+if(!drop)return;
+drop.onclick=function(){inp.click()};
+drop.ondragover=function(e){e.preventDefault();drop.style.borderColor='#6366f1'};
+drop.ondragleave=function(){drop.style.borderColor='rgba(255,255,255,.1)'};
+drop.ondrop=function(e){e.preventDefault();drop.style.borderColor='rgba(255,255,255,.1)';if(e.dataTransfer.files[0])processGT(e.dataTransfer.files[0])};
+inp.onchange=function(){if(inp.files[0])processGT(inp.files[0])};
+
+function processGT(file){
+  if(!file.name.toLowerCase().endsWith('.csv')){stat.textContent='Error: Only .csv files';return}
+  stat.textContent='Reading '+file.name+'...';stat.style.color='var(--t2)';
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var text=e.target.result;
+    var lines=text.split('\n').filter(function(l){return l.trim()});
+    if(lines.length<2){stat.textContent='Error: Empty file';stat.style.color='#ef4444';return}
+    // Parse CSV with proper quote handling
+    function parseLine(line){var r=[];var cur='';var inQ=false;for(var i=0;i<line.length;i++){var c=line[i];if(c==='"'){inQ=!inQ}else if(c===','&&!inQ){r.push(cur);cur=''}else{cur+=c}}r.push(cur);return r.map(function(v){return v.trim().replace(/^"|"$/g,'')})}
+    var headers=parseLine(lines[0]);
+    var titleIdx=headers.indexOf('title');var platIdx=headers.indexOf('owned_platform');
+    var stateIdx=headers.indexOf('game_state');var compIdx=headers.indexOf('completion_state');
+    var hrsIdx=headers.indexOf('hours_played');var addHrsIdx=headers.indexOf('additional_playtime');
+    var startIdx=headers.indexOf('start_date');var finIdx=headers.indexOf('finish_date');
+    var addedIdx=headers.indexOf('added_date');var ratingIdx=headers.indexOf('user_rating');
+    var criticIdx=headers.indexOf('critic_rating');var genreIdx=headers.indexOf('genres');
+    var posterIdx=headers.indexOf('poster_url');var devIdx=headers.indexOf('developer');
+    var pubIdx=headers.indexOf('publisher');var uuidIdx=headers.indexOf('uuid');
+    var ttbStoryIdx=headers.indexOf('time_to_beat_story');
+    var releaseIdx=headers.indexOf('release_date');
+    if(titleIdx<0){stat.textContent='Error: No "title" column — is this games.csv?';stat.style.color='#ef4444';return}
+
+    var stateMap={'1':'playing','2':'play_later','3':'collection','4':'finished','5':'abandoned','6':'wanted'};
+    var compMap={'1':'story','3':'completionist'};
+    function pf(v){var n=parseFloat(v);return isNaN(n)?0:n}
+    function pd(v){return v?v.substring(0,10):''}
+
+    var games=[];var totalH=0;var platC={};var statC={};var genC={};var byYear={};
+    for(var i=1;i<lines.length;i++){
+      var c=parseLine(lines[i]);if(c.length<=titleIdx||!c[titleIdx])continue;
+      var hrs=pf(c[hrsIdx])+pf(c[addHrsIdx]);
+      var state=stateMap[c[stateIdx]]||'collection';
+      var comp=compMap[c[compIdx]]||null;
+      var fd=pd(c[finIdx]);var sd=pd(c[startIdx]);var ad=pd(c[addedIdx]);
+      var yr=(fd||sd||ad||'').substring(0,4);
+      var genres=c[genreIdx]?c[genreIdx].split('|').map(function(g){return g.trim()}).filter(Boolean):[];
+      var plat=c[platIdx]||'';
+      var g={id:c[uuidIdx]||'',title:c[titleIdx],developer:c[devIdx]||'',publisher:c[pubIdx]||'',poster:c[posterIdx]||'',platform:plat,state:state,completion:comp,user_rating:pf(c[ratingIdx]),critic_rating:pf(c[criticIdx]),hours:Math.round(hrs*10)/10,start_date:sd,finish_date:fd,added_date:ad,release_date:pd(c[releaseIdx]),genres:genres,ttb_story:pf(c[ttbStoryIdx]),yr:yr};
+      games.push(g);totalH+=hrs;
+      if(plat)platC[plat]=(platC[plat]||0)+1;
+      statC[state]=(statC[state]||0)+1;
+      genres.forEach(function(gn){genC[gn]=(genC[gn]||0)+1});
+      if(yr){if(!byYear[yr])byYear[yr]={games:0,hours:0,finished:0};byYear[yr].games++;byYear[yr].hours+=hrs;if(state==='finished')byYear[yr].finished++}
+    }
+
+    var finished=games.filter(function(g){return g.state==='finished'});
+    var playing=games.filter(function(g){return g.state==='playing'});
+    var rated=games.filter(function(g){return g.user_rating>0});
+    var withH=games.filter(function(g){return g.hours>0}).sort(function(a,b){return b.hours-a.hours}).slice(0,30);
+    var platArr=Object.entries(platC).sort(function(a,b){return b[1]-a[1]}).map(function(e){return{name:e[0],count:e[1]}});
+    var statArr=Object.entries(statC).sort(function(a,b){return b[1]-a[1]}).map(function(e){return{name:e[0],count:e[1]}});
+    var genArr=Object.entries(genC).sort(function(a,b){return b[1]-a[1]}).slice(0,20).map(function(e){return{name:e[0],count:e[1]}});
+
+    var output={total:games.length,total_hours:Math.round(totalH*10)/10,total_finished:finished.length,total_playing:playing.length,total_rated:rated.length,total_platforms:Object.keys(platC).length,all:games,top_by_hours:withH.map(function(g){return{title:g.title,hours:g.hours,platform:g.platform,poster:g.poster,state:g.state}}),platforms:platArr,statuses:statArr,genres:genArr,rating_dist:[],by_year:byYear,export_date:new Date().toISOString()};
+
+    // Update dashboard data
+    D.gt=output;
+    stat.innerHTML='<span style="color:#4ade80">✓</span> Parsed '+games.length+' games ('+finished.length+' finished, '+Math.round(totalH)+'h). Syncing...';
+    renderGames();
+
+    // Commit gametrack.json to repo
+    var pat=localStorage.getItem('iris_gh_pat');
+    if(!pat){stat.innerHTML+=' <span style="color:#fbbf24">No GitHub PAT — data loaded locally only.</span>';return}
+    var content=JSON.stringify(output);
+    var b64=btoa(Array.from(new TextEncoder().encode(content),function(b){return String.fromCharCode(b)}).join(''));
+    fetch('https://api.github.com/repos/jamesgoux/iris-stats/contents/data/gametrack.json',{
+      headers:{'Authorization':'token '+pat}
+    }).then(function(r){return r.ok?r.json():{sha:null}}).then(function(existing){
+      var body={message:'Update GameTrack data ('+games.length+' games)',content:b64};
+      if(existing.sha)body.sha=existing.sha;
+      return fetch('https://api.github.com/repos/jamesgoux/iris-stats/contents/data/gametrack.json',{
+        method:'PUT',headers:{'Authorization':'token '+pat,'Content-Type':'application/json'},
+        body:JSON.stringify(body)
+      });
+    }).then(function(r){
+      if(r.ok){stat.innerHTML='<span style="color:#4ade80">✓</span> '+games.length+' games synced to GitHub!';stat.style.color='#4ade80'}
+      else{stat.innerHTML+=' <span style="color:#ef4444">Sync failed ('+r.status+')</span>'}
+    }).catch(function(e){stat.innerHTML+=' <span style="color:#ef4444">Error: '+e.message+'</span>'});
+  };
+  reader.readAsText(file);
 }
 })();
 </script></body></html>
