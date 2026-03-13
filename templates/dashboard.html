@@ -510,7 +510,7 @@ function stats(){
       if(D.th&&D.th.total){var thF=cy==='all'?(D.th.all||[]):(D.th.all||[]).filter(function(e){return e.y===cy});if(thF.length)h2+=sc(thF.length,'🎭 Theater','#a78bfa')}
       if(SP.length){var spAll=cy==='all'?SP:SP.filter(function(e){return e.date&&e.date.substring(0,4)===cy});if(spAll.length)h2+=sc(spAll.length,'🏟️ Sports','#0ea5e9')}
       if(D.health&&D.health.total){var hwBy=D.health.by_year||{};var hwCt=0;Object.entries(hwBy).forEach(function(e){if(cy==='all'||e[0]===cy)hwCt+=e[1].count});if(hwCt)h2+=sc(hwCt,'🏃 Workouts','#1db954')}
-      if(D.bg&&D.bg.total){var bgBy2=D.bg.agg.by_year||{};var bgCt2=0;Object.entries(bgBy2).forEach(function(e){if(cy==='all'||e[0]===cy)bgCt2+=e[1]});if(bgCt2)h2+=sc(bgCt2,'🎲 Board Games','#ec4899')}
+      if(D.bg&&D.bg.total){var bgBy2=D.bg.agg.by_year||{};var bgCt2=0;Object.entries(bgBy2).forEach(function(e){if(cy==='all'||e[0]===cy)bgCt2+=e[1]});if(bgCt2)h2+=sc(bgCt2,'🎲 Plays','#ec4899')}
     }else{
       h2=sc((mw+ew).toLocaleString(),'👁️ Watches','#b0b0b0')+sc(totalDays,'⏱️ Days','#b0b0b0')+sc((cy==='all'?s.unique_movies:mw).toLocaleString(),'🎞️ Movies','var(--ac)')+sc(s.unique_shows,'📺 Shows','var(--pu)')+sc(seasonCount,'📦 Seasons','var(--pu)')+sc(ew.toLocaleString(),'🔢 Episodes','var(--pu)');
       if(D.pc&&D.pc.total_podcasts){var pcY=cy!=='all'&&D.pc.yearly?D.pc.yearly.find(function(y){return y.yr===cy}):null;var pcHrs=pcY?pcY.hrs:D.pc.total_listened_hrs;var pcEps=pcY?pcY.eps:D.pc.total_episodes;var pcDays=Math.round(pcHrs/24*10)/10;var pcShows=cy!=='all'&&D.pc.top_y&&D.pc.top_y[cy]?D.pc.top_y[cy].length:D.pc.total_podcasts;h2+=sc(pcShows,'📡 Podcasts','#ef4444')+sc(pcEps,'📻 Pod Episodes','#ef4444')+sc(pcDays+'d','🎙️ Pod Days','#ef4444')}
@@ -520,7 +520,7 @@ function stats(){
       if(D.th&&D.th.total){var thF=cy==='all'?(D.th.all||[]):(D.th.all||[]).filter(function(e){return e.y===cy});h2+=sc(thF.length,'🎭 Theater','#a78bfa')}
       if(SP.length){var spAll=cy==='all'?SP:SP.filter(function(e){return e.date&&e.date.substring(0,4)===cy});h2+=sc(spAll.length,'🏟️ Sports','#0ea5e9')}
       if(D.health&&D.health.total){var hwBy=D.health.by_year||{};var hwCt=0;Object.entries(hwBy).forEach(function(e){if(cy==='all'||e[0]===cy)hwCt+=e[1].count});h2+=sc(hwCt,'🏃 Workouts','#1db954')}
-      if(D.bg&&D.bg.total){var bgBy2=D.bg.agg.by_year||{};var bgCt2=0;Object.entries(bgBy2).forEach(function(e){if(cy==='all'||e[0]===cy)bgCt2+=e[1]});h2+=sc(bgCt2,'🎲 Board Games','#ec4899')}
+      if(D.bg&&D.bg.total){var bgBy2=D.bg.agg.by_year||{};var bgCt2=0;Object.entries(bgBy2).forEach(function(e){if(cy==='all'||e[0]===cy)bgCt2+=e[1]});h2+=sc(bgCt2,'🎲 Plays','#ec4899')}
     }
   }
   el.innerHTML=h2;
