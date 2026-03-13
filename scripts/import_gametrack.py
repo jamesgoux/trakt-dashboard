@@ -173,8 +173,9 @@ def main():
         # Platform
         platform = g.get("owned_platform", "")
 
-        # Determine year (finish year > start year > added year)
-        year = parse_year(finish_date) or parse_year(start_date) or parse_year(g.get("added_date", ""))
+        # Determine year (finish year > start year > added year > PSN last_played)
+        psn_last = parse_date(psn.get("last_played", "")) if psn else ""
+        year = parse_year(finish_date) or parse_year(start_date) or parse_year(g.get("added_date", "")) or parse_year(psn_last)
 
         game = {
             "id": uuid,

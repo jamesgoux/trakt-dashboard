@@ -288,6 +288,7 @@ body{overflow-x:hidden}
 <div class="cd"><h3><span class="i">🖥️</span>Platforms</h3><div id="gt-platforms" style="height:280px"></div></div>
 <div class="cd"><h3><span class="i">📊</span>Status</h3><div id="gt-status" style="height:280px"></div></div>
 <div class="cd"><h3><span class="i">🎯</span>Genres</h3><div id="gt-genres" style="height:280px"></div></div>
+<div class="cd"><h3><span class="i">🏆</span>Trophies</h3><div id="gt-trophies" style="height:280px"></div></div>
 <div class="cd fw"><h3><span class="i">📋</span>Recent Games</h3><div class="stb" id="gt-recent" style="font-size:12px;max-height:500px"></div></div>
 </div>
 <!-- SPORTS -->
@@ -2818,10 +2819,13 @@ function renderGames(){
   var fin=filtered.filter(function(g){return g.state==='finished'});
   var play=filtered.filter(function(g){return g.state==='playing'});
 
-  // Stats tiles
+  // Stats tiles (game-only view)
   if(ct==='game'){
     var el=document.getElementById('st');
-    el.innerHTML=sc(totalG,'🎮 Games','#6366f1')+sc(Math.round(totalH)+'h','⏱️ Played','#6366f1')+sc(fin.length,'✅ Finished','#6366f1')+sc(play.length,'▶️ Playing','#6366f1');return}
+    var trophyG=filtered.filter(function(g){return g.trophy_progress>0});
+    var avgTrophy=trophyG.length?Math.round(trophyG.reduce(function(s,g){return s+g.trophy_progress},0)/trophyG.length):0;
+    el.innerHTML=sc(totalG,'🎮 Games','#6366f1')+sc(Math.round(totalH)+'h','⏱️ Played','#6366f1')+sc(fin.length,'✅ Finished','#6366f1')+sc(play.length,'▶️ Playing','#6366f1')+sc(gt.total_platforms,'🖥️ Platforms','#6366f1')+(trophyG.length?sc(avgTrophy+'%','🏆 Avg Trophies','#6366f1'):'');
+  }
 
   // Top by hours chart
   var topH=filtered.filter(function(g){return g.hours>0}).sort(function(a,b){return b.hours-a.hours}).slice(0,20);
@@ -2862,16 +2866,30 @@ function renderGames(){
     var gC=echarts.init(gEl);
     gC.setOption({tooltip:{trigger:mob?'item':'axis',axisPointer:{type:'shadow'},...tt},grid:{left:gl(120),right:30,top:8,bottom:8},xAxis:{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},yAxis:{type:'category',data:gN,axisLabel:{color:'#ccc',fontSize:10,interval:0},axisLine:{lineStyle:{color:'#333'}}},series:[{type:'bar',data:gV.map(function(v){return{value:v,itemStyle:{color:'#a5b4fc'}}}),barMaxWidth:16,label:{show:true,position:'right',color:'#ccc',fontSize:10}}]});ch.push(gC)}
 
-  // Recent games table
-  var recG=filtered.filter(function(g){return g.state==='finished'||g.state==='playing'||g.hours>0}).sort(function(a,b){var da=a.finish_date||a.start_date||a.added_date||'';var db=b.finish_date||b.start_date||b.added_date||'';return db.localeCompare(da)}).slice(0,15);
+  // Trophies chart (PSN games with trophy progress)
+  var trophyG=filtered.filter(function(g){return g.trophy_progress>0}).sort(function(a,b){return b.trophy_progress-a.trophy_progress});
+  var tEl=document.getElementById('gt-trophies');
+  if(trophyG.length){
+    var tN=trophyG.map(function(g){return g.title}).reverse();
+    var tV=trophyG.map(function(g){return g.trophy_progress}).reverse();
+    var tC=echarts.init(tEl);
+    tC.setOption({tooltip:{trigger:mob?'item':'axis',axisPointer:{type:'shadow'},...tt,formatter:function(p){return p[0].name+': '+p[0].value+'%'}},grid:{left:gl(160),right:40,top:8,bottom:8},xAxis:{type:'value',max:100,axisLabel:{color:'#666',formatter:'{value}%'},splitLine:{lineStyle:{color:'#222'}}},yAxis:{type:'category',data:tN,axisLabel:{color:'#ccc',fontSize:10,interval:0},axisLine:{lineStyle:{color:'#333'}}},series:[{type:'bar',data:tV.map(function(v){return{value:v,itemStyle:{color:v===100?'#fbbf24':v>=50?'#818cf8':'#475569'}}}),barMaxWidth:14,label:{show:true,position:'right',color:'#ccc',fontSize:10,formatter:function(p){return p.value+'%'}}}]});ch.push(tC)}
+  else{tEl.innerHTML='<div style="text-align:center;color:var(--t2);padding:40px">No trophy data</div>'}
+
+  // Recent games table — show games with activity (finished/playing/hours), sorted by date then hours
+  var recG=filtered.filter(function(g){return g.state==='finished'||g.state==='playing'||g.hours>0}).sort(function(a,b){
+    var da=a.finish_date||a.start_date||a.added_date||'';var db=b.finish_date||b.start_date||b.added_date||'';
+    if(da&&db)return db.localeCompare(da);if(da)return-1;if(db)return 1;return b.hours-a.hours;
+  }).slice(0,20);
   var rEl=document.getElementById('gt-recent');
   if(recG.length){
-    var rh='<table style="width:100%"><thead><tr><th></th><th>Game</th><th>Platform</th><th>Hours</th><th>Status</th></tr></thead><tbody>';
+    var rh='<table style="width:100%"><thead><tr><th></th><th>Game</th><th>Platform</th><th>Hours</th><th>🏆</th><th>Status</th></tr></thead><tbody>';
     recG.forEach(function(g){
       var poster=g.poster?'<img src="'+g.poster+'" style="width:28px;height:38px;object-fit:cover;border-radius:3px" loading="lazy" onerror="this.style.display=\'none\'">':'';
       var stateLabel=g.state==='finished'?'✅'+(g.completion==='story'?' Story':g.completion==='completionist'?' 100%':''):g.state==='playing'?'▶️':g.state==='abandoned'?'❌':'';
       var hrs=g.hours>0?Math.round(g.hours)+'h':'';
-      rh+='<tr><td style="width:32px">'+poster+'</td><td style="color:#818cf8;font-weight:600">'+g.title+'</td><td style="font-size:11px;color:var(--t2)">'+g.platform+'</td><td>'+hrs+'</td><td style="font-size:12px">'+stateLabel+'</td></tr>'});
+      var trophy=g.trophy_progress>0?(g.trophy_progress===100?'🏆':g.trophy_progress+'%'):'';
+      rh+='<tr><td style="width:32px">'+poster+'</td><td style="color:#818cf8;font-weight:600">'+g.title+'</td><td style="font-size:11px;color:var(--t2)">'+g.platform+'</td><td>'+hrs+'</td><td style="font-size:11px;color:'+(g.trophy_progress===100?'#fbbf24':'var(--t2)')+'">'+trophy+'</td><td style="font-size:12px">'+stateLabel+'</td></tr>'});
     rh+='</tbody></table>';rEl.innerHTML=rh}
   else{rEl.innerHTML='<div style="text-align:center;color:var(--t2);padding:20px">No recent games</div>'}
 }
