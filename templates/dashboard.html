@@ -2123,6 +2123,9 @@ function renderPodcasts(){
 }
 
 // Sports — localStorage-backed tracker with TheSportsDB
+// Pre-cached schedule data (from refresh_sports_schedule.py)
+var _spSchedule=D.spSchedule||{events:{},teams:{}};
+var _spTrackedTeams=D.spTeams||[];
 // Sports: merge repo data (D.sp) + localStorage pending additions
 var _spRepo=D.sp||[];
 var _spPending=JSON.parse(localStorage.getItem('iris_sports_pending')||'[]');
@@ -2280,7 +2283,29 @@ function loadTeamEvents(teamId,teamName,teamBadge){
   document.getElementById('sp-ev-list').innerHTML='';
   document.getElementById('sp-ev-search').value='';
   window._spYearFilter=null;
-  // Load first 3 seasons immediately for a full screen of results
+  // Check pre-cached schedule first
+  var cached=_spSchedule.events[teamName];
+  if(cached&&cached.length){
+    window._spUsingCache=true;
+    // Convert cached events to TheSportsDB event format for display
+    cached.forEach(function(ce){
+      window._spAllEvents.push({
+        idEvent:ce.id,dateEvent:ce.date,dateEventLocal:ce.date,strTime:ce.time||'',
+        strSport:ce.sport,strLeague:ce.league,intRound:ce.round||'',
+        strHomeTeam:ce.home_team,strAwayTeam:ce.away_team,
+        intHomeScore:ce.home_score,intAwayScore:ce.away_score,
+        strVenue:ce.venue||'',strHomeTeamBadge:ce.home_badge||'',strAwayTeamBadge:ce.away_badge||'',
+        strSeason:ce.season||'',strStatus:ce.status||'',strEvent:(ce.home_team+' vs '+ce.away_team)
+      });
+    });
+    window._spAllEvents.sort(function(a,b){return b.dateEvent.localeCompare(a.dateEvent)});
+    filterSportsEvents();
+    var loadEl=document.getElementById('sp-ev-loading');
+    if(loadEl)loadEl.textContent=cached.length+' cached games ('+(_spSchedule.teams[teamName]||{}).league+')';
+    return;
+  }
+  window._spUsingCache=false;
+  // Fallback: live API fetch (uncached team)
   _spLoadBatch(3);
 }
 
@@ -2518,6 +2543,35 @@ function toggleSportsQuickSave(evId,tr){
   tr.parentNode.insertBefore(qr,tr.nextSibling);
 }
 
+function _spAutoTrackTeam(teamName){
+  // Auto-add team to tracked list if not already there
+  if(!teamName)return;
+  var already=_spTrackedTeams.some(function(t){return t.name===teamName});
+  if(already)return;
+  // Find league info from the event
+  var league='',leagueId='',sport='',teamId=window._spTeamId||'';
+  var sampleEv=window._spAllEvents&&window._spAllEvents[0];
+  if(sampleEv){league=sampleEv.strLeague||'';sport=sampleEv.strSport||''}
+  var leagueMap={'NBA':'4387','NFL':'4391','MLB':'4424','NHL':'4380'};
+  leagueId=leagueMap[league]||'';
+  var newTeam={name:teamName,league:league,league_id:leagueId,team_id:teamId,sport:sport};
+  _spTrackedTeams.push(newTeam);
+  // Commit updated teams list to repo
+  var pat=localStorage.getItem('iris_gh_pat');if(!pat)return;
+  var content=JSON.stringify(_spTrackedTeams,null,2);
+  var b64=btoa(Array.from(new TextEncoder().encode(content),function(b){return String.fromCharCode(b)}).join(''));
+  fetch('https://api.github.com/repos/jamesgoux/iris-stats/contents/data/sports_teams.json',{headers:{'Authorization':'Bearer '+pat,'Accept':'application/vnd.github.v3+json'}})
+    .then(function(r){return r.json()})
+    .then(function(d){
+      return fetch('https://api.github.com/repos/jamesgoux/iris-stats/contents/data/sports_teams.json',{
+        method:'PUT',headers:{'Authorization':'Bearer '+pat,'Accept':'application/vnd.github.v3+json','Content-Type':'application/json'},
+        body:JSON.stringify({message:'Track new team: '+teamName,content:b64,sha:d.sha||''})
+      });
+    })
+    .then(function(r){if(r.ok)_spToast('Tracking '+teamName+' for schedule cache','#4ade80')})
+    .catch(function(){});
+}
+
 function quickSaveSport(btn,watchType){
   var qr=btn.closest('.sp-qs-row');
   var ev=JSON.parse(qr.dataset.ev);
@@ -2526,6 +2580,7 @@ function quickSaveSport(btn,watchType){
   SP.push(newEv);
   _spPending.push(newEv);
   localStorage.setItem('iris_sports_pending',JSON.stringify(_spPending));
+  _spAutoTrackTeam(window._spTeamName);
   _spCommitToRepo();
   // Flash success then refresh
   btn.textContent='✓';btn.style.background='#4ade80';btn.style.color='#000';
@@ -2542,6 +2597,7 @@ function saveSportsEvent(){
   SP.push(newEv);
   _spPending.push(newEv);
   localStorage.setItem('iris_sports_pending',JSON.stringify(_spPending));
+  _spAutoTrackTeam(window._spTeamName);
   _spCommitToRepo();
   var confirmEl=document.getElementById('sp-ov-confirm');
   var saveBtn=confirmEl.querySelector('button[onclick*="saveSportsEvent"]');

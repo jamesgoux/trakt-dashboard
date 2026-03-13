@@ -2008,6 +2008,24 @@ if os.path.exists("data/sports.json"):
         data["sp"] = sp_raw
         print(f"  Sports: {len(sp_raw)} events loaded from data/sports.json")
 
+# Sports schedule cache — pre-cached game schedules for tracked teams
+if os.path.exists("data/sports_schedule.json"):
+    with open("data/sports_schedule.json") as f:
+        schedule_raw = json.load(f)
+    if schedule_raw:
+        data["spSchedule"] = {"events": schedule_raw.get("events", {}), "teams": schedule_raw.get("teams", {})}
+        total_cached = schedule_raw.get("total_events", 0)
+        team_count = len(schedule_raw.get("teams", {}))
+        print(f"  Sports schedule: {total_cached} cached games for {team_count} teams")
+
+# Sports tracked teams — for auto-tracking in dashboard
+if os.path.exists("data/sports_teams.json"):
+    with open("data/sports_teams.json") as f:
+        teams_raw = json.load(f)
+    if teams_raw:
+        data["spTeams"] = teams_raw
+        print(f"  Sports teams: {len(teams_raw)} tracked teams")
+
 # Health / Workouts — load from Shortcut-committed JSON
 if os.path.exists("data/health.json"):
     with open("data/health.json") as f:

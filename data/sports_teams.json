@@ -1,0 +1,8 @@
+[
+  {"name": "Los Angeles Lakers", "league": "NBA", "league_id": "4387", "team_id": "134867", "sport": "Basketball"},
+  {"name": "Green Bay Packers", "league": "NFL", "league_id": "4391", "team_id": "134940", "sport": "American Football"},
+  {"name": "Los Angeles Dodgers", "league": "MLB", "league_id": "4424", "team_id": "135272", "sport": "Baseball"},
+  {"name": "Boston Red Sox", "league": "MLB", "league_id": "4424", "team_id": "135252", "sport": "Baseball"},
+  {"name": "Los Angeles Kings", "league": "NHL", "league_id": "4380", "team_id": "134852", "sport": "Ice Hockey"},
+  {"name": "Los Angeles Rams", "league": "NFL", "league_id": "4391", "team_id": "135907", "sport": "American Football"}
+]
