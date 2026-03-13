@@ -526,9 +526,9 @@ function stats(){
       if(D.gr&&D.gr.total){var grF=cy==='all'?(D.gr.all||[]):(D.gr.all||[]).filter(function(b){return b.yr===cy});h2+=sc(grF.length,'📚 Books','#fbbf24')}
       if(D.th&&D.th.total){var thF=cy==='all'?(D.th.all||[]):(D.th.all||[]).filter(function(e){return e.y===cy});if(thF.length)h2+=sc(thF.length,'🎭 Theater','#a78bfa')}
       if(SP.length){var spAll=cy==='all'?SP:SP.filter(function(e){return e.date&&e.date.substring(0,4)===cy});if(spAll.length)h2+=sc(spAll.length,'🏟️ Sports Games','#0ea5e9')}
-      if(D.health&&D.health.total){var hwBy3=D.health.by_year||{};var hwCt3=0,hwDur3=0,hwCal3=0;Object.entries(hwBy3).forEach(function(e){if(cy==='all'||e[0]===cy){hwCt3+=e[1].count;hwDur3+=e[1].dur;hwCal3+=e[1].cal}});if(hwCt3)h2+=sc(hwCt3,'🏃 Workouts','#1db954')+sc((hwDur3/3600).toFixed(1)+'h','⏱️ Hours','#1db954')+sc((hwCal3/1000).toFixed(2)+'k','🔥 Calories','#1db954')}
+      if(D.health&&D.health.total){var hwBy3=D.health.by_year||{};var hwCt3=0;Object.entries(hwBy3).forEach(function(e){if(cy==='all'||e[0]===cy){hwCt3+=e[1].count}});if(hwCt3)h2+=sc(hwCt3,'🏃 Workouts','#1db954')}
       if(D.bg&&D.bg.total){var bgBy2=D.bg.agg.by_year||{};var bgCt2=0;Object.entries(bgBy2).forEach(function(e){if(cy==='all'||e[0]===cy)bgCt2+=e[1]});if(bgCt2)h2+=sc(bgCt2,'🎲 Plays','#ec4899')}
-      if(D.gt&&D.gt.total){var gtAll=D.gt.all||[];var gtF=cy==='all'?gtAll:gtAll.filter(function(g){return g.yr===cy});var gtFin=gtF.filter(function(g){return g.state==='finished'});if(gtF.length)h2+=sc(gtF.length,'🎮 Games','#6366f1')+sc(gtFin.length,'✅ Finished','#6366f1')}
+      if(D.gt&&D.gt.total){var gtAll=D.gt.all||[];var gtF=cy==='all'?gtAll:gtAll.filter(function(g){return g.yr===cy});var gtFin=gtF.filter(function(g){return g.state==='finished'});if(gtFin.length)h2+=sc(gtFin.length,'✅ Finished','#6366f1')}
     }else{
       h2=sc((mw+ew).toLocaleString(),'👁️ Watches','#b0b0b0')+sc(totalDays,'⏱️ Days','#b0b0b0')+sc((cy==='all'?s.unique_movies:mw).toLocaleString(),'🎞️ Movies','var(--ac)')+sc(s.unique_shows,'📺 Shows','var(--pu)')+sc(seasonCount,'📦 Seasons','var(--pu)')+sc(ew.toLocaleString(),'🔢 Episodes','var(--pu)');
       if(D.pc&&D.pc.total_podcasts){var pcY=cy!=='all'&&D.pc.yearly?D.pc.yearly.find(function(y){return y.yr===cy}):null;var pcHrs=pcY?pcY.hrs:D.pc.total_listened_hrs;var pcEps=pcY?pcY.eps:D.pc.total_episodes;var pcDays=Math.round(pcHrs/24*10)/10;var pcShows=cy!=='all'&&D.pc.top_y&&D.pc.top_y[cy]?D.pc.top_y[cy].length:D.pc.total_podcasts;h2+=sc(pcShows,'📡 Podcasts','#ef4444')+sc(pcEps,'📻 Pod Episodes','#ef4444')+sc(pcDays+'d','🎙️ Pod Days','#ef4444')}
@@ -539,6 +539,7 @@ function stats(){
       if(SP.length){var spAll=cy==='all'?SP:SP.filter(function(e){return e.date&&e.date.substring(0,4)===cy});var spLive2=spAll.filter(function(e){return e.watch_type==='live'}).length;var spTeams2={};spAll.forEach(function(e){if(e.home_team)spTeams2[e.home_team]=1;if(e.away_team)spTeams2[e.away_team]=1});h2+=sc(spAll.length,'🏟️ Sports Games','#0ea5e9')+sc(spLive2,'🏟️ Live','#0ea5e9')+sc(Object.keys(spTeams2).length,'🏅 Teams','#0ea5e9')}
       if(D.health&&D.health.total){var hwBy=D.health.by_year||{};var hwCt2=0,hwDur2=0,hwCal2=0;Object.entries(hwBy).forEach(function(e){if(cy==='all'||e[0]===cy){hwCt2+=e[1].count;hwDur2+=e[1].dur;hwCal2+=e[1].cal}});h2+=sc(hwCt2,'🏃 Workouts','#1db954')+sc((hwDur2/3600).toFixed(1)+'h','⏱️ Hours','#1db954')+sc((hwCal2/1000).toFixed(2)+'k','🔥 Calories','#1db954')}
       if(D.bg&&D.bg.total){var bgByY2=D.bg.agg.by_year||{};var bgCt3=0;Object.entries(bgByY2).forEach(function(e){if(cy==='all'||e[0]===cy)bgCt3+=e[1]});var bgR2=D.bg.recent||[];if(cy!=='all')bgR2=bgR2.filter(function(p){return(p.date||'').startsWith(cy)});var bgG2={};bgR2.forEach(function(p){bgG2[p.game]=1});var bgW2=0,bgT2=0;bgR2.forEach(function(p){p.players.forEach(function(pl){if(pl.name==='James Goux'){bgT2+=p.quantity;if(pl.win)bgW2+=p.quantity}})});var bgWr2=bgT2?Math.round(bgW2/bgT2*100):0;h2+=sc(bgCt3,'🎲 Plays','#ec4899')+sc(Object.keys(bgG2).length,'🃏 Games','#ec4899')+sc(bgWr2+'%','🏆 Win Rate','#ec4899')}
+      if(D.gt&&D.gt.total){var gtAll2=D.gt.all||[];var gtF2=cy==='all'?gtAll2:gtAll2.filter(function(g){return g.yr===cy});var gtFin2=gtF2.filter(function(g){return g.state==='finished'});if(gtF2.length)h2+=sc(gtF2.length,'🎮 Video Games','#6366f1')+sc(gtFin2.length,'✅ Finished','#6366f1')}
     }
   }
   el.innerHTML=h2;
@@ -2764,7 +2765,7 @@ function renderBoardGames(){
   if(cy!=='all')recent=recent.filter(function(p){return(p.date||'').startsWith(cy)});
 
   // Top Games — show 30, scrollable
-  var games=cy==='all'?agg.top_games.slice(0,30):[];
+  var games=cy==='all'?(agg.top_games||[]).slice(0,30):[];
   if(cy!=='all'){var gc={};recent.forEach(function(p){gc[p.game]=(gc[p.game]||0)+p.quantity});games=Object.entries(gc).sort(function(a,b){return b[1]-a[1]}).slice(0,30).map(function(g){return[g[0],g[1],0,0]})}
   var chartEl=document.getElementById('bg-chart');
   var chartH=Math.max(280,games.length*22+20);
@@ -2824,7 +2825,7 @@ function renderGames(){
     var el=document.getElementById('st');
     var trophyG=filtered.filter(function(g){return g.trophy_progress>0});
     var avgTrophy=trophyG.length?Math.round(trophyG.reduce(function(s,g){return s+g.trophy_progress},0)/trophyG.length):0;
-    el.innerHTML=sc(totalG,'🎮 Games','#6366f1')+sc(Math.round(totalH)+'h','⏱️ Played','#6366f1')+sc(fin.length,'✅ Finished','#6366f1')+sc(play.length,'▶️ Playing','#6366f1')+sc(gt.total_platforms,'🖥️ Platforms','#6366f1')+(trophyG.length?sc(avgTrophy+'%','🏆 Avg Trophies','#6366f1'):'');
+    el.innerHTML=sc(totalG,'🎮 Video Games','#6366f1')+sc(Math.round(totalH)+'h','⏱️ Played','#6366f1')+sc(fin.length,'✅ Finished','#6366f1')+sc(play.length,'▶️ Playing','#6366f1')+sc(gt.total_platforms,'🖥️ Platforms','#6366f1')+(trophyG.length?sc(avgTrophy+'%','🏆 Avg Trophies','#6366f1'):'');
   }
 
   // Top by hours chart
@@ -3533,10 +3534,10 @@ function render(){
   if(!isInitial){
     var ov=document.createElement('div');ov.id='render-ov';
     ov.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(15,15,15,.75);z-index:9998;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(2px)';
-    ov.innerHTML='<div style="text-align:center"><svg viewBox="0 0 512 512" width="48" height="48" style="animation:iris-pulse 1.5s ease-in-out infinite"><defs><radialGradient id="igl2" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#e94560"/><stop offset="45%" stop-color="#7c3aed"/><stop offset="100%" stop-color="#c4b5fd"/></radialGradient></defs><path d="M256 96C128 96 32 256 32 256s96 160 224 160 224-160 224-160S384 96 256 96z" fill="#c4b5fd"/><circle cx="256" cy="256" r="200" fill="url(#igl2)"/><circle cx="256" cy="256" r="80" fill="#0f0f0f"/><circle cx="220" cy="220" r="28" fill="rgba(255,255,255,0.4)"/><circle cx="280" cy="240" r="12" fill="rgba(255,255,255,0.2)"/></svg></div>';
+    ov.innerHTML='<div style="text-align:center"><svg viewBox="0 0 512 512" width="72" height="72" style="animation:iris-pulse 1.5s ease-in-out infinite"><defs><radialGradient id="igl2" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#e94560"/><stop offset="45%" stop-color="#7c3aed"/><stop offset="100%" stop-color="#c4b5fd"/></radialGradient></defs><path d="M256 96C128 96 32 256 32 256s96 160 224 160 224-160 224-160S384 96 256 96z" fill="#c4b5fd"/><circle cx="256" cy="256" r="200" fill="url(#igl2)"/><circle cx="256" cy="256" r="80" fill="#0f0f0f"/><circle cx="220" cy="220" r="28" fill="rgba(255,255,255,0.4)"/><circle cx="280" cy="240" r="12" fill="rgba(255,255,255,0.2)"/></svg></div>';
     document.body.appendChild(ov);
     // Double-rAF: yield to browser so overlay paints before heavy render
-    requestAnimationFrame(function(){requestAnimationFrame(function(){_doRender();
+    requestAnimationFrame(function(){requestAnimationFrame(function(){try{_doRender()}catch(e){console.error('Render error:',e)}
       ov.style.opacity='0';ov.style.transition='opacity .3s';setTimeout(function(){ov.remove()},350)})});
     return;
   }
