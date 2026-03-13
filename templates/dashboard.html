@@ -3363,7 +3363,22 @@ function renderStatus(){
   el.innerHTML='<span>Actors: '+total_people+'</span><span>Headshots: '+hs_count+'</span><span>Posters: '+ps_count+'</span><span>Updated: __BUILD_TIME__</span>';
 }
 
-function render(){ch.forEach(function(c){try{c.dispose()}catch(e){}});ch=[];
+function render(){
+  // Show mini loading overlay for filter changes (not initial load)
+  var isInitial=!!document.getElementById('iris-loader');
+  if(!isInitial){
+    var ov=document.createElement('div');ov.id='render-ov';
+    ov.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(15,15,15,.75);z-index:9998;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(2px)';
+    ov.innerHTML='<div style="text-align:center"><svg viewBox="0 0 512 512" width="48" height="48" style="animation:iris-pulse 1.5s ease-in-out infinite"><defs><radialGradient id="igl2" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#e94560"/><stop offset="45%" stop-color="#7c3aed"/><stop offset="100%" stop-color="#c4b5fd"/></radialGradient></defs><path d="M256 96C128 96 32 256 32 256s96 160 224 160 224-160 224-160S384 96 256 96z" fill="#c4b5fd"/><circle cx="256" cy="256" r="200" fill="url(#igl2)"/><circle cx="256" cy="256" r="80" fill="#0f0f0f"/><circle cx="220" cy="220" r="28" fill="rgba(255,255,255,0.4)"/><circle cx="280" cy="240" r="12" fill="rgba(255,255,255,0.2)"/></svg></div>';
+    document.body.appendChild(ov);
+    // Double-rAF: yield to browser so overlay paints before heavy render
+    requestAnimationFrame(function(){requestAnimationFrame(function(){_doRender();
+      ov.style.opacity='0';ov.style.transition='opacity .3s';setTimeout(function(){ov.remove()},350)})});
+    return;
+  }
+  _doRender();
+}
+function _doRender(){ch.forEach(function(c){try{c.dispose()}catch(e){}});ch=[];
   // Show/hide sections based on medium filter
   document.querySelectorAll('.med-s').forEach(function(el){var meds=el.dataset.med||'';el.style.display=meds.indexOf(ct)>=0?'':'none'});
   // CRITICAL (above fold) — render immediately
@@ -3376,9 +3391,39 @@ function render(){ch.forEach(function(c){try{c.dispose()}catch(e){}});ch=[];
     setTimeout(function(){renderGoodreads();renderLastfm()},0);
     setTimeout(function(){renderConcerts();renderTheater()},50);
     setTimeout(function(){renderPodcasts();renderHealth();renderBoardGames();renderSports();renderStatus()},100);
-    // Dismiss loader after batch 1 (user sees content immediately)
-    var loader=document.getElementById('iris-loader');if(loader){loader.classList.add('fade-out');setTimeout(function(){loader.remove()},600)}
+    // Dismiss initial loader after batch 1 (user sees content immediately)
+    var loader=document.getElementById('iris-loader');if(loader){loader.classList.add('fade-out');setTimeout(function(){loader.remove();_bgPreload()},600)}
   })}
+// Background preload: after initial current-year render, warm up "all" data
+// so switching to "All" is faster (precomputes filtered arrays + chart data)
+var _bgPreloaded=false;
+function _bgPreload(){
+  if(_bgPreloaded||cy==='all')return;
+  var idle=window.requestIdleCallback||function(cb){setTimeout(cb,1000)};
+  idle(function(){
+    try{
+      // Pre-touch all the data arrays that get filtered in render()
+      // This warms the JS engine's hidden class caches and pages in memory
+      var _d=D.c||{};
+      // Actors/actresses — precompute unfiltered sort
+      if(D.a)D.a.forEach(function(a){var t=0;(a.t||[]).forEach(function(x){Object.values(x.yd||{}).forEach(function(v){t+=v})})});
+      if(D.x)D.x.forEach(function(a){var t=0;(a.t||[]).forEach(function(x){Object.values(x.yd||{}).forEach(function(v){t+=v})})});
+      // Monthly activity — page in all months
+      if(_d.m)_d.m.forEach(function(m){return m.movies+m.episodes});
+      // Show posters — touch all
+      if(_d.sh)_d.sh.forEach(function(s){return s.e+s.rt});
+      // Movie data
+      if(D.myd)D.myd.forEach(function(m){var w=0;Object.values(m.yd||{}).forEach(function(c){w+=c})});
+      // Genre data
+      if(_d.ga)_d.ga.slice(0,30);if(_d.gt)Object.keys(_d.gt);
+      // Letterboxd
+      if(D.lb&&D.lb.dist)(D.lb.dist);
+      // Scrobbles
+      if(D.lfm&&D.lfm.weekly)(D.lfm.weekly);
+      _bgPreloaded=true;
+    }catch(e){}
+  },{timeout:3000});
+}
 var _rzt,_lastW=window.innerWidth;
 function _rz(){clearTimeout(_rzt);_rzt=setTimeout(function(){mob=window.innerWidth<768;ch.forEach(function(c){try{c.resize()}catch(e){}})},200)}
 window.addEventListener('resize',function(){
