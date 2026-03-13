@@ -56,14 +56,14 @@ print(f"  User: {info['name']}, Scrobbles: {total_scrobbles}")
 
 top_artists = []
 for period in ["overall", "12month", "3month", "1month"]:
-    data = api("user.gettopartists", period=period, limit=25)
+    data = api("user.gettopartists", period=period, limit=50)
     artists = [{"n": a["name"], "c": safe_int(a["playcount"])} for a in data.get("topartists", {}).get("artist", [])]
     top_artists.append({"period": period, "artists": artists})
     time.sleep(0.3)
 
 top_tracks = []
 for period in ["overall", "12month", "3month", "1month"]:
-    data = api("user.gettoptracks", period=period, limit=30)
+    data = api("user.gettoptracks", period=period, limit=50)
     tracks = [{"n": t["name"], "a": t["artist"]["name"], "c": safe_int(t["playcount"])} for t in data.get("toptracks", {}).get("track", [])]
     top_tracks.append({"period": period, "tracks": tracks})
     time.sleep(0.3)

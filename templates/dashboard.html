@@ -2791,9 +2791,12 @@ function renderHealth(){
 function renderBoardGames(){
   var bg=D.bg;var wrap=document.getElementById('bg-wrap');
   if(!bg||!bg.total||!(ct==='all'||ct==='boardgame')){if(wrap)wrap.style.display='none';return}
-  wrap.style.display='';
   var agg=bg.agg||{};var recent=bg.recent||[];
   if(cy!=='all')recent=recent.filter(function(p){return(p.date||'').startsWith(cy)});
+  // Hide section if no data for this year (unless All Time with aggregate data)
+  var bgYrCount=cy==='all'?bg.total:((agg.by_year||{})[cy]||0);
+  if(!bgYrCount&&!recent.length){if(wrap)wrap.style.display='none';return}
+  wrap.style.display='';
 
   // Top Games — show 30, scrollable
   var games=cy==='all'?(agg.top_games||[]).slice(0,30):[];
@@ -2848,9 +2851,10 @@ function renderBoardGames(){
 function renderGames(){
   var gt=D.gt;var wrap=document.getElementById('gt-wrap');
   if(!gt||!gt.total||!(ct==='all'||ct==='game')){if(wrap)wrap.style.display='none';return}
-  wrap.style.display='';
   var allG=gt.all||[];
   var filtered=cy==='all'?allG:allG.filter(function(g){return g.yr===cy});
+  if(!filtered.length){if(wrap)wrap.style.display='none';return}
+  wrap.style.display='';
   var totalG=filtered.length;
   var totalH=0;filtered.forEach(function(g){totalH+=g.hours});
   var fin=filtered.filter(function(g){return g.state==='finished'});
