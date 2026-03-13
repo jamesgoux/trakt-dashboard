@@ -316,7 +316,7 @@ body{overflow-x:hidden}
 <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
 <button onclick="document.getElementById('sp-ov-search').style.display='';document.getElementById('sp-ov-events').style.display='none';document.getElementById('sp-ov-title').innerHTML='<span class=i>🏟️</span> Add Sports Event'" style="background:none;border:none;color:var(--sp);cursor:pointer;font-size:13px">← Teams</button>
 <select id="sp-ev-year" onchange="jumpToSportsYear(this.value)" style="padding:8px;background:var(--sf);border:1px solid rgba(255,255,255,.15);border-radius:6px;color:var(--tx);font-size:13px"></select>
-<input id="sp-ev-search" type="text" placeholder="Filter opponent, venue..." oninput="filterSportsEvents()" style="flex:1;padding:8px 12px;background:var(--sf);border:1px solid rgba(255,255,255,.15);border-radius:6px;color:var(--tx);font-size:13px">
+<input id="sp-ev-search" type="text" placeholder="Filter opponent, venue, date..." oninput="filterSportsEvents()" style="flex:1;padding:8px 12px;background:var(--sf);border:1px solid rgba(255,255,255,.15);border-radius:6px;color:var(--tx);font-size:13px">
 </div>
 <div id="sp-ev-list"></div>
 <div id="sp-ev-loading" style="text-align:center;padding:16px;color:var(--t2);font-size:12px"></div>
@@ -2422,10 +2422,24 @@ function filterSportsEvents(){
   var q=(document.getElementById('sp-ev-search')||{}).value||'';
   var ql=q.toLowerCase();
   var yrF=window._spYearFilter||null;
+  // Convert search like "10/7" or "oct 7" to match dates
+  var _spMoNames=['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
+  function _spDateMatch(dateStr,q){
+    if(!dateStr||!q)return false;
+    if(dateStr.indexOf(q)>=0)return true;
+    // Match m/d or m-d format
+    var p=dateStr.split('-');if(p.length!==3)return false;
+    var m=parseInt(p[1]),d=parseInt(p[2]);
+    if(q===m+'/'+d||q===m+'-'+d||q===p[1]+'/'+p[2])return true;
+    // Match month name
+    var mn=_spMoNames[m-1]||'';
+    if(q.indexOf(mn)>=0&&q.indexOf(String(d))>=0)return true;
+    return false;
+  }
   var filtered=window._spAllEvents.filter(function(ev){
     if(yrF&&!(ev.dateEvent||'').startsWith(yrF))return false;
     if(!ql)return true;
-    return(ev.strEvent||'').toLowerCase().indexOf(ql)>=0||(ev.strVenue||'').toLowerCase().indexOf(ql)>=0||(ev.dateEvent||'').indexOf(ql)>=0||(ev.strHomeTeam||'').toLowerCase().indexOf(ql)>=0||(ev.strAwayTeam||'').toLowerCase().indexOf(ql)>=0;
+    return(ev.strEvent||'').toLowerCase().indexOf(ql)>=0||(ev.strVenue||'').toLowerCase().indexOf(ql)>=0||_spDateMatch(ev.dateEvent,ql)||(ev.strHomeTeam||'').toLowerCase().indexOf(ql)>=0||(ev.strAwayTeam||'').toLowerCase().indexOf(ql)>=0;
   });
   // Auto-search away games if filtering by opponent name and no/few results
   if(ql&&ql.length>=3&&filtered.length<3){
