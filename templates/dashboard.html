@@ -1265,11 +1265,11 @@ function baseCharts(){
         if(!allTitles[t.t])allTitles[t.t]={type:t.type,count:0};
         allTitles[t.t].count+=t.c})});
     // Inject sports, workouts, board games, video games for this year
-    if(allow.sports)SP.forEach(function(e){if(e.date&&e.date.substring(0,4)===year){var k='sp_'+e.id;if(!allTitles[k]){var score=(e.home_score!=null&&e.home_score!=='')?e.away_team+' '+e.away_score+'-'+e.home_score+' '+e.home_team:'vs '+(e.away_team||'');allTitles[k]={type:'sports',count:1,label:score}}else{allTitles[k].count++}}});
-    if(allow.health)(D._hwAll||[]).forEach(function(w){if(w.date&&w.date.substring(0,4)===year){var k='hw_'+w.type;if(!allTitles[k])allTitles[k]={type:'health',count:0,label:w.type};allTitles[k].count++}});
-    if(allow.boardgame)(D.bg&&D.bg.recent||[]).forEach(function(p){if(p.date&&p.date.substring(0,4)===year){var k='bg_'+p.game;if(!allTitles[k])allTitles[k]={type:'boardgame',count:0};allTitles[k].count+=p.quantity}});
-    if(allow.game)(D.gt&&D.gt.all||[]).forEach(function(g){var gd=g.finish_date||g.start_date;if(gd&&gd.substring(0,4)===year){var label=g.state==='finished'?'✅':g.state==='playing'?'▶️':'';allTitles['gt_'+g.id]={type:'game',count:1,label:label}}});
-    var flat=Object.entries(allTitles).map(function(e){var k=e[0],v=e[1];var title=v.label||k.replace(/^(sp_|hw_|bg_|gt_)/,'');return{t:title,type:v.type,c:v.count}});
+    if(allow.sports)SP.forEach(function(e){if(e.date&&e.date.substring(0,4)===year){var k='sp_'+e.id;if(!allTitles[k]){var score=(e.home_score!=null&&e.home_score!=='')?e.away_team+' '+e.away_score+'-'+e.home_score+' '+e.home_team:'vs '+(e.away_team||'');allTitles[k]={type:'sports',count:1,_title:score}}else{allTitles[k].count++}}});
+    if(allow.health)(D._hwAll||[]).forEach(function(w){if(w.date&&w.date.substring(0,4)===year){var k='hw_'+w.type;if(!allTitles[k])allTitles[k]={type:'health',count:0,_title:w.type};allTitles[k].count++}});
+    if(allow.boardgame)(D.bg&&D.bg.recent||[]).forEach(function(p){if(p.date&&p.date.substring(0,4)===year){var k='bg_'+p.game;if(!allTitles[k])allTitles[k]={type:'boardgame',count:0,_title:p.game};allTitles[k].count+=p.quantity}});
+    if(allow.game)(D.gt&&D.gt.all||[]).forEach(function(g){var gd=g.finish_date||g.start_date;if(gd&&gd.substring(0,4)===year){var status=g.state==='finished'?'✅':g.state==='playing'?'▶️':'';allTitles['gt_'+g.id]={type:'game',count:1,_title:g.title+' ('+g.platform+')',_label:status}}});
+    var flat=Object.entries(allTitles).map(function(e){var k=e[0],v=e[1];var title=v._title||v.t||k.replace(/^(sp_|hw_|bg_|gt_)/,'');return{t:title,type:v.type,c:v._label||v.count}});
     var el=document.getElementById('yrc');
     var ex=el.parentElement.querySelector('.chart-detail');if(ex){ex.remove();if(ex.dataset.val===year)return}
     var div=document.createElement('div');div.className='chart-detail';div.dataset.val=year;
