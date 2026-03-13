@@ -803,21 +803,21 @@ function baseCharts(){
     tlSeries.push({name:'Pod Episodes',type:'line',yAxisIndex:2,data:pcLineData,itemStyle:{color:'#ef4444'},lineStyle:{width:2},symbol:'circle',symbolSize:4});
     tlLeg.push('Pod Episodes');
   }
-  // Workouts overlay on activity timeline
+  // Workouts as stacked bar on activity timeline
   var hwByM=(D.health||{}).by_month||{};
   if((ct==='all'||ct==='health')&&Object.keys(hwByM).length){
     var hwMData=mf.map(function(d){return(hwByM[d.month]||{}).count||0});
     if(hwMData.some(function(v){return v>0})){
-      tlSeries.push({name:'Workouts',type:'line',yAxisIndex:2,data:hwMData,itemStyle:{color:'#1db954'},lineStyle:{width:2},symbol:'circle',symbolSize:4});
+      tlSeries.push({name:'Workouts',type:'bar',stack:'t',data:hwMData,itemStyle:{color:'#1db954'},barMaxWidth:cy==='all'?4:12});
       tlLeg.push('Workouts');
     }
   }
-  // Sports overlay on activity timeline
+  // Sports as stacked bar on activity timeline
   if((ct==='all'||ct==='sports')&&SP.length){
     var spByM={};SP.forEach(function(e){if(e.date){var m=e.date.substring(0,7);spByM[m]=(spByM[m]||0)+1}});
     var spMData=mf.map(function(d){return spByM[d.month]||0});
     if(spMData.some(function(v){return v>0})){
-      tlSeries.push({name:'Games',type:'line',yAxisIndex:2,data:spMData,itemStyle:{color:'#0ea5e9'},lineStyle:{width:2},symbol:'circle',symbolSize:4});
+      tlSeries.push({name:'Games',type:'bar',stack:'t',data:spMData,itemStyle:{color:'#0ea5e9'},barMaxWidth:cy==='all'?4:12});
       tlLeg.push('Games');
     }
   }
