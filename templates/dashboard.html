@@ -162,7 +162,7 @@ body{overflow-x:hidden}
 <div id="sec-ll" class="cd fw s-t"><h3><span class="i">🧬</span>Lifeline <button onclick="openLifelineFeed()" style="float:right;font-size:12px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);color:var(--tx);border-radius:6px;padding:6px 12px;cursor:pointer;min-height:32px;-webkit-tap-highlight-color:transparent;transition:background .15s">📜 Full Feed</button></h3><div id="ll-sel" class="vtog" style="margin-bottom:4px"></div><div id="llc" style="height:280px"></div></div>
 </div>
 <!-- TIMELINE: Yearly / Monthly -->
-<div class="g2 med-s" data-med="all movie show book concert podcast sports theater">
+<div class="g2 med-s" data-med="all movie show book concert podcast sports theater health boardgame">
 <div id="sec-tl" class="cd fw s-t"><h3 id="tlh"><span class="i">📈</span>Yearly Activity</h3><div id="yrc" style="height:280px"></div><div id="tlc" style="height:280px;display:none"></div></div>
 </div>
 <div class="g2 med-s" data-med="all movie show">
@@ -281,8 +281,10 @@ body{overflow-x:hidden}
 </div>
 <!-- BOARD GAMES -->
 <div class="g2 med-s" data-med="all boardgame" id="bg-wrap" style="display:none">
-<div id="sec-bg" class="cd fw"><h3><span class="i">🎲</span>Board Games</h3><div id="bg-stats" class="sg" style="margin-bottom:8px"></div><div id="bg-chart" style="height:280px"></div></div>
-<div class="cd"><h3><span class="i">👥</span>Players</h3><div id="bg-players" style="height:280px"></div></div>
+<div id="sec-bg" class="cd fw"><h3><span class="i">🎲</span>Top Games</h3><div id="bg-chart" style="height:400px;overflow-y:auto"></div></div>
+<div class="cd"><h3><span class="i">👥</span>Players</h3><div id="bg-players" style="height:400px;overflow-y:auto"></div></div>
+<div class="cd"><h3><span class="i">📅</span>Day of Week</h3><div id="bg-dow" style="height:280px"></div></div>
+<div class="cd"><h3><span class="i">👤</span>Player Count</h3><div id="bg-pcount" style="height:280px"></div></div>
 <div class="cd"><h3><span class="i">📍</span>Locations</h3><div id="bg-locations" style="height:280px"></div></div>
 <div class="cd"><h3><span class="i">📋</span>Recent Plays</h3><div class="stb" id="bg-recent" style="font-size:12px;max-height:350px"></div></div>
 </div>
@@ -2631,26 +2633,47 @@ function renderBoardGames(){
   wrap.style.display='';
   var agg=bg.agg||{};var recent=bg.recent||[];
   if(cy!=='all')recent=recent.filter(function(p){return(p.date||'').startsWith(cy)});
-  var bgPlays=0,bgHrs=0,bgWins=0,bgTotal=0,bgGames={};
-  if(cy==='all'){bgPlays=bg.total;agg.top_games.forEach(function(g){bgHrs+=g[3];bgGames[g[0]]=1});var me=agg.top_players.find(function(p){return p[0]==='James Goux'});if(me){bgWins=me[2];bgTotal=me[1]}}
-  else{recent.forEach(function(p){bgPlays+=p.quantity;bgHrs+=p.length*p.quantity*60;bgGames[p.game]=1;p.players.forEach(function(pl){if(pl.name==='James Goux'){bgTotal+=p.quantity;if(pl.win)bgWins+=p.quantity}})})}
-  var winRate=bgTotal?Math.round(bgWins/bgTotal*100):0;
-  document.getElementById('bg-stats').innerHTML=sc(bgPlays,'🎲 Plays','#ec4899')+sc(Object.keys(bgGames).length,'🃏 Games','#ec4899')+sc(Math.round(bgHrs/3600)+'h','⏱️ Hours','#ec4899')+sc(winRate+'%','🏆 Win Rate','#ec4899');
-  var games=cy==='all'?agg.top_games.slice(0,15):[];
-  if(cy!=='all'){var gc={};recent.forEach(function(p){gc[p.game]=(gc[p.game]||0)+p.quantity});games=Object.entries(gc).sort(function(a,b){return b[1]-a[1]}).slice(0,15).map(function(g){return[g[0],g[1],0,0]})}
+
+  // Top Games — show 30, scrollable
+  var games=cy==='all'?agg.top_games.slice(0,30):[];
+  if(cy!=='all'){var gc={};recent.forEach(function(p){gc[p.game]=(gc[p.game]||0)+p.quantity});games=Object.entries(gc).sort(function(a,b){return b[1]-a[1]}).slice(0,30).map(function(g){return[g[0],g[1],0,0]})}
   var chartEl=document.getElementById('bg-chart');
-  if(games.length){var gN=games.map(function(g){return g[0]}).reverse();var gC=games.map(function(g){return g[1]}).reverse();var bgC=echarts.init(chartEl);bgC.setOption({tooltip:{trigger:mob?'item':'axis',axisPointer:{type:'shadow'},...tt},grid:{left:gl(160),right:30,top:8,bottom:8},xAxis:{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},yAxis:{type:'category',data:gN,axisLabel:{color:'#ccc',fontSize:10,interval:0,overflow:'truncate',width:gl(150)},axisLine:{lineStyle:{color:'#333'}}},series:[{type:'bar',data:gC.map(function(v){return{value:v,itemStyle:{color:'#ec4899'}}}),barMaxWidth:18,label:{show:true,position:'right',color:'#ccc',fontSize:10}}]});ch.push(bgC)}
+  var chartH=Math.max(280,games.length*22+20);
+  if(games.length){var gN=games.map(function(g){return g[0]}).reverse();var gC=games.map(function(g){return g[1]}).reverse();chartEl.style.height=chartH+'px';var bgC=echarts.init(chartEl);bgC.setOption({tooltip:{trigger:mob?'item':'axis',axisPointer:{type:'shadow'},...tt},grid:{left:gl(160),right:30,top:8,bottom:8},xAxis:{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},yAxis:{type:'category',data:gN,axisLabel:{color:'#ccc',fontSize:10,interval:0,overflow:'truncate',width:gl(150)},axisLine:{lineStyle:{color:'#333'}}},series:[{type:'bar',data:gC.map(function(v){return{value:v,itemStyle:{color:'#ec4899'}}}),barMaxWidth:18,label:{show:true,position:'right',color:'#ccc',fontSize:10}}]});ch.push(bgC)}
   else{chartEl.innerHTML='<div style="text-align:center;color:var(--t2);padding:40px">No data</div>'}
-  var players=cy==='all'?agg.top_players.slice(0,10):[];
-  if(cy!=='all'){var pc2={};recent.forEach(function(p){p.players.forEach(function(pl){if(pl.name){if(!pc2[pl.name])pc2[pl.name]={p:0,w:0};pc2[pl.name].p+=p.quantity;if(pl.win)pc2[pl.name].w+=p.quantity}})});players=Object.entries(pc2).sort(function(a,b){return b[1].p-a[1].p}).slice(0,10).map(function(e){return[e[0],e[1].p,e[1].w]})}
+
+  // Players — show 20, scrollable
+  var players=cy==='all'?agg.top_players.slice(0,20):[];
+  if(cy!=='all'){var pc2={};recent.forEach(function(p){p.players.forEach(function(pl){if(pl.name){if(!pc2[pl.name])pc2[pl.name]={p:0,w:0};pc2[pl.name].p+=p.quantity;if(pl.win)pc2[pl.name].w+=p.quantity}})});players=Object.entries(pc2).sort(function(a,b){return b[1].p-a[1].p}).slice(0,20).map(function(e){return[e[0],e[1].p,e[1].w]})}
   var plEl=document.getElementById('bg-players');
-  if(players.length){var pN=players.map(function(p){return p[0]}).reverse();var pP=players.map(function(p){return p[1]}).reverse();var pW=players.map(function(p){return p[2]}).reverse();var plC=echarts.init(plEl);plC.setOption({tooltip:{trigger:mob?'item':'axis',axisPointer:{type:'shadow'},...tt,formatter:function(p){var i=tp(p).dataIndex;return'<b>'+pN[i]+'</b><br/>'+pP[i]+' plays, '+pW[i]+' wins ('+Math.round(pW[i]/pP[i]*100)+'%)'}},grid:{left:gl(120),right:30,top:8,bottom:8},xAxis:{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},yAxis:{type:'category',data:pN,axisLabel:{color:'#ccc',fontSize:10,interval:0},axisLine:{lineStyle:{color:'#333'}}},series:[{type:'bar',data:pP.map(function(v){return{value:v,itemStyle:{color:'#ec4899'}}}),barMaxWidth:18,label:{show:true,position:'right',color:'#ccc',fontSize:10}}]});ch.push(plC)}
+  var plH=Math.max(280,players.length*22+20);
+  if(players.length){var pN=players.map(function(p){return p[0]}).reverse();var pP=players.map(function(p){return p[1]}).reverse();var pW=players.map(function(p){return p[2]}).reverse();plEl.style.height=plH+'px';var plC=echarts.init(plEl);plC.setOption({tooltip:{trigger:mob?'item':'axis',axisPointer:{type:'shadow'},...tt,formatter:function(p){var i=tp(p).dataIndex;return'<b>'+pN[i]+'</b><br/>'+pP[i]+' plays, '+pW[i]+' wins ('+Math.round(pW[i]/pP[i]*100)+'%)'}},grid:{left:gl(140),right:30,top:8,bottom:8},xAxis:{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},yAxis:{type:'category',data:pN,axisLabel:{color:'#ccc',fontSize:10,interval:0},axisLine:{lineStyle:{color:'#333'}}},series:[{type:'bar',data:pP.map(function(v){return{value:v,itemStyle:{color:'#ec4899'}}}),barMaxWidth:18,label:{show:true,position:'right',color:'#ccc',fontSize:10}}]});ch.push(plC)}
   else{plEl.innerHTML='<div style="text-align:center;color:var(--t2);padding:40px">No data</div>'}
+
+  // Day of Week
+  var dowEl=document.getElementById('bg-dow');
+  var dowNames=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  var dowCounts=[0,0,0,0,0,0,0];
+  recent.forEach(function(p){if(p.date){var d=new Date(p.date+'T12:00:00');dowCounts[d.getDay()]+=p.quantity}});
+  if(dowCounts.some(function(v){return v>0})){var dowC=echarts.init(dowEl);dowC.setOption({tooltip:{trigger:'axis',axisPointer:{type:'shadow'},...tt},grid:{left:40,right:20,top:8,bottom:24},xAxis:{type:'category',data:dowNames,axisLabel:{color:'#ccc'},axisLine:{lineStyle:{color:'#333'}}},yAxis:{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},series:[{type:'bar',data:dowCounts.map(function(v){return{value:v,itemStyle:{color:'#ec4899'}}}),barMaxWidth:30}]});ch.push(dowC)}
+  else{dowEl.innerHTML='<div style="text-align:center;color:var(--t2);padding:40px">No data</div>'}
+
+  // Player Count pie
+  var pcEl=document.getElementById('bg-pcount');
+  var pcMap={};recent.forEach(function(p){var n=p.players.length;var key=n<=1?'Solo':n===2?'2 Players':n===3?'3 Players':n===4?'4 Players':n+'+ Players';pcMap[key]=(pcMap[key]||0)+p.quantity});
+  var pcData=Object.entries(pcMap).sort(function(a,b){return b[1]-a[1]}).map(function(e){return{name:e[0],value:e[1]}});
+  var pcColors=['#ec4899','#f472b6','#a78bfa','#60a5fa','#4ade80','#fbbf24','#fb923c'];
+  if(pcData.length){var pcC=echarts.init(pcEl);pcC.setOption({tooltip:{trigger:'item',...tt,formatter:'{b}: {c} ({d}%)'},series:[{type:'pie',radius:['35%','70%'],center:['50%','50%'],data:pcData,label:{color:'#ccc',fontSize:10},itemStyle:{borderColor:'#0f0f0f',borderWidth:2},color:pcColors}]});ch.push(pcC)}
+  else{pcEl.innerHTML='<div style="text-align:center;color:var(--t2);padding:40px">No data</div>'}
+
+  // Locations
   var locs=cy==='all'?(agg.locations||[]).slice(0,10):[];
   if(cy!=='all'){var lc={};recent.forEach(function(p){if(p.location){lc[p.location]=(lc[p.location]||0)+p.quantity}});locs=Object.entries(lc).sort(function(a,b){return b[1]-a[1]}).slice(0,10)}
   var locEl=document.getElementById('bg-locations');
-  if(locs.length){var lN=locs.map(function(l){return l[0]}).reverse();var lC2=locs.map(function(l){return l[1]}).reverse();var loC=echarts.init(locEl);loC.setOption({tooltip:{trigger:mob?'item':'axis',axisPointer:{type:'shadow'},...tt},grid:{left:gl(120),right:30,top:8,bottom:8},xAxis:{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},yAxis:{type:'category',data:lN,axisLabel:{color:'#ccc',fontSize:10,interval:0},axisLine:{lineStyle:{color:'#333'}}},series:[{type:'bar',data:lC2.map(function(v){return{value:v,itemStyle:{color:'#f472b6'}}}),barMaxWidth:18,label:{show:true,position:'right',color:'#ccc',fontSize:10}}]});ch.push(loC)}
+  if(locs.length){var lN=locs.map(function(l){return l[0]}).reverse();var lC2=locs.map(function(l){return l[1]}).reverse();var loC=echarts.init(locEl);loC.setOption({tooltip:{trigger:mob?'item':'axis',axisPointer:{type:'shadow'},...tt},grid:{left:gl(140),right:30,top:8,bottom:8},xAxis:{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},yAxis:{type:'category',data:lN,axisLabel:{color:'#ccc',fontSize:10,interval:0},axisLine:{lineStyle:{color:'#333'}}},series:[{type:'bar',data:lC2.map(function(v){return{value:v,itemStyle:{color:'#f472b6'}}}),barMaxWidth:18,label:{show:true,position:'right',color:'#ccc',fontSize:10}}]});ch.push(loC)}
   else{locEl.innerHTML='<div style="text-align:center;color:var(--t2);padding:40px">No data</div>'}
+
+  // Recent plays
   var recEl=document.getElementById('bg-recent');
   if(recent.length){var rh='<table style="width:100%"><thead><tr><th>Date</th><th>Game</th><th>Players</th><th>W</th></tr></thead><tbody>';recent.slice(0,20).forEach(function(p){var d=(p.date||'').substring(0,10);var parts=d.split('-');var ds=parts.length===3?parseInt(parts[1])+'/'+parseInt(parts[2])+'/'+parts[0].substring(2):d;var pls=p.players.map(function(pl){return(pl.win?'<b>':'')+(pl.name||'?')+(pl.win?'</b>':'')}).join(', ');var won=p.players.some(function(pl){return pl.name==='James Goux'&&pl.win});rh+='<tr><td>'+ds+'</td><td style="color:#ec4899">'+p.game+'</td><td style="font-size:11px">'+pls+'</td><td>'+(won?'✓':'')+'</td></tr>'});rh+='</tbody></table>';recEl.innerHTML=rh}
   else{recEl.innerHTML='<div style="text-align:center;color:var(--t2);padding:20px">No recent plays</div>'}
