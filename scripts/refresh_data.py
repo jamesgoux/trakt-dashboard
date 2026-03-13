@@ -2026,6 +2026,15 @@ if os.path.exists("data/sports_teams.json"):
         data["spTeams"] = teams_raw
         print(f"  Sports teams: {len(teams_raw)} tracked teams")
 
+# Video Games — load from GameTrack export
+if os.path.exists("data/gametrack.json"):
+    with open("data/gametrack.json") as f:
+        gt_raw = json.load(f)
+    if gt_raw:
+        data["gt"] = gt_raw
+        print(f"  Games: {gt_raw.get('total', 0)} games, {gt_raw.get('total_hours', 0)} hrs, "
+              f"{gt_raw.get('total_finished', 0)} finished")
+
 # Health / Workouts — load from Shortcut-committed JSON
 if os.path.exists("data/health.json"):
     with open("data/health.json") as f:
