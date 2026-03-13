@@ -317,32 +317,77 @@ def main():
     # Load existing cache for merging
     cache_file = os.path.join(data_dir, "sports_schedule.json")
     existing = {}
+    existing_seasons = set()  # track which seasons we already have data for
     if os.path.exists(cache_file):
         with open(cache_file) as f:
             old = json.load(f)
             existing = old.get("events", {})
+            # Build set of seasons that have cached data
+            for team_events in existing.values():
+                for ev in team_events:
+                    s = ev.get("season", "")
+                    if s:
+                        existing_seasons.add(s)
 
     all_events = {}  # team_name -> {event_id: event}
+
+    # Determine current seasons (scores still updating) vs past (final)
+    current_year = datetime.now().year
+    current_month = datetime.now().month
+    # Current seasons by league (the season that's actively being played)
+    def is_current_season(season_str, league_key):
+        """Check if a season is current (scores may still change)."""
+        cfg = LEAGUES[league_key]
+        if cfg["season_format"] == "split":
+            # e.g. "2025-2026" is current if we're in 2025 or 2026
+            parts = season_str.split("-")
+            if len(parts) == 2:
+                return int(parts[0]) >= current_year - 1
+        else:
+            # e.g. "2026" is current if it's this year or last year
+            try:
+                return int(season_str) >= current_year - 1
+            except ValueError:
+                return True
+        return True  # default to fetching if unsure
 
     # Fetch by league
     for league_key, team_names in teams_by_league.items():
         cfg = LEAGUES[league_key]
-        seasons = get_seasons(league_key)
-        print(f"\n--- {league_key} ({len(team_names)} teams, {len(seasons)} seasons) ---")
+        all_seasons = get_seasons(league_key)
+
+        # Split into current (always fetch) and past (skip if cached)
+        fetch_seasons = []
+        skip_seasons = []
+        for s in all_seasons:
+            if is_current_season(s, league_key) or s not in existing_seasons:
+                fetch_seasons.append(s)
+            else:
+                skip_seasons.append(s)
+
+        print(f"\n--- {league_key} ({len(team_names)} teams) ---")
         print(f"  Teams: {', '.join(team_names)}")
-        print(f"  Seasons: {', '.join(seasons[:6])}...")
+        print(f"  Fetching: {', '.join(fetch_seasons[:6]) if fetch_seasons else 'none'}")
+        if skip_seasons:
+            print(f"  Cached (skipping): {', '.join(skip_seasons[:6])}")
+
+        if not fetch_seasons:
+            print(f"  All seasons cached, skipping")
+            continue
 
         if cfg["method"] == "rounds":
-            league_events = fetch_rounds_for_league(league_key, team_names, seasons)
+            league_events = fetch_rounds_for_league(league_key, team_names, fetch_seasons)
             for name, evts in league_events.items():
                 all_events.setdefault(name, {}).update(evts)
 
         elif cfg["method"] == "search":
             for name in team_names:
-                team_events = fetch_search_for_team(name, seasons)
+                team_events = fetch_search_for_team(name, fetch_seasons)
                 all_events.setdefault(name, {}).update(team_events)
 
-    # Merge with existing cache (preserve any events we didn't re-fetch)
+    # Merge with existing cache:
+    # - For skipped (past) seasons: keep all old events as-is
+    # - For re-fetched (current) seasons: fresh data wins, old fills gaps
     for team_name, old_events in existing.items():
         if team_name not in all_events:
             all_events[team_name] = {}
