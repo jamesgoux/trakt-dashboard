@@ -223,12 +223,68 @@ def main():
             if state == "finished":
                 by_year[year]["finished"] += 1
 
+    # Deduplicate: keep the best entry per title
+    # Priority: finished > playing > abandoned > play_later > collection > wanted
+    # Then: most hours, most recent date
+    state_priority = {"finished": 0, "playing": 1, "abandoned": 2, "play_later": 3, "collection": 4, "wanted": 5}
+    def dedup_score(g):
+        pri = state_priority.get(g["state"], 9)
+        date = g.get("finish_date") or g.get("start_date") or g.get("added_date") or "0000"
+        return (pri, -g["hours"], date == "0000")
+
+    by_title = {}
+    for g in games:
+        title = g["title"]
+        if title not in by_title or dedup_score(g) < dedup_score(by_title[title]):
+            # Merge hours from all entries for this title
+            if title in by_title:
+                prev = by_title[title]
+                g["hours"] = max(g["hours"], prev["hours"])
+                # Keep the best rating
+                if not g["user_rating"] and prev["user_rating"]:
+                    g["user_rating"] = prev["user_rating"]
+                if not g["critic_rating"] and prev["critic_rating"]:
+                    g["critic_rating"] = prev["critic_rating"]
+            by_title[title] = g
+        else:
+            # Still merge hours from duplicates into the keeper
+            by_title[title]["hours"] = max(by_title[title]["hours"], g["hours"])
+
+    duped = len(games) - len(by_title)
+    games = list(by_title.values())
+    if duped:
+        print(f"  Deduplicated: {duped} duplicate entries merged")
+
     # Sort games: finished/playing first (by date desc), then collection
     state_order = {"playing": 0, "finished": 1, "abandoned": 2, "play_later": 3, "collection": 4, "wanted": 5}
     def sort_key(g):
         date = g.get("finish_date") or g.get("start_date") or g.get("added_date") or "0000"
         return (state_order.get(g["state"], 9), date == "0000", date, -g["hours"])
     games.sort(key=sort_key)
+
+    # Rebuild aggregates after dedup (platform/status/genre counts may have changed)
+    platform_counts = Counter()
+    status_counts = Counter()
+    genre_counts = Counter()
+    yearly_counts = Counter()
+    by_year = {}
+    total_hours = 0
+    for g in games:
+        total_hours += g["hours"]
+        if g["platform"]:
+            platform_counts[g["platform"]] += 1
+        status_counts[g["state"]] += 1
+        for genre in g.get("genres", []):
+            genre_counts[genre] += 1
+        yr = g.get("yr", "")
+        if yr:
+            yearly_counts[yr] += 1
+            if yr not in by_year:
+                by_year[yr] = {"games": 0, "hours": 0, "finished": 0}
+            by_year[yr]["games"] += 1
+            by_year[yr]["hours"] += g["hours"]
+            if g["state"] == "finished":
+                by_year[yr]["finished"] += 1
 
     # Build aggregates
     finished = [g for g in games if g["state"] == "finished"]
