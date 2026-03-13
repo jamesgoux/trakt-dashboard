@@ -774,9 +774,9 @@ function movieCharts(animate){
 
 function legendIsolate(ec,legs){var hd=false;ec.on('legendselectchanged',function(p){if(hd)return;hd=true;var s=p.selected,n=p.name,c=0;for(var k in s)if(s[k])c++;if(c===0){ec.dispatchAction({type:'legendAllSelect'})}else if(c<legs.length){for(var k in s){if(k===n&&!s[k])ec.dispatchAction({type:'legendSelect',name:k});if(k!==n&&s[k])ec.dispatchAction({type:'legendUnSelect',name:k})}}hd=false})}
 // Helper: get allowed types from chart legend state
-function _legTypes(chart){var map={Seasons:'show',Episodes:'show',Movies:'movie',Books:'book',Concerts:'concert',Theater:'theater',Podcasts:'podcast'};var opt=chart.getOption();var sel=(opt.legend&&opt.legend[0]&&opt.legend[0].selected)||{};var any=false,allow={};for(var k in map){if(sel[k]===false)any=true;else allow[map[k]]=true}if(!any){allow={show:true,movie:true,book:true,concert:true,theater:true,podcast:true}}return allow}
+function _legTypes(chart){var map={Seasons:'show',Episodes:'show',Movies:'movie',Books:'book',Concerts:'concert',Theater:'theater',Podcasts:'podcast','Pod Episodes':'podcast',Scrobbles:'music',Workouts:'health',Sports:'sports','Board Games':'boardgame','Video Games':'game'};var opt=chart.getOption();var sel=(opt.legend&&opt.legend[0]&&opt.legend[0].selected)||{};var any=false,allow={};for(var k in map){if(sel[k]===false)any=true;else allow[map[k]]=true}if(!any){for(var k2 in map)allow[map[k2]]=true}return allow}
 // Helper: build grouped detail HTML — top 5 each when multi-medium, top 20 when single
-function _detailHtml(header,items,limit){var typeOrder=['show','movie','book','concert','theater','podcast'];var labels={show:'📺 Shows',movie:'🎞️ Movies',book:'📚 Books',concert:'🎸 Concerts',theater:'🎭 Theater',podcast:'🎙️ Podcasts'};var grouped={};items.forEach(function(t){if(!grouped[t.type])grouped[t.type]=[];grouped[t.type].push(t)});for(var k in grouped)grouped[k].sort(function(a,b){return b.c-a.c});var h='<span class="cd-close" onclick="this.parentElement.remove()">✕</span><b>'+header+'</b>';var types=typeOrder.filter(function(tp){return grouped[tp]&&grouped[tp].length});var cap=limit||5;function _row(t){var badge=t.type==='movie'?'b-m':t.type==='concert'?'b-c':t.type==='theater'?'b-th':t.type==='book'?'b-bk':t.type==='podcast'?'b-pc':'b-e';var label=t.type==='show'?t.c+' eps':t.type==='podcast'?t.c+' eps':(t.type==='concert'||t.type==='theater'||t.type==='book'?'':(t.c>1?t.c+'x':''));return'<div class="cd-item"><span><span class="badge '+badge+'">'+t.type+'</span> '+t.t+'</span><span class="nm '+(t.type==='podcast'?'':'')+'">'+label+'</span></div>'}if(types.length>1){types.forEach(function(tp){var all=grouped[tp],shown=all.slice(0,tp==='podcast'?5:cap);h+='<div style="margin-top:6px;font-size:10px;font-weight:600;color:var(--t2)">'+labels[tp]+' (top '+shown.length+' of '+all.length+')</div>';shown.forEach(function(t){h+=_row(t)})})}else{var single=items.sort(function(a,b){return b.c-a.c}).slice(0,20);single.forEach(function(t){h+=_row(t)})}return h}
+function _detailHtml(header,items,limit){var typeOrder=['show','movie','book','concert','theater','podcast','health','sports','boardgame','game'];var labels={show:'📺 Shows',movie:'🎞️ Movies',book:'📚 Books',concert:'🎸 Concerts',theater:'🎭 Theater',podcast:'🎙️ Podcasts',health:'🏃 Workouts',sports:'🏟️ Sports',boardgame:'🎲 Board Games',game:'🎮 Video Games'};var grouped={};items.forEach(function(t){if(!grouped[t.type])grouped[t.type]=[];grouped[t.type].push(t)});for(var k in grouped)grouped[k].sort(function(a,b){return(b.c||0)-(a.c||0)});var h='<span class="cd-close" onclick="this.parentElement.remove()">✕</span><b>'+header+'</b>';var types=typeOrder.filter(function(tp){return grouped[tp]&&grouped[tp].length});var cap=limit||5;function _row(t){var badgeMap={movie:'b-m',concert:'b-c',theater:'b-th',book:'b-bk',podcast:'b-pc',health:'b-wk',sports:'b-sp',boardgame:'b-bg',game:'b-gt'};var badge=badgeMap[t.type]||'b-e';var label=t.type==='show'?t.c+' eps':t.type==='podcast'?t.c+' eps':t.type==='health'?(t.c||''):t.type==='sports'?(t.c||''):t.type==='boardgame'?(t.c>1?t.c+'x':''):t.type==='game'?(t.c||''):(t.c>1?t.c+'x':'');return'<div class="cd-item"><span><span class="badge '+badge+'">'+t.type+'</span> '+t.t+'</span><span class="nm">'+label+'</span></div>'}if(types.length>1){types.forEach(function(tp){var all=grouped[tp],shown=all.slice(0,tp==='podcast'?5:cap);h+='<div style="margin-top:6px;font-size:10px;font-weight:600;color:var(--t2)">'+(labels[tp]||tp)+' ('+all.length+')</div>';shown.forEach(function(t){h+=_row(t)})})}else{var single=items.sort(function(a,b){return(b.c||0)-(a.c||0)}).slice(0,20);single.forEach(function(t){h+=_row(t)})}return h}
 function baseCharts(){
   // Toggle monthly vs yearly in same card
   var isYear=cy!=='all';
@@ -905,7 +905,16 @@ function baseCharts(){
       if(ta.length){h+='<div style="margin-top:4px;font-size:10px;font-weight:600;color:var(--t2)">🎤 Top Artists</div>';ta.slice(0,8).forEach(function(a){h+='<div class="cd-item"><span>'+a.n+'</span><span class="nm" style="color:#15803d">'+a.c+'</span></div>'})}
       div.innerHTML=h;el.parentElement.appendChild(div);return;
     }
-    var raw=mtData[month]||[];if(!raw.length)return;
+    var raw=(mtData[month]||[]).slice();
+    // Inject sports events for this month
+    if(SP.length)SP.forEach(function(e){if(e.date&&e.date.substring(0,7)===month){var score=(e.home_score!=null&&e.home_score!=='')?e.away_team+' '+e.away_score+'-'+e.home_score+' '+e.home_team:'vs '+(e.away_team||e.home_team);raw.push({t:score,type:'sports',c:e.watch_type||''})}});
+    // Inject workouts
+    (D._hwAll||[]).forEach(function(w){if(w.date&&w.date.substring(0,7)===month){var dur=Math.round((w.dur||0)/60);var ds=dur>=60?Math.floor(dur/60)+'h '+dur%60+'m':dur+'m';raw.push({t:w.type,type:'health',c:ds})}});
+    // Inject board game plays
+    (D.bg&&D.bg.recent||[]).forEach(function(p){if(p.date&&p.date.substring(0,7)===month){raw.push({t:p.game,type:'boardgame',c:p.quantity>1?p.quantity:1})}});
+    // Inject video games
+    (D.gt&&D.gt.all||[]).forEach(function(g){var gd=g.finish_date||g.start_date;if(gd&&gd.substring(0,7)===month){var label=g.state==='finished'?'✅':g.state==='playing'?'▶️':g.state==='abandoned'?'❌':'';raw.push({t:g.title+' ('+g.platform+')',type:'game',c:label})}});
+    if(!raw.length)return;
     var allow=_legTypes(c1);
     var titles=raw.filter(function(t){return allow[t.type]});if(!titles.length)return;
     var el=document.getElementById('tlc');
@@ -1238,7 +1247,12 @@ function baseCharts(){
         if(!allow[t.type])return;
         if(!allTitles[t.t])allTitles[t.t]={type:t.type,count:0};
         allTitles[t.t].count+=t.c})});
-    var flat=Object.entries(allTitles).map(function(e){return{t:e[0],type:e[1].type,c:e[1].count}});
+    // Inject sports, workouts, board games, video games for this year
+    if(allow.sports)SP.forEach(function(e){if(e.date&&e.date.substring(0,4)===year){var k='sp_'+e.id;if(!allTitles[k]){var score=(e.home_score!=null&&e.home_score!=='')?e.away_team+' '+e.away_score+'-'+e.home_score+' '+e.home_team:'vs '+(e.away_team||'');allTitles[k]={type:'sports',count:1,label:score}}else{allTitles[k].count++}}});
+    if(allow.health)(D._hwAll||[]).forEach(function(w){if(w.date&&w.date.substring(0,4)===year){var k='hw_'+w.type;if(!allTitles[k])allTitles[k]={type:'health',count:0,label:w.type};allTitles[k].count++}});
+    if(allow.boardgame)(D.bg&&D.bg.recent||[]).forEach(function(p){if(p.date&&p.date.substring(0,4)===year){var k='bg_'+p.game;if(!allTitles[k])allTitles[k]={type:'boardgame',count:0};allTitles[k].count+=p.quantity}});
+    if(allow.game)(D.gt&&D.gt.all||[]).forEach(function(g){var gd=g.finish_date||g.start_date;if(gd&&gd.substring(0,4)===year){var label=g.state==='finished'?'✅':g.state==='playing'?'▶️':'';allTitles['gt_'+g.id]={type:'game',count:1,label:label}}});
+    var flat=Object.entries(allTitles).map(function(e){var k=e[0],v=e[1];var title=v.label||k.replace(/^(sp_|hw_|bg_|gt_)/,'');return{t:title,type:v.type,c:v.count}});
     var el=document.getElementById('yrc');
     var ex=el.parentElement.querySelector('.chart-detail');if(ex){ex.remove();if(ex.dataset.val===year)return}
     var div=document.createElement('div');div.className='chart-detail';div.dataset.val=year;
