@@ -528,7 +528,7 @@ function stats(){
       if(SP.length){var spAll=cy==='all'?SP:SP.filter(function(e){return e.date&&e.date.substring(0,4)===cy});if(spAll.length)h2+=sc(spAll.length,'🏟️ Sports Games','#0ea5e9')}
       if(D.health&&D.health.total){var hwBy3=D.health.by_year||{};var hwCt3=0;Object.entries(hwBy3).forEach(function(e){if(cy==='all'||e[0]===cy){hwCt3+=e[1].count}});if(hwCt3)h2+=sc(hwCt3,'🏃 Workouts','#1db954')}
       if(D.bg&&D.bg.total){var bgBy2=D.bg.agg.by_year||{};var bgCt2=0;Object.entries(bgBy2).forEach(function(e){if(cy==='all'||e[0]===cy)bgCt2+=e[1]});if(bgCt2)h2+=sc(bgCt2,'🎲 Plays','#ec4899')}
-      if(D.gt&&D.gt.total){var gtAll=D.gt.all||[];var gtF=cy==='all'?gtAll:gtAll.filter(function(g){return g.yr===cy});var gtFin=gtF.filter(function(g){return g.state==='finished'});if(gtFin.length)h2+=sc(gtFin.length,'✅ Finished','#6366f1')}
+      if(D.gt&&D.gt.total){var gtAll=D.gt.all||[];var gtF=cy==='all'?gtAll:gtAll.filter(function(g){return g.yr===cy});var gtFin=gtF.filter(function(g){return g.state==='finished'});if(gtFin.length)h2+=sc(gtFin.length,'✅ VGs Finished','#6366f1')}
     }else{
       h2=sc((mw+ew).toLocaleString(),'👁️ Watches','#b0b0b0')+sc(totalDays,'⏱️ Days','#b0b0b0')+sc((cy==='all'?s.unique_movies:mw).toLocaleString(),'🎞️ Movies','var(--ac)')+sc(s.unique_shows,'📺 Shows','var(--pu)')+sc(seasonCount,'📦 Seasons','var(--pu)')+sc(ew.toLocaleString(),'🔢 Episodes','var(--pu)');
       if(D.pc&&D.pc.total_podcasts){var pcY=cy!=='all'&&D.pc.yearly?D.pc.yearly.find(function(y){return y.yr===cy}):null;var pcHrs=pcY?pcY.hrs:D.pc.total_listened_hrs;var pcEps=pcY?pcY.eps:D.pc.total_episodes;var pcDays=Math.round(pcHrs/24*10)/10;var pcShows=cy!=='all'&&D.pc.top_y&&D.pc.top_y[cy]?D.pc.top_y[cy].length:D.pc.total_podcasts;h2+=sc(pcShows,'📡 Podcasts','#ef4444')+sc(pcEps,'📻 Pod Episodes','#ef4444')+sc(pcDays+'d','🎙️ Pod Days','#ef4444')}
@@ -539,7 +539,7 @@ function stats(){
       if(SP.length){var spAll=cy==='all'?SP:SP.filter(function(e){return e.date&&e.date.substring(0,4)===cy});var spLive2=spAll.filter(function(e){return e.watch_type==='live'}).length;var spTeams2={};spAll.forEach(function(e){if(e.home_team)spTeams2[e.home_team]=1;if(e.away_team)spTeams2[e.away_team]=1});h2+=sc(spAll.length,'🏟️ Sports Games','#0ea5e9')+sc(spLive2,'🏟️ Live','#0ea5e9')+sc(Object.keys(spTeams2).length,'🏅 Teams','#0ea5e9')}
       if(D.health&&D.health.total){var hwBy=D.health.by_year||{};var hwCt2=0,hwDur2=0,hwCal2=0;Object.entries(hwBy).forEach(function(e){if(cy==='all'||e[0]===cy){hwCt2+=e[1].count;hwDur2+=e[1].dur;hwCal2+=e[1].cal}});h2+=sc(hwCt2,'🏃 Workouts','#1db954')+sc((hwDur2/3600).toFixed(1)+'h','⏱️ Hours','#1db954')+sc((hwCal2/1000).toFixed(2)+'k','🔥 Calories','#1db954')}
       if(D.bg&&D.bg.total){var bgByY2=D.bg.agg.by_year||{};var bgCt3=0;Object.entries(bgByY2).forEach(function(e){if(cy==='all'||e[0]===cy)bgCt3+=e[1]});var bgR2=D.bg.recent||[];if(cy!=='all')bgR2=bgR2.filter(function(p){return(p.date||'').startsWith(cy)});var bgG2={};bgR2.forEach(function(p){bgG2[p.game]=1});var bgW2=0,bgT2=0;bgR2.forEach(function(p){p.players.forEach(function(pl){if(pl.name==='James Goux'){bgT2+=p.quantity;if(pl.win)bgW2+=p.quantity}})});var bgWr2=bgT2?Math.round(bgW2/bgT2*100):0;h2+=sc(bgCt3,'🎲 Plays','#ec4899')+sc(Object.keys(bgG2).length,'🃏 Games','#ec4899')+sc(bgWr2+'%','🏆 Win Rate','#ec4899')}
-      if(D.gt&&D.gt.total){var gtAll2=D.gt.all||[];var gtF2=cy==='all'?gtAll2:gtAll2.filter(function(g){return g.yr===cy});var gtFin2=gtF2.filter(function(g){return g.state==='finished'});if(gtF2.length)h2+=sc(gtF2.length,'🎮 Video Games','#6366f1')+sc(gtFin2.length,'✅ Finished','#6366f1')}
+      if(D.gt&&D.gt.total){var gtAll2=D.gt.all||[];var gtF2=cy==='all'?gtAll2:gtAll2.filter(function(g){return g.yr===cy});var gtFin2=gtF2.filter(function(g){return g.state==='finished'});if(gtF2.length)h2+=sc(gtF2.length,'🎮 Video Games','#6366f1')+sc(gtFin2.length,'✅ VGs Finished','#6366f1')}
     }
   }
   el.innerHTML=h2;
@@ -2830,7 +2830,7 @@ function renderGames(){
     var el=document.getElementById('st');
     var trophyG=filtered.filter(function(g){return g.trophy_progress>0});
     var avgTrophy=trophyG.length?Math.round(trophyG.reduce(function(s,g){return s+g.trophy_progress},0)/trophyG.length):0;
-    el.innerHTML=sc(totalG,'🎮 Video Games','#6366f1')+sc(Math.round(totalH)+'h','⏱️ Played','#6366f1')+sc(fin.length,'✅ Finished','#6366f1')+sc(play.length,'▶️ Playing','#6366f1')+sc(gt.total_platforms,'🖥️ Platforms','#6366f1')+(trophyG.length?sc(avgTrophy+'%','🏆 Avg Trophies','#6366f1'):'');
+    el.innerHTML=sc(totalG,'🎮 Video Games','#6366f1')+sc(Math.round(totalH)+'h','⏱️ Played','#6366f1')+sc(fin.length,'✅ VGs Finished','#6366f1')+sc(play.length,'▶️ Playing','#6366f1')+sc(gt.total_platforms,'🖥️ Platforms','#6366f1')+(trophyG.length?sc(avgTrophy+'%','🏆 Avg Trophies','#6366f1'):'');
   }
 
   // Top by hours chart
