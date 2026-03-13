@@ -282,13 +282,8 @@ body{overflow-x:hidden}
 <div class="cd"><h3><span class="i">📍</span>Locations</h3><div id="bg-locations" style="height:280px"></div></div>
 <div class="cd"><h3><span class="i">📋</span>Recent Plays</h3><div class="stb" id="bg-recent" style="font-size:12px;max-height:350px"></div></div>
 </div>
-<!-- WORKOUTS (Apple Health) -->
-<div class="g2 med-s" data-med="all health" id="hw-wrap" style="display:none">
-<div id="sec-hw" class="cd fw"><h3><span class="i">🏃</span>Workouts</h3><div id="hw-toggle" class="vtog" style="margin-bottom:4px"></div><div id="hw-chart" style="height:280px"></div></div>
-<div class="cd"><h3><span class="i">🏋️</span>Workout Types</h3><div id="hw-types" style="height:280px"></div></div>
-<div class="cd"><h3><span class="i">📋</span>Recent Workouts</h3><div class="stb" id="hw-recent" style="font-size:12px;max-height:350px"></div></div>
-</div>
 <!-- SPORTS -->
+
 <div class="g2 med-s" data-med="all sports" id="sp-wrap" style="display:none">
 <div id="sec-sp" class="cd fw s-sp"><h3><span class="i">🏟️</span>Sports <button onclick="openSportsAdd()" style="float:right;font-size:12px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);color:var(--tx);border-radius:6px;padding:6px 12px;cursor:pointer;min-height:32px;-webkit-tap-highlight-color:transparent;transition:background .15s">+ Add Event</button></h3><div class="vtog" id="sp-wt-filter" style="margin-bottom:6px"><button class="vb vb-on" onclick="_spSetWtFilter('all')">All</button><button class="vb" onclick="_spSetWtFilter('live')">🏟️ Live</button><button class="vb" onclick="_spSetWtFilter('tv')">📺 TV</button><button class="vb" onclick="_spSetWtFilter('remote')">📡 Remote</button></div><div id="sp-chart" style="height:280px"></div></div>
 <div class="cd s-sp"><h3><span class="i">🏟️</span>Teams</h3><div id="sp-teams" style="height:280px"></div></div>
@@ -297,6 +292,13 @@ body{overflow-x:hidden}
 <div class="cd s-sp"><h3><span class="i">🏟️</span>Venues</h3><div id="sp-venues" style="height:280px"></div></div>
 <div class="cd s-sp"><h3><span class="i">🏅</span>Leagues</h3><div id="sp-leagues" style="height:280px"></div></div>
 <div class="cd s-sp"><h3><span class="i">📋</span>Recent Events</h3><div class="stb" id="sp-recent" style="font-size:12px;max-height:350px"></div></div>
+</div>
+
+<!-- WORKOUTS (Apple Health) -->
+<div class="g2 med-s" data-med="all health" id="hw-wrap" style="display:none">
+<div id="sec-hw" class="cd fw"><h3><span class="i">🏃</span>Workouts</h3><div id="hw-toggle" class="vtog" style="margin-bottom:4px"></div><div id="hw-chart" style="height:280px"></div></div>
+<div class="cd"><h3><span class="i">🏋️</span>Workout Types</h3><div id="hw-types" style="height:280px"></div></div>
+<div class="cd"><h3><span class="i">📋</span>Recent Workouts</h3><div class="stb" id="hw-recent" style="font-size:12px;max-height:350px"></div></div>
 </div>
 <!-- Sports Add Event Overlay -->
 <div id="sp-overlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg);z-index:300;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;transition:transform .3s ease;will-change:transform">
@@ -437,7 +439,7 @@ readHash();
 
 // Jump menu popup
 (function(){
-var jmpItems=[['sec-ll','🧬 Lifeline'],['sec-tl','📈 Timeline'],['sec-act','🎭 Actors'],['sec-crew','🎬 Directors/Writers'],['sec-shows','📺 Top Shows'],['sec-eps','📺 Episodes'],['sec-ttw','⏱️ Time to Watch'],['sec-mov','🎞️ Movies'],['sec-ratings','⭐ Movie Ratings'],['sec-sz-ratings','⭐ TV Ratings'],['sec-time','🕐 Day & Time'],['sec-meta','🎯 Genres'],['sec-geo','🌍 Countries/Languages'],['sec-vy','📅 Release Years'],['sec-how','🖥️ How I Watch'],['sec-first','🌅 First Watches'],['sec-rec','👁️ Last Watches'],['sec-pc','🎙️ Podcasts'],['sec-lfm','🎧 Music'],['sec-con','🎸 Concerts'],['sec-gr','📚 Books'],['sec-th','🎭 Theater'],['sec-sp','🏟️ Sports']];
+var jmpItems=[['sec-ll','🧬 Lifeline'],['sec-tl','📈 Timeline'],['sec-act','🎭 Actors'],['sec-crew','🎬 Directors/Writers'],['sec-shows','📺 Top Shows'],['sec-eps','📺 Episodes'],['sec-ttw','⏱️ Time to Watch'],['sec-mov','🎞️ Movies'],['sec-ratings','⭐ Movie Ratings'],['sec-sz-ratings','⭐ TV Ratings'],['sec-time','🕐 Day & Time'],['sec-meta','🎯 Genres'],['sec-geo','🌍 Countries/Languages'],['sec-vy','📅 Release Years'],['sec-how','🖥️ How I Watch'],['sec-first','🌅 First Watches'],['sec-rec','👁️ Last Watches'],['sec-pc','🎙️ Podcasts'],['sec-lfm','🎧 Music'],['sec-con','🎸 Concerts'],['sec-gr','📚 Books'],['sec-th','🎭 Theater'],['sec-bg','🎲 Board Games'],['sec-sp','🏟️ Sports'],['sec-hw','🏃 Workouts']];
 var jm=document.getElementById('jmp-menu');
 jmpItems.forEach(function(item){var a=document.createElement('div');a.textContent=item[1];a.style.cssText='padding:8px 16px;cursor:pointer;font-size:13px;white-space:nowrap';a.onmouseover=function(){a.style.background='rgba(255,255,255,.06)'};a.onmouseout=function(){a.style.background='none'};a.onclick=function(){var el=document.getElementById(item[0]);if(el)el.scrollIntoView({behavior:'smooth',block:'start'});jm.style.display='none'};jm.appendChild(a)});
 document.addEventListener('click',function(e){if(!e.target.closest('#jmp-menu')&&!e.target.closest('[onclick*="jmp-menu"]'))jm.style.display='none'});
@@ -489,7 +491,7 @@ function stats(){
   if(ct==='health'){
     var hw=D.health||{};var hby=hw.by_year||{};var htW=0,htD=0,htC=0;
     Object.entries(hby).forEach(function(e){if(cy==='all'||e[0]===cy){htW+=e[1].count;htD+=e[1].dur;htC+=e[1].cal}});
-    el.innerHTML=sc(htW,'🏋️ Workouts','#1db954')+sc(Math.round(htD/3600)+'h','⏱️ Hours','#fb923c')+sc(Math.round(htC/1000)+'k','🔥 Calories','#ef4444');return}
+    el.innerHTML=sc(htW,'🏋️ Workouts','#1db954')+sc((htD/3600).toFixed(1)+'h','⏱️ Hours','#1db954')+sc((htC/1000).toFixed(2)+'k','🔥 Calories','#1db954');return}
   // Movie/show/all — compute counts
   var mw=0,ew=0,rt=0,rtm=0,rts=0;D.c.m.filter(function(m){return cy==='all'||m.month.startsWith(cy)}).forEach(function(m){mw+=m.movies;ew+=m.episodes;rt+=(m.rt||0);rtm+=(m.rt_m||0);rts+=(m.rt_s||0)});
   var totalDays=Math.round(rt/60/24*10)/10;var movieDays=Math.round(rtm/60/24*10)/10;var showDays=Math.round(rts/60/24*10)/10;
