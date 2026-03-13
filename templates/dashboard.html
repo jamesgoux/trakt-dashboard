@@ -625,7 +625,7 @@ function renderLifeline(){
   var hasBgData=posData.bg.some(function(v){return v!==0});
   if(hasBgData)llLeg.push('Board Games');
   var hasGtData=posData.gt.some(function(v){return v!==0});
-  if(hasGtData)llLeg.push('Games');
+  if(hasGtData)llLeg.push('Video Games');
 
   var llChart=echarts.init(llEl);
   var llSeries=[
@@ -641,7 +641,7 @@ function renderLifeline(){
   if(hasSpData)llSeries.push({name:'Sports',type:'bar',stack:'ll',data:posData.sp,itemStyle:{color:new echarts.graphic.LinearGradient(0,1,0,0,[{offset:0,color:'rgba(14,165,233,0.4)'},{offset:1,color:'#0ea5e9'}])},barMaxWidth:bw});
   if(hasBgData)llSeries.push({name:'Board Games',type:'bar',stack:'ll',data:posData.bg,itemStyle:{color:new echarts.graphic.LinearGradient(0,1,0,0,[{offset:0,color:'rgba(236,72,153,0.4)'},{offset:1,color:'#ec4899'}])},barMaxWidth:bw});
   var hasGtData=posData.gt.some(function(v){return v!==0});
-  if(hasGtData)llSeries.push({name:'Games',type:'bar',stack:'ll',data:posData.gt,itemStyle:{color:new echarts.graphic.LinearGradient(0,1,0,0,[{offset:0,color:'rgba(99,102,241,0.4)'},{offset:1,color:'#6366f1'}])},barMaxWidth:bw});
+  if(hasGtData)llSeries.push({name:'Video Games',type:'bar',stack:'ll',data:posData.gt,itemStyle:{color:new echarts.graphic.LinearGradient(0,1,0,0,[{offset:0,color:'rgba(99,102,241,0.4)'},{offset:1,color:'#6366f1'}])},barMaxWidth:bw});
 
   llChart.setOption({tooltip:{trigger:'axis',...tt,formatter:function(p){var day=days[p[0].dataIndex];var h='<b>'+day+'</b>';p.forEach(function(s){var v=Math.abs(s.value);if(v){if(s.seriesName==='Scrobbles'){v=Math.abs(negData.sc[p[0].dataIndex])}h+='<br/>'+s.marker+s.seriesName+': '+v}});return h}},
     legend:{data:llLeg,top:0,textStyle:{color:'#999',fontSize:9},type:'plain'},
@@ -879,7 +879,7 @@ function baseCharts(){
     var gtByM={};(D.gt.all||[]).forEach(function(g){var d=g.finish_date||g.start_date;if(d){var m=d.substring(0,7);gtByM[m]=(gtByM[m]||0)+1}});
     var gtMData=mf.map(function(d){return gtByM[d.month]||0});
     if(gtMData.some(function(v){return v>0})){
-      tlSeries.push({name:'Games',type:'bar',stack:'t',data:gtMData,itemStyle:{color:'#6366f1'},barMaxWidth:cy==='all'?4:12});
+      tlSeries.push({name:'Video Games',type:'bar',stack:'t',data:gtMData,itemStyle:{color:'#6366f1'},barMaxWidth:cy==='all'?4:12});
       tlLeg.push('Games');
     }
   }
@@ -1201,7 +1201,7 @@ function baseCharts(){
   if(yBg&&Object.keys(bgYrA).length){yrSeries.push({name:'Board Games',type:'bar',stack:'t',data:yr.map(function(d){return bgYrA[d.year]||0}),itemStyle:{color:'#ec4899'}});yrLeg.push('Board Games')}
   // Video games as stacked bar
   var gtYrA=(D.gt||{}).by_year||{};
-  if(yGt&&Object.keys(gtYrA).length){yrSeries.push({name:'Games',type:'bar',stack:'t',data:yr.map(function(d){return(gtYrA[d.year]||{}).games||0}),itemStyle:{color:'#6366f1'}});yrLeg.push('Games')}
+  if(yGt&&Object.keys(gtYrA).length){yrSeries.push({name:'Video Games',type:'bar',stack:'t',data:yr.map(function(d){return(gtYrA[d.year]||{}).games||0}),itemStyle:{color:'#6366f1'}});yrLeg.push('Video Games')}
   // Scrobbles line overlay (secondary y-axis)
   var lfmYr=D.lfm&&D.lfm.yearly?D.lfm.yearly:[];
   var lfmYrMap={};lfmYr.forEach(function(y){lfmYrMap[y.yr]=y.s||0});
@@ -3022,7 +3022,7 @@ function deleteSportsEvent(id){
 
 // Lifeline Full Feed
 var _llFeedDays=[];var _llFeedIdx=0;var _llFeedBatch=15;
-var _llTypeInfo={ep:{icon:'📺',color:'#0a7d7d',label:'Episodes'},mv:{icon:'🎞️',color:'#c97530',label:'Movies'},sc:{icon:'🎧',color:'#15803d',label:'Scrobbles'},bk:{icon:'📚',color:'#c99a1e',label:'Books'},co:{icon:'🎸',color:'#3068c5',label:'Concerts'},th:{icon:'🎭',color:'#8670c8',label:'Theater'},pc:{icon:'🎙️',color:'#c03636',label:'Podcasts'},wk:{icon:'🏃',color:'#1db954',label:'Workouts'},sp:{icon:'🏟️',color:'#0ea5e9',label:'Sports'},bg:{icon:'🎲',color:'#ec4899',label:'Board Games'},gt:{icon:'🎮',color:'#6366f1',label:'Games'}};
+var _llTypeInfo={ep:{icon:'📺',color:'#0a7d7d',label:'Episodes'},mv:{icon:'🎞️',color:'#c97530',label:'Movies'},sc:{icon:'🎧',color:'#15803d',label:'Scrobbles'},bk:{icon:'📚',color:'#c99a1e',label:'Books'},co:{icon:'🎸',color:'#3068c5',label:'Concerts'},th:{icon:'🎭',color:'#8670c8',label:'Theater'},pc:{icon:'🎙️',color:'#c03636',label:'Podcasts'},wk:{icon:'🏃',color:'#1db954',label:'Workouts'},sp:{icon:'🏟️',color:'#0ea5e9',label:'Sports'},bg:{icon:'🎲',color:'#ec4899',label:'Board Games'},gt:{icon:'🎮',color:'#6366f1',label:'Video Games'}};
 var _llDayNames=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 var _llMonthNames=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 // Map dashboard type filter values to lifeline event types
