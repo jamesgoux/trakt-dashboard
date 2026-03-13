@@ -46,6 +46,10 @@ jobs:
           LASTFM_DAILY_BUDGET: "100"
         run: python scripts/backfill_lastfm_daily.py
 
+      - name: Refresh sports schedules
+        run: python scripts/refresh_sports_schedule.py
+        continue-on-error: true
+
       - name: Sync Letterboxd watches to Trakt (one-time)
         env:
           TRAKT_CLIENT_ID: ${{ secrets.TRAKT_CLIENT_ID }}
