@@ -511,7 +511,7 @@ function stats(){
       if(D.gr&&D.gr.total){var grF=cy==='all'?(D.gr.all||[]):(D.gr.all||[]).filter(function(b){return b.yr===cy});h2+=sc(grF.length,'📚 Books','#fbbf24')}
       if(D.th&&D.th.total){var thF=cy==='all'?(D.th.all||[]):(D.th.all||[]).filter(function(e){return e.y===cy});if(thF.length)h2+=sc(thF.length,'🎭 Theater','#a78bfa')}
       if(SP.length){var spAll=cy==='all'?SP:SP.filter(function(e){return e.date&&e.date.substring(0,4)===cy});if(spAll.length)h2+=sc(spAll.length,'🏟️ Sports Games','#0ea5e9')}
-      if(D.health&&D.health.total){var hwBy=D.health.by_year||{};var hwCt=0;Object.entries(hwBy).forEach(function(e){if(cy==='all'||e[0]===cy)hwCt+=e[1].count});if(hwCt)h2+=sc(hwCt,'🏃 Workouts','#1db954')}
+      if(D.health&&D.health.total){var hwBy3=D.health.by_year||{};var hwCt3=0,hwDur3=0,hwCal3=0;Object.entries(hwBy3).forEach(function(e){if(cy==='all'||e[0]===cy){hwCt3+=e[1].count;hwDur3+=e[1].dur;hwCal3+=e[1].cal}});if(hwCt3)h2+=sc(hwCt3,'🏃 Workouts','#1db954')+sc((hwDur3/3600).toFixed(1)+'h','⏱️ Hours','#1db954')+sc((hwCal3/1000).toFixed(2)+'k','🔥 Calories','#1db954')}
       if(D.bg&&D.bg.total){var bgBy2=D.bg.agg.by_year||{};var bgCt2=0;Object.entries(bgBy2).forEach(function(e){if(cy==='all'||e[0]===cy)bgCt2+=e[1]});if(bgCt2)h2+=sc(bgCt2,'🎲 Plays','#ec4899')}
     }else{
       h2=sc((mw+ew).toLocaleString(),'👁️ Watches','#b0b0b0')+sc(totalDays,'⏱️ Days','#b0b0b0')+sc((cy==='all'?s.unique_movies:mw).toLocaleString(),'🎞️ Movies','var(--ac)')+sc(s.unique_shows,'📺 Shows','var(--pu)')+sc(seasonCount,'📦 Seasons','var(--pu)')+sc(ew.toLocaleString(),'🔢 Episodes','var(--pu)');
@@ -2853,8 +2853,8 @@ function _llFormatDate(ds){var d=new Date(ds+'T12:00:00');return _llDayNames[d.g
 // Inject workout + sports events into lifeline data
 (function(){
   var ll=D.ll||{};
-  // Workouts
-  var hw=D.health||{};(hw.recent||[]).forEach(function(w){
+  // Workouts — use full array, not capped recent
+  (D._hwAll||[]).forEach(function(w){
     var d=w.date;if(!d)return;
     if(!ll[d])ll[d]={};if(!ll[d].e)ll[d].e=[];
     var durMin=Math.round((w.dur||0)/60);
