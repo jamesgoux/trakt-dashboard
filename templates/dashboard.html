@@ -554,10 +554,11 @@ function renderLifeline(){
 
   // Pulse display: filter by type, split into positive and negative
   var bw=15;
-  var sEp=ct==='all'||ct==='show',sMv=ct==='all'||ct==='movie',sBk=ct==='all'||ct==='book',sSc=ct==='all'||ct==='music',sCo=ct==='all'||ct==='concert',sTh=ct==='all'||ct==='theater',sPc=ct==='all'||ct==='podcast';
-  var posData={ep:[],mv:[],bk:[]};var negData={sc:[],co:[],th:[],pc:[]};
+  var sEp=ct==='all'||ct==='show',sMv=ct==='all'||ct==='movie',sBk=ct==='all'||ct==='book',sSc=ct==='all'||ct==='music',sCo=ct==='all'||ct==='concert',sTh=ct==='all'||ct==='theater',sPc=ct==='all'||ct==='podcast',sWk=ct==='all'||ct==='health',sSp=ct==='all'||ct==='sports';
+  var posData={ep:[],mv:[],bk:[],wk:[],sp:[]};var negData={sc:[],co:[],th:[],pc:[]};
   days.forEach(function(d){var v=ll[d]||{};
     posData.ep.push(sEp?(v.ep||0):0);posData.mv.push(sMv?(v.mv||0):0);posData.bk.push(sBk?(v.bk||0):0);
+    posData.wk.push(sWk?(v.wk||0):0);posData.sp.push(sSp?(v.sp||0):0);
     negData.sc.push(sSc?-(v.sc||0):0);negData.co.push(sCo?-(v.co||0):0);negData.th.push(sTh?-(v.th||0):0);negData.pc.push(sPc?-(v.pc||0):0);
   });
 
@@ -567,10 +568,14 @@ function renderLifeline(){
   var scScale=posMax/scMax;
   var negScScaled=negData.sc.map(function(v){return Math.round(v*scScale)});
 
-  // Build legend — only include Podcasts if there's any data
+  // Build legend — only include types with data
   var llLeg=['Episodes','Movies','Books','Scrobbles','Concerts','Plays'];
   var hasPcData=negData.pc.some(function(v){return v!==0});
   if(hasPcData)llLeg.push('Podcasts');
+  var hasWkData=posData.wk.some(function(v){return v!==0});
+  if(hasWkData)llLeg.push('Workouts');
+  var hasSpData=posData.sp.some(function(v){return v!==0});
+  if(hasSpData)llLeg.push('Games');
 
   var llChart=echarts.init(llEl);
   var llSeries=[
@@ -582,6 +587,8 @@ function renderLifeline(){
       {name:'Plays',type:'bar',stack:'ll',data:negData.th,itemStyle:{color:new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:'rgba(167,139,250,0.4)'},{offset:1,color:'#a78bfa'}])},barMaxWidth:bw}
   ];
   if(hasPcData)llSeries.push({name:'Podcasts',type:'bar',stack:'ll',data:negData.pc,itemStyle:{color:new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:'rgba(239,68,68,0.4)'},{offset:1,color:'#ef4444'}])},barMaxWidth:bw});
+  if(hasWkData)llSeries.push({name:'Workouts',type:'bar',stack:'ll',data:posData.wk,itemStyle:{color:new echarts.graphic.LinearGradient(0,1,0,0,[{offset:0,color:'rgba(29,185,84,0.4)'},{offset:1,color:'#1db954'}])},barMaxWidth:bw});
+  if(hasSpData)llSeries.push({name:'Games',type:'bar',stack:'ll',data:posData.sp,itemStyle:{color:new echarts.graphic.LinearGradient(0,1,0,0,[{offset:0,color:'rgba(14,165,233,0.4)'},{offset:1,color:'#0ea5e9'}])},barMaxWidth:bw});
 
   llChart.setOption({tooltip:{trigger:'axis',...tt,formatter:function(p){var day=days[p[0].dataIndex];var h='<b>'+day+'</b>';p.forEach(function(s){var v=Math.abs(s.value);if(v){if(s.seriesName==='Scrobbles'){v=Math.abs(negData.sc[p[0].dataIndex])}h+='<br/>'+s.marker+s.seriesName+': '+v}});return h}},
     legend:{data:llLeg,top:0,textStyle:{color:'#999',fontSize:9},type:'plain'},
@@ -590,8 +597,8 @@ function renderLifeline(){
     yAxis:{type:'value',axisLabel:{color:'#666',formatter:function(v){return v>=0?v:''}},splitLine:{lineStyle:{color:'#222'}}},
     series:llSeries});
   // Click to show chronological events for that day
-  var typeIcons={ep:'📺',mv:'🎞️',sc:'🎧',bk:'📚',co:'🎸',th:'🎭',pc:'🎙️'};
-  var typeColors={ep:'var(--tv)',mv:'var(--mv)',sc:'var(--mu)',bk:'var(--bk)',co:'var(--cn)',th:'var(--th)',pc:'#ef4444'};
+  var typeIcons={ep:'📺',mv:'🎞️',sc:'🎧',bk:'📚',co:'🎸',th:'🎭',pc:'🎙️',wk:'🏃',sp:'🏟️'};
+  var typeColors={ep:'var(--tv)',mv:'var(--mv)',sc:'var(--mu)',bk:'var(--bk)',co:'var(--cn)',th:'var(--th)',pc:'#ef4444',wk:'#1db954',sp:'#0ea5e9'};
   llChart.on('click',function(p){
     var idx=p.dataIndex;var day=days[idx];if(!day||!ll[day])return;
     var ld=ll[day];var evts=ld.e||[];
@@ -2696,25 +2703,33 @@ function deleteSportsEvent(id){
 
 // Lifeline Full Feed
 var _llFeedDays=[];var _llFeedIdx=0;var _llFeedBatch=15;
-var _llTypeInfo={ep:{icon:'📺',color:'#0a7d7d',label:'Episodes'},mv:{icon:'🎞️',color:'#c97530',label:'Movies'},sc:{icon:'🎧',color:'#15803d',label:'Scrobbles'},bk:{icon:'📚',color:'#c99a1e',label:'Books'},co:{icon:'🎸',color:'#3068c5',label:'Concerts'},th:{icon:'🎭',color:'#8670c8',label:'Plays'},pc:{icon:'🎙️',color:'#c03636',label:'Podcasts'},wk:{icon:'🏃',color:'#1db954',label:'Workouts'}};
+var _llTypeInfo={ep:{icon:'📺',color:'#0a7d7d',label:'Episodes'},mv:{icon:'🎞️',color:'#c97530',label:'Movies'},sc:{icon:'🎧',color:'#15803d',label:'Scrobbles'},bk:{icon:'📚',color:'#c99a1e',label:'Books'},co:{icon:'🎸',color:'#3068c5',label:'Concerts'},th:{icon:'🎭',color:'#8670c8',label:'Plays'},pc:{icon:'🎙️',color:'#c03636',label:'Podcasts'},wk:{icon:'🏃',color:'#1db954',label:'Workouts'},sp:{icon:'🏟️',color:'#0ea5e9',label:'Games'}};
 var _llDayNames=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 var _llMonthNames=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 // Map dashboard type filter values to lifeline event types
-var _llTypeMap={all:null,movie:['mv'],show:['ep'],book:['bk'],music:['sc'],concert:['co'],theater:['th'],podcast:['pc'],sports:null,health:['wk']};
+var _llTypeMap={all:null,movie:['mv'],show:['ep'],book:['bk'],music:['sc'],concert:['co'],theater:['th'],podcast:['pc'],sports:['sp'],health:['wk']};
 
 function _llFormatDate(ds){var d=new Date(ds+'T12:00:00');return _llDayNames[d.getDay()]+', '+_llMonthNames[d.getMonth()]+' '+d.getDate()+', '+d.getFullYear()}
 
-// Inject workout events into lifeline data
+// Inject workout + sports events into lifeline data
 (function(){
-  var hw=D.health||{};var recent=hw.recent||[];var ll=D.ll||{};
-  recent.forEach(function(w){
+  var ll=D.ll||{};
+  // Workouts
+  var hw=D.health||{};(hw.recent||[]).forEach(function(w){
     var d=w.date;if(!d)return;
-    if(!ll[d])ll[d]={};
-    if(!ll[d].e)ll[d].e=[];
+    if(!ll[d])ll[d]={};if(!ll[d].e)ll[d].e=[];
     var durMin=Math.round((w.dur||0)/60);
     var durStr=durMin>=60?Math.floor(durMin/60)+'h '+durMin%60+'m':durMin+'m';
     ll[d].wk=(ll[d].wk||0)+1;
     ll[d].e.push({ty:'wk',t:durStr,n:w.type+' — '+Math.round((w.dist||0)/1000*10)/10+'km, '+(w.cal||0)+' cal'});
+  });
+  // Sports events
+  SP.forEach(function(e){
+    var d=e.date;if(!d)return;d=d.substring(0,10);
+    if(!ll[d])ll[d]={};if(!ll[d].e)ll[d].e=[];
+    ll[d].sp=(ll[d].sp||0)+1;
+    var score=(e.home_score!=null&&e.home_score!=='')?e.away_team+' '+e.away_score+' - '+e.home_score+' '+e.home_team:'vs '+e.away_team;
+    ll[d].e.push({ty:'sp',t:e.watch_type||'',n:score+(e.venue?' · '+e.venue:'')});
   });
   D.ll=ll;
 })();
@@ -2728,7 +2743,7 @@ function openLifelineFeed(){
     if(cy!=='all'&&!d.startsWith(cy))return false;
     var v=ll[d];
     if(allowedTypes){return allowedTypes.some(function(ty){return v[ty]})}
-    return(v.ep||v.mv||v.sc||v.bk||v.co||v.th||v.pc||v.wk);
+    return(v.ep||v.mv||v.sc||v.bk||v.co||v.th||v.pc||v.wk||v.sp);
   }).sort().reverse();
   _llFeedIdx=0;
   var content=document.getElementById('ll-feed-content');content.innerHTML='';
@@ -2813,7 +2828,7 @@ function _llRenderBatch(){
     }else{
       // Summary only — show pills, filtered
       body+='<div class="ll-summary">';
-      ['ep','mv','bk','sc','co','th','pc'].forEach(function(ty){
+      ['ep','mv','bk','sc','co','th','pc','wk','sp'].forEach(function(ty){
         if(allowedTypes&&allowedTypes.indexOf(ty)<0)return;
         var count=v[ty]||0;if(!count)return;
         var info=_llTypeInfo[ty];
