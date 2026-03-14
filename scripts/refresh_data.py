@@ -220,6 +220,7 @@ def fetch_cast_and_studios(entries):
     # === EPISODE-LEVEL CREDITS: fetch per-season cast from TMDB ===
     # This gives accurate episode counts per person per show
     ep_credits = defaultdict(lambda: defaultdict(set))  # person_slug -> show_slug -> set of (s,e,year) tuples
+    crew_ep_credits = defaultdict(lambda: defaultdict(set))  # same structure for directors/writers
     # Load cached season credits (avoid re-fetching from TMDB)
     season_cache_path = "data/season_credits.json"
     season_cache = {}
@@ -249,10 +250,13 @@ def fetch_cast_and_studios(entries):
                         sr = retry_request("get", url, timeout=10)
                         if not sr or sr.status_code != 200: continue
                         sdata = sr.json()
-                        # Cache: store only cast/guest_stars (not full episode data)
+                        # Cache: store cast/guest_stars + per-episode crew (directors/writers)
                         season_cache[cache_key] = {
                             "credits": {"cast": [{"name": c.get("name",""), "gender": c.get("gender",0)} for c in sdata.get("credits",{}).get("cast",[])]},
-                            "episodes": [{"episode_number": ep.get("episode_number"), "guest_stars": [{"name": gs.get("name",""), "gender": gs.get("gender",0)} for gs in ep.get("guest_stars",[])]} for ep in sdata.get("episodes",[])]
+                            "episodes": [{"episode_number": ep.get("episode_number"),
+                                          "guest_stars": [{"name": gs.get("name",""), "gender": gs.get("gender",0)} for gs in ep.get("guest_stars",[])],
+                                          "crew": [{"name": cr.get("name",""), "job": cr.get("job","")} for cr in ep.get("crew",[]) if cr.get("job") in ("Director", "Writer", "Screenplay", "Story")]
+                                         } for ep in sdata.get("episodes",[])]
                         }
                         fetched_count += 1
                         if fetched_count % 50 == 0:
@@ -280,10 +284,10 @@ def fetch_cast_and_studios(entries):
                 for ep_data in sdata.get("episodes", []):
                     ep_num = ep_data.get("episode_number")
                     if ep_num not in ep_nums: continue
+                    wy = ep_watch_year.get((slug, season_num, ep_num), "")
                     for gs in ep_data.get("guest_stars", []):
                         pid = _slugify(gs.get("name", ""))
                         if not pid: continue
-                        wy = ep_watch_year.get((slug, season_num, ep_num), "")
                         ep_credits[pid][slug].add((season_num, ep_num, wy))
                         # Always add show to person's titles
                         people[pid]["titles"].add(slug)
@@ -292,6 +296,13 @@ def fetch_cast_and_studios(entries):
                             g = gs.get("gender", 0)
                             if g in (1, 2): people[pid]["gender"] = g
                             people[pid]["titles"].add(slug)
+                    # Per-episode crew (directors/writers)
+                    for cr in ep_data.get("crew", []):
+                        cname = cr.get("name", "")
+                        cjob = cr.get("job", "")
+                        cpid = _slugify(cname)
+                        if cpid and cjob:
+                            crew_ep_credits[cpid][slug].add((season_num, ep_num, wy))
 
         # Save cache
         with open(season_cache_path, "w") as f:
@@ -947,19 +958,13 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
     dir_list = build_crew(directors_raw)
     wr_list = build_crew(writers_raw)
 
-    # Apply green highlights to crew (show-level: new if show slug has no older watches)
-    older_show_slugs_all = set()  # slugs with ANY older watch
-    older_show_slugs_cy = set()   # slugs with older watch in current year
-    for e in entries:
-        d = e.get("watched_at", "")[:10]
-        if not d or d >= cutoff_date or e["type"] == "movie": continue
-        slug = e.get("trakt_slug", "")
-        if slug:
-            older_show_slugs_all.add(slug)
-            if d[:4] == cur_year: older_show_slugs_cy.add(slug)
+    # Apply green highlights to crew using per-episode crew credits
+    # Same logic as actors: check if this person's specific episodes are all recent
     for cl in [dir_list, wr_list]:
         for p in cl:
             g_all = g_cy = 0
+            pname = p["n"]
+            cpid = _slugify(pname)
             for idx in p.get("ti", []):
                 t = tl[idx]
                 if t["type"] == "movie":
@@ -968,9 +973,30 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
                         if cur_year in t.get("eby", {}): g_cy += 1
                 else:
                     sl = t.get("sl", "")
-                    if sl in recent_show_slugs:
-                        if sl not in older_show_slugs_all: g_all += 1
-                        if sl not in older_show_slugs_cy and cur_year in t.get("eby", {}): g_cy += 1
+                    if not sl or sl not in recent_show_slugs: continue
+                    # Check per-episode crew credits
+                    person_ep_keys = crew_ep_credits.get(cpid, {}).get(sl, set())
+                    if not person_ep_keys: continue
+                    all_recent = True
+                    any_older_in_cy = False
+                    for ep_tuple in person_ep_keys:
+                        sn, en = ep_tuple[0], ep_tuple[1]
+                        watch_d = ep_watch_date.get((sl, sn, en), "")
+                        if watch_d and watch_d < cutoff_date:
+                            all_recent = False
+                            if watch_d[:4] == cur_year:
+                                any_older_in_cy = True
+                    if all_recent and person_ep_keys:
+                        g_all += 1
+                        if any(len(ep) > 2 and ep[2] == cur_year for ep in person_ep_keys):
+                            g_cy += 1
+                    elif not any_older_in_cy:
+                        person_cy_eps = [ep for ep in person_ep_keys if len(ep) > 2 and ep[2] == cur_year]
+                        if person_cy_eps and all(
+                            ep_watch_date.get((sl, ep[0], ep[1]), "") >= cutoff_date
+                            for ep in person_cy_eps
+                        ):
+                            g_cy += 1
             if g_all or g_cy:
                 gp = {}
                 if g_all: gp["all"] = g_all
