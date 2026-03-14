@@ -370,6 +370,41 @@ def main():
                 return True
         return False
 
+    # Quick check: use eventslast to see which teams have new games
+    # This costs only 1 API call per team instead of 50+ round calls
+    existing_ids = set()
+    for team_events in existing.values():
+        for ev in team_events:
+            existing_ids.add(ev.get("id", ""))
+
+    teams_needing_update = set()
+    teams_with_ids = {t["name"]: t.get("team_id", "") for t in teams if t.get("team_id")}
+    if existing_ids:  # only check if we have existing cache
+        print("\nQuick check for new games (eventslast)...")
+        for name, tid in teams_with_ids.items():
+            if not tid:
+                teams_needing_update.add(name)
+                continue
+            data = api_get("eventslast.php", {"id": tid})
+            if data and data.get("results"):
+                for ev in data["results"]:
+                    eid = ev.get("idEvent", "")
+                    if eid and eid not in existing_ids:
+                        teams_needing_update.add(name)
+                        print(f"  {name}: new game found ({ev.get('strEvent', '')} {ev.get('dateEvent', '')})")
+                        break
+                    # Also check if score was updated (was None, now has score)
+                    if eid in existing_ids and ev.get("intHomeScore") not in (None, "", "None"):
+                        # Check if our cached version has the score
+                        for team_evts in existing.values():
+                            for cached_ev in team_evts:
+                                if cached_ev.get("id") == eid and cached_ev.get("home_score") in (None, "", "None"):
+                                    teams_needing_update.add(name)
+                                    print(f"  {name}: score updated ({ev.get('strEvent', '')})")
+                                    break
+        if not teams_needing_update:
+            print("  No new games found — skipping all round fetches")
+
     # Fetch by league
     for league_key, team_names in teams_by_league.items():
         cfg = LEAGUES[league_key]
@@ -383,6 +418,12 @@ def main():
                 fetch_seasons.append(s)
             else:
                 skip_seasons.append(s)
+
+        # If no teams in this league need updates, skip entirely
+        league_teams_need_update = [n for n in team_names if n in teams_needing_update]
+        if existing_ids and not league_teams_need_update and not [s for s in fetch_seasons if s not in existing_seasons]:
+            print(f"\n--- {league_key}: no updates needed, skipping ---")
+            continue
 
         print(f"\n--- {league_key} ({len(team_names)} teams) ---")
         print(f"  Teams: {', '.join(team_names)}")
