@@ -1383,8 +1383,8 @@ function renderPosters(animate){
   });
   shows.sort(function(a,b){return window._showSort==='dur'?(b.h-a.h):(b.e-a.e)});
   var top=shows.slice(0,mob?20:24);
-  function slug(n){return n.toLowerCase().replace(/[^a-z0-9]/g,'-')}
-  function findImg(s){var sl=slug(s);for(var k in PS){if(k===sl||sl===k)return PS[k]}for(var k in PS){if(sl.length>5&&k.indexOf(sl)>=0)return PS[k]}return null}
+  function slug(n){return n.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')}
+  function findImg(s){var sl=slug(s);if(PS[sl])return PS[sl];for(var k in PS){if(k.indexOf(sl)===0||sl.indexOf(k)===0)return PS[k]}for(var k in PS){if(sl.length>5&&(k.indexOf(sl)>=0||sl.indexOf(k)>=0))return PS[k]}return null}
   // Check poster coverage — if <50%, use bar chart instead
   var imgCount=top.reduce(function(s,sh){return s+(findImg(sh.n)?1:0)},0);
   var useGrid=imgCount>=top.length*0.5;

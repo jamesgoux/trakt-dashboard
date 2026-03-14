@@ -24,7 +24,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 from utils import retry_request
 
 API_BASE = "https://www.thesportsdb.com/api/v1/json/3"
-REQUEST_DELAY = 1.5  # seconds between API calls (free tier rate limit)
+REQUEST_DELAY = 2.0  # seconds between API calls (free tier rate limit)
 
 # League configurations
 LEAGUES = {
@@ -141,11 +141,13 @@ def fetch_search_events(team_name, season):
     return []
 
 
-def fetch_rounds_for_league(league_key, team_names, seasons):
-    """Fetch all games for tracked teams via round-based approach."""
+def fetch_rounds_for_league(league_key, team_names, seasons, existing_events=None):
+    """Fetch games for tracked teams via round-based approach.
+    For seasons with existing cached data, only fetch recent rounds."""
     cfg = LEAGUES[league_key]
     league_id = cfg["id"]
-    all_rounds = cfg["regular_rounds"] + cfg["playoff_rounds"]
+    regular_rounds = cfg["regular_rounds"]
+    playoff_rounds = cfg["playoff_rounds"]
 
     events_by_team = {name: {} for name in team_names}  # name -> {event_id: event}
     team_set = set(team_names)
@@ -154,13 +156,31 @@ def fetch_rounds_for_league(league_key, team_names, seasons):
         season_count = 0
         empty_streak = 0
 
-        for round_num in all_rounds:
+        # If we have cached data for this season, find the highest round and
+        # only fetch from there (+ playoffs). Saves ~80% of API calls.
+        max_cached_round = 0
+        if existing_events:
+            for name in team_names:
+                for ev in existing_events.get(name, []):
+                    if ev.get("season", "") == season:
+                        r = int(ev.get("round", 0) or 0)
+                        if r > max_cached_round and r < 100:
+                            max_cached_round = r
+
+        if max_cached_round > 0:
+            # Only fetch from max_cached_round-1 onward (overlap by 1 for score updates)
+            start_round = max(1, max_cached_round - 1)
+            rounds_to_fetch = [r for r in regular_rounds if r >= start_round] + playoff_rounds
+            print(f"    {league_key} {season}: cached through round {max_cached_round}, fetching from {start_round}")
+        else:
+            rounds_to_fetch = regular_rounds + playoff_rounds
+
+        for round_num in rounds_to_fetch:
             raw_events = fetch_round_events(league_id, round_num, season)
 
             if not raw_events:
                 empty_streak += 1
-                # For regular rounds, stop after 5 consecutive empty rounds
-                if round_num in cfg["regular_rounds"] and empty_streak >= 5:
+                if round_num in regular_rounds and empty_streak >= 5:
                     print(f"    Stopping {league_key} {season} at round {round_num} (5 empty)")
                     break
                 continue
@@ -172,14 +192,13 @@ def fetch_rounds_for_league(league_key, team_names, seasons):
                 away = ev.get("strAwayTeam", "")
                 event_id = ev.get("idEvent", "")
 
-                # Check if any tracked team is involved
                 for team_name in team_set:
                     if team_name in home or team_name in away:
                         if event_id not in events_by_team[team_name]:
                             events_by_team[team_name][event_id] = normalize_event(ev, team_name)
                             season_count += 1
 
-        print(f"    {league_key} {season}: {season_count} games for tracked teams")
+        print(f"    {league_key} {season}: {season_count} new games for tracked teams")
 
     return events_by_team
 
@@ -336,20 +355,55 @@ def main():
     current_month = datetime.now().month
     # Current seasons by league (the season that's actively being played)
     def is_current_season(season_str, league_key):
-        """Check if a season is current (scores may still change)."""
+        """Check if a season is the ACTIVE season (not last year's)."""
         cfg = LEAGUES[league_key]
         if cfg["season_format"] == "split":
-            # e.g. "2025-2026" is current if we're in 2025 or 2026
+            # e.g. "2025-2026" is current only if end year >= current year
             parts = season_str.split("-")
             if len(parts) == 2:
-                return int(parts[0]) >= current_year - 1
+                return int(parts[1]) >= current_year
         else:
-            # e.g. "2026" is current if it's this year or last year
+            # e.g. "2026" is current only if it's this year
             try:
-                return int(season_str) >= current_year - 1
+                return int(season_str) >= current_year
             except ValueError:
                 return True
-        return True  # default to fetching if unsure
+        return False
+
+    # Quick check: use eventslast to see which teams have new games
+    # This costs only 1 API call per team instead of 50+ round calls
+    existing_ids = set()
+    for team_events in existing.values():
+        for ev in team_events:
+            existing_ids.add(ev.get("id", ""))
+
+    teams_needing_update = set()
+    teams_with_ids = {t["name"]: t.get("team_id", "") for t in teams if t.get("team_id")}
+    if existing_ids:  # only check if we have existing cache
+        print("\nQuick check for new games (eventslast)...")
+        for name, tid in teams_with_ids.items():
+            if not tid:
+                teams_needing_update.add(name)
+                continue
+            data = api_get("eventslast.php", {"id": tid})
+            if data and data.get("results"):
+                for ev in data["results"]:
+                    eid = ev.get("idEvent", "")
+                    if eid and eid not in existing_ids:
+                        teams_needing_update.add(name)
+                        print(f"  {name}: new game found ({ev.get('strEvent', '')} {ev.get('dateEvent', '')})")
+                        break
+                    # Also check if score was updated (was None, now has score)
+                    if eid in existing_ids and ev.get("intHomeScore") not in (None, "", "None"):
+                        # Check if our cached version has the score
+                        for team_evts in existing.values():
+                            for cached_ev in team_evts:
+                                if cached_ev.get("id") == eid and cached_ev.get("home_score") in (None, "", "None"):
+                                    teams_needing_update.add(name)
+                                    print(f"  {name}: score updated ({ev.get('strEvent', '')})")
+                                    break
+        if not teams_needing_update:
+            print("  No new games found — skipping all round fetches")
 
     # Fetch by league
     for league_key, team_names in teams_by_league.items():
@@ -365,6 +419,12 @@ def main():
             else:
                 skip_seasons.append(s)
 
+        # If no teams in this league need updates, skip entirely
+        league_teams_need_update = [n for n in team_names if n in teams_needing_update]
+        if existing_ids and not league_teams_need_update and not [s for s in fetch_seasons if s not in existing_seasons]:
+            print(f"\n--- {league_key}: no updates needed, skipping ---")
+            continue
+
         print(f"\n--- {league_key} ({len(team_names)} teams) ---")
         print(f"  Teams: {', '.join(team_names)}")
         print(f"  Fetching: {', '.join(fetch_seasons[:6]) if fetch_seasons else 'none'}")
@@ -376,7 +436,7 @@ def main():
             continue
 
         if cfg["method"] == "rounds":
-            league_events = fetch_rounds_for_league(league_key, team_names, fetch_seasons)
+            league_events = fetch_rounds_for_league(league_key, team_names, fetch_seasons, existing)
             for name, evts in league_events.items():
                 all_events.setdefault(name, {}).update(evts)
 
