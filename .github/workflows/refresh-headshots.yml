@@ -50,6 +50,12 @@ jobs:
         run: python scripts/refresh_sports_schedule.py
         continue-on-error: true
 
+      - name: Backfill crew episode credits
+        env:
+          TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+        run: python scripts/backfill_crew_episodes.py
+        continue-on-error: true
+
       - name: Backfill setlist songs
         env:
           SETLIST_FM_API_KEY: ${{ secrets.SETLIST_FM_API_KEY }}
