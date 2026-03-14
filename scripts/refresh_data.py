@@ -920,6 +920,23 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
     dir_list = build_crew(directors_raw)
     wr_list = build_crew(writers_raw)
 
+    # Apply green highlights to crew (same logic, no eps check needed)
+    for cl in [dir_list, wr_list]:
+        for p in cl:
+            g_all = g_cy = 0
+            for idx in p.get("ti", []):
+                if idx in tl_new_movie:
+                    g_all += 1
+                    if cur_year in tl[idx].get("eby", {}): g_cy += 1
+                elif idx in tl_new_show_years:
+                    if "all" in tl_new_show_years[idx]: g_all += 1
+                    if cur_year in tl_new_show_years[idx]: g_cy += 1
+            if g_all or g_cy:
+                gp = {}
+                if g_all: gp["all"] = g_all
+                if g_cy: gp[cur_year] = g_cy
+                p["g+"] = gp
+
     return {
         "a": [p for p in pd if p["g"] == "m"],
         "x": [p for p in pd if p["g"] == "f"],

@@ -166,12 +166,12 @@ body{overflow-x:hidden}
 <div id="sec-tl" class="cd fw s-t"><h3 id="tlh"><span class="i">📈</span>Yearly Activity</h3><div id="yrc" style="height:280px"></div><div id="tlc" style="height:280px;display:none"></div></div>
 </div>
 <div class="g2 med-s" data-med="all movie show">
-<div id="sec-act" class="cd s-a"><h3><span class="i">🎭</span>Most Watched Actors</h3><div class="stb"><table><thead><tr><th>#</th><th>Actor</th><th>Mov</th><th>Show</th><th>Total</th></tr></thead><tbody id="atb"></tbody></table></div></div>
-<div class="cd s-a"><h3><span class="i">🎭</span>Most Watched Actresses</h3><div class="stb"><table><thead><tr><th>#</th><th>Actress</th><th>Mov</th><th>Show</th><th>Total</th></tr></thead><tbody id="xtb"></tbody></table></div></div>
+<div id="sec-act" class="cd s-a"><h3><span class="i">🎭</span>Most Watched Actors <button class="ptbl-new-btn" onclick="_ptblToggleNew('atb',D.a,this)" style="float:right;font-size:11px;padding:4px 10px;background:none;border:1px solid rgba(74,222,128,.3);color:#4ade80;border-radius:6px;cursor:pointer;display:none">★ New</button></h3><div class="stb"><table><thead><tr><th>#</th><th>Actor</th><th>Mov</th><th>Show</th><th>Total</th></tr></thead><tbody id="atb"></tbody></table></div></div>
+<div class="cd s-a"><h3><span class="i">🎭</span>Most Watched Actresses <button class="ptbl-new-btn" onclick="_ptblToggleNew('xtb',D.x,this)" style="float:right;font-size:11px;padding:4px 10px;background:none;border:1px solid rgba(74,222,128,.3);color:#4ade80;border-radius:6px;cursor:pointer;display:none">★ New</button></h3><div class="stb"><table><thead><tr><th>#</th><th>Actress</th><th>Mov</th><th>Show</th><th>Total</th></tr></thead><tbody id="xtb"></tbody></table></div></div>
 </div>
 <div class="g2 med-s" data-med="all movie show">
-<div id="sec-crew" class="cd s-c"><h3><span class="i">🎬</span>Most Watched Directors</h3><div class="stb"><table><thead><tr><th>#</th><th>Director</th><th>Mov</th><th>Show</th><th>Total</th></tr></thead><tbody id="dtb"></tbody></table></div></div>
-<div class="cd s-c"><h3><span class="i">✍️</span>Most Watched Writers</h3><div class="stb"><table><thead><tr><th>#</th><th>Writer</th><th>Mov</th><th>Show</th><th>Total</th></tr></thead><tbody id="wtb"></tbody></table></div></div>
+<div id="sec-crew" class="cd s-c"><h3><span class="i">🎬</span>Most Watched Directors <button class="ptbl-new-btn" onclick="_ptblToggleNew('dtb',D.d||[],this)" style="float:right;font-size:11px;padding:4px 10px;background:none;border:1px solid rgba(74,222,128,.3);color:#4ade80;border-radius:6px;cursor:pointer;display:none">★ New</button></h3><div class="stb"><table><thead><tr><th>#</th><th>Director</th><th>Mov</th><th>Show</th><th>Total</th></tr></thead><tbody id="dtb"></tbody></table></div></div>
+<div class="cd s-c"><h3><span class="i">✍️</span>Most Watched Writers <button class="ptbl-new-btn" onclick="_ptblToggleNew('wtb',D.w||[],this)" style="float:right;font-size:11px;padding:4px 10px;background:none;border:1px solid rgba(74,222,128,.3);color:#4ade80;border-radius:6px;cursor:pointer;display:none">★ New</button></h3><div class="stb"><table><thead><tr><th>#</th><th>Writer</th><th>Mov</th><th>Show</th><th>Total</th></tr></thead><tbody id="wtb"></tbody></table></div></div>
 </div>
 <!-- TOP SHOWS POSTERS -->
 <div class="g2 med-s" data-med="all show">
@@ -548,6 +548,12 @@ function stats(){
 // Person gain: pre-computed by pipeline per year
 // p['g+'] = {"all": N, "2026": N, ...} — new titles in last 7 days
 function _personGain(p){var g=p['g+'];if(!g)return 0;return g[cy]||0}
+var _ptblNewOnly={};
+function _ptblToggleNew(id,pp,btn){
+  _ptblNewOnly[id]=!_ptblNewOnly[id];
+  btn.style.background=_ptblNewOnly[id]?'rgba(74,222,128,.15)':'none';
+  ptbl(id,pp);
+}
 function ptbl(id,pp){var tb=document.getElementById(id);tb.innerHTML='';
 // Pre-compute filtered counts and sort
 var items=[];pp.forEach(function(p){var m=p.m,s=p.s;if(cy!=='all'&&p.ti){m=0;s=0;p.ti.forEach(function(i){var t=TL[i];if(!t)return;if(t.type==='movie'){if(sm(fby(t.eby))>0)m++}else{
@@ -561,6 +567,12 @@ if(ct==='movie'){if(m===0)return;sortVal=m}
 if(ct==='show'){if(s===0)return;sortVal=s}
 items.push({p:p,m:m,s:s,tot:m+s,sv:sortVal})});
 items.sort(function(a,b){return b.sv-a.sv});
+// Show/hide "★ New" button based on whether any items have gains
+var hasAnyGain=items.some(function(item){return _personGain(item.p)>0});
+var newBtn=tb.closest('.cd').querySelector('.ptbl-new-btn');
+if(newBtn)newBtn.style.display=hasAnyGain?'':'none';
+// Filter to only boosted if toggle is on
+if(_ptblNewOnly[id])items=items.filter(function(item){return _personGain(item.p)>0});
 var rk=0;items.forEach(function(item){var p=item.p,m=item.m,s=item.s;rk++;var tot=item.tot;var img=HS[p.n]?'<img class="hs" src="'+HS[p.n]+'" loading="lazy" onerror="this.style.display=\'none\'" alt="">':'<div class="hp">'+p.n.charAt(0)+'</div>';
 // Check if this person gained new watches in the last 7 days
 var gain=_personGain(p);
