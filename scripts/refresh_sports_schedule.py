@@ -423,8 +423,6 @@ def main():
                     skip_seasons.append(s)
                 else:
                     fetch_seasons.append(s)
-            else:
-                skip_seasons.append(s)
 
         # If no teams in this league need updates, skip entirely
         league_teams_need_update = [n for n in team_names if n in teams_needing_update]
