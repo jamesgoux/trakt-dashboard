@@ -333,6 +333,11 @@ def fetch_cast_and_studios(entries):
         json.dump(dir_out, f, separators=(',', ':'))
     with open("data/writers.json", "w") as f:
         json.dump(wr_out, f, separators=(',', ':'))
+    # Save slug→TMDB ID mapping (for crew backfill script)
+    slug_tmdb_out = {s: tid for s, (tid, is_show) in slug_tmdb.items() if is_show}
+    with open("data/slug_tmdb.json", "w") as f:
+        json.dump(slug_tmdb_out, f, separators=(',', ':'))
+    print(f"  Slug→TMDB mapping: {len(slug_tmdb_out)} shows saved")
     # Build crew_ep_credits output for build_data
     crew_ep_out = {}
     for cpid, shows in crew_ep_credits.items():

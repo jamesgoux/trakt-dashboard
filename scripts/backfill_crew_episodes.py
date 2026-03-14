@@ -65,11 +65,15 @@ def main():
             sl = t.get("sl", "")
             if sl:
                 recent_slugs.add(sl)
-    # Get slug→tmdb mapping from slug_meta
-    sm = data.get("sm", {})
-    for sl in recent_slugs:
-        if sl in sm and sm[sl].get("tmdb"):
-            slug_to_tmdb[sl] = sm[sl]["tmdb"]
+    # Get slug→tmdb mapping from persisted file
+    tmdb_map_path = os.path.join(data_dir, "slug_tmdb.json")
+    if os.path.exists(tmdb_map_path):
+        with open(tmdb_map_path) as f:
+            tmdb_map = json.load(f)
+        for sl in recent_slugs:
+            if sl in tmdb_map:
+                slug_to_tmdb[sl] = tmdb_map[sl]
+    print(f"  Slug→TMDB matches: {len(slug_to_tmdb)} of {len(recent_slugs)}")
 
     print(f"Recently-watched shows: {len(recent_slugs)}")
 
@@ -162,11 +166,15 @@ def _build_crew_episodes(cache, data, cutoff):
                     pass
 
     # Build crew_ep_credits from cache
-    sm = data.get("sm", {})
+    tmdb_map_path = os.path.join(data_dir, "slug_tmdb.json")
+    tmdb_map = {}
+    if os.path.exists(tmdb_map_path):
+        with open(tmdb_map_path) as f:
+            tmdb_map = json.load(f)
     crew_ep = defaultdict(lambda: defaultdict(list))
 
     for slug, seasons in show_eps.items():
-        tmdb_id = sm.get(slug, {}).get("tmdb", "")
+        tmdb_id = tmdb_map.get(slug, "")
         if not tmdb_id:
             continue
         for season_num, ep_nums in seasons.items():
