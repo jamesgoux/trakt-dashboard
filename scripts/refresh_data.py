@@ -239,9 +239,11 @@ def fetch_cast_and_studios(entries):
             tmdb_id, _ = tmdb_info
             for season_num, ep_nums in seasons.items():
                 cache_key = f"{tmdb_id}|{season_num}"
-                # Use cache if available
-                if cache_key in season_cache:
-                    sdata = season_cache[cache_key]
+                # Use cache if available (re-fetch if missing crew data)
+                cached_entry = season_cache.get(cache_key)
+                has_crew = cached_entry and any(ep.get("crew") for ep in cached_entry.get("episodes", []))
+                if cached_entry and has_crew:
+                    sdata = cached_entry
                     cached_count += 1
                 else:
                     # Fetch from TMDB
