@@ -24,7 +24,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 from utils import retry_request
 
 API_BASE = "https://www.thesportsdb.com/api/v1/json/3"
-REQUEST_DELAY = 1.5  # seconds between API calls (free tier rate limit)
+REQUEST_DELAY = 2.0  # seconds between API calls (free tier rate limit)
 
 # League configurations
 LEAGUES = {
@@ -141,11 +141,13 @@ def fetch_search_events(team_name, season):
     return []
 
 
-def fetch_rounds_for_league(league_key, team_names, seasons):
-    """Fetch all games for tracked teams via round-based approach."""
+def fetch_rounds_for_league(league_key, team_names, seasons, existing_events=None):
+    """Fetch games for tracked teams via round-based approach.
+    For seasons with existing cached data, only fetch recent rounds."""
     cfg = LEAGUES[league_key]
     league_id = cfg["id"]
-    all_rounds = cfg["regular_rounds"] + cfg["playoff_rounds"]
+    regular_rounds = cfg["regular_rounds"]
+    playoff_rounds = cfg["playoff_rounds"]
 
     events_by_team = {name: {} for name in team_names}  # name -> {event_id: event}
     team_set = set(team_names)
@@ -154,13 +156,31 @@ def fetch_rounds_for_league(league_key, team_names, seasons):
         season_count = 0
         empty_streak = 0
 
-        for round_num in all_rounds:
+        # If we have cached data for this season, find the highest round and
+        # only fetch from there (+ playoffs). Saves ~80% of API calls.
+        max_cached_round = 0
+        if existing_events:
+            for name in team_names:
+                for ev in existing_events.get(name, []):
+                    if ev.get("season", "") == season:
+                        r = int(ev.get("round", 0) or 0)
+                        if r > max_cached_round and r < 100:
+                            max_cached_round = r
+
+        if max_cached_round > 0:
+            # Only fetch from max_cached_round-1 onward (overlap by 1 for score updates)
+            start_round = max(1, max_cached_round - 1)
+            rounds_to_fetch = [r for r in regular_rounds if r >= start_round] + playoff_rounds
+            print(f"    {league_key} {season}: cached through round {max_cached_round}, fetching from {start_round}")
+        else:
+            rounds_to_fetch = regular_rounds + playoff_rounds
+
+        for round_num in rounds_to_fetch:
             raw_events = fetch_round_events(league_id, round_num, season)
 
             if not raw_events:
                 empty_streak += 1
-                # For regular rounds, stop after 5 consecutive empty rounds
-                if round_num in cfg["regular_rounds"] and empty_streak >= 5:
+                if round_num in regular_rounds and empty_streak >= 5:
                     print(f"    Stopping {league_key} {season} at round {round_num} (5 empty)")
                     break
                 continue
@@ -172,14 +192,13 @@ def fetch_rounds_for_league(league_key, team_names, seasons):
                 away = ev.get("strAwayTeam", "")
                 event_id = ev.get("idEvent", "")
 
-                # Check if any tracked team is involved
                 for team_name in team_set:
                     if team_name in home or team_name in away:
                         if event_id not in events_by_team[team_name]:
                             events_by_team[team_name][event_id] = normalize_event(ev, team_name)
                             season_count += 1
 
-        print(f"    {league_key} {season}: {season_count} games for tracked teams")
+        print(f"    {league_key} {season}: {season_count} new games for tracked teams")
 
     return events_by_team
 
@@ -336,20 +355,20 @@ def main():
     current_month = datetime.now().month
     # Current seasons by league (the season that's actively being played)
     def is_current_season(season_str, league_key):
-        """Check if a season is current (scores may still change)."""
+        """Check if a season is the ACTIVE season (not last year's)."""
         cfg = LEAGUES[league_key]
         if cfg["season_format"] == "split":
-            # e.g. "2025-2026" is current if we're in 2025 or 2026
+            # e.g. "2025-2026" is current only if end year >= current year
             parts = season_str.split("-")
             if len(parts) == 2:
-                return int(parts[0]) >= current_year - 1
+                return int(parts[1]) >= current_year
         else:
-            # e.g. "2026" is current if it's this year or last year
+            # e.g. "2026" is current only if it's this year
             try:
-                return int(season_str) >= current_year - 1
+                return int(season_str) >= current_year
             except ValueError:
                 return True
-        return True  # default to fetching if unsure
+        return False
 
     # Fetch by league
     for league_key, team_names in teams_by_league.items():
@@ -376,7 +395,7 @@ def main():
             continue
 
         if cfg["method"] == "rounds":
-            league_events = fetch_rounds_for_league(league_key, team_names, fetch_seasons)
+            league_events = fetch_rounds_for_league(league_key, team_names, fetch_seasons, existing)
             for name, evts in league_events.items():
                 all_events.setdefault(name, {}).update(evts)
 
