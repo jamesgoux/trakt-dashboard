@@ -918,7 +918,20 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
                     k = pre + ts
                     if k in ti: tis.append(ti[k]); mc += (1 if typ == "movie" else 0); sc += (1 if typ == "show" else 0)
             if mc + sc >= 2:
-                cl.append({"n": info["name"], "m": mc, "s": sc, "tt": mc + sc, "ti": tis, "_rec": max_rec})
+                entry = {"n": info["name"], "m": mc, "s": sc, "tt": mc + sc, "ti": tis, "_rec": max_rec}
+                # Add per-episode crew credits (for episode counts + green highlights)
+                cpid = _slugify(info["name"])
+                if cpid and cpid in crew_ep_credits:
+                    eps_yc = {}
+                    for slug, ep_set in crew_ep_credits[cpid].items():
+                        yc = defaultdict(int)
+                        for ep_tuple in ep_set:
+                            yr = ep_tuple[2] if len(ep_tuple) > 2 else ""
+                            if yr: yc[yr] += 1
+                        eps_yc[slug] = {"t": len(ep_set), "y": dict(yc)} if yc else {"t": len(ep_set)}
+                    if eps_yc:
+                        entry["eps"] = eps_yc
+                cl.append(entry)
         cl.sort(key=lambda x: (x["tt"], x["_rec"]), reverse=True)
         for c in cl: del c["_rec"]
         return cl
