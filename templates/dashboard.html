@@ -920,7 +920,8 @@ function baseCharts(){
       tlLeg.push('Video Games');
     }
   }
-  c1.setOption({tooltip:{trigger:'axis',...tt},legend:{data:tlLeg.length>1?tlLeg:[],right:10,top:0,textStyle:{color:'#999'}},grid:{left:50,right:40,top:36,bottom:30},xAxis:{type:'category',data:tlLabels,axisLabel:{color:'#666',interval:0,rotate:45,fontSize:window._tlRes==='weekly'?8:10},axisLine:{lineStyle:{color:'#333'}}},yAxis:[{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},{type:'value',position:'right',axisLabel:{show:false},splitLine:{show:false}},{type:'value',position:'right',axisLabel:{show:false},splitLine:{show:false}}],series:tlSeries});
+  var tlLegRows=Math.ceil(tlLeg.length/4);var tlGridTop=Math.max(36,tlLegRows*22+8);
+  c1.setOption({tooltip:{trigger:'axis',...tt},legend:{data:tlLeg.length>1?tlLeg:[],right:10,top:0,textStyle:{color:'#999',fontSize:10},itemWidth:12,itemHeight:8,itemGap:8},grid:{left:50,right:40,top:tlGridTop,bottom:30},xAxis:{type:'category',data:tlLabels,axisLabel:{color:'#666',interval:0,rotate:45,fontSize:window._tlRes==='weekly'?8:10},axisLine:{lineStyle:{color:'#333'}}},yAxis:[{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},{type:'value',position:'right',axisLabel:{show:false},splitLine:{show:false}},{type:'value',position:'right',axisLabel:{show:false},splitLine:{show:false}}],series:tlSeries});
   if(ct==='all'&&tlLeg.length>1)legendIsolate(c1,tlLeg);
   c1.on('click',function(p){
     var month;
@@ -1261,7 +1262,8 @@ function baseCharts(){
     yrSeries.push({name:'Pod Episodes',type:'line',yAxisIndex:2,data:yr.map(function(d){return pcYrLine[d.year]||0}),itemStyle:{color:'#ef4444'},lineStyle:{width:2},symbol:'circle',symbolSize:4});
     yrLeg.push('Pod Episodes');
   }
-  c6.setOption({tooltip:{trigger:'axis',...tt,formatter:function(p){return p.map(function(s){return s.marker+s.seriesName+': '+s.value}).join('<br/>')}},legend:{data:yrLeg.length>1?yrLeg:[],right:10,top:0,textStyle:{color:'#999'}},grid:{left:50,right:40,top:36,bottom:24},xAxis:{type:'category',data:yr.map(function(d){return d.year}),axisLabel:{color:'#666',fontSize:10},axisLine:{lineStyle:{color:'#333'}}},yAxis:[{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},{type:'value',position:'right',axisLabel:{show:false},splitLine:{show:false}},{type:'value',position:'right',axisLabel:{show:false},splitLine:{show:false}}],series:yrSeries});
+  var yrLegRows=Math.ceil(yrLeg.length/4);var yrGridTop=Math.max(36,yrLegRows*22+8);
+  c6.setOption({tooltip:{trigger:'axis',...tt,formatter:function(p){return p.map(function(s){return s.marker+s.seriesName+': '+s.value}).join('<br/>')}},legend:{data:yrLeg.length>1?yrLeg:[],right:10,top:0,textStyle:{color:'#999',fontSize:10},itemWidth:12,itemHeight:8,itemGap:8},grid:{left:50,right:40,top:yrGridTop,bottom:24},xAxis:{type:'category',data:yr.map(function(d){return d.year}),axisLabel:{color:'#666',fontSize:10},axisLine:{lineStyle:{color:'#333'}}},yAxis:[{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},{type:'value',position:'right',axisLabel:{show:false},splitLine:{show:false}},{type:'value',position:'right',axisLabel:{show:false},splitLine:{show:false}}],series:yrSeries});
   if(ct==='all'&&yrLeg.length>1)legendIsolate(c6,yrLeg);
   c6.on('click',function(p){
     var year=yr[p.dataIndex]?yr[p.dataIndex].year:p.name;
