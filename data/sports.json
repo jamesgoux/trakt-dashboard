@@ -73,5 +73,50 @@
     "away_badge": "https://r2.thesportsdb.com/images/media/team/badge/rqpwtr1421434717.png",
     "watch_type": "live",
     "my_team": "Green Bay Packers"
+  },
+  {
+    "id": "1910740",
+    "date": "2023-10-07",
+    "sport": "Baseball",
+    "league": "MLB",
+    "home_team": "Los Angeles Dodgers",
+    "away_team": "Arizona Diamondbacks",
+    "home_score": "2",
+    "away_score": "11",
+    "venue": "",
+    "home_badge": "",
+    "away_badge": "",
+    "watch_type": "live",
+    "my_team": "Los Angeles Dodgers"
+  },
+  {
+    "id": "1656878",
+    "date": "2022-10-11",
+    "sport": "Baseball",
+    "league": "MLB",
+    "home_team": "Los Angeles Dodgers",
+    "away_team": "San Diego Padres",
+    "home_score": "5",
+    "away_score": "3",
+    "venue": "",
+    "home_badge": "",
+    "away_badge": "",
+    "watch_type": "live",
+    "my_team": "Los Angeles Dodgers"
+  },
+  {
+    "id": "2408992",
+    "date": "2026-01-10",
+    "sport": "American Football",
+    "league": "NFL",
+    "home_team": "Chicago Bears",
+    "away_team": "Green Bay Packers",
+    "home_score": "31",
+    "away_score": "27",
+    "venue": "Soldier Field",
+    "home_badge": "https://r2.thesportsdb.com/images/media/team/badge/ji22531698678538.png",
+    "away_badge": "https://r2.thesportsdb.com/images/media/team/badge/rqpwtr1421434717.png",
+    "watch_type": "tv",
+    "my_team": "Green Bay Packers"
   }
 ]
