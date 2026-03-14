@@ -4100,9 +4100,27 @@
     "date": "2013-09-04",
     "year": "2013",
     "tour": "Fun. / Tegan & Sara",
-    "songs": [],
-    "song_count": 0,
-    "song_albums": {}
+    "songs": [
+      "Some Nights (Intro)",
+      "One Foot",
+      "Walking the Dog",
+      "All Alone",
+      "Why Am I the One",
+      "At Least I'm Not as Sad (as I Used to Be)",
+      "All the Pretty Girls",
+      "It Gets Better",
+      "Barlights",
+      "Carry On",
+      "The Gambler",
+      "Out on the Town",
+      "We Are Young",
+      "Born to Run",
+      "Some Nights",
+      "Stars"
+    ],
+    "song_count": 16,
+    "song_albums": {},
+    "id": "3c7a9a7"
   },
   {
     "artist": "Plain White T's",
@@ -4135,7 +4153,8 @@
     "tour": "",
     "songs": [],
     "song_count": 0,
-    "song_albums": {}
+    "song_albums": {},
+    "id": "3bcbdc60"
   },
   {
     "artist": "The Postal Service",
@@ -4144,9 +4163,27 @@
     "date": "2013-07-21",
     "year": "2013",
     "tour": "",
-    "songs": [],
-    "song_count": 0,
-    "song_albums": {}
+    "songs": [
+      "The District Sleeps Alone Tonight",
+      "We Will Become Silhouettes",
+      "Sleeping In",
+      "Turn Around",
+      "Nothing Better",
+      "Recycled Air",
+      "Be Still My Heart",
+      "Clark Gable",
+      "Our Secret",
+      "This Place Is a Prison",
+      "There's Never Enough Time",
+      "A Tattered Line of String",
+      "Such Great Heights",
+      "Natural Anthem",
+      "(This Is) The Dream of Evan and Chan",
+      "Brand New Colony"
+    ],
+    "song_count": 16,
+    "song_albums": {},
+    "id": "2bc69cf6"
   },
   {
     "artist": "Josh Ritter",
@@ -4157,7 +4194,8 @@
     "tour": "",
     "songs": [],
     "song_count": 0,
-    "song_albums": {}
+    "song_albums": {},
+    "id": "2b50a80a"
   },
   {
     "artist": "Lake Street Dive",
@@ -4177,9 +4215,32 @@
     "date": "2012-10-25",
     "year": "2012",
     "tour": "Tell All Your Friends 10 Year Anniversary",
-    "songs": [],
-    "song_count": 0,
-    "song_albums": {}
+    "songs": [
+      "What's It Feel Like to Be a Ghost?",
+      "A Decade Under the Influence",
+      "Faith (When I Let You Down)",
+      "Liar (It Takes One to Know One)",
+      "One-Eighty by Summer",
+      "El Paso",
+      "Error: Operator",
+      "Existentialism on Prom Night",
+      "MakeDamnSure",
+      "You Know How I Do",
+      "Bike Scene",
+      "Cute Without the 'E' (Cut From the Team)",
+      "There's No 'I' in Team",
+      "Great Romances of the 20th Century",
+      "Ghost Man on Third",
+      "Timberwolves at New Jersey",
+      "The Blue Channel",
+      "You're So Last Summer",
+      "Head Club",
+      "Your Own Disaster",
+      "The Ballad of Sal Villanueva"
+    ],
+    "song_count": 21,
+    "song_albums": {},
+    "id": "13dd61e5"
   },
   {
     "artist": "Bayside",
@@ -4190,7 +4251,8 @@
     "tour": "Tell All Your Friends 10 Year Anniversary",
     "songs": [],
     "song_count": 0,
-    "song_albums": {}
+    "song_albums": {},
+    "id": "b5dc18a"
   },
   {
     "artist": "Man Overboard",
@@ -4210,9 +4272,28 @@
     "date": "2012-09-22",
     "year": "2012",
     "tour": "",
-    "songs": [],
-    "song_count": 0,
-    "song_albums": {}
+    "songs": [
+      "Used to Rule the World",
+      "Right Down the Line",
+      "Something to Talk About",
+      "Million Miles",
+      "You Can't Fail Me Now",
+      "Love Sneakin' Up on You",
+      "Come to Me",
+      "Marriage Made in Hollywood",
+      "Not Cause I Wanted To",
+      "Angel From Montgomery",
+      "Thing Called Love",
+      "I've Got News for You",
+      "I Feel So Damn Good (I'll Be Glad When I Got the Blues)",
+      "I Can't Make You Love Me",
+      "Love You Like a Man",
+      "Have a Heart",
+      "A Big Hunk o' Love"
+    ],
+    "song_count": 17,
+    "song_albums": {},
+    "id": "2bddf8be"
   },
   {
     "artist": "Mavis Staples",
@@ -4232,9 +4313,33 @@
     "date": "2012-09-12",
     "year": "2012",
     "tour": "",
-    "songs": [],
-    "song_count": 0,
-    "song_albums": {}
+    "songs": [
+      "Rollin Back",
+      "The Way That He Sings",
+      "First Light",
+      "Aluminum Park",
+      "What a Wonderful Man",
+      "Picture of You",
+      "Slow Slow Tune",
+      "Carried Away",
+      "Heartbreakin Man",
+      "Smokin' From Shootin'",
+      "O Is the One That Is Real",
+      "Evil Urges",
+      "Tyrone",
+      "Cobra",
+      "Run Thru",
+      "Hopefully",
+      "I Will Be There When You Die",
+      "Steam Engine",
+      "Isn't It a Pity",
+      "Honest Man",
+      "Rock the Casbah",
+      "Mahgeetah"
+    ],
+    "song_count": 22,
+    "song_albums": {},
+    "id": "3bdda40c"
   },
   {
     "artist": "Iron & Wine",
@@ -4243,9 +4348,25 @@
     "date": "2012-09-12",
     "year": "2012",
     "tour": "",
-    "songs": [],
-    "song_count": 0,
-    "song_albums": {}
+    "songs": [
+      "The Trapeze Swinger",
+      "Woman King",
+      "Love Vigilantes",
+      "Upward Over the Mountain",
+      "Lion's Mane",
+      "Winter Prayers",
+      "Naked as We Came",
+      "Glad Man Singing",
+      "Jesus the Mexican Boy",
+      "Jezebel",
+      "Mary Anne",
+      "Such Great Heights",
+      "On Your Wings",
+      "Flightless Bird, American Mouth"
+    ],
+    "song_count": 14,
+    "song_albums": {},
+    "id": "53dda36d"
   },
   {
     "artist": "The Kooks",
@@ -4254,9 +4375,33 @@
     "date": "2011-12-08",
     "year": "2011",
     "tour": "",
-    "songs": [],
-    "song_count": 0,
-    "song_albums": {}
+    "songs": [
+      "Always Where I Need to Be",
+      "Is It Me?",
+      "Sofa Song",
+      "Matchbox",
+      "Rosie",
+      "She Moves in Her Own Way",
+      "Sway",
+      "Runaway",
+      "Eskimo Kiss",
+      "If Only",
+      "Picture Frame",
+      "Seaside",
+      "Tick of Time",
+      "See the Sun",
+      "How'd You Like That",
+      "Mr. Nice Guy",
+      "Ooh La",
+      "Shine On",
+      "Do You Wanna",
+      "The Saboteur",
+      "Junk of the Heart (Happy)",
+      "Naïve"
+    ],
+    "song_count": 22,
+    "song_albums": {},
+    "id": "43d127f7"
   },
   {
     "artist": "YAWN",
@@ -4287,9 +4432,16 @@
     "date": "2011-08-27",
     "year": "2011",
     "tour": "John Williams: Maestro of the Movies",
-    "songs": [],
-    "song_count": 0,
-    "song_albums": {}
+    "songs": [
+      "The Star-Spangled Banner",
+      "Jaws: Theme",
+      "Superman: Prelude and Main Title March",
+      "The Imperial March (Darth Vader's Theme)",
+      "End Credits from Indiana Jones and Raiders of the Ark"
+    ],
+    "song_count": 5,
+    "song_albums": {},
+    "id": "3d0d1fb"
   },
   {
     "artist": "Los Angeles Philharmonic",
@@ -4320,9 +4472,15 @@
     "date": "2010-07-22",
     "year": "2010",
     "tour": "Scott Pilgrim vs The World SDCC Premiere",
-    "songs": [],
-    "song_count": 0,
-    "song_albums": {}
+    "songs": [
+      "Black Sheep",
+      "Help I'm Alive",
+      "Gold Guns Girls",
+      "Dead Disco"
+    ],
+    "song_count": 4,
+    "song_albums": {},
+    "id": "4bd4537e"
   },
   {
     "artist": "Josh Ritter",
@@ -4331,9 +4489,27 @@
     "date": "2010-04-16",
     "year": "2010",
     "tour": "",
-    "songs": [],
-    "song_count": 0,
-    "song_albums": {}
+    "songs": [
+      "See How Man Was Made",
+      "Change of Time",
+      "Bright Smile",
+      "Rumors",
+      "Right Moves",
+      "Rattling Locks",
+      "Southern Pacifica",
+      "The Curse",
+      "To the Dogs or Whoever",
+      "Moon River",
+      "Lark",
+      "Long Shadows",
+      "Good Man",
+      "Another New World",
+      "Lantern",
+      "Empty Hearts"
+    ],
+    "song_count": 16,
+    "song_albums": {},
+    "id": "2b50a846"
   },
   {
     "artist": "Tyrone Wells",
@@ -4342,9 +4518,12 @@
     "date": "2009-11-06",
     "year": "2009",
     "tour": "",
-    "songs": [],
-    "song_count": 0,
-    "song_albums": {}
+    "songs": [
+      "On the Road Again"
+    ],
+    "song_count": 1,
+    "song_albums": {},
+    "id": "b9731c6"
   },
   {
     "artist": "Stephen Kellogg & the Sixers",
