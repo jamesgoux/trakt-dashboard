@@ -4951,7 +4951,8 @@
     "tour": "Bamboozle Left 2008",
     "songs": [],
     "song_count": 0,
-    "song_albums": {}
+    "song_albums": {},
+    "id": "238f9c5b"
   },
   {
     "artist": "Take The Crown",
@@ -4962,7 +4963,8 @@
     "tour": "Bamboozle Left 2008",
     "songs": [],
     "song_count": 0,
-    "song_albums": {}
+    "song_albums": {},
+    "id": "2b8f9c52"
   },
   {
     "artist": "Josephine Collective",
@@ -4973,7 +4975,8 @@
     "tour": "Bamboozle Left 2008",
     "songs": [],
     "song_count": 0,
-    "song_albums": {}
+    "song_albums": {},
+    "id": "2b8f9c5a"
   },
   {
     "artist": "Alkaline Trio",
@@ -4982,9 +4985,19 @@
     "date": "2008-04-05",
     "year": "2008",
     "tour": "Bamboozle Left 2008",
-    "songs": [],
-    "song_count": 0,
-    "song_albums": {}
+    "songs": [
+      "This Could Be Love",
+      "Nose Over Tail",
+      "I Lied My Face Off",
+      "She Took Him to the Lake",
+      "Private Eye",
+      "In Vein",
+      "Help Me",
+      "Radio"
+    ],
+    "song_count": 8,
+    "song_albums": {},
+    "id": "39ccd77"
   },
   {
     "artist": "Bayside",
@@ -4995,7 +5008,8 @@
     "tour": "Bamboozle Left 2008",
     "songs": [],
     "song_count": 0,
-    "song_albums": {}
+    "song_albums": {},
+    "id": "3b8f9c68"
   },
   {
     "artist": "Reel Big Fish",
@@ -5004,9 +5018,13 @@
     "date": "2008-04-05",
     "year": "2008",
     "tour": "Bamboozle Left 2008",
-    "songs": [],
-    "song_count": 0,
-    "song_albums": {}
+    "songs": [
+      "Sell Out",
+      "Enter Sandman"
+    ],
+    "song_count": 2,
+    "song_albums": {},
+    "id": "2b8f9c6a"
   },
   {
     "artist": "We The Kings",
@@ -5015,9 +5033,12 @@
     "date": "2008-04-05",
     "year": "2008",
     "tour": "Bamboozle Left 2008",
-    "songs": [],
-    "song_count": 0,
-    "song_albums": {}
+    "songs": [
+      "Check Yes Juliet"
+    ],
+    "song_count": 1,
+    "song_albums": {},
+    "id": "3b8f9c70"
   },
   {
     "artist": "Paramore",
@@ -5026,9 +5047,22 @@
     "date": "2008-04-05",
     "year": "2008",
     "tour": "Bamboozle Left 2008",
-    "songs": [],
-    "song_count": 0,
-    "song_albums": {}
+    "songs": [
+      "Let the Flames Begin",
+      "Emergency",
+      "Stop This Song (Love Sick Melody)",
+      "Here We Go Again",
+      "That's What You Get",
+      "Pressure",
+      "Miracle",
+      "For a Pessimist, I'm Pretty Optimistic",
+      "Crushcrushcrush",
+      "Born for This",
+      "Misery Business"
+    ],
+    "song_count": 11,
+    "song_albums": {},
+    "id": "2bc42846"
   },
   {
     "artist": "New Found Glory",
@@ -5037,9 +5071,21 @@
     "date": "2008-04-05",
     "year": "2008",
     "tour": "Bamboozle Left 2008",
-    "songs": [],
-    "song_count": 0,
-    "song_albums": {}
+    "songs": [
+      "All Downhill From Here",
+      "Understatement",
+      "Something I Call Personality",
+      "It Ain't Me, Babe",
+      "Hit or Miss",
+      "Truth of My Youth",
+      "Hold My Hand",
+      "Kiss Me",
+      "Intro",
+      "My Friends Over You"
+    ],
+    "song_count": 10,
+    "song_albums": {},
+    "id": "3bd584c8"
   },
   {
     "artist": "Story of the Year",
@@ -5050,7 +5096,8 @@
     "tour": "Bamboozle Left 2008",
     "songs": [],
     "song_count": 0,
-    "song_albums": {}
+    "song_albums": {},
+    "id": "139b4111"
   },
   {
     "artist": "Face To Face",
@@ -5059,9 +5106,23 @@
     "date": "2008-04-05",
     "year": "2008",
     "tour": "Bamboozle Left 2008",
-    "songs": [],
-    "song_count": 0,
-    "song_albums": {}
+    "songs": [
+      "You've Done Nothing",
+      "Bill of Goods",
+      "I Want",
+      "Pastel",
+      "I Won't Lie Down",
+      "I'm Not Afraid",
+      "Blind",
+      "A-OK",
+      "Disconnected",
+      "Struggle",
+      "It's Not Over",
+      "I'm Trying"
+    ],
+    "song_count": 12,
+    "song_albums": {},
+    "id": "73d10229"
   },
   {
     "artist": "Zox",
@@ -5072,7 +5133,8 @@
     "tour": "Bamboozle Left 2008",
     "songs": [],
     "song_count": 0,
-    "song_albums": {}
+    "song_albums": {},
+    "id": "2b8f9ce6"
   },
   {
     "artist": "The Starting Line",
@@ -5081,9 +5143,18 @@
     "date": "2008-04-05",
     "year": "2008",
     "tour": "Bamboozle Left 2008",
-    "songs": [],
-    "song_count": 0,
-    "song_albums": {}
+    "songs": [
+      "Direction",
+      "Up & Go",
+      "Are You Alone",
+      "Surprise, Surprise",
+      "Given the Chance",
+      "Island",
+      "The Best of Me"
+    ],
+    "song_count": 7,
+    "song_albums": {},
+    "id": "3b8f9c74"
   },
   {
     "artist": "A Rocket to the Moon",
@@ -5094,7 +5165,8 @@
     "tour": "Bamboozle Left 2008",
     "songs": [],
     "song_count": 0,
-    "song_albums": {}
+    "song_albums": {},
+    "id": "238f9c63"
   },
   {
     "artist": "Alesana",
@@ -5105,7 +5177,8 @@
     "tour": "Bamboozle Left 2008",
     "songs": [],
     "song_count": 0,
-    "song_albums": {}
+    "song_albums": {},
+    "id": "3b8f9c64"
   },
   {
     "artist": "An Angle",
@@ -5116,7 +5189,8 @@
     "tour": "Bamboozle Left 2008",
     "songs": [],
     "song_count": 0,
-    "song_albums": {}
+    "song_albums": {},
+    "id": "2b8f9c62"
   },
   {
     "artist": "The Audition",
@@ -5127,7 +5201,8 @@
     "tour": "Bamboozle Left 2008",
     "songs": [],
     "song_count": 0,
-    "song_albums": {}
+    "song_albums": {},
+    "id": "3b8f9c5c"
   },
   {
     "artist": "Austin Gibbs and the States",
