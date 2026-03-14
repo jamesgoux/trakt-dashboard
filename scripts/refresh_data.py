@@ -386,31 +386,6 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
     pd.sort(key=lambda x: (x["tt"], x["_rec"]), reverse=True)
     for p in pd: del p["_rec"]
 
-    # Compare with previous build to find who gained titles
-    prev_tt = {}
-    if os.path.exists("index.html"):
-        try:
-            with open("index.html") as f:
-                old_html = f.read()
-            ds = old_html.find("var D=") + 6
-            de = old_html.find(";\nvar HS=")
-            if ds > 6 and de > ds:
-                old_data = json.loads(old_html[ds:de])
-                for lst in [old_data.get("a", []), old_data.get("x", [])]:
-                    for p in lst:
-                        prev_tt[p["n"]] = p.get("tt", p.get("m", 0) + p.get("s", 0))
-        except Exception:
-            pass
-    if prev_tt:
-        boosted = 0
-        for p in pd:
-            old = prev_tt.get(p["n"], 0)
-            diff = p["tt"] - old
-            if diff > 0:
-                p["g+"] = diff
-                boosted += 1
-        print(f"  People: {boosted} with new titles since last build")
-
     # Show year data
     syd = defaultdict(lambda: {"name": "", "yd": defaultdict(lambda: {"e": 0, "m": 0}), "net": ""})
     for e in entries:
@@ -2119,6 +2094,8 @@ if os.path.exists("data/health.json"):
             "by_year": dict(by_year),
             "recent": recent
         }
+        # Full workout array for year filtering + lifeline + charts
+        data["_hwAll"] = health_deduped
         print(f"  Health: {len(health_deduped)} workouts, {len(by_type)} types, {round(total_dur/3600,1)}h total")
 
 # Inject Trakt credentials for client-side mark-as-watched

@@ -545,9 +545,18 @@ function stats(){
   el.innerHTML=h2;
 }
 
-// Person gain: computed by pipeline comparing current vs previous build
-// g+ field = number of new titles added to person's count since last refresh
-function _personGain(p){return p['g+']||0}
+// Pre-compute recent (last 7d) vs older watch history for green highlights
+var _hlRecent={movies:{},shows:{}};  // title -> true
+var _hlOlder={movies:{},shows:{}};   // movies: title->true, shows: title->{year:true}
+(function(){var rr=D.c.r||[];var now=new Date();var cutoff=new Date(now.getTime()-7*86400000).toISOString().substring(0,10);
+rr.forEach(function(w){var d=w.watched_at||'';if(d>=cutoff){if(w.type==='movie')_hlRecent.movies[w.title]=true;else _hlRecent.shows[w.title]=true}else{if(w.type==='movie')_hlOlder.movies[w.title]=true;else{if(!_hlOlder.shows[w.title])_hlOlder.shows[w.title]={};_hlOlder.shows[w.title][d.substring(0,4)]=true}}})})();
+// Person gain: count new titles in last 7 days respecting year filter
+// Movies: highlighted if watched recently and NOT a rewatch (not in older history)
+// Shows: highlighted if person has eps, show watched recently, AND no older watch
+//   of that show within the filtered period (cy). If cy='all', any older watch blocks it.
+function _personGain(p){var gain=0;if(!p.ti)return 0;for(var i=0;i<p.ti.length;i++){var t=TL[p.ti[i]];if(!t)continue;
+if(t.type==='movie'){if(_hlRecent.movies[t.t]&&!_hlOlder.movies[t.t])gain++}
+else if(p.eps&&t.sl&&p.eps[t.sl]&&_hlRecent.shows[t.t]){var old=_hlOlder.shows[t.t];if(!old){gain++}else if(cy!=='all'&&!old[cy]){gain++}}}return gain}
 function ptbl(id,pp){var tb=document.getElementById(id);tb.innerHTML='';
 // Pre-compute filtered counts and sort
 var items=[];pp.forEach(function(p){var m=p.m,s=p.s;if(cy!=='all'&&p.ti){m=0;s=0;p.ti.forEach(function(i){var t=TL[i];if(!t)return;if(t.type==='movie'){if(sm(fby(t.eby))>0)m++}else{
@@ -2313,7 +2322,15 @@ function closeSportsAdd(){
 }
 
 function quickLoadTeam(teamName){
-  // Skip search results — look up team ID and go straight to events
+  // Check if team is in pre-cached schedule — skip API call entirely
+  var cached=_spSchedule.teams[teamName];
+  if(cached&&cached.team_id){
+    // Find badge from existing events
+    var badge='';SP.forEach(function(e){if(!badge&&e.my_team===teamName){badge=(e.my_team===e.home_team?e.home_badge:e.away_badge)||''}});
+    loadTeamEvents(cached.team_id,teamName,badge);
+    return;
+  }
+  // Fallback: live API search for uncached teams
   document.getElementById('sp-team-results').innerHTML='<div style="color:var(--t2);padding:10px">Loading '+teamName+'...</div>';
   fetch('https://www.thesportsdb.com/api/v1/json/3/searchteams.php?t='+encodeURIComponent(teamName)).then(function(r){return r.json()}).then(function(d){
     var teams=d.teams||[];
@@ -2382,14 +2399,14 @@ function loadTeamEvents(teamId,teamName,teamBadge){
 function jumpToSportsYear(yr){
   if(yr==='all'){window._spYearFilter=null;filterSportsEvents();return}
   window._spYearFilter=yr;
-  // Check if we've already loaded this season
+  // Check if we've already loaded this season (from cache or previous API fetch)
   var have=window._spAllEvents.some(function(ev){return(ev.dateEvent||'').startsWith(yr)});
   if(have){filterSportsEvents();return}
-  // Find the season index for this year and load from there
+  // Year not in cache — fall back to live API
+  window._spUsingCache=false;
   var targetSeasons=[yr+'-'+(parseInt(yr)+1),yr];
   var idx=-1;window._spSeasons.forEach(function(s,i){if(idx<0&&targetSeasons.indexOf(s)>=0)idx=i});
   if(idx>=0&&idx>=window._spSeasonIdx){
-    // Jump ahead: load from the target season onward
     window._spSeasonIdx=idx;
     _spLoadBatch(2);
   }else{filterSportsEvents()}
@@ -2472,7 +2489,7 @@ function _spLoadBatch(count){
   });
 }
 
-function loadMoreSportsEvents(){_spLoadBatch(2)}
+function loadMoreSportsEvents(){if(!window._spUsingCache)_spLoadBatch(2)}
 
 var _spAbbrMap={
 // NFL
@@ -2537,13 +2554,15 @@ function filterSportsEvents(){
     return(ev.strEvent||'').toLowerCase().indexOf(ql)>=0||(ev.strVenue||'').toLowerCase().indexOf(ql)>=0||_spDateMatch(ev.dateEvent,ql)||(ev.strHomeTeam||'').toLowerCase().indexOf(ql)>=0||(ev.strAwayTeam||'').toLowerCase().indexOf(ql)>=0;
   });
   // Auto-search away games if filtering by opponent name and no/few results
-  if(ql&&ql.length>=3&&filtered.length<3){
+  // Skip if using cached data (already has home + away)
+  if(!window._spUsingCache&&ql&&ql.length>=3&&filtered.length<3){
     // Try to find a matching team name for away game search
     var knownTeams={};window._spAllEvents.forEach(function(ev){knownTeams[ev.strHomeTeam]=1;knownTeams[ev.strAwayTeam]=1});
     Object.keys(knownTeams).forEach(function(t){if(t!==window._spTeamName&&t.toLowerCase().indexOf(ql)>=0)_spSearchAway(t)});
   }
   // Auto-load more seasons if search has no results but more seasons available
-  if(ql&&filtered.length===0&&window._spSeasonIdx<window._spSeasons.length){
+  // Skip if using cached data (already has all seasons)
+  if(!window._spUsingCache&&ql&&filtered.length===0&&window._spSeasonIdx<window._spSeasons.length){
     var loadEl=document.getElementById('sp-ev-loading');
     if(loadEl&&!loadEl._loading){
       loadEl.textContent='Searching older seasons...';
