@@ -545,11 +545,11 @@ function stats(){
   el.innerHTML=h2;
 }
 
-// Pre-compute recently watched title indices (last 7 days)
-var _recentTlSet=(function(){var titles={};var rr=D.c.r||[];var now=new Date();var cutoff=new Date(now.getTime()-7*86400000).toISOString().substring(0,10);rr.forEach(function(w){if(w.watched_at>=cutoff)titles[w.title]=true});var s=new Set();TL.forEach(function(t,i){if(titles[t.t])s.add(i)});return s})();
-// For each person, count how many recently-watched TITLES they're in
-// (not episodes — 1 title = 1 regardless of how many eps watched)
-function _personGain(p){var gain=0;if(!p.ti)return 0;for(var i=0;i<p.ti.length;i++){var idx=p.ti[i];if(!_recentTlSet.has(idx))continue;var t=TL[idx];if(!t)continue;if(t.type==='movie'){gain++}else if(p.eps&&t.sl&&p.eps[t.sl]){gain++}}return gain}
+// Pre-compute NEWLY watched titles (last 7 days, not previously seen)
+// A title is "new" if it was watched in the last 7 days but NOT before that in D.c.r
+var _newTlSet=(function(){var rr=D.c.r||[];var now=new Date();var cutoff=new Date(now.getTime()-7*86400000).toISOString().substring(0,10);var recent={},older={};rr.forEach(function(w){if(w.watched_at>=cutoff)recent[w.title]=true;else older[w.title]=true});var s=new Set();TL.forEach(function(t,i){if(recent[t.t]&&!older[t.t])s.add(i)});return s})();
+// For each person, count how many truly NEW titles they gained
+function _personGain(p){var gain=0;if(!p.ti)return 0;for(var i=0;i<p.ti.length;i++){if(_newTlSet.has(p.ti[i]))gain++}return gain}
 function ptbl(id,pp){var tb=document.getElementById(id);tb.innerHTML='';
 // Pre-compute filtered counts and sort
 var items=[];pp.forEach(function(p){var m=p.m,s=p.s;if(cy!=='all'&&p.ti){m=0;s=0;p.ti.forEach(function(i){var t=TL[i];if(!t)return;if(t.type==='movie'){if(sm(fby(t.eby))>0)m++}else{
