@@ -336,17 +336,17 @@ def main():
     # Load existing cache for merging
     cache_file = os.path.join(data_dir, "sports_schedule.json")
     existing = {}
-    existing_seasons = set()  # track which seasons we already have data for
+    existing_seasons_by_team = {}  # team_name -> set of seasons with data
     if os.path.exists(cache_file):
         with open(cache_file) as f:
             old = json.load(f)
             existing = old.get("events", {})
-            # Build set of seasons that have cached data
-            for team_events in existing.values():
+            for team_name, team_events in existing.items():
+                existing_seasons_by_team[team_name] = set()
                 for ev in team_events:
                     s = ev.get("season", "")
                     if s:
-                        existing_seasons.add(s)
+                        existing_seasons_by_team[team_name].add(s)
 
     all_events = {}  # team_name -> {event_id: event}
 
@@ -410,18 +410,26 @@ def main():
         cfg = LEAGUES[league_key]
         all_seasons = get_seasons(league_key)
 
-        # Split into current (always fetch) and past (skip if cached)
+        # Split into current (always fetch) and past (skip if cached PER-TEAM)
+        # A season is "cached" only if ALL teams in this league have data for it
         fetch_seasons = []
         skip_seasons = []
         for s in all_seasons:
-            if is_current_season(s, league_key) or s not in existing_seasons:
+            if is_current_season(s, league_key):
                 fetch_seasons.append(s)
+            else:
+                all_teams_have = all(s in existing_seasons_by_team.get(n, set()) for n in team_names)
+                if all_teams_have:
+                    skip_seasons.append(s)
+                else:
+                    fetch_seasons.append(s)
             else:
                 skip_seasons.append(s)
 
         # If no teams in this league need updates, skip entirely
         league_teams_need_update = [n for n in team_names if n in teams_needing_update]
-        if existing_ids and not league_teams_need_update and not [s for s in fetch_seasons if s not in existing_seasons]:
+        uncached_seasons = [s for s in fetch_seasons if not all(s in existing_seasons_by_team.get(n, set()) for n in team_names)]
+        if existing_ids and not league_teams_need_update and not uncached_seasons:
             print(f"\n--- {league_key}: no updates needed, skipping ---")
             continue
 
