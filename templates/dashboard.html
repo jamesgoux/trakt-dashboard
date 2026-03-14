@@ -2567,10 +2567,7 @@ function filterSportsEvents(){
     var scoreColor=won?'#4ade80':lost?'#ef4444':'var(--t2)';
     var added=addedIds[ev.idEvent];
     var evJson=JSON.stringify(ev).replace(/'/g,'&#39;').replace(/"/g,'&quot;');
-    // Adjust UTC dates: US evening games have strTime 00:00-09:59 UTC (= previous day local)
-    var evDate=ev.dateEventLocal||ev.dateEvent;
-    if(ev.strTime){var hr=parseInt(ev.strTime);if(hr>=0&&hr<10){var dd=new Date(evDate+'T12:00:00');dd.setDate(dd.getDate()-1);evDate=dd.toISOString().substring(0,10)}}
-    var localDate=_spDate(evDate);
+    var localDate=_spDate(_spLocalDate(ev));
     // Use cached badge for our team when API returns none
     var homeBadge=ev.strHomeTeamBadge&&ev.strHomeTeamBadge!=='null'?ev.strHomeTeamBadge:(ev.strHomeTeam===tn?window._spTeamBadge:'');
     var awayBadge=ev.strAwayTeamBadge&&ev.strAwayTeamBadge!=='null'?ev.strAwayTeamBadge:(ev.strAwayTeam===tn?window._spTeamBadge:'');
@@ -2642,11 +2639,14 @@ function _spAutoTrackTeam(teamName){
     .catch(function(){});
 }
 
+// Adjust UTC event date to local: US evening games have strTime 00:00-09:59 UTC (= previous day local)
+function _spLocalDate(ev){var d=ev.dateEventLocal||ev.dateEvent;if(ev.strTime){var hr=parseInt(ev.strTime);if(hr>=0&&hr<10){var dd=new Date(d+'T12:00:00');dd.setDate(dd.getDate()-1);d=dd.toISOString().substring(0,10)}}return d}
+
 function quickSaveSport(btn,watchType){
   var qr=btn.closest('.sp-qs-row');
   var ev=JSON.parse(qr.dataset.ev);
   if(SP.some(function(s){return s.id===ev.idEvent})){qr.innerHTML='<td colspan="4" style="padding:8px;text-align:center;color:var(--t2)">Already added</td>';setTimeout(function(){qr.remove()},1000);return}
-  var newEv={id:ev.idEvent,date:ev.dateEventLocal||ev.dateEvent,sport:ev.strSport,league:ev.strLeague,home_team:ev.strHomeTeam,away_team:ev.strAwayTeam,home_score:ev.intHomeScore,away_score:ev.intAwayScore,venue:ev.strVenue||'',home_badge:ev.strHomeTeamBadge||'',away_badge:ev.strAwayTeamBadge||'',watch_type:watchType,my_team:window._spTeamName||''};
+  var newEv={id:ev.idEvent,date:_spLocalDate(ev),sport:ev.strSport,league:ev.strLeague,home_team:ev.strHomeTeam,away_team:ev.strAwayTeam,home_score:ev.intHomeScore,away_score:ev.intAwayScore,venue:ev.strVenue||'',home_badge:ev.strHomeTeamBadge||'',away_badge:ev.strAwayTeamBadge||'',watch_type:watchType,my_team:window._spTeamName||''};
   SP.push(newEv);
   _spPending.push(newEv);
   localStorage.setItem('iris_sports_pending',JSON.stringify(_spPending));
@@ -2663,7 +2663,7 @@ function saveSportsEvent(){
   var ev=window._spSelected;if(!ev)return;
   var wt=document.querySelector('.sp-wt.vb-on');if(!wt){alert('Pick how you watched');return}
   if(SP.some(function(s){return s.id===ev.idEvent})){alert('Already added');return}
-  var newEv={id:ev.idEvent,date:ev.dateEventLocal||ev.dateEvent,sport:ev.strSport,league:ev.strLeague,home_team:ev.strHomeTeam,away_team:ev.strAwayTeam,home_score:ev.intHomeScore,away_score:ev.intAwayScore,venue:ev.strVenue||'',home_badge:ev.strHomeTeamBadge||'',away_badge:ev.strAwayTeamBadge||'',watch_type:wt.dataset.v,my_team:window._spTeamName||''};
+  var newEv={id:ev.idEvent,date:_spLocalDate(ev),sport:ev.strSport,league:ev.strLeague,home_team:ev.strHomeTeam,away_team:ev.strAwayTeam,home_score:ev.intHomeScore,away_score:ev.intAwayScore,venue:ev.strVenue||'',home_badge:ev.strHomeTeamBadge||'',away_badge:ev.strAwayTeamBadge||'',watch_type:wt.dataset.v,my_team:window._spTeamName||''};
   SP.push(newEv);
   _spPending.push(newEv);
   localStorage.setItem('iris_sports_pending',JSON.stringify(_spPending));
