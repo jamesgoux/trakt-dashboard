@@ -3715,6 +3715,15 @@ function markWatchedAt(slug,season,episode,epTraktId,when){
   _unWatched[key]=watchedAt;
   localStorage.setItem('iris_un_watched',JSON.stringify(_unWatched));
   _injectRecentWatch(slug,season,episode,watchedAt);
+  // Advance to next episode
+  var unData=D.un||{};var shows=unData.shows||[];
+  for(var i=0;i<shows.length;i++){
+    if(shows[i].slug===slug&&shows[i].season===season&&shows[i].episode===episode){
+      var s=shows[i];var hasMore=!s.aired_total||s.completed+1<s.aired_total;
+      if(hasMore){s.episode=episode+1;s.completed=(s.completed||0)+1;s.ep_title='';s.ep_overview='';s.ep_still='';s.ep_aired='';s.ep_trakt_id=0;s.is_new=false}
+      break;
+    }
+  }
   openUpNext();
   if(epTraktId)_traktSync(epTraktId,watchedAt);
 }
@@ -3727,7 +3736,22 @@ function markWatched(slug,season,episode,epTraktId,btn){
   _unWatched[key]=watchedAt;
   localStorage.setItem('iris_un_watched',JSON.stringify(_unWatched));
   _injectRecentWatch(slug,season,episode,watchedAt);
-  // Collapse the card, then re-render list to show it in Recently Watched with full styling
+  // Advance the show to the next episode in D.un.shows so it stays in the queue
+  var unData=D.un||{};var shows=unData.shows||[];
+  for(var i=0;i<shows.length;i++){
+    if(shows[i].slug===slug&&shows[i].season===season&&shows[i].episode===episode){
+      var s=shows[i];var nextEp=episode+1;
+      // Check if there are more episodes (aired_total > completed+1)
+      var hasMore=!s.aired_total||s.completed+1<s.aired_total;
+      if(hasMore){
+        s.episode=nextEp;s.completed=(s.completed||0)+1;
+        s.ep_title='';s.ep_overview='';s.ep_still='';s.ep_aired='';s.ep_trakt_id=0;
+        s.is_new=false;
+      }
+      break;
+    }
+  }
+  // Collapse the card, then re-render list
   setTimeout(function(){card.style.transition='all .3s';card.style.maxHeight='0';card.style.overflow='hidden';card.style.padding='0';card.style.margin='0';card.style.border='none';
     setTimeout(function(){card.remove();_unReturning=true;_unScrollPos=document.getElementById('un-overlay').scrollTop;openUpNext()},350)},150);
   if(epTraktId)_traktSync(epTraktId,watchedAt);
