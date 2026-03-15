@@ -521,9 +521,10 @@ function openFilterDialog(){
 }
 function closeFilterDialog(){document.getElementById('filter-dialog').style.display='none';_unlockBody()}
 function applyFilter(){
+  var changed=_fdYrSel!==cy||_fdTySel!==ct;
   cy=_fdYrSel;ct=_fdTySel;
   closeFilterDialog();
-  window._llMonthExplicit=false;writeHash();_updateFilterBtn();render();
+  if(changed){window._llMonthExplicit=false;writeHash();_updateFilterBtn();render()}
 }
 // Close on backdrop click
 document.getElementById('filter-dialog').addEventListener('click',function(e){if(e.target===this||e.target===document.getElementById('filter-inner'))closeFilterDialog()});
