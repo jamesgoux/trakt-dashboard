@@ -3479,15 +3479,22 @@ function openUpNext(){
   }
   el.innerHTML=h;
   var ov=document.getElementById('un-overlay');
-  ov.style.display='';
-  if(_unReturning){ov.scrollTop=_unScrollPos;_unReturning=false}
-  else{ov.scrollTop=0}
-  _lockBody();
-  // Scroll to the "new" or "continue" section (past recently watched)
-  requestAnimationFrame(function(){setTimeout(function(){
+  // Position scroll BEFORE showing to avoid visible jump
+  if(_unReturning){
+    var _sp=_unScrollPos;_unReturning=false;
+    ov.style.visibility='hidden';ov.style.display='';
+    requestAnimationFrame(function(){ov.scrollTop=_sp;ov.style.visibility=''});
+  }else{
+    ov.style.visibility='hidden';ov.style.display='';
+    // Scroll to New Episodes section before making visible
     var anchor=document.getElementById('un-default-scroll');
-    if(anchor){anchor.scrollIntoView({behavior:'auto',block:'start'})}
-  },150)});
+    if(anchor){
+      requestAnimationFrame(function(){anchor.scrollIntoView({behavior:'auto',block:'start'});ov.style.visibility=''});
+    }else{
+      ov.scrollTop=0;ov.style.visibility='';
+    }
+  }
+  _lockBody();
 }
 
 // Delegated click handler for Up Next cards (U1: reliable click targets)
@@ -3569,6 +3576,7 @@ function _unMakeEp(base,epNum){
 
 function _unRenderDetail(allShows,idx){
   var show=allShows[idx];
+  var _wasSlug=_crBase?_crBase.slug:'';var _wasEp=_crEp||0;
   _crBase=show;_crEp=show.episode;_crAll=allShows;_crIdx=idx;
   window._unAllShows=allShows;window._unIdx=idx;
   // Cache current episode data so re-renders from prefetch don't lose it
@@ -3600,13 +3608,35 @@ function _unRenderDetail(allShows,idx){
     else{car.style.transform='translateX(-33.333%)'}
     if(ev)ev.stopPropagation();
   };
-  document.getElementById('un-overlay').scrollTop=0;
+  // Only scroll to top on fresh detail open or episode change, not prefetch re-renders
+  if(show.slug!==_wasSlug||show.episode!==_wasEp){document.getElementById('un-overlay').scrollTop=0}
   // Prefetch current (if missing data) + adjacent episodes, re-render when data arrives
   if(!show.ep_still&&!show.ep_title)_unPrefetchAndUpdate(show,show.episode);
   _unPrefetchAndUpdate(show,show.episode-1);
   _unPrefetchAndUpdate(show,show.episode+1);
   _unPrefetch(show,show.episode-2);
   _unPrefetch(show,show.episode+2);
+  // Swipe down on detail panel to dismiss back to list
+  var _sdSy=0,_sdMoved=false;
+  var detailEl=el.querySelector('.un-detail');
+  if(detailEl){
+    detailEl.addEventListener('touchstart',function(e){
+      // Only start if the carousel isn't handling it
+      if(e.target.closest('#un-car'))return;
+      _sdSy=e.touches[0].clientY;_sdMoved=false;
+    },{passive:true});
+    detailEl.addEventListener('touchmove',function(e){
+      if(e.target.closest('#un-car'))return;
+      var dy=e.touches[0].clientY-_sdSy;
+      if(dy>15)_sdMoved=true;
+    },{passive:true});
+    detailEl.addEventListener('touchend',function(e){
+      if(!_sdMoved)return;
+      var dy=(e.changedTouches?e.changedTouches[0].clientY:0)-_sdSy;
+      if(dy>80){_unReturning=true;openUpNext()}
+      _sdMoved=false;
+    },{passive:true});
+  }
 }
 
 function _unPrefetchAndUpdate(base,epNum){
@@ -3669,14 +3699,18 @@ function _traktSync(epTraktId,watchedAt,onDone){
 
 // Inject a watched episode into D.c.r so it shows in recently watched immediately
 function _injectRecentWatch(slug,season,episode,watchedAt){
-  // Find show title from Up Next data or TL
-  var title='';
+  // Find show data from Up Next
   var unData=D.un||{};var shows=unData.shows||[];
-  for(var i=0;i<shows.length;i++){if(shows[i].slug===slug){title=shows[i].title;break}}
+  var showData=null;
+  for(var i=0;i<shows.length;i++){if(shows[i].slug===slug){showData=shows[i];break}}
+  var title=showData?showData.show:'';
   if(!title){for(var j=0;j<TL.length;j++){if(TL[j].sl===slug){title=TL[j].t;break}}}
   if(!title)title=slug;
-  var entry={type:'episode',title:title,detail:'S'+season+'E'+episode,watched_at:watchedAt.substring(0,10),yr:watchedAt.substring(0,4)};
-  D.c.r.unshift(entry);
+  // Inject into D.c.r (dashboard recently watched)
+  D.c.r.unshift({type:'episode',title:title,detail:'S'+season+'E'+episode,watched_at:watchedAt.substring(0,10),yr:watchedAt.substring(0,4)});
+  // Inject into D.un.recent (Up Next recently watched section)
+  if(!unData.recent)unData.recent=[];
+  unData.recent.unshift({show:title,slug:slug,season:season,episode:episode,ep_title:showData?showData.ep_title:'',watched_at:watchedAt,ep_id:showData?showData.ep_trakt_id:0,ep_aired:showData?showData.ep_aired:''});
 }
 
 function markWatchedAt(slug,season,episode,epTraktId,when){
