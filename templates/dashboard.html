@@ -3479,15 +3479,22 @@ function openUpNext(){
   }
   el.innerHTML=h;
   var ov=document.getElementById('un-overlay');
-  ov.style.display='';
-  if(_unReturning){var _sp=_unScrollPos;_unReturning=false;setTimeout(function(){ov.scrollTop=_sp},50)}
-  else{ov.scrollTop=0}
-  _lockBody();
-  // Scroll to the "new" or "continue" section (past recently watched)
-  requestAnimationFrame(function(){setTimeout(function(){
+  // Position scroll BEFORE showing to avoid visible jump
+  if(_unReturning){
+    var _sp=_unScrollPos;_unReturning=false;
+    ov.style.visibility='hidden';ov.style.display='';
+    requestAnimationFrame(function(){ov.scrollTop=_sp;ov.style.visibility=''});
+  }else{
+    ov.style.visibility='hidden';ov.style.display='';
+    // Scroll to New Episodes section before making visible
     var anchor=document.getElementById('un-default-scroll');
-    if(anchor){anchor.scrollIntoView({behavior:'auto',block:'start'})}
-  },150)});
+    if(anchor){
+      requestAnimationFrame(function(){anchor.scrollIntoView({behavior:'auto',block:'start'});ov.style.visibility=''});
+    }else{
+      ov.scrollTop=0;ov.style.visibility='';
+    }
+  }
+  _lockBody();
 }
 
 // Delegated click handler for Up Next cards (U1: reliable click targets)
