@@ -3450,7 +3450,7 @@ function openUpNext(){
   });
   var recent=ud.recent||[];
   var el=document.getElementById('un-content');
-  var oldFg=document.getElementById('un-detail-fg');if(oldFg){oldFg.remove();el.style.position='';document.getElementById('un-overlay').style.overflow=''}
+  var oldFg=document.getElementById('un-detail-fg');if(oldFg){oldFg.remove();el.style.position='';document.getElementById('un-overlay').style.overflowY='auto'}
   if(!shows.length&&!recent.length){el.innerHTML='<div style="text-align:center;padding:60px;color:var(--t2)"><div style="font-size:40px;margin-bottom:12px">📺</div><div style="font-size:16px;margin-bottom:8px">No Up Next data yet</div><div style="font-size:12px;max-width:400px;margin:0 auto">Trigger a refresh from the <a href="https://github.com/jamesgoux/iris-stats/actions" style="color:var(--sp)">Actions tab</a>.</div></div>';document.getElementById('un-overlay').style.display='';_lockBody();return}
 
   var newItems=shows.filter(function(s){return s.is_new});
@@ -3632,7 +3632,7 @@ function _unRenderDetail(allShows,idx){
   if(!fg){
     // First time entering detail: position fg at current scroll, lock overlay
     _isNewFg=true;
-    ov.style.overflow='hidden';
+    ov.style.overflowY='hidden';
     fg=document.createElement('div');
     fg.id='un-detail-fg';
     fg.style.cssText='position:absolute;top:'+ov.scrollTop+'px;left:0;right:0;height:'+window.innerHeight+'px;background:var(--bg,#181818);z-index:10;padding:16px 0;overflow:auto;-webkit-overflow-scrolling:touch;transform:translateY(-100%);';
@@ -3715,8 +3715,8 @@ function _unPrefetchAndUpdate(base,epNum){
     .then(function(d){
       if(d.status_code)return;
       _epCache[k]={ep_title:d.name||'',ep_overview:(d.overview||'').substring(0,200),ep_still:d.still_path?'https://image.tmdb.org/t/p/w780'+d.still_path:'',ep_aired:d.air_date||'',ep_runtime:d.runtime||base.ep_runtime};
-      // Re-render if still viewing this show
-      if(_crBase&&_crBase.slug===base.slug&&_crAll){
+      // Re-render if still viewing this show (and detail fg is still open)
+      if(_crBase&&_crBase.slug===base.slug&&_crAll&&document.getElementById('un-detail-fg')){
         var ns=_unMakeEp(_crBase,_crEp);
         var ts=_crAll.slice();ts[_crIdx]=ns;
         _unRenderDetail(ts,_crIdx);
@@ -3731,6 +3731,8 @@ function _unDismissDetail(dir){
   var ov=document.getElementById('un-overlay');
   var fg=document.getElementById('un-detail-fg');
   if(!fg){return}
+  // Clear state so prefetch callbacks don't re-create the detail
+  _crBase=null;_crAll=null;
   fg.style.transition='transform .25s ease, opacity .25s ease';
   fg.style.transform='translateY('+(dir==='down'?'100%':'-100%')+')';
   fg.style.opacity='0';
@@ -3738,7 +3740,7 @@ function _unDismissDetail(dir){
   setTimeout(function(){
     fg.remove();
     el.style.position='';
-    ov.style.overflow='';
+    ov.style.overflowY='auto';
     ov.scrollTop=_restoreScroll;
   },280);
 }
