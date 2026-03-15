@@ -358,9 +358,14 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
     for e in entries:
         s = e["trakt_slug"]
         if not s or s in slug_meta: continue
-        slug_meta[s] = {"t": e["show_title"] or e["title"], "type": "show" if e["type"] == "episode" else "movie",
-                        "net": e.get("network",""), "ctry": e.get("country",""),
-                        "lang": e.get("language",""), "g": e.get("genres",""), "stu": slug_studios.get(s,[])}
+        sm_entry = {"t": e["show_title"] or e["title"], "type": "show" if e["type"] == "episode" else "movie"}
+        if e.get("network"): sm_entry["net"] = e["network"]
+        if e.get("country"): sm_entry["ctry"] = e["country"]
+        if e.get("language"): sm_entry["lang"] = e["language"]
+        if e.get("genres"): sm_entry["g"] = e["genres"]
+        stus = slug_studios.get(s, [])
+        if stus: sm_entry["stu"] = stus
+        slug_meta[s] = sm_entry
     # Titles
     tw = defaultdict(lambda: {"type":"","title":"","year":"","eby":defaultdict(int),"total":0,"runtime":0})
     for e in entries:
@@ -1014,11 +1019,17 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
                 if g_cy: gp[cur_year] = g_cy
                 p["g+"] = gp
 
+    a_list = [p for p in pd if p["g"] == "m"][:5000]
+    x_list = [p for p in pd if p["g"] == "f"][:3000]
+    # Trim headshots to only people in the output lists (saves ~800 KB)
+    people_names = set(p["n"] for p in a_list + x_list + dir_list + wr_list)
+    hs_trimmed = {n: url for n, url in headshots.items() if n in people_names}
+    print(f"  Headshots trimmed: {len(hs_trimmed)} of {len(headshots)} (saved {len(headshots)-len(hs_trimmed)} unused)")
     return {
-        "a": [p for p in pd if p["g"] == "m"],
-        "x": [p for p in pd if p["g"] == "f"],
+        "a": a_list,
+        "x": x_list,
         "d": dir_list, "w": wr_list,
-        "tl": tl, "hs": headshots, "ps": posters, "sm": slug_meta,
+        "tl": tl, "hs": hs_trimmed, "ps": posters, "sm": slug_meta,
         "syd": [{"n": i["name"], "net": i["net"],
                  "yd": {y: {"e": d["e"], "m": d["m"]} for y, d in i["yd"].items()}}
                 for _, i in syd.items()],
@@ -2150,19 +2161,23 @@ if os.path.exists("data/pocketcasts_history.json"):
     if pc_ll_count:
         print(f"  Podcasts in lifeline: {pc_ll_count} episodes (poll+export, >5min)")
 
-# Build output: counts for bars + detailed events for all dates
+# Build output: counts for bars + detailed events
+# Events included for last 6 months (for click detail + feed); older days counts-only
+from datetime import timedelta
+_event_cutoff = (datetime.now() - timedelta(days=180)).strftime("%Y-%m-%d")
 lifeline_all = {}
 for d in sorted(ll_counts.keys()):
     c = ll_counts[d]
     if c["ep"] or c["mv"] or c["bk"] or c["sc"] or c["co"] or c["th"] or c["pc"]:
         entry = {"ep": c["ep"], "mv": c["mv"], "bk": c["bk"],
                  "sc": c["sc"], "co": c["co"], "th": c["th"], "pc": c["pc"]}
-        evts = sorted(ll_events.get(d, []), key=lambda x: x["t"])
-        # For days with scrobble counts but no individual tracks, add summary entry
-        if c["sc"] and not any(e["ty"] == "sc" for e in evts):
-            evts.append({"t": "12:00", "n": "~" + str(c["sc"]) + " scrobbles", "ty": "sc"})
-        if evts:
-            entry["e"] = evts[:100]
+        # Only include event details for recent days (saves ~1 MB)
+        if d >= _event_cutoff:
+            evts = sorted(ll_events.get(d, []), key=lambda x: x["t"])
+            if c["sc"] and not any(e["ty"] == "sc" for e in evts):
+                evts.append({"t": "12:00", "n": "~" + str(c["sc"]) + " scrobbles", "ty": "sc"})
+            if evts:
+                entry["e"] = evts[:100]
         lifeline_all[d] = entry
 data["ll"] = lifeline_all
 
