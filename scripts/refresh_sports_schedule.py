@@ -445,6 +445,18 @@ def main():
             league_events = fetch_rounds_for_league(league_key, team_names, fetch_seasons, existing)
             for name, evts in league_events.items():
                 all_events.setdefault(name, {}).update(evts)
+            # Fallback: for seasons where rounds returned 0 games, try search
+            for name in team_names:
+                for season in fetch_seasons:
+                    team_has = any(1 for ev in all_events.get(name, {}).values() if ev.get("season") == season)
+                    already_cached = season in existing_seasons_by_team.get(name, set())
+                    if not team_has and not already_cached:
+                        print(f"    Fallback search: {name} {season} (rounds empty)")
+                        raw = fetch_search_events(name, season)
+                        for ev in raw:
+                            eid = ev.get("idEvent", "")
+                            if eid and eid not in all_events.get(name, {}):
+                                all_events.setdefault(name, {})[eid] = normalize_event(ev, name)
 
         elif cfg["method"] == "search":
             for name in team_names:
