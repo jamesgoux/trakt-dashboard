@@ -3665,12 +3665,9 @@ function _unRenderDetail(allShows,idx){
       else if(dx<-w*0.12){car.style.transform='translateX(-66.666%)';setTimeout(function(){_crNav(1)},320)}
       else{car.style.transform='translateX(-33.333%)'}
     }else if(_tDir==='v'){
-      // Vertical: dismiss detail
+      // Vertical: dismiss detail (reveals queue underneath)
       if(Math.abs(dy)>80){
-        wrap.style.transition='transform .2s ease, opacity .2s ease';
-        wrap.style.transform='translateY('+(dy>0?'100%':'-100%')+')';
-        wrap.style.opacity='0';
-        setTimeout(function(){wrap.style.transform='';wrap.style.opacity='';wrap.style.transition='';_unReturning=true;openUpNext()},220);
+        _unDismissDetail(dy>0?'down':'up',dy);
       }else{
         wrap.style.transition='transform .2s ease, opacity .2s ease';
         wrap.style.transform='';wrap.style.opacity='';
@@ -3714,14 +3711,35 @@ function _unPrefetchAndUpdate(base,epNum){
     }).catch(function(){});
 }
 
-function _unDismissDetail(){
+function _unDismissDetail(dir,startDy){
+  // Slides detail away revealing the Up Next queue underneath
+  // dir: 'up' (default/button) or 'down'; startDy: current Y offset if mid-swipe
+  dir=dir||'up';startDy=startDy||0;
+  var el=document.getElementById('un-content');
+  var ov=document.getElementById('un-overlay');
   var wrap=document.querySelector('.un-carousel-wrap');
-  if(wrap){
-    wrap.style.transition='transform .25s ease, opacity .25s ease';
-    wrap.style.transform='translateY(-100%)';
-    wrap.style.opacity='0';
-    setTimeout(function(){wrap.style.transform='';wrap.style.opacity='';wrap.style.transition='';_unReturning=true;openUpNext()},260);
-  }else{_unReturning=true;openUpNext()}
+  if(!wrap){_unReturning=true;openUpNext();return}
+  // Reset mid-swipe transforms before capturing HTML
+  if(wrap){wrap.style.transform='';wrap.style.opacity='';wrap.style.transition=''}
+  var detailHtml=el.innerHTML;
+  var detailScroll=ov.scrollTop;
+  // Build queue behind (openUpNext with _unReturning skips slide-from-right)
+  _unReturning=true;
+  openUpNext();
+  // Overlay saved detail on top at current position
+  var dov=document.createElement('div');
+  dov.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;background:var(--bg,#181818);z-index:10;overflow:auto;-webkit-overflow-scrolling:touch;';
+  if(startDy){dov.style.transform='translateY('+startDy+'px)';dov.style.opacity=Math.max(0,1-Math.abs(startDy)/300)}
+  dov.innerHTML=detailHtml;
+  ov.appendChild(dov);
+  dov.scrollTop=detailScroll;
+  // Animate detail sliding away, revealing queue
+  requestAnimationFrame(function(){
+    dov.style.transition='transform .25s ease, opacity .25s ease';
+    dov.style.transform='translateY('+(dir==='down'?'100%':'-100%')+')';
+    dov.style.opacity='0';
+    setTimeout(function(){dov.remove()},280);
+  });
 }
 
 function _crNav(dir){
