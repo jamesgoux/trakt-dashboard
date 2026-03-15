@@ -3568,6 +3568,13 @@ function _unRenderDetail(allShows,idx){
   var show=allShows[idx];
   _crBase=show;_crEp=show.episode;_crAll=allShows;_crIdx=idx;
   window._unAllShows=allShows;window._unIdx=idx;
+  // Cache current episode data so re-renders from prefetch don't lose it
+  if(show.tmdb_id&&show.episode){
+    var ck=_epCacheKey(show.tmdb_id,show.season,show.episode);
+    if(!_epCache[ck]&&(show.ep_title||show.ep_still)){
+      _epCache[ck]={ep_title:show.ep_title||'',ep_overview:show.ep_overview||'',ep_still:show.ep_still||'',ep_aired:show.ep_aired||'',ep_runtime:show.ep_runtime||0};
+    }
+  }
   var el=document.getElementById('un-content');
   var prev=_unMakeEp(show,show.episode-1);
   var next=_unMakeEp(show,show.episode+1);
@@ -3590,7 +3597,8 @@ function _unRenderDetail(allShows,idx){
     else{car.style.transform='translateX(-33.333%)'}
   };
   document.getElementById('un-overlay').scrollTop=0;
-  // Prefetch adjacent episodes and re-render panels when data arrives (U5/U6)
+  // Prefetch current (if missing data) + adjacent episodes, re-render when data arrives
+  if(!show.ep_still&&!show.ep_title)_unPrefetchAndUpdate(show,show.episode);
   _unPrefetchAndUpdate(show,show.episode-1);
   _unPrefetchAndUpdate(show,show.episode+1);
   _unPrefetch(show,show.episode-2);
