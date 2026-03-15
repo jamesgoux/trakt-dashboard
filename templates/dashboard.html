@@ -3450,7 +3450,7 @@ function openUpNext(){
   });
   var recent=ud.recent||[];
   var el=document.getElementById('un-content');
-  var oldFg=document.getElementById('un-detail-fg');if(oldFg){oldFg.remove();el.style.position='';document.getElementById('un-overlay').style.overflow=''}
+  var oldFg=document.getElementById('un-detail-fg');if(oldFg){oldFg.remove();el.style.position='';document.getElementById('un-overlay').style.overflowY='auto'}
   if(!shows.length&&!recent.length){el.innerHTML='<div style="text-align:center;padding:60px;color:var(--t2)"><div style="font-size:40px;margin-bottom:12px">📺</div><div style="font-size:16px;margin-bottom:8px">No Up Next data yet</div><div style="font-size:12px;max-width:400px;margin:0 auto">Trigger a refresh from the <a href="https://github.com/jamesgoux/iris-stats/actions" style="color:var(--sp)">Actions tab</a>.</div></div>';document.getElementById('un-overlay').style.display='';_lockBody();return}
 
   var newItems=shows.filter(function(s){return s.is_new});
@@ -3632,14 +3632,16 @@ function _unRenderDetail(allShows,idx){
   if(!fg){
     // First time entering detail: position fg at current scroll, lock overlay
     _isNewFg=true;
-    ov.style.overflow='hidden';
+    ov.style.overflowY='hidden';
     fg=document.createElement('div');
     fg.id='un-detail-fg';
-    fg.style.cssText='position:absolute;top:'+ov.scrollTop+'px;left:0;right:0;height:'+window.innerHeight+'px;background:var(--bg,#181818);z-index:10;padding:16px 0;overflow:auto;-webkit-overflow-scrolling:touch;transform:translateY(-100%);';
+    fg.style.cssText='position:absolute;top:'+ov.scrollTop+'px;left:0;right:0;height:'+window.innerHeight+'px;z-index:10;overflow:hidden;';
+    fg.innerHTML='<div id="un-detail-bg" style="position:absolute;top:0;left:0;right:0;bottom:0;background:var(--bg,#181818)"></div><div id="un-detail-ct" style="position:relative;padding:16px 0;height:100%;overflow:auto;-webkit-overflow-scrolling:touch;transform:translateY(-100%)"></div>';
     el.style.position='relative';
     el.appendChild(fg);
   }
-  fg.innerHTML=h;
+  var ct=document.getElementById('un-detail-ct');
+  ct.innerHTML=h;
   var car=document.getElementById('un-car');
   var wrap=car.parentElement;
   var w=wrap.offsetWidth;
@@ -3648,7 +3650,8 @@ function _unRenderDetail(allShows,idx){
   car.ontouchstart=function(ev){
     _tSx=ev.touches[0].clientX;_tCx=_tSx;_tSy=ev.touches[0].clientY;
     _tDir=null;_tActive=true;
-    car.classList.remove('animating');fg.style.transition='none';
+    car.classList.remove('animating');ct.style.transition='none';
+    var bg=document.getElementById('un-detail-bg');if(bg)bg.style.transition='none';
     ev.stopPropagation();
   };
   car.ontouchmove=function(ev){
@@ -3662,8 +3665,9 @@ function _unRenderDetail(allShows,idx){
       var pct=-33.333+(dx/w)*33.333;
       car.style.transform='translateX('+pct+'%)';
     }else if(_tDir==='v'){
-      fg.style.transform='translateY('+dy+'px)';
-      fg.style.opacity=Math.max(0,1-Math.abs(dy)/300);
+      ct.style.transform='translateY('+dy+'px)';
+      var bg=document.getElementById('un-detail-bg');
+      if(bg)bg.style.opacity=Math.max(0,1-Math.abs(dy)/300);
     }
     ev.stopPropagation();
   };
@@ -3681,9 +3685,11 @@ function _unRenderDetail(allShows,idx){
       if(Math.abs(dy)>80){
         _unDismissDetail(dy>0?'down':'up');
       }else{
-        fg.style.transition='transform .2s ease, opacity .2s ease';
-        fg.style.transform='';fg.style.opacity='';
-        setTimeout(function(){fg.style.transition=''},220);
+        ct.style.transition='transform .2s ease';
+        ct.style.transform='';
+        var bg2=document.getElementById('un-detail-bg');
+        if(bg2){bg2.style.transition='opacity .2s ease';bg2.style.opacity=''}
+        setTimeout(function(){ct.style.transition='';if(bg2)bg2.style.transition=''},220);
       }
     }else{
       car.classList.add('animating');
@@ -3692,10 +3698,10 @@ function _unRenderDetail(allShows,idx){
     _tDir=null;
     if(ev)ev.stopPropagation();
   };
-  // Scroll fg to top on fresh detail open or episode change
-  if(show.slug!==_wasSlug||show.episode!==_wasEp){fg.scrollTop=0}
-  // Slide in from above on first open
-  if(_isNewFg){requestAnimationFrame(function(){fg.style.transition='transform .3s ease';requestAnimationFrame(function(){fg.style.transform=''})})}
+  // Scroll content to top on fresh detail open or episode change
+  if(show.slug!==_wasSlug||show.episode!==_wasEp){ct.scrollTop=0}
+  // Slide content in from above on first open
+  if(_isNewFg){requestAnimationFrame(function(){ct.style.transition='transform .3s ease';requestAnimationFrame(function(){ct.style.transform=''})})}
   // Prefetch current (if missing data) + adjacent episodes, re-render when data arrives
   if(!show.ep_still&&!show.ep_title)_unPrefetchAndUpdate(show,show.episode);
   _unPrefetchAndUpdate(show,show.episode-1);
@@ -3733,14 +3739,16 @@ function _unDismissDetail(dir){
   if(!fg){return}
   // Clear state so prefetch callbacks don't re-create the detail
   _crBase=null;_crAll=null;
-  fg.style.transition='transform .25s ease, opacity .25s ease';
-  fg.style.transform='translateY('+(dir==='down'?'100%':'-100%')+')';
-  fg.style.opacity='0';
+  var ct=document.getElementById('un-detail-ct');
+  var bg=document.getElementById('un-detail-bg');
+  if(ct){ct.style.transition='transform .25s ease';ct.style.transform='translateY('+(dir==='down'?'100%':'-100%')+')';}
+  if(bg){bg.style.transition='opacity .25s ease';bg.style.opacity='0';}
+
   var _restoreScroll=el._savedScroll||ov.scrollTop;
   setTimeout(function(){
     fg.remove();
     el.style.position='';
-    ov.style.overflow='';
+    ov.style.overflowY='auto';
     ov.scrollTop=_restoreScroll;
   },280);
 }
