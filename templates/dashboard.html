@@ -1078,6 +1078,9 @@ function baseCharts(){
   ch.push(c1);
   }
 
+  // Life mode: only needs activity chart (above), skip everything below
+  if(ct==='life')return;
+
   // Genres - respects type AND year filter
   var gd;
   if(cy!=='all'){
@@ -1115,7 +1118,7 @@ function baseCharts(){
 
   // Genre trends (100% stacked area) - yearly or monthly
   var gtWrap=document.getElementById('gt-wrap');
-  if(D.c.gt&&(_isMov()||ct==='show')){
+  if(D.c.gt&&ct!=='life'&&(_isMov()||ct==='show')){
     gtWrap.style.display='';
     var gt=D.c.gt;
     var gtColors=gt.genres.map(function(g){return GC[g.toLowerCase()]||'#666'});
