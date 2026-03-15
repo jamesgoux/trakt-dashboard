@@ -3450,7 +3450,7 @@ function openUpNext(){
   });
   var recent=ud.recent||[];
   var el=document.getElementById('un-content');
-  var oldFg=document.getElementById('un-detail-fg');if(oldFg){oldFg.remove();document.getElementById('un-overlay').style.overflowY='auto'}
+  var oldFg=document.getElementById('un-detail-fg');if(oldFg){oldFg.remove();var _ov=document.getElementById('un-overlay');_ov.style.overflowY='auto';var _hdr=_ov.querySelector(':scope > div:first-child');if(_hdr)_hdr.style.display=''}
   if(!shows.length&&!recent.length){el.innerHTML='<div style="text-align:center;padding:60px;color:var(--t2)"><div style="font-size:40px;margin-bottom:12px">📺</div><div style="font-size:16px;margin-bottom:8px">No Up Next data yet</div><div style="font-size:12px;max-width:400px;margin:0 auto">Trigger a refresh from the <a href="https://github.com/jamesgoux/iris-stats/actions" style="color:var(--sp)">Actions tab</a>.</div></div>';document.getElementById('un-overlay').style.display='';_lockBody();return}
 
   var newItems=shows.filter(function(s){return s.is_new});
@@ -3595,7 +3595,7 @@ function _unBuildPanel(show){
   // Spacer pushes buttons to bottom
   h+='<div style="flex:1;min-height:16px"></div>';
   // Watch buttons — pinned at bottom
-  h+='<div style="display:flex;gap:8px;padding-bottom:20px">';
+  h+='<div style="display:flex;gap:8px;padding-bottom:120px">';
   h+='<button onclick="_unShowDatePicker(\''+slug2+'\','+show.season+','+show.episode+','+(show.ep_trakt_id||0)+')" style="flex:1;padding:14px 8px;background:#0e7490;color:#fff;border:none;border-radius:10px;font-size:13px;cursor:pointer;font-weight:600;min-height:48px">Other Date</button>';
   if(show.ep_aired)h+='<button onclick="markWatchedAt(\''+slug2+'\','+show.season+','+show.episode+','+(show.ep_trakt_id||0)+',\''+show.ep_aired+'\')" style="flex:1;padding:14px 8px;background:#0e7490;color:#fff;border:none;border-radius:10px;font-size:13px;cursor:pointer;font-weight:600;min-height:48px">Air Date</button>';
   h+='<button onclick="markWatchedAt(\''+slug2+'\','+show.season+','+show.episode+','+(show.ep_trakt_id||0)+',\'now\')" style="flex:1;padding:14px 8px;background:var(--tv);color:#fff;border:none;border-radius:10px;font-size:13px;cursor:pointer;font-weight:600;min-height:48px">Just Now</button>';
@@ -3662,6 +3662,7 @@ function _unRenderDetail(allShows,idx){
     _isNewFg=true;
     el._savedScroll=ov.scrollTop;
     ov.style.overflowY='hidden';
+    var hdr=ov.querySelector(':scope > div:first-child');if(hdr)hdr.style.display='none';
     fg=document.createElement('div');
     fg.id='un-detail-fg';
     fg.style.cssText='position:absolute;top:'+ov.scrollTop+'px;left:0;right:0;height:'+window.innerHeight+'px;z-index:302;background:var(--sf);overflow:auto;-webkit-overflow-scrolling:touch;transform:translateY(-100%);';
@@ -3765,6 +3766,7 @@ function _unDismissDetail(dir){
   var _restoreScroll=el._savedScroll||ov.scrollTop;
   setTimeout(function(){
     fg.remove();
+    var hdr=ov.querySelector(':scope > div:first-child');if(hdr)hdr.style.display='';
     ov.style.overflowY='auto';
     ov.scrollTop=_restoreScroll;
   },280);
