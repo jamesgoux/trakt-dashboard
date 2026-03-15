@@ -3727,33 +3727,9 @@ function markWatched(slug,season,episode,epTraktId,btn){
   _unWatched[key]=watchedAt;
   localStorage.setItem('iris_un_watched',JSON.stringify(_unWatched));
   _injectRecentWatch(slug,season,episode,watchedAt);
-  // Visually add to Recently Watched section in Up Next
-  var recentGrid=document.querySelector('#un-content .un-grid');
-  var recentSection=document.querySelector('#un-content .un-section');
-  if(recentGrid&&recentSection&&recentSection.textContent.indexOf('Recently Watched')>=0){
-    // Add card at the start of the recently watched grid
-    var showTitle=card.querySelector('.un-title');
-    var newCard=document.createElement('div');
-    newCard.className='un-card';
-    newCard.style.cssText='opacity:0;transition:opacity .3s';
-    newCard.innerHTML='<div style="padding:12px"><div style="font-weight:600;font-size:14px">'+(showTitle?showTitle.textContent:'')+'</div><div style="font-size:12px;color:var(--t2)">S'+season+'E'+episode+' — just watched ✓</div></div>';
-    recentGrid.insertBefore(newCard,recentGrid.firstChild);
-    requestAnimationFrame(function(){newCard.style.opacity='1'});
-  }else if(!recentSection||recentSection.textContent.indexOf('Recently Watched')<0){
-    // No recently watched section yet — create one before new episodes
-    var anchor=document.getElementById('un-default-scroll');
-    if(anchor&&anchor.parentElement){
-      var showTitle2=card.querySelector('.un-title');
-      var secDiv=document.createElement('div');secDiv.className='un-section';secDiv.textContent='🕐 Recently Watched';
-      var gridDiv=document.createElement('div');gridDiv.className='un-grid';
-      var newCard2=document.createElement('div');newCard2.className='un-card';
-      newCard2.innerHTML='<div style="padding:12px"><div style="font-weight:600;font-size:14px">'+(showTitle2?showTitle2.textContent:'')+'</div><div style="font-size:12px;color:var(--t2)">S'+season+'E'+episode+' — just watched ✓</div></div>';
-      gridDiv.appendChild(newCard2);
-      anchor.parentElement.insertBefore(gridDiv,anchor);
-      anchor.parentElement.insertBefore(secDiv,gridDiv);
-    }
-  }
-  setTimeout(function(){card.style.transition='all .3s';card.style.maxHeight='0';card.style.overflow='hidden';card.style.padding='0';card.style.margin='0';card.style.border='none';setTimeout(function(){card.remove()},350)},150);
+  // Collapse the card, then re-render list to show it in Recently Watched with full styling
+  setTimeout(function(){card.style.transition='all .3s';card.style.maxHeight='0';card.style.overflow='hidden';card.style.padding='0';card.style.margin='0';card.style.border='none';
+    setTimeout(function(){card.remove();_unReturning=true;_unScrollPos=document.getElementById('un-overlay').scrollTop;openUpNext()},350)},150);
   if(epTraktId)_traktSync(epTraktId,watchedAt);
 }
 
