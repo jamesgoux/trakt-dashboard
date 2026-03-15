@@ -3655,12 +3655,25 @@ function _traktSync(epTraktId,watchedAt,onDone){
   .catch(function(e){console.error('Trakt sync failed:',e);alert('Failed to sync to Trakt: '+e.message);if(onDone)onDone(false)});
 }
 
+// Inject a watched episode into D.c.r so it shows in recently watched immediately
+function _injectRecentWatch(slug,season,episode,watchedAt){
+  // Find show title from Up Next data or TL
+  var title='';
+  var unData=D.un||{};var shows=unData.shows||[];
+  for(var i=0;i<shows.length;i++){if(shows[i].slug===slug){title=shows[i].title;break}}
+  if(!title){for(var j=0;j<TL.length;j++){if(TL[j].sl===slug){title=TL[j].t;break}}}
+  if(!title)title=slug;
+  var entry={type:'episode',title:title,detail:'S'+season+'E'+episode,watched_at:watchedAt.substring(0,10),yr:watchedAt.substring(0,4)};
+  D.c.r.unshift(entry);
+}
+
 function markWatchedAt(slug,season,episode,epTraktId,when){
   var key=slug+'|'+season+'|'+episode;
   var watchedAt=when==='now'?new Date().toISOString():when;
   if(!watchedAt){alert('Please select a date first');return}
   _unWatched[key]=watchedAt;
   localStorage.setItem('iris_un_watched',JSON.stringify(_unWatched));
+  _injectRecentWatch(slug,season,episode,watchedAt);
   openUpNext();
   if(epTraktId)_traktSync(epTraktId,watchedAt);
 }
@@ -3672,6 +3685,7 @@ function markWatched(slug,season,episode,epTraktId,btn){
   var watchedAt=new Date().toISOString();
   _unWatched[key]=watchedAt;
   localStorage.setItem('iris_un_watched',JSON.stringify(_unWatched));
+  _injectRecentWatch(slug,season,episode,watchedAt);
   setTimeout(function(){card.style.transition='all .3s';card.style.maxHeight='0';card.style.overflow='hidden';card.style.padding='0';card.style.margin='0';card.style.border='none';setTimeout(function(){card.remove()},350)},150);
   if(epTraktId)_traktSync(epTraktId,watchedAt);
 }
