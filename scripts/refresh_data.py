@@ -1088,12 +1088,55 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
 # ---- Main ----
 print("=== Trakt Data Refresh ===")
 
-print("\n[1/3] Fetching watch history...")
-raw_movies = fetch_history("movies")
-raw_shows = fetch_history("shows")
-entries = [norm_movie(e) for e in raw_movies] + [norm_show(e) for e in raw_shows]
-entries.sort(key=lambda x: x["watched_at"], reverse=True)
-print(f"  Total: {len(entries)} entries (Trakt)")
+is_full = os.environ.get("FULL_REFRESH") == "1"
+entries_cache_path = "data/entries_cache.json"
+
+if is_full or not os.path.exists(entries_cache_path):
+    # Full fetch: get everything from Trakt
+    print("\n[1/3] Fetching ALL watch history...")
+    raw_movies = fetch_history("movies")
+    raw_shows = fetch_history("shows")
+    entries = [norm_movie(e) for e in raw_movies] + [norm_show(e) for e in raw_shows]
+    entries.sort(key=lambda x: x["watched_at"], reverse=True)
+    # Cache entries for incremental runs
+    with open(entries_cache_path, "w") as f:
+        json.dump(entries, f, separators=(",", ":"))
+    print(f"  Total: {len(entries)} entries (full fetch, cached)")
+else:
+    # Incremental: load cached entries, only fetch new ones since last run
+    print("\n[1/3] Incremental watch history fetch...")
+    with open(entries_cache_path) as f:
+        entries = json.load(f)
+    # Find the most recent watched_at in cached entries
+    latest = entries[0]["watched_at"] if entries else ""
+    if latest:
+        print(f"  Cached: {len(entries)} entries (latest: {latest[:19]})")
+        # Fetch only new watches since latest cached entry
+        new_movies = []
+        r = retry_request("get", f"{BASE_URL}/users/{USERNAME}/history/movies",
+                          params={"page": 1, "limit": 100, "start_at": latest, "extended": "full"}, headers=HEADERS)
+        if r and r.status_code == 200:
+            new_movies = r.json()
+        new_shows = []
+        r = retry_request("get", f"{BASE_URL}/users/{USERNAME}/history/shows",
+                          params={"page": 1, "limit": 100, "start_at": latest, "extended": "full"}, headers=HEADERS)
+        if r and r.status_code == 200:
+            new_shows = r.json()
+        new_entries = [norm_movie(e) for e in new_movies] + [norm_show(e) for e in new_shows]
+        # Filter out entries we already have (start_at is inclusive)
+        existing_keys = set((e["watched_at"], e["title"], e["type"]) for e in entries)
+        new_entries = [e for e in new_entries if (e["watched_at"], e["title"], e["type"]) not in existing_keys]
+        if new_entries:
+            entries = new_entries + entries
+            entries.sort(key=lambda x: x["watched_at"], reverse=True)
+            # Update cache
+            with open(entries_cache_path, "w") as f:
+                json.dump(entries, f, separators=(",", ":"))
+            print(f"  +{len(new_entries)} new entries → {len(entries)} total")
+        else:
+            print(f"  No new watches (0 new entries)")
+    else:
+        print(f"  Cached: {len(entries)} entries (no timestamp, using as-is)")
 
 # ── Letterboxd backfill: merge old watches (2015-2022) not in Trakt ──
 if os.path.exists("data/letterboxd.json"):
@@ -1250,7 +1293,7 @@ if missing_slugs:
 os.makedirs("data", exist_ok=True)
 
 # Cast+studios: only on full refresh (FULL_REFRESH=1) or when no people.json exists
-do_cast = os.environ.get("FULL_REFRESH") == "1" or not os.path.exists("data/people.json")
+do_cast = is_full or not os.path.exists("data/people.json")
 if do_cast:
     print("\n[2/3] Fetching cast + studios + crew...")
     people, slug_studios, directors_raw, writers_raw, crew_ep_credits = fetch_cast_and_studios(entries)
