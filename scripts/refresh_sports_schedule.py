@@ -446,17 +446,56 @@ def main():
             for name, evts in league_events.items():
                 all_events.setdefault(name, {}).update(evts)
             # Fallback: for seasons where rounds returned 0 games, try search
+            # Budget: max 10 search calls per run to avoid rate limits
+            # Each run fills in ~1 season; full backfill completes over several runs
+            search_budget = 10
             for name in team_names:
+                if search_budget <= 0:
+                    print(f"    Search budget exhausted, will continue next run")
+                    break
                 for season in fetch_seasons:
+                    if search_budget <= 0:
+                        break
                     team_has = any(1 for ev in all_events.get(name, {}).values() if ev.get("season") == season)
                     already_cached = season in existing_seasons_by_team.get(name, set())
                     if not team_has and not already_cached:
-                        print(f"    Fallback search: {name} {season} (rounds empty)")
+                        # Step 1: search for home games (25 max)
+                        print(f"    Fallback search: {name} {season}")
                         raw = fetch_search_events(name, season)
+                        search_budget -= 1
+                        added = 0
+                        opponents = set()
                         for ev in raw:
                             eid = ev.get("idEvent", "")
+                            home = ev.get("strHomeTeam", "")
+                            away = ev.get("strAwayTeam", "")
                             if eid and eid not in all_events.get(name, {}):
                                 all_events.setdefault(name, {})[eid] = normalize_event(ev, name)
+                                added += 1
+                            # Track opponents for away game search
+                            if home == name and away:
+                                opponents.add(away)
+                            elif away == name and home:
+                                opponents.add(home)
+                        print(f"      +{added} home games, {len(opponents)} opponents")
+                        # Step 2: search each opponent to find away games
+                        for opp in sorted(opponents):
+                            if search_budget <= 0:
+                                break
+                            opp_raw = fetch_search_events(opp, season)
+                            search_budget -= 1
+                            opp_added = 0
+                            for ev in opp_raw:
+                                eid = ev.get("idEvent", "")
+                                home = ev.get("strHomeTeam", "")
+                                away = ev.get("strAwayTeam", "")
+                                if eid and (name in home or name in away) and eid not in all_events.get(name, {}):
+                                    all_events.setdefault(name, {})[eid] = normalize_event(ev, name)
+                                    opp_added += 1
+                            if opp_added:
+                                print(f"      +{opp_added} away games from {opp}")
+            if search_budget < 10:
+                print(f"    Search budget used: {10 - search_budget} calls")
 
         elif cfg["method"] == "search":
             for name in team_names:
