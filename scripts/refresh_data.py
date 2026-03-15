@@ -834,16 +834,30 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
             row["Other"] = other
         ep_chart[m] = row
 
-    # Recent: keep 200 most recent for filtering
+    # Recent: keep 200 most recent + last 5 per year (so year filter works for old years)
     sorted_entries = sorted(entries, key=lambda x: x["watched_at"], reverse=True)
+    def _recent_entry(e):
+        return {"type": e["type"], "title": e["show_title"] or e["title"],
+                "detail": f"S{e['season']}E{e['episode_number']}" if e["type"] == "episode" else str(e["year"]),
+                "watched_at": e["watched_at"][:10], "yr": e["watched_at"][:4] if e["watched_at"] else ""}
+    seen_ids = set()
     for e in sorted_entries[:200]:
-        recent_all.append({
-            "type": e["type"],
-            "title": e["show_title"] or e["title"],
-            "detail": f"S{e['season']}E{e['episode_number']}" if e["type"] == "episode" else str(e["year"]),
-            "watched_at": e["watched_at"][:10],
-            "yr": e["watched_at"][:4] if e["watched_at"] else ""
-        })
+        re_entry = _recent_entry(e)
+        key = (re_entry["watched_at"], re_entry["title"], re_entry["type"])
+        seen_ids.add(key)
+        recent_all.append(re_entry)
+    # Add last 5 per year for years not covered
+    yr_counts = defaultdict(int)
+    for e in sorted_entries:
+        yr = e["watched_at"][:4] if e.get("watched_at") else ""
+        if not yr: continue
+        if yr_counts[yr] >= 5: continue
+        re_entry = _recent_entry(e)
+        key = (re_entry["watched_at"], re_entry["title"], re_entry["type"])
+        if key not in seen_ids:
+            seen_ids.add(key)
+            recent_all.append(re_entry)
+        yr_counts[yr] += 1
 
     # First watches: earliest entries per year (so year filter works)
     first_all = []
