@@ -3510,13 +3510,20 @@ function openUpNext(){
   }
   el.innerHTML=h;
   var ov=document.getElementById('un-overlay');
-  // Slide in from right + position scroll before visible
-  ov.style.visibility='hidden';ov.style.transition='none';ov.style.transform='translateX(100%)';ov.style.display='';
-  if(!_unEverOpened){
+  // Slide in from right (fresh open) or instant restore (returning from episode detail)
+  ov.style.display='';
+  if(_unReturning){
+    // Returning from episode detail — no slide animation, just restore scroll
+    _unReturning=false;
+    ov.style.transition='none';ov.style.transform='';ov.style.visibility='';
+    requestAnimationFrame(function(){ov.scrollTop=_unScrollPos});
+  }else if(!_unEverOpened){
     _unEverOpened=true;
+    ov.style.visibility='hidden';ov.style.transition='none';ov.style.transform='translateX(100%)';
     var anchor=document.getElementById('un-default-scroll');
     requestAnimationFrame(function(){if(anchor)anchor.scrollIntoView({behavior:'auto',block:'start'});ov.style.visibility='';ov.style.transition='transform .3s ease';requestAnimationFrame(function(){ov.style.transform=''})});
   }else{
+    ov.style.visibility='hidden';ov.style.transition='none';ov.style.transform='translateX(100%)';
     var _sp=_unScrollPos;
     requestAnimationFrame(function(){ov.scrollTop=_sp;ov.style.visibility='';ov.style.transition='transform .3s ease';requestAnimationFrame(function(){ov.style.transform=''})});
   }
@@ -3629,8 +3636,8 @@ function _unRenderDetail(allShows,idx){
   car.ontouchend=function(ev){
     if(!drag)return;drag=false;var dx=cx-sx;
     car.classList.add('snap');
-    if(dx>w*0.2&&_crEp>1){car.style.transform='translateX(0%)';setTimeout(function(){_crNav(-1)},320)}
-    else if(dx<-w*0.2){car.style.transform='translateX(-66.666%)';setTimeout(function(){_crNav(1)},320)}
+    if(dx>w*0.12&&_crEp>1){car.style.transform='translateX(0%)';setTimeout(function(){_crNav(-1)},320)}
+    else if(dx<-w*0.12){car.style.transform='translateX(-66.666%)';setTimeout(function(){_crNav(1)},320)}
     else{car.style.transform='translateX(-33.333%)'}
     if(ev)ev.stopPropagation();
   };
@@ -3642,25 +3649,42 @@ function _unRenderDetail(allShows,idx){
   _unPrefetchAndUpdate(show,show.episode+1);
   _unPrefetch(show,show.episode-2);
   _unPrefetch(show,show.episode+2);
-  // Swipe down on detail panel to dismiss back to list
-  var _sdSy=0,_sdMoved=false;
+  // Swipe up or down on detail panel to dismiss back to list (tracks thumb)
+  var _sdSy=0,_sdTracking=false,_sdStartX=0;
   var detailEl=el.querySelector('.un-detail');
   if(detailEl){
     detailEl.addEventListener('touchstart',function(e){
-      // Only start if the carousel isn't handling it
       if(e.target.closest('#un-car'))return;
-      _sdSy=e.touches[0].clientY;_sdMoved=false;
+      _sdSy=e.touches[0].clientY;_sdStartX=e.touches[0].clientX;_sdTracking=false;
+      detailEl.style.transition='none';
     },{passive:true});
     detailEl.addEventListener('touchmove',function(e){
       if(e.target.closest('#un-car'))return;
       var dy=e.touches[0].clientY-_sdSy;
-      if(dy>15)_sdMoved=true;
+      var dx=Math.abs(e.touches[0].clientX-_sdStartX);
+      // Only start vertical tracking if vertical movement dominates horizontal
+      if(!_sdTracking&&Math.abs(dy)>15&&Math.abs(dy)>dx){_sdTracking=true}
+      if(_sdTracking){
+        detailEl.style.transform='translateY('+dy+'px)';
+        detailEl.style.opacity=Math.max(0,1-Math.abs(dy)/300);
+      }
     },{passive:true});
     detailEl.addEventListener('touchend',function(e){
-      if(!_sdMoved)return;
+      if(!_sdTracking){return}
       var dy=(e.changedTouches?e.changedTouches[0].clientY:0)-_sdSy;
-      if(dy>80){_unReturning=true;openUpNext()}
-      _sdMoved=false;
+      if(Math.abs(dy)>80){
+        // Commit dismiss — slide away in swipe direction
+        detailEl.style.transition='transform .2s ease, opacity .2s ease';
+        detailEl.style.transform='translateY('+(dy>0?'100%':'-100%')+')';
+        detailEl.style.opacity='0';
+        setTimeout(function(){detailEl.style.transform='';detailEl.style.opacity='';detailEl.style.transition='';_unReturning=true;openUpNext()},220);
+      }else{
+        // Snap back
+        detailEl.style.transition='transform .2s ease, opacity .2s ease';
+        detailEl.style.transform='';detailEl.style.opacity='';
+        setTimeout(function(){detailEl.style.transition=''},220);
+      }
+      _sdTracking=false;
     },{passive:true});
   }
 }
