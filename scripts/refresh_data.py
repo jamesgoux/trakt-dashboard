@@ -1019,15 +1019,15 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
                 if g_cy: gp[cur_year] = g_cy
                 p["g+"] = gp
 
-    a_list = [p for p in pd if p["g"] == "m"][:5000]
-    x_list = [p for p in pd if p["g"] == "f"][:3000]
-    # Trim headshots to only people in the output lists (saves ~800 KB)
-    people_names = set(p["n"] for p in a_list + x_list + dir_list + wr_list)
-    hs_trimmed = {n: url for n, url in headshots.items() if n in people_names}
-    print(f"  Headshots trimmed: {len(hs_trimmed)} of {len(headshots)} (saved {len(headshots)-len(hs_trimmed)} unused)")
+    a_out = [p for p in pd if p["g"] == "m"]
+    x_out = [p for p in pd if p["g"] == "f"]
+    # Trim headshots: only include people who appear in tables (tt >= 2)
+    table_names = set(p["n"] for p in a_out + x_out + dir_list + wr_list)
+    hs_trimmed = {n: url for n, url in headshots.items() if n in table_names}
+    print(f"  Headshots: {len(hs_trimmed)} included, {len(headshots) - len(hs_trimmed)} trimmed (1-title people)")
     return {
-        "a": a_list,
-        "x": x_list,
+        "a": a_out,
+        "x": x_out,
         "d": dir_list, "w": wr_list,
         "tl": tl, "hs": hs_trimmed, "ps": posters, "sm": slug_meta,
         "syd": [{"n": i["name"], "net": i["net"],
@@ -1088,12 +1088,55 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
 # ---- Main ----
 print("=== Trakt Data Refresh ===")
 
-print("\n[1/3] Fetching watch history...")
-raw_movies = fetch_history("movies")
-raw_shows = fetch_history("shows")
-entries = [norm_movie(e) for e in raw_movies] + [norm_show(e) for e in raw_shows]
-entries.sort(key=lambda x: x["watched_at"], reverse=True)
-print(f"  Total: {len(entries)} entries (Trakt)")
+is_full = os.environ.get("FULL_REFRESH") == "1"
+entries_cache_path = "data/entries_cache.json"
+
+if is_full or not os.path.exists(entries_cache_path):
+    # Full fetch: get everything from Trakt
+    print("\n[1/3] Fetching ALL watch history...")
+    raw_movies = fetch_history("movies")
+    raw_shows = fetch_history("shows")
+    entries = [norm_movie(e) for e in raw_movies] + [norm_show(e) for e in raw_shows]
+    entries.sort(key=lambda x: x["watched_at"], reverse=True)
+    # Cache entries for incremental runs
+    with open(entries_cache_path, "w") as f:
+        json.dump(entries, f, separators=(",", ":"))
+    print(f"  Total: {len(entries)} entries (full fetch, cached)")
+else:
+    # Incremental: load cached entries, only fetch new ones since last run
+    print("\n[1/3] Incremental watch history fetch...")
+    with open(entries_cache_path) as f:
+        entries = json.load(f)
+    # Find the most recent watched_at in cached entries
+    latest = entries[0]["watched_at"] if entries else ""
+    if latest:
+        print(f"  Cached: {len(entries)} entries (latest: {latest[:19]})")
+        # Fetch only new watches since latest cached entry
+        new_movies = []
+        r = retry_request("get", f"{BASE_URL}/users/{USERNAME}/history/movies",
+                          params={"page": 1, "limit": 100, "start_at": latest, "extended": "full"}, headers=HEADERS)
+        if r and r.status_code == 200:
+            new_movies = r.json()
+        new_shows = []
+        r = retry_request("get", f"{BASE_URL}/users/{USERNAME}/history/shows",
+                          params={"page": 1, "limit": 100, "start_at": latest, "extended": "full"}, headers=HEADERS)
+        if r and r.status_code == 200:
+            new_shows = r.json()
+        new_entries = [norm_movie(e) for e in new_movies] + [norm_show(e) for e in new_shows]
+        # Filter out entries we already have (start_at is inclusive)
+        existing_keys = set((e["watched_at"], e["title"], e["type"]) for e in entries)
+        new_entries = [e for e in new_entries if (e["watched_at"], e["title"], e["type"]) not in existing_keys]
+        if new_entries:
+            entries = new_entries + entries
+            entries.sort(key=lambda x: x["watched_at"], reverse=True)
+            # Update cache
+            with open(entries_cache_path, "w") as f:
+                json.dump(entries, f, separators=(",", ":"))
+            print(f"  +{len(new_entries)} new entries → {len(entries)} total")
+        else:
+            print(f"  No new watches (0 new entries)")
+    else:
+        print(f"  Cached: {len(entries)} entries (no timestamp, using as-is)")
 
 # ── Letterboxd backfill: merge old watches (2015-2022) not in Trakt ──
 if os.path.exists("data/letterboxd.json"):
@@ -1250,7 +1293,7 @@ if missing_slugs:
 os.makedirs("data", exist_ok=True)
 
 # Cast+studios: only on full refresh (FULL_REFRESH=1) or when no people.json exists
-do_cast = os.environ.get("FULL_REFRESH") == "1" or not os.path.exists("data/people.json")
+do_cast = is_full or not os.path.exists("data/people.json")
 if do_cast:
     print("\n[2/3] Fetching cast + studios + crew...")
     people, slug_studios, directors_raw, writers_raw, crew_ep_credits = fetch_cast_and_studios(entries)
@@ -2161,23 +2204,19 @@ if os.path.exists("data/pocketcasts_history.json"):
     if pc_ll_count:
         print(f"  Podcasts in lifeline: {pc_ll_count} episodes (poll+export, >5min)")
 
-# Build output: counts for bars + detailed events
-# Events included for last 6 months (for click detail + feed); older days counts-only
-from datetime import timedelta
-_event_cutoff = (datetime.now() - timedelta(days=180)).strftime("%Y-%m-%d")
+# Build output: counts for bars + detailed events for all dates
 lifeline_all = {}
 for d in sorted(ll_counts.keys()):
     c = ll_counts[d]
     if c["ep"] or c["mv"] or c["bk"] or c["sc"] or c["co"] or c["th"] or c["pc"]:
         entry = {"ep": c["ep"], "mv": c["mv"], "bk": c["bk"],
                  "sc": c["sc"], "co": c["co"], "th": c["th"], "pc": c["pc"]}
-        # Only include event details for recent days (saves ~1 MB)
-        if d >= _event_cutoff:
-            evts = sorted(ll_events.get(d, []), key=lambda x: x["t"])
-            if c["sc"] and not any(e["ty"] == "sc" for e in evts):
-                evts.append({"t": "12:00", "n": "~" + str(c["sc"]) + " scrobbles", "ty": "sc"})
-            if evts:
-                entry["e"] = evts[:100]
+        evts = sorted(ll_events.get(d, []), key=lambda x: x["t"])
+        # For days with scrobble counts but no individual tracks, add summary entry
+        if c["sc"] and not any(e["ty"] == "sc" for e in evts):
+            evts.append({"t": "12:00", "n": "~" + str(c["sc"]) + " scrobbles", "ty": "sc"})
+        if evts:
+            entry["e"] = evts[:100]
         lifeline_all[d] = entry
 data["ll"] = lifeline_all
 
