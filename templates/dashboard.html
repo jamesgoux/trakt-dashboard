@@ -3412,6 +3412,7 @@ function _unlockBody(){document.body.style.position='';document.body.style.top='
 function _unFmtMin(m){if(!m)return'';var h=Math.floor(m/60);var mn=m%60;return h?h+'h'+(mn?' '+mn+'m':''):mn+'m'}
 function _unData(){var d=D.un||{};return{shows:d.shows||d||[],recent:d.recent||[]}}
 
+var _unScrollPos=0;var _unReturning=false;
 function openUpNext(){
   var ud=_unData();
   var shows=ud.shows.filter(function(s){
@@ -3479,7 +3480,8 @@ function openUpNext(){
   el.innerHTML=h;
   var ov=document.getElementById('un-overlay');
   ov.style.display='';
-  ov.scrollTop=0;
+  if(_unReturning){ov.scrollTop=_unScrollPos;_unReturning=false}
+  else{ov.scrollTop=0}
   _lockBody();
   // Scroll to the "new" or "continue" section (past recently watched)
   requestAnimationFrame(function(){setTimeout(function(){
@@ -3496,6 +3498,7 @@ document.getElementById('un-content').addEventListener('click',function(e){
   showEpDetail(card);
 });
 function showEpDetail(card){
+  _unScrollPos=document.getElementById('un-overlay').scrollTop;
   var slug=card.dataset.slug,s=parseInt(card.dataset.s),e=parseInt(card.dataset.e),eid=card.dataset.eid,tmdb=card.dataset.tmdb;
   var ud=_unData();
   var allShows=ud.shows.filter(function(x){
@@ -3528,7 +3531,7 @@ function _unBuildPanel(show){
   var slug2=show.slug.replace(/'/g,"\\'");
   var h='<div class="un-detail">';
   h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">';
-  h+='<button onclick="openUpNext()" style="background:var(--sf);border:1px solid rgba(255,255,255,.1);color:var(--tx);border-radius:8px;padding:10px 16px;font-size:14px;cursor:pointer;min-height:44px">← Up Next</button>';
+  h+='<button onclick="_unReturning=true;openUpNext()" style="background:var(--sf);border:1px solid rgba(255,255,255,.1);color:var(--tx);border-radius:8px;padding:10px 16px;font-size:14px;cursor:pointer;min-height:44px">← Up Next</button>';
   h+='<div style="display:flex;gap:8px">';
   if(show.episode>1)h+='<button onclick="_crNav(-1)" style="background:var(--sf);border:1px solid rgba(255,255,255,.1);color:var(--tx);border-radius:8px;padding:10px 16px;font-size:16px;cursor:pointer;min-width:48px">◀</button>';
   h+='<button onclick="_crNav(1)" style="background:var(--sf);border:1px solid rgba(255,255,255,.1);color:var(--tx);border-radius:8px;padding:10px 16px;font-size:16px;cursor:pointer;min-width:48px">▶</button>';
@@ -3587,14 +3590,15 @@ function _unRenderDetail(allShows,idx){
   var car=document.getElementById('un-car');
   var w=car.parentElement.offsetWidth;
   var sx=0,cx=0,drag=false;
-  car.ontouchstart=function(ev){sx=ev.touches[0].clientX;cx=sx;drag=true;car.classList.remove('snap')};
-  car.ontouchmove=function(ev){if(!drag)return;cx=ev.touches[0].clientX;var dx=cx-sx;var pct=-33.333+(dx/w)*33.333;car.style.transform='translateX('+pct+'%)'};
-  car.ontouchend=function(){
+  car.ontouchstart=function(ev){sx=ev.touches[0].clientX;cx=sx;drag=true;car.classList.remove('snap');ev.stopPropagation()};
+  car.ontouchmove=function(ev){if(!drag)return;cx=ev.touches[0].clientX;var dx=cx-sx;var pct=-33.333+(dx/w)*33.333;car.style.transform='translateX('+pct+'%)';ev.stopPropagation()};
+  car.ontouchend=function(ev){
     if(!drag)return;drag=false;var dx=cx-sx;
     car.classList.add('snap');
     if(dx>w*0.2&&_crEp>1){car.style.transform='translateX(0%)';setTimeout(function(){_crNav(-1)},320)}
     else if(dx<-w*0.2){car.style.transform='translateX(-66.666%)';setTimeout(function(){_crNav(1)},320)}
     else{car.style.transform='translateX(-33.333%)'}
+    if(ev)ev.stopPropagation();
   };
   document.getElementById('un-overlay').scrollTop=0;
   // Prefetch current (if missing data) + adjacent episodes, re-render when data arrives
