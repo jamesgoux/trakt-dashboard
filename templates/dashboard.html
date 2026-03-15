@@ -526,7 +526,17 @@ function applyFilter(){
   window._llMonthExplicit=false;writeHash();_updateFilterBtn();render();
 }
 // Close on backdrop click
-document.getElementById('filter-dialog').addEventListener('click',function(e){if(e.target===this)closeFilterDialog()});
+document.getElementById('filter-dialog').addEventListener('click',function(e){if(e.target===this||e.target===document.getElementById('filter-inner'))closeFilterDialog()});
+// Prevent scroll pass-through on the dialog — only allow scroll inside fd-years and fd-types
+(function(){
+  var dialog=document.getElementById('filter-dialog');
+  dialog.addEventListener('touchmove',function(e){
+    var t=e.target;
+    // Allow scrolling inside the year and type columns
+    var scrollable=t.closest('#fd-years')||t.closest('#fd-types');
+    if(!scrollable){e.preventDefault()}
+  },{passive:false});
+})();
 
 function _updateFilterBtn(){
   var btn=document.getElementById('filter-btn');
