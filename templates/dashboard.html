@@ -93,13 +93,13 @@ tr:hover td{background:rgba(255,255,255,.02)}
 .un-poster{width:60px;height:90px;border-radius:6px;object-fit:cover;background:#222;flex-shrink:0}
 .un-poster-ph{width:60px;height:90px;border-radius:6px;background:linear-gradient(135deg,#1a1a2e,#0f3460);display:flex;align-items:center;justify-content:center;font-size:20px;color:var(--t2);flex-shrink:0}
 .un-info{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center}
-.un-show{font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.un-ep{font-size:12px;color:var(--t2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.un-show{font-weight:700;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.un-ep{font-size:13px;color:var(--t2);margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .un-meta{display:flex;gap:6px;align-items:center;margin-top:4px;font-size:10px;color:var(--t2)}
 .un-stream{display:flex;gap:4px;align-items:center;flex-shrink:0}
 .un-stream img{width:18px;height:18px;border-radius:4px}
 
-.un-prog-wrap{margin-top:6px}
+.un-prog-wrap{margin-top:8px}
 .un-prog{height:18px;background:rgba(255,255,255,.06);border-radius:4px;overflow:hidden;border:1px solid rgba(255,255,255,.08);position:relative}
 .un-prog-bar{height:100%;background:var(--tv);opacity:.6;border-radius:3px;transition:width .3s}
 .un-prog-text{position:absolute;top:0;left:0;right:0;height:100%;display:flex;align-items:center;justify-content:space-between;padding:0 8px;font-size:9px;color:rgba(255,255,255,.7);font-weight:600;pointer-events:none}
@@ -3472,7 +3472,6 @@ function openUpNext(){
     c+='</div>';
     c+='<div class="un-ep">S'+String(s.season).padStart(2,'0')+'E'+String(s.episode).padStart(2,'0');
     if(s.ep_title)c+=' — '+s.ep_title;
-    if(s.ep_aired)c+=' <span style="color:#666;font-size:10px">· '+s.ep_aired+'</span>';
     c+='</div>';
     if(!isRecent){
       // Progress bar with text inside
@@ -3583,11 +3582,11 @@ function _unBuildPanel(show){
   if(show.stream&&show.stream.length){h+='<div style="display:flex;gap:8px;margin-bottom:12px">';show.stream.forEach(function(st){h+='<img src="'+st.i+'" title="'+st.n+'" style="width:28px;height:28px;border-radius:6px">'});h+='</div>'}
   if(show.ep_runtime)h+='<div style="font-size:12px;color:var(--t2);margin-bottom:8px">⏱ '+_unFmtMin(show.ep_runtime)+'</div>';
   if(show.ep_overview)h+='<p style="font-size:13px;color:var(--t2);line-height:1.5;margin-bottom:16px">'+show.ep_overview+'</p>';
-  h+='<div style="display:flex;gap:8px;margin-bottom:8px">';
-  h+='<button onclick="markWatchedAt(\''+slug2+'\','+show.season+','+show.episode+','+(show.ep_trakt_id||0)+',\'now\')" style="flex:1;padding:14px;background:var(--tv);color:#fff;border:none;border-radius:10px;font-size:14px;cursor:pointer;font-weight:600">✓ Watched Now</button>';
-  if(show.ep_aired)h+='<button onclick="markWatchedAt(\''+slug2+'\','+show.season+','+show.episode+','+(show.ep_trakt_id||0)+',\''+show.ep_aired+'\')" style="flex:1;padding:14px;background:var(--sf);color:var(--tx);border:1px solid rgba(255,255,255,.1);border-radius:10px;font-size:14px;cursor:pointer">📅 Watched at Air</button>';
+  h+='<div style="display:flex;flex-direction:column;gap:8px">';
+  h+='<button onclick="markWatchedAt(\''+slug2+'\','+show.season+','+show.episode+','+(show.ep_trakt_id||0)+',\'now\')" style="width:100%;padding:14px;background:var(--tv);color:#fff;border:none;border-radius:10px;font-size:14px;cursor:pointer;font-weight:600;min-height:48px">✓ Watched Now</button>';
+  if(show.ep_aired)h+='<button onclick="markWatchedAt(\''+slug2+'\','+show.season+','+show.episode+','+(show.ep_trakt_id||0)+',\''+show.ep_aired+'\')" style="width:100%;padding:14px;background:rgba(20,184,166,.15);color:var(--tv);border:1px solid rgba(20,184,166,.3);border-radius:10px;font-size:14px;cursor:pointer;min-height:48px">📅 Watched on Air Date <span style=\'opacity:.6;font-size:12px\'>'+show.ep_aired+'</span></button>';
+  h+='<div style="display:flex;gap:8px"><input type="datetime-local" id="un-custom-date" style="flex:1;padding:14px;background:rgba(20,184,166,.08);border:1px solid rgba(20,184,166,.2);border-radius:10px;color:var(--tx);font-size:13px;min-height:48px"><button onclick="markWatchedAt(\''+slug2+'\','+show.season+','+show.episode+','+(show.ep_trakt_id||0)+',document.getElementById(\'un-custom-date\').value)" style="padding:14px 20px;background:rgba(20,184,166,.15);color:var(--tv);border:1px solid rgba(20,184,166,.3);border-radius:10px;font-size:14px;cursor:pointer;min-height:48px;white-space:nowrap">📅 Log Date</button></div>';
   h+='</div>';
-  h+='<div style="display:flex;gap:8px"><input type="datetime-local" id="un-custom-date" style="flex:1;padding:12px;background:var(--bg);border:1px solid rgba(255,255,255,.15);border-radius:10px;color:var(--tx);font-size:13px"><button onclick="markWatchedAt(\''+slug2+'\','+show.season+','+show.episode+','+(show.ep_trakt_id||0)+',document.getElementById(\'un-custom-date\').value)" style="padding:12px 16px;background:var(--sf);color:var(--tx);border:1px solid rgba(255,255,255,.1);border-radius:10px;font-size:13px;cursor:pointer">📅 Watched at Date</button></div>';
   h+='</div>';
   return h;
 }
