@@ -111,10 +111,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
 .un-del-btn:active{background:#ef4444;color:#fff}
 .un-del-btn:hover{background:#ef4444;color:#fff}
 .un-detail{background:var(--sf);border-radius:12px;border:1px solid rgba(255,255,255,.08);padding:20px;max-width:500px;margin:0 auto}
-.un-carousel-wrap{overflow:hidden;max-width:500px;margin:20px auto}
-.un-carousel{display:flex;width:300%;transform:translateX(-33.333%);will-change:transform}
-.un-carousel.snap{transition:transform .3s ease}
-.un-carousel-panel{width:33.333%;flex-shrink:0;padding:0 8px;box-sizing:border-box}
+.un-carousel-wrap{overflow:hidden;max-width:500px;margin:20px auto;will-change:transform,opacity}
 .un-carousel{display:flex;width:300%;transform:translateX(-33.333%);transition:none;will-change:transform}
 .un-carousel.animating{transition:transform .3s ease}
 .un-carousel-panel{width:33.333%;flex-shrink:0;padding:0 12px;box-sizing:border-box}
@@ -3571,7 +3568,7 @@ function _unBuildPanel(show){
   var slug2=show.slug.replace(/'/g,"\\'");
   var h='<div class="un-detail">';
   h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">';
-  h+='<button onclick="_unReturning=true;openUpNext()" style="background:var(--sf);border:1px solid rgba(255,255,255,.1);color:var(--tx);border-radius:8px;padding:10px 16px;font-size:14px;cursor:pointer;min-height:44px">← Up Next</button>';
+  h+='<button onclick="_unDismissDetail()" style="background:var(--sf);border:1px solid rgba(255,255,255,.1);color:var(--tx);border-radius:8px;padding:10px 16px;font-size:14px;cursor:pointer;min-height:44px">← Up Next</button>';
   h+='<div style="display:flex;gap:8px">';
   if(show.episode>1)h+='<button onclick="_crNav(-1)" style="background:var(--sf);border:1px solid rgba(255,255,255,.1);color:var(--tx);border-radius:8px;padding:10px 16px;font-size:16px;cursor:pointer;min-width:48px">◀</button>';
   h+='<button onclick="_crNav(1)" style="background:var(--sf);border:1px solid rgba(255,255,255,.1);color:var(--tx);border-radius:8px;padding:10px 16px;font-size:16px;cursor:pointer;min-width:48px">▶</button>';
@@ -3629,16 +3626,62 @@ function _unRenderDetail(allShows,idx){
   h+='</div></div>';
   el.innerHTML=h;
   var car=document.getElementById('un-car');
-  var w=car.parentElement.offsetWidth;
-  var sx=0,cx=0,drag=false;
-  car.ontouchstart=function(ev){sx=ev.touches[0].clientX;cx=sx;drag=true;car.classList.remove('snap');ev.stopPropagation()};
-  car.ontouchmove=function(ev){if(!drag)return;cx=ev.touches[0].clientX;var dx=cx-sx;var pct=-33.333+(dx/w)*33.333;car.style.transform='translateX('+pct+'%)';ev.stopPropagation()};
+  var wrap=car.parentElement;
+  var w=wrap.offsetWidth;
+  // Unified touch: first 10px of movement decides horizontal (carousel) or vertical (dismiss)
+  var _tSx=0,_tCx=0,_tSy=0,_tDir=null,_tActive=false;
+  car.ontouchstart=function(ev){
+    _tSx=ev.touches[0].clientX;_tCx=_tSx;_tSy=ev.touches[0].clientY;
+    _tDir=null;_tActive=true;
+    car.classList.remove('animating');wrap.style.transition='none';
+    ev.stopPropagation();
+  };
+  car.ontouchmove=function(ev){
+    if(!_tActive)return;
+    _tCx=ev.touches[0].clientX;
+    var dx=_tCx-_tSx,dy=ev.touches[0].clientY-_tSy;
+    // Lock direction on first significant movement
+    if(!_tDir&&(Math.abs(dx)>10||Math.abs(dy)>10)){
+      _tDir=Math.abs(dx)>=Math.abs(dy)?'h':'v';
+    }
+    if(_tDir==='h'){
+      var pct=-33.333+(dx/w)*33.333;
+      car.style.transform='translateX('+pct+'%)';
+    }else if(_tDir==='v'){
+      wrap.style.transform='translateY('+dy+'px)';
+      wrap.style.opacity=Math.max(0,1-Math.abs(dy)/300);
+    }
+    ev.stopPropagation();
+  };
   car.ontouchend=function(ev){
-    if(!drag)return;drag=false;var dx=cx-sx;
-    car.classList.add('snap');
-    if(dx>w*0.12&&_crEp>1){car.style.transform='translateX(0%)';setTimeout(function(){_crNav(-1)},320)}
-    else if(dx<-w*0.12){car.style.transform='translateX(-66.666%)';setTimeout(function(){_crNav(1)},320)}
-    else{car.style.transform='translateX(-33.333%)'}
+    if(!_tActive){if(ev)ev.stopPropagation();return}
+    _tActive=false;
+    var dx=_tCx-_tSx;
+    var dy=(ev.changedTouches?ev.changedTouches[0].clientY:0)-_tSy;
+    if(_tDir==='h'){
+      // Horizontal: carousel prev/next
+      car.classList.add('animating');
+      if(dx>w*0.12&&_crEp>1){car.style.transform='translateX(0%)';setTimeout(function(){_crNav(-1)},320)}
+      else if(dx<-w*0.12){car.style.transform='translateX(-66.666%)';setTimeout(function(){_crNav(1)},320)}
+      else{car.style.transform='translateX(-33.333%)'}
+    }else if(_tDir==='v'){
+      // Vertical: dismiss detail
+      if(Math.abs(dy)>80){
+        wrap.style.transition='transform .2s ease, opacity .2s ease';
+        wrap.style.transform='translateY('+(dy>0?'100%':'-100%')+')';
+        wrap.style.opacity='0';
+        setTimeout(function(){wrap.style.transform='';wrap.style.opacity='';wrap.style.transition='';_unReturning=true;openUpNext()},220);
+      }else{
+        wrap.style.transition='transform .2s ease, opacity .2s ease';
+        wrap.style.transform='';wrap.style.opacity='';
+        setTimeout(function(){wrap.style.transition=''},220);
+      }
+    }else{
+      // No significant movement — reset
+      car.classList.add('animating');
+      car.style.transform='translateX(-33.333%)';
+    }
+    _tDir=null;
     if(ev)ev.stopPropagation();
   };
   // Only scroll to top on fresh detail open or episode change, not prefetch re-renders
@@ -3649,44 +3692,6 @@ function _unRenderDetail(allShows,idx){
   _unPrefetchAndUpdate(show,show.episode+1);
   _unPrefetch(show,show.episode-2);
   _unPrefetch(show,show.episode+2);
-  // Swipe up or down on detail panel to dismiss back to list (tracks thumb)
-  var _sdSy=0,_sdTracking=false,_sdStartX=0;
-  var detailEl=el.querySelector('.un-detail');
-  if(detailEl){
-    detailEl.addEventListener('touchstart',function(e){
-      if(e.target.closest('#un-car'))return;
-      _sdSy=e.touches[0].clientY;_sdStartX=e.touches[0].clientX;_sdTracking=false;
-      detailEl.style.transition='none';
-    },{passive:true});
-    detailEl.addEventListener('touchmove',function(e){
-      if(e.target.closest('#un-car'))return;
-      var dy=e.touches[0].clientY-_sdSy;
-      var dx=Math.abs(e.touches[0].clientX-_sdStartX);
-      // Only start vertical tracking if vertical movement dominates horizontal
-      if(!_sdTracking&&Math.abs(dy)>15&&Math.abs(dy)>dx){_sdTracking=true}
-      if(_sdTracking){
-        detailEl.style.transform='translateY('+dy+'px)';
-        detailEl.style.opacity=Math.max(0,1-Math.abs(dy)/300);
-      }
-    },{passive:true});
-    detailEl.addEventListener('touchend',function(e){
-      if(!_sdTracking){return}
-      var dy=(e.changedTouches?e.changedTouches[0].clientY:0)-_sdSy;
-      if(Math.abs(dy)>80){
-        // Commit dismiss — slide away in swipe direction
-        detailEl.style.transition='transform .2s ease, opacity .2s ease';
-        detailEl.style.transform='translateY('+(dy>0?'100%':'-100%')+')';
-        detailEl.style.opacity='0';
-        setTimeout(function(){detailEl.style.transform='';detailEl.style.opacity='';detailEl.style.transition='';_unReturning=true;openUpNext()},220);
-      }else{
-        // Snap back
-        detailEl.style.transition='transform .2s ease, opacity .2s ease';
-        detailEl.style.transform='';detailEl.style.opacity='';
-        setTimeout(function(){detailEl.style.transition=''},220);
-      }
-      _sdTracking=false;
-    },{passive:true});
-  }
 }
 
 function _unPrefetchAndUpdate(base,epNum){
@@ -3707,6 +3712,16 @@ function _unPrefetchAndUpdate(base,epNum){
         _unRenderDetail(ts,_crIdx);
       }
     }).catch(function(){});
+}
+
+function _unDismissDetail(){
+  var wrap=document.querySelector('.un-carousel-wrap');
+  if(wrap){
+    wrap.style.transition='transform .25s ease, opacity .25s ease';
+    wrap.style.transform='translateY(-100%)';
+    wrap.style.opacity='0';
+    setTimeout(function(){wrap.style.transform='';wrap.style.opacity='';wrap.style.transition='';_unReturning=true;openUpNext()},260);
+  }else{_unReturning=true;openUpNext()}
 }
 
 function _crNav(dir){
