@@ -3450,7 +3450,7 @@ function openUpNext(){
   });
   var recent=ud.recent||[];
   var el=document.getElementById('un-content');
-  el._savedQueue=null;el._savedScroll=0;
+  var oldFg=document.getElementById('un-detail-fg');if(oldFg){oldFg.remove();el.style.position=''}
   if(!shows.length&&!recent.length){el.innerHTML='<div style="text-align:center;padding:60px;color:var(--t2)"><div style="font-size:40px;margin-bottom:12px">📺</div><div style="font-size:16px;margin-bottom:8px">No Up Next data yet</div><div style="font-size:12px;max-width:400px;margin:0 auto">Trigger a refresh from the <a href="https://github.com/jamesgoux/iris-stats/actions" style="color:var(--sp)">Actions tab</a>.</div></div>';document.getElementById('un-overlay').style.display='';_lockBody();return}
 
   var newItems=shows.filter(function(s){return s.is_new});
@@ -3625,26 +3625,37 @@ function _unRenderDetail(allShows,idx){
   h+='<div class="un-carousel-panel">'+_unBuildPanel(show)+'</div>';
   h+='<div class="un-carousel-panel">'+_unBuildPanel(next)+'</div>';
   h+='</div></div>';
-  // Save queue HTML for dismiss reveal, then show detail
+  // Append detail as foreground layer ON TOP of queue (queue DOM stays intact)
   var el=document.getElementById('un-content');
-  if(!el._savedQueue){el._savedQueue=el.innerHTML;el._savedScroll=ov.scrollTop}
-  el.innerHTML=h;
+  var fg=document.getElementById('un-detail-fg');
+  if(!fg){
+    // First time entering detail: save scroll, create fg layer over queue
+    el._savedScroll=ov.scrollTop;
+    fg=document.createElement('div');
+    fg.id='un-detail-fg';
+    fg.style.cssText='position:absolute;top:0;left:0;right:0;background:var(--bg,#181818);z-index:10;padding:16px 0;';
+    el.style.position='relative';
+    el.appendChild(fg);
+    // Ensure fg covers all queue content + viewport
+    requestAnimationFrame(function(){fg.style.minHeight=Math.max(el.scrollHeight,window.innerHeight)+'px'});
+    ov.scrollTop=0;
+  }
+  fg.innerHTML=h;
   var car=document.getElementById('un-car');
   var wrap=car.parentElement;
   var w=wrap.offsetWidth;
-  // Unified touch: first 10px of movement decides horizontal (carousel) or vertical (dismiss)
+  // Unified touch: first 10px decides horizontal (carousel) or vertical (dismiss)
   var _tSx=0,_tCx=0,_tSy=0,_tDir=null,_tActive=false;
   car.ontouchstart=function(ev){
     _tSx=ev.touches[0].clientX;_tCx=_tSx;_tSy=ev.touches[0].clientY;
     _tDir=null;_tActive=true;
-    car.classList.remove('animating');wrap.style.transition='none';
+    car.classList.remove('animating');fg.style.transition='none';
     ev.stopPropagation();
   };
   car.ontouchmove=function(ev){
     if(!_tActive)return;
     _tCx=ev.touches[0].clientX;
     var dx=_tCx-_tSx,dy=ev.touches[0].clientY-_tSy;
-    // Lock direction on first significant movement
     if(!_tDir&&(Math.abs(dx)>10||Math.abs(dy)>10)){
       _tDir=Math.abs(dx)>=Math.abs(dy)?'h':'v';
     }
@@ -3652,8 +3663,8 @@ function _unRenderDetail(allShows,idx){
       var pct=-33.333+(dx/w)*33.333;
       car.style.transform='translateX('+pct+'%)';
     }else if(_tDir==='v'){
-      wrap.style.transform='translateY('+dy+'px)';
-      wrap.style.opacity=Math.max(0,1-Math.abs(dy)/300);
+      fg.style.transform='translateY('+dy+'px)';
+      fg.style.opacity=Math.max(0,1-Math.abs(dy)/300);
     }
     ev.stopPropagation();
   };
@@ -3663,29 +3674,26 @@ function _unRenderDetail(allShows,idx){
     var dx=_tCx-_tSx;
     var dy=(ev.changedTouches?ev.changedTouches[0].clientY:0)-_tSy;
     if(_tDir==='h'){
-      // Horizontal: carousel prev/next
       car.classList.add('animating');
       if(dx>w*0.12&&_crEp>1){car.style.transform='translateX(0%)';setTimeout(function(){_crNav(-1)},320)}
       else if(dx<-w*0.12){car.style.transform='translateX(-66.666%)';setTimeout(function(){_crNav(1)},320)}
       else{car.style.transform='translateX(-33.333%)'}
     }else if(_tDir==='v'){
-      // Vertical: dismiss detail
       if(Math.abs(dy)>80){
-        _unDismissDetail(dy>0?'down':'up',dy);
+        _unDismissDetail(dy>0?'down':'up');
       }else{
-        wrap.style.transition='transform .2s ease, opacity .2s ease';
-        wrap.style.transform='';wrap.style.opacity='';
-        setTimeout(function(){wrap.style.transition=''},220);
+        fg.style.transition='transform .2s ease, opacity .2s ease';
+        fg.style.transform='';fg.style.opacity='';
+        setTimeout(function(){fg.style.transition=''},220);
       }
     }else{
-      // No significant movement — reset
       car.classList.add('animating');
       car.style.transform='translateX(-33.333%)';
     }
     _tDir=null;
     if(ev)ev.stopPropagation();
   };
-  // Only scroll to top on fresh detail open or episode change, not prefetch re-renders
+  // Only scroll to top on fresh detail open or episode change
   if(show.slug!==_wasSlug||show.episode!==_wasEp){ov.scrollTop=0}
   // Prefetch current (if missing data) + adjacent episodes, re-render when data arrives
   if(!show.ep_still&&!show.ep_title)_unPrefetchAndUpdate(show,show.episode);
@@ -3715,38 +3723,21 @@ function _unPrefetchAndUpdate(base,epNum){
     }).catch(function(){});
 }
 
-function _unDismissDetail(dir,startDy){
-  // Restore queue, overlay detail on top, animate detail away
-  dir=dir||'up';startDy=startDy||0;
+function _unDismissDetail(dir){
+  // Animate detail fg away, revealing queue underneath (queue was never destroyed)
+  dir=dir||'up';
   var el=document.getElementById('un-content');
   var ov=document.getElementById('un-overlay');
-  // Capture detail HTML before restoring queue
-  var wrap=el.querySelector('.un-carousel-wrap');
-  if(wrap){wrap.style.transform='';wrap.style.opacity='';wrap.style.transition=''}
-  var detailHtml=el.innerHTML;
-  var detailScroll=ov.scrollTop;
-  // Restore saved queue
-  if(el._savedQueue){
-    el.innerHTML=el._savedQueue;
-    el._savedQueue=null;
+  var fg=document.getElementById('un-detail-fg');
+  if(!fg){return}
+  fg.style.transition='transform .25s ease, opacity .25s ease';
+  fg.style.transform='translateY('+(dir==='down'?'100%':'-100%')+')';
+  fg.style.opacity='0';
+  setTimeout(function(){
+    fg.remove();
+    el.style.position='';
     ov.scrollTop=el._savedScroll||0;
-  }
-  // Create temporary overlay with the detail, animate it away
-  var dov=document.createElement('div');
-  dov.style.cssText='position:absolute;top:0;left:0;right:0;min-height:100%;background:var(--bg,#181818);z-index:10;';
-  if(startDy){dov.style.transform='translateY('+startDy+'px)';dov.style.opacity=Math.max(0,1-Math.abs(startDy)/300)}
-  dov.innerHTML=detailHtml;
-  el.style.position='relative';
-  el.appendChild(dov);
-  // Use ov.scrollTop to position absolute overlay at visible area
-  var scrollPos=ov.scrollTop;
-  dov.style.top=scrollPos+'px';
-  requestAnimationFrame(function(){
-    dov.style.transition='transform .25s ease, opacity .25s ease';
-    dov.style.transform='translateY('+(dir==='down'?'100%':'-100%')+')';
-    dov.style.opacity='0';
-    setTimeout(function(){dov.remove();el.style.position=''},280);
-  });
+  },280);
 }
 
 function _crNav(dir){
