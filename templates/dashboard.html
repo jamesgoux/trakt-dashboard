@@ -567,13 +567,13 @@ function _buildJumpMenu(){
   jm.innerHTML='';
   jmpItems.forEach(function(item){
     var el=document.getElementById(item[0]);
-    // Only show sections that are visible (not hidden by filter)
-    if(!el||el.offsetParent===null){
-      // Check parent med-s wrapper
-      var wrap=el?el.closest('.med-s'):null;
-      if(!el||(wrap&&wrap.style.display==='none'))return;
-    }
-    var a=document.createElement('div');a.textContent=item[1];a.style.cssText='padding:8px 16px;cursor:pointer;font-size:13px;white-space:nowrap';a.onmouseover=function(){a.style.background='rgba(255,255,255,.06)'};a.onmouseout=function(){a.style.background='none'};a.onclick=function(){if(el)el.scrollIntoView({behavior:'smooth',block:'start'});jm.style.display='none'};jm.appendChild(a)});
+    if(!el)return;
+    // Skip if this section or its parent med-s wrapper is hidden
+    var wrap=el.closest('.med-s');
+    if(wrap&&wrap.style.display==='none')return;
+    // Also skip if the section itself is hidden (e.g. renderX set display:none)
+    if(el.style.display==='none')return;
+    var a=document.createElement('div');a.textContent=item[1];a.style.cssText='padding:8px 16px;cursor:pointer;font-size:13px;white-space:nowrap';a.onmouseover=function(){a.style.background='rgba(255,255,255,.06)'};a.onmouseout=function(){a.style.background='none'};a.onclick=function(){el.scrollIntoView({behavior:'smooth',block:'start'});jm.style.display='none'};jm.appendChild(a)});
 }
 document.addEventListener('click',function(e){if(!e.target.closest('#jmp-menu')&&!e.target.closest('[onclick*="jmp-menu"]'))jm.style.display='none'});
 })();
