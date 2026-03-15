@@ -3450,7 +3450,7 @@ function openUpNext(){
   });
   var recent=ud.recent||[];
   var el=document.getElementById('un-content');
-  var oldFg=document.getElementById('un-detail-fg');if(oldFg){oldFg.remove();el.style.position='';document.getElementById('un-overlay').style.overflowY='auto'}
+  var oldFg=document.getElementById('un-detail-fg');if(oldFg){oldFg.remove();document.getElementById('un-overlay').style.overflowY='auto'}
   if(!shows.length&&!recent.length){el.innerHTML='<div style="text-align:center;padding:60px;color:var(--t2)"><div style="font-size:40px;margin-bottom:12px">📺</div><div style="font-size:16px;margin-bottom:8px">No Up Next data yet</div><div style="font-size:12px;max-width:400px;margin:0 auto">Trigger a refresh from the <a href="https://github.com/jamesgoux/iris-stats/actions" style="color:var(--sp)">Actions tab</a>.</div></div>';document.getElementById('un-overlay').style.display='';_lockBody();return}
 
   var newItems=shows.filter(function(s){return s.is_new});
@@ -3649,28 +3649,25 @@ function _unRenderDetail(allShows,idx){
   var ov=document.getElementById('un-overlay');
   var prev=_unMakeEp(show,show.episode-1);
   var next=_unMakeEp(show,show.episode+1);
-  var h='<div class="un-carousel-wrap" style="max-width:none;margin:0"><div class="un-carousel" id="un-car">';
-  h+='<div class="un-carousel-panel">'+_unBuildPanel(prev)+'</div>';
-  h+='<div class="un-carousel-panel">'+_unBuildPanel(show)+'</div>';
-  h+='<div class="un-carousel-panel">'+_unBuildPanel(next)+'</div>';
+  var h='<div class="un-carousel-wrap" style="max-width:none;margin:0;height:100%"><div class="un-carousel" id="un-car" style="height:100%">';
+  h+='<div class="un-carousel-panel" style="height:100%">'+_unBuildPanel(prev)+'</div>';
+  h+='<div class="un-carousel-panel" style="height:100%">'+_unBuildPanel(show)+'</div>';
+  h+='<div class="un-carousel-panel" style="height:100%">'+_unBuildPanel(next)+'</div>';
   h+='</div></div>';
-  // Append detail as foreground layer ON TOP of queue (queue DOM stays intact)
+  // Append detail to OVERLAY (covers header + content, true full-screen)
   var el=document.getElementById('un-content');
   var fg=document.getElementById('un-detail-fg');
   var _isNewFg=false;
   if(!fg){
-    // First time entering detail: position fg at current scroll, lock overlay
     _isNewFg=true;
+    el._savedScroll=ov.scrollTop;
     ov.style.overflowY='hidden';
     fg=document.createElement('div');
     fg.id='un-detail-fg';
-    fg.style.cssText='position:absolute;top:'+ov.scrollTop+'px;left:0;right:0;height:'+window.innerHeight+'px;z-index:10;overflow:hidden;';
-    fg.innerHTML='<div id="un-detail-bg" style="position:absolute;top:0;left:0;right:0;bottom:0;background:var(--sf)"></div><div id="un-detail-ct" style="position:relative;height:100%;overflow:auto;-webkit-overflow-scrolling:touch;transform:translateY(-100%)"></div>';
-    el.style.position='relative';
-    el.appendChild(fg);
+    fg.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;z-index:302;background:var(--sf);overflow:auto;-webkit-overflow-scrolling:touch;transform:translateY(-100%);';
+    ov.appendChild(fg);
   }
-  var ct=document.getElementById('un-detail-ct');
-  ct.innerHTML=h;
+  fg.innerHTML=h;
   var car=document.getElementById('un-car');
   var wrap=car.parentElement;
   var w=wrap.offsetWidth;
@@ -3679,8 +3676,7 @@ function _unRenderDetail(allShows,idx){
   car.ontouchstart=function(ev){
     _tSx=ev.touches[0].clientX;_tCx=_tSx;_tSy=ev.touches[0].clientY;
     _tDir=null;_tActive=true;
-    car.classList.remove('animating');ct.style.transition='none';
-    var bg=document.getElementById('un-detail-bg');if(bg)bg.style.transition='none';
+    car.classList.remove('animating');fg.style.transition='none';
     ev.stopPropagation();
   };
   car.ontouchmove=function(ev){
@@ -3694,9 +3690,7 @@ function _unRenderDetail(allShows,idx){
       var pct=-33.333+(dx/w)*33.333;
       car.style.transform='translateX('+pct+'%)';
     }else if(_tDir==='v'){
-      ct.style.transform='translateY('+dy+'px)';
-      var bg=document.getElementById('un-detail-bg');
-      if(bg)bg.style.opacity=Math.max(0,1-Math.abs(dy)/300);
+      fg.style.transform='translateY('+dy+'px)';
     }
     ev.stopPropagation();
   };
@@ -3714,11 +3708,9 @@ function _unRenderDetail(allShows,idx){
       if(Math.abs(dy)>80){
         _unDismissDetail(dy>0?'down':'up');
       }else{
-        ct.style.transition='transform .2s ease';
-        ct.style.transform='';
-        var bg2=document.getElementById('un-detail-bg');
-        if(bg2){bg2.style.transition='opacity .2s ease';bg2.style.opacity=''}
-        setTimeout(function(){ct.style.transition='';if(bg2)bg2.style.transition=''},220);
+        fg.style.transition='transform .2s ease';
+        fg.style.transform='';
+        setTimeout(function(){fg.style.transition=''},220);
       }
     }else{
       car.classList.add('animating');
@@ -3727,10 +3719,10 @@ function _unRenderDetail(allShows,idx){
     _tDir=null;
     if(ev)ev.stopPropagation();
   };
-  // Scroll content to top on fresh detail open or episode change
-  if(show.slug!==_wasSlug||show.episode!==_wasEp){ct.scrollTop=0}
-  // Slide content in from above on first open
-  if(_isNewFg){requestAnimationFrame(function(){ct.style.transition='transform .3s ease';requestAnimationFrame(function(){ct.style.transform=''})})}
+  // Scroll to top on fresh detail open or episode change
+  if(show.slug!==_wasSlug||show.episode!==_wasEp){fg.scrollTop=0}
+  // Slide in from above on first open
+  if(_isNewFg){requestAnimationFrame(function(){fg.style.transition='transform .3s ease';requestAnimationFrame(function(){fg.style.transform=''})})}
   // Prefetch current (if missing data) + adjacent episodes, re-render when data arrives
   if(!show.ep_still&&!show.ep_title)_unPrefetchAndUpdate(show,show.episode);
   _unPrefetchAndUpdate(show,show.episode-1);
@@ -3768,15 +3760,11 @@ function _unDismissDetail(dir){
   if(!fg){return}
   // Clear state so prefetch callbacks don't re-create the detail
   _crBase=null;_crAll=null;
-  var ct=document.getElementById('un-detail-ct');
-  var bg=document.getElementById('un-detail-bg');
-  if(ct){ct.style.transition='transform .25s ease';ct.style.transform='translateY('+(dir==='down'?'100%':'-100%')+')';}
-  if(bg){bg.style.transition='opacity .25s ease';bg.style.opacity='0';}
-
+  fg.style.transition='transform .25s ease';
+  fg.style.transform='translateY('+(dir==='down'?'100%':'-100%')+')';
   var _restoreScroll=el._savedScroll||ov.scrollTop;
   setTimeout(function(){
     fg.remove();
-    el.style.position='';
     ov.style.overflowY='auto';
     ov.scrollTop=_restoreScroll;
   },280);
