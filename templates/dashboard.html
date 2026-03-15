@@ -3479,15 +3479,15 @@ function openUpNext(){
   }
   el.innerHTML=h;
   var ov=document.getElementById('un-overlay');
-  // Scroll: first-ever open → position at New Episodes. Every re-open → restore last position.
-  ov.style.visibility='hidden';ov.style.display='';
+  // Slide in from right + position scroll before visible
+  ov.style.visibility='hidden';ov.style.transition='none';ov.style.transform='translateX(100%)';ov.style.display='';
   if(!_unEverOpened){
     _unEverOpened=true;
     var anchor=document.getElementById('un-default-scroll');
-    requestAnimationFrame(function(){if(anchor)anchor.scrollIntoView({behavior:'auto',block:'start'});ov.style.visibility=''});
+    requestAnimationFrame(function(){if(anchor)anchor.scrollIntoView({behavior:'auto',block:'start'});ov.style.visibility='';ov.style.transition='transform .3s ease';requestAnimationFrame(function(){ov.style.transform=''})});
   }else{
     var _sp=_unScrollPos;
-    requestAnimationFrame(function(){ov.scrollTop=_sp;ov.style.visibility=''});
+    requestAnimationFrame(function(){ov.scrollTop=_sp;ov.style.visibility='';ov.style.transition='transform .3s ease';requestAnimationFrame(function(){ov.style.transform=''})});
   }
   _lockBody();
 }
