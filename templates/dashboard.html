@@ -3450,7 +3450,7 @@ function openUpNext(){
   });
   var recent=ud.recent||[];
   var el=document.getElementById('un-content');
-  var oldFg=document.getElementById('un-detail-fg');if(oldFg){oldFg.remove();el.style.position='';document.getElementById('un-overlay').style.overflowY='auto'}
+  var oldFg=document.getElementById('un-detail-fg');if(oldFg){oldFg.remove();var _ov=document.getElementById('un-overlay');_ov.style.overflowY='auto';var _hdr=_ov.querySelector(':scope > div:first-child');if(_hdr)_hdr.style.display='flex'}
   if(!shows.length&&!recent.length){el.innerHTML='<div style="text-align:center;padding:60px;color:var(--t2)"><div style="font-size:40px;margin-bottom:12px">📺</div><div style="font-size:16px;margin-bottom:8px">No Up Next data yet</div><div style="font-size:12px;max-width:400px;margin:0 auto">Trigger a refresh from the <a href="https://github.com/jamesgoux/iris-stats/actions" style="color:var(--sp)">Actions tab</a>.</div></div>';document.getElementById('un-overlay').style.display='';_lockBody();return}
 
   var newItems=shows.filter(function(s){return s.is_new});
@@ -3560,31 +3560,42 @@ function _unPrefetch(base,epNum){
     .then(function(r){return r.json()})
     .then(function(d){
       if(d.status_code)return;
-      _epCache[k]={ep_title:d.name||'',ep_overview:(d.overview||'').substring(0,200),ep_still:d.still_path?'https://image.tmdb.org/t/p/w780'+d.still_path:'',ep_aired:d.air_date||'',ep_runtime:d.runtime||base.ep_runtime};
+      _epCache[k]={ep_title:d.name||'',ep_overview:(d.overview||'').substring(0,500),ep_still:d.still_path?'https://image.tmdb.org/t/p/w780'+d.still_path:'',ep_aired:d.air_date||'',ep_runtime:d.runtime||base.ep_runtime};
     }).catch(function(){});
 }
 
 function _unBuildPanel(show){
   var slug2=show.slug.replace(/'/g,"\\'");
-  var h='<div class="un-detail">';
-  h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">';
-  h+='<button onclick="_unDismissDetail()" style="background:var(--sf);border:1px solid rgba(255,255,255,.1);color:var(--tx);border-radius:8px;padding:10px 16px;font-size:14px;cursor:pointer;min-height:44px">↑ Up Next</button>';
+  var h='<div class="un-detail" style="display:flex;flex-direction:column;min-height:100%;padding:0 16px">';
+  // Nav bar
+  h+='<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0">';
+  h+='<button onclick="_unDismissDetail()" style="background:rgba(255,255,255,.08);border:none;color:var(--tx);border-radius:8px;padding:10px 16px;font-size:14px;cursor:pointer;min-height:44px">↑ Up Next</button>';
   h+='<div style="display:flex;gap:8px">';
-  if(show.episode>1)h+='<button onclick="_crNav(-1)" style="background:var(--sf);border:1px solid rgba(255,255,255,.1);color:var(--tx);border-radius:8px;padding:10px 16px;font-size:16px;cursor:pointer;min-width:48px">◀</button>';
-  h+='<button onclick="_crNav(1)" style="background:var(--sf);border:1px solid rgba(255,255,255,.1);color:var(--tx);border-radius:8px;padding:10px 16px;font-size:16px;cursor:pointer;min-width:48px">▶</button>';
+  if(show.episode>1)h+='<button onclick="_crNav(-1)" style="background:rgba(255,255,255,.08);border:none;color:var(--tx);border-radius:8px;padding:10px 16px;font-size:16px;cursor:pointer;min-width:48px">◀</button>';
+  h+='<button onclick="_crNav(1)" style="background:rgba(255,255,255,.08);border:none;color:var(--tx);border-radius:8px;padding:10px 16px;font-size:16px;cursor:pointer;min-width:48px">▶</button>';
   h+='</div></div>';
-  if(show.ep_still)h+='<img src="'+show.ep_still+'" alt="" style="width:100%;border-radius:10px;margin-bottom:14px;max-height:280px;object-fit:cover">';
-  h+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><div style="font-size:20px;font-weight:700;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+show.show+'</div>';
-  if(show.stream&&show.stream.length){h+='<div style="display:flex;gap:4px;flex-shrink:0">';show.stream.forEach(function(st){h+='<img src="'+st.i+'" title="'+st.n+'" style="width:24px;height:24px;border-radius:5px">'});h+='</div>'}
+  // Still image — edge to edge
+  if(show.ep_still)h+='<img src="'+show.ep_still+'" alt="" style="width:100%;margin-bottom:16px;max-height:300px;object-fit:cover;border-radius:10px">';
+  // Show title + streaming icons — vertically centered
+  h+='<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">';
+  h+='<div style="font-size:20px;font-weight:700;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2">'+show.show+'</div>';
+  if(show.stream&&show.stream.length){h+='<div style="display:flex;gap:4px;flex-shrink:0;align-items:center">';show.stream.forEach(function(st){h+='<img src="'+st.i+'" title="'+st.n+'" style="width:22px;height:22px;border-radius:5px">'});h+='</div>'}
   h+='</div>';
-  h+='<div style="display:flex;align-items:baseline;gap:8px;margin-bottom:8px"><div style="font-size:14px;color:var(--t2);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">S'+String(show.season).padStart(2,'0')+'E'+String(show.episode).padStart(2,'0');
+  // Episode + air date — vertically centered
+  h+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">';
+  h+='<div style="font-size:14px;color:var(--t2);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2">S'+String(show.season).padStart(2,'0')+'E'+String(show.episode).padStart(2,'0');
   if(show.ep_title)h+=' — '+show.ep_title;
   h+='</div>';
-  if(show.ep_aired)h+='<div style="font-size:12px;color:var(--t2);flex-shrink:0">📅 '+show.ep_aired+'</div>';
+  if(show.ep_aired)h+='<div style="font-size:12px;color:var(--t2);flex-shrink:0;line-height:1.2">'+show.ep_aired+'</div>';
   h+='</div>';
-  if(show.ep_runtime)h+='<div style="font-size:12px;color:var(--t2);margin-bottom:8px">⏱ '+_unFmtMin(show.ep_runtime)+'</div>';
-  if(show.ep_overview)h+='<p style="font-size:13px;color:var(--t2);line-height:1.5;margin-bottom:16px">'+show.ep_overview+'</p>';
-  h+='<div style="display:flex;gap:8px">';
+  // Runtime
+  if(show.ep_runtime)h+='<div style="font-size:12px;color:var(--t2);margin-bottom:10px">⏱ '+_unFmtMin(show.ep_runtime)+'</div>';
+  // Synopsis — more text allowed
+  if(show.ep_overview)h+='<p style="font-size:13px;color:var(--t2);line-height:1.6;margin:0 0 16px">'+show.ep_overview+'</p>';
+  // Spacer pushes buttons to bottom
+  h+='<div style="flex:1;min-height:16px"></div>';
+  // Watch buttons — pinned at bottom
+  h+='<div style="display:flex;gap:8px;padding-bottom:120px">';
   h+='<button onclick="_unShowDatePicker(\''+slug2+'\','+show.season+','+show.episode+','+(show.ep_trakt_id||0)+')" style="flex:1;padding:14px 8px;background:#0e7490;color:#fff;border:none;border-radius:10px;font-size:13px;cursor:pointer;font-weight:600;min-height:48px">Other Date</button>';
   if(show.ep_aired)h+='<button onclick="markWatchedAt(\''+slug2+'\','+show.season+','+show.episode+','+(show.ep_trakt_id||0)+',\''+show.ep_aired+'\')" style="flex:1;padding:14px 8px;background:#0e7490;color:#fff;border:none;border-radius:10px;font-size:13px;cursor:pointer;font-weight:600;min-height:48px">Air Date</button>';
   h+='<button onclick="markWatchedAt(\''+slug2+'\','+show.season+','+show.episode+','+(show.ep_trakt_id||0)+',\'now\')" style="flex:1;padding:14px 8px;background:var(--tv);color:#fff;border:none;border-radius:10px;font-size:13px;cursor:pointer;font-weight:600;min-height:48px">Just Now</button>';
@@ -3628,38 +3639,31 @@ function _unRenderDetail(allShows,idx){
   var _wasSlug=_crBase?_crBase.slug:'';var _wasEp=_crEp||0;
   _crBase=show;_crEp=show.episode;_crAll=allShows;_crIdx=idx;
   window._unAllShows=allShows;window._unIdx=idx;
-  // Cache current episode data so re-renders from prefetch don't lose it
-  if(show.tmdb_id&&show.episode){
-    var ck=_epCacheKey(show.tmdb_id,show.season,show.episode);
-    if(!_epCache[ck]&&(show.ep_title||show.ep_still)){
-      _epCache[ck]={ep_title:show.ep_title||'',ep_overview:show.ep_overview||'',ep_still:show.ep_still||'',ep_aired:show.ep_aired||'',ep_runtime:show.ep_runtime||0};
-    }
-  }
+  // Don't pre-cache episode data from pipeline (overview may be truncated)
+  // Let _unPrefetchAndUpdate fetch full data from TMDB
   var ov=document.getElementById('un-overlay');
   var prev=_unMakeEp(show,show.episode-1);
   var next=_unMakeEp(show,show.episode+1);
-  var h='<div class="un-carousel-wrap"><div class="un-carousel" id="un-car">';
-  h+='<div class="un-carousel-panel">'+_unBuildPanel(prev)+'</div>';
-  h+='<div class="un-carousel-panel">'+_unBuildPanel(show)+'</div>';
-  h+='<div class="un-carousel-panel">'+_unBuildPanel(next)+'</div>';
+  var h='<div class="un-carousel-wrap" style="max-width:none;margin:0;height:100%;border-radius:0;border:none;background:var(--sf)"><div class="un-carousel" id="un-car" style="height:100%">';
+  h+='<div class="un-carousel-panel" style="height:100%;padding:0">'+_unBuildPanel(prev)+'</div>';
+  h+='<div class="un-carousel-panel" style="height:100%;padding:0">'+_unBuildPanel(show)+'</div>';
+  h+='<div class="un-carousel-panel" style="height:100%;padding:0">'+_unBuildPanel(next)+'</div>';
   h+='</div></div>';
-  // Append detail as foreground layer ON TOP of queue (queue DOM stays intact)
+  // Append detail to OVERLAY (covers header + content, true full-screen)
   var el=document.getElementById('un-content');
   var fg=document.getElementById('un-detail-fg');
   var _isNewFg=false;
   if(!fg){
-    // First time entering detail: position fg at current scroll, lock overlay
     _isNewFg=true;
+    el._savedScroll=ov.scrollTop;
     ov.style.overflowY='hidden';
+    var hdr=ov.querySelector(':scope > div:first-child');if(hdr)hdr.style.display='none';
     fg=document.createElement('div');
     fg.id='un-detail-fg';
-    fg.style.cssText='position:absolute;top:'+ov.scrollTop+'px;left:0;right:0;height:'+window.innerHeight+'px;z-index:10;overflow:hidden;';
-    fg.innerHTML='<div id="un-detail-bg" style="position:absolute;top:0;left:0;right:0;bottom:0;background:var(--bg,#181818)"></div><div id="un-detail-ct" style="position:relative;padding:16px 0;height:100%;overflow:auto;-webkit-overflow-scrolling:touch;transform:translateY(-100%)"></div>';
-    el.style.position='relative';
-    el.appendChild(fg);
+    fg.style.cssText='position:absolute;top:'+ov.scrollTop+'px;left:0;right:0;height:'+window.innerHeight+'px;z-index:302;background:var(--sf);overflow:auto;-webkit-overflow-scrolling:touch;transform:translateY(-100%);';
+    ov.appendChild(fg);
   }
-  var ct=document.getElementById('un-detail-ct');
-  ct.innerHTML=h;
+  fg.innerHTML=h;
   var car=document.getElementById('un-car');
   var wrap=car.parentElement;
   var w=wrap.offsetWidth;
@@ -3668,8 +3672,7 @@ function _unRenderDetail(allShows,idx){
   car.ontouchstart=function(ev){
     _tSx=ev.touches[0].clientX;_tCx=_tSx;_tSy=ev.touches[0].clientY;
     _tDir=null;_tActive=true;
-    car.classList.remove('animating');ct.style.transition='none';
-    var bg=document.getElementById('un-detail-bg');if(bg)bg.style.transition='none';
+    car.classList.remove('animating');fg.style.transition='none';
     ev.stopPropagation();
   };
   car.ontouchmove=function(ev){
@@ -3683,9 +3686,7 @@ function _unRenderDetail(allShows,idx){
       var pct=-33.333+(dx/w)*33.333;
       car.style.transform='translateX('+pct+'%)';
     }else if(_tDir==='v'){
-      ct.style.transform='translateY('+dy+'px)';
-      var bg=document.getElementById('un-detail-bg');
-      if(bg)bg.style.opacity=Math.max(0,1-Math.abs(dy)/300);
+      fg.style.transform='translateY('+dy+'px)';
     }
     ev.stopPropagation();
   };
@@ -3703,11 +3704,9 @@ function _unRenderDetail(allShows,idx){
       if(Math.abs(dy)>80){
         _unDismissDetail(dy>0?'down':'up');
       }else{
-        ct.style.transition='transform .2s ease';
-        ct.style.transform='';
-        var bg2=document.getElementById('un-detail-bg');
-        if(bg2){bg2.style.transition='opacity .2s ease';bg2.style.opacity=''}
-        setTimeout(function(){ct.style.transition='';if(bg2)bg2.style.transition=''},220);
+        fg.style.transition='transform .2s ease';
+        fg.style.transform='';
+        setTimeout(function(){fg.style.transition=''},220);
       }
     }else{
       car.classList.add('animating');
@@ -3716,10 +3715,10 @@ function _unRenderDetail(allShows,idx){
     _tDir=null;
     if(ev)ev.stopPropagation();
   };
-  // Scroll content to top on fresh detail open or episode change
-  if(show.slug!==_wasSlug||show.episode!==_wasEp){ct.scrollTop=0}
-  // Slide content in from above on first open
-  if(_isNewFg){requestAnimationFrame(function(){ct.style.transition='transform .3s ease';requestAnimationFrame(function(){ct.style.transform=''})})}
+  // Scroll to top on fresh detail open or episode change
+  if(show.slug!==_wasSlug||show.episode!==_wasEp){fg.scrollTop=0}
+  // Slide in from above on first open
+  if(_isNewFg){requestAnimationFrame(function(){fg.style.transition='transform .3s ease';requestAnimationFrame(function(){fg.style.transform=''})})}
   // Prefetch current (if missing data) + adjacent episodes, re-render when data arrives
   if(!show.ep_still&&!show.ep_title)_unPrefetchAndUpdate(show,show.episode);
   _unPrefetchAndUpdate(show,show.episode-1);
@@ -3738,7 +3737,7 @@ function _unPrefetchAndUpdate(base,epNum){
     .then(function(r){return r.json()})
     .then(function(d){
       if(d.status_code)return;
-      _epCache[k]={ep_title:d.name||'',ep_overview:(d.overview||'').substring(0,200),ep_still:d.still_path?'https://image.tmdb.org/t/p/w780'+d.still_path:'',ep_aired:d.air_date||'',ep_runtime:d.runtime||base.ep_runtime};
+      _epCache[k]={ep_title:d.name||'',ep_overview:(d.overview||'').substring(0,500),ep_still:d.still_path?'https://image.tmdb.org/t/p/w780'+d.still_path:'',ep_aired:d.air_date||'',ep_runtime:d.runtime||base.ep_runtime};
       // Re-render if still viewing this show (and detail fg is still open)
       if(_crBase&&_crBase.slug===base.slug&&_crAll&&document.getElementById('un-detail-fg')){
         var ns=_unMakeEp(_crBase,_crEp);
@@ -3757,15 +3756,12 @@ function _unDismissDetail(dir){
   if(!fg){return}
   // Clear state so prefetch callbacks don't re-create the detail
   _crBase=null;_crAll=null;
-  var ct=document.getElementById('un-detail-ct');
-  var bg=document.getElementById('un-detail-bg');
-  if(ct){ct.style.transition='transform .25s ease';ct.style.transform='translateY('+(dir==='down'?'100%':'-100%')+')';}
-  if(bg){bg.style.transition='opacity .25s ease';bg.style.opacity='0';}
-
+  fg.style.transition='transform .25s ease';
+  fg.style.transform='translateY('+(dir==='down'?'100%':'-100%')+')';
   var _restoreScroll=el._savedScroll||ov.scrollTop;
   setTimeout(function(){
     fg.remove();
-    el.style.position='';
+    var hdr=ov.querySelector(':scope > div:first-child');if(hdr)hdr.style.display='flex';
     ov.style.overflowY='auto';
     ov.scrollTop=_restoreScroll;
   },280);
@@ -3790,7 +3786,7 @@ function _crNav(dir){
         .then(function(r){return r.json()})
         .then(function(d){
           if(d.status_code)return;
-          _epCache[k]={ep_title:d.name||'',ep_overview:(d.overview||'').substring(0,200),ep_still:d.still_path?'https://image.tmdb.org/t/p/w780'+d.still_path:'',ep_aired:d.air_date||'',ep_runtime:d.runtime||_crBase.ep_runtime};
+          _epCache[k]={ep_title:d.name||'',ep_overview:(d.overview||'').substring(0,500),ep_still:d.still_path?'https://image.tmdb.org/t/p/w780'+d.still_path:'',ep_aired:d.air_date||'',ep_runtime:d.runtime||_crBase.ep_runtime};
           ns.ep_title=_epCache[k].ep_title;ns.ep_overview=_epCache[k].ep_overview;ns.ep_still=_epCache[k].ep_still;ns.ep_aired=_epCache[k].ep_aired;ns.ep_runtime=_epCache[k].ep_runtime;
           var ts2=_crAll.slice();ts2[_crIdx]=ns;
           _unRenderDetail(ts2,_crIdx);
