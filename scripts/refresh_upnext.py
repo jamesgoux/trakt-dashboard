@@ -196,7 +196,7 @@ def run():
             "episode": next_ep.get("number", 0),
             "ep_title": next_ep.get("title", ""),
             "ep_runtime": ep_runtime,
-            "ep_overview": ep_overview[:200] if ep_overview else "",
+            "ep_overview": ep_overview[:500] if ep_overview else "",
             "ep_still": ep_still,
             "ep_aired": ep_aired[:10] if ep_aired else "",
             "ep_trakt_id": next_ep.get("ids", {}).get("trakt", ""),
