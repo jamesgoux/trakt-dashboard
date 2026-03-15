@@ -3439,9 +3439,10 @@ function _unData(){var d=D.un||{};return{shows:d.shows||d||[],recent:d.recent||[
 
 var _unScrollPos=0;var _unReturning=false;var _unEverOpened=false;
 function openUpNext(){
-  // Close any popups that might overlay
+  // Close any popups/layers that might overlay
   document.querySelectorAll('.chart-detail').forEach(function(d){d.remove()});
   var llOv=document.getElementById('ll-feed-overlay');if(llOv)llOv.style.display='none';
+  var oldLayer=document.getElementById('un-detail-layer');if(oldLayer)oldLayer.remove();
   var ud=_unData();
   var shows=ud.shows.filter(function(s){
     if(_unWatched[s.slug+'|'+s.season+'|'+s.episode])return false;
@@ -3568,7 +3569,7 @@ function _unBuildPanel(show){
   var slug2=show.slug.replace(/'/g,"\\'");
   var h='<div class="un-detail">';
   h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">';
-  h+='<button onclick="_unDismissDetail()" style="background:var(--sf);border:1px solid rgba(255,255,255,.1);color:var(--tx);border-radius:8px;padding:10px 16px;font-size:14px;cursor:pointer;min-height:44px">← Up Next</button>';
+  h+='<button onclick="_unDismissDetail()" style="background:var(--sf);border:1px solid rgba(255,255,255,.1);color:var(--tx);border-radius:8px;padding:10px 16px;font-size:14px;cursor:pointer;min-height:44px">↑ Up Next</button>';
   h+='<div style="display:flex;gap:8px">';
   if(show.episode>1)h+='<button onclick="_crNav(-1)" style="background:var(--sf);border:1px solid rgba(255,255,255,.1);color:var(--tx);border-radius:8px;padding:10px 16px;font-size:16px;cursor:pointer;min-width:48px">◀</button>';
   h+='<button onclick="_crNav(1)" style="background:var(--sf);border:1px solid rgba(255,255,255,.1);color:var(--tx);border-radius:8px;padding:10px 16px;font-size:16px;cursor:pointer;min-width:48px">▶</button>';
@@ -3616,7 +3617,7 @@ function _unRenderDetail(allShows,idx){
       _epCache[ck]={ep_title:show.ep_title||'',ep_overview:show.ep_overview||'',ep_still:show.ep_still||'',ep_aired:show.ep_aired||'',ep_runtime:show.ep_runtime||0};
     }
   }
-  var el=document.getElementById('un-content');
+  var ov=document.getElementById('un-overlay');
   var prev=_unMakeEp(show,show.episode-1);
   var next=_unMakeEp(show,show.episode+1);
   var h='<div class="un-carousel-wrap"><div class="un-carousel" id="un-car">';
@@ -3624,7 +3625,15 @@ function _unRenderDetail(allShows,idx){
   h+='<div class="un-carousel-panel">'+_unBuildPanel(show)+'</div>';
   h+='<div class="un-carousel-panel">'+_unBuildPanel(next)+'</div>';
   h+='</div></div>';
-  el.innerHTML=h;
+  // Render detail as a layer on top of the queue (queue stays behind for reveal)
+  var layer=document.getElementById('un-detail-layer');
+  if(!layer){
+    layer=document.createElement('div');
+    layer.id='un-detail-layer';
+    layer.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;background:var(--bg,#181818);z-index:10;overflow:auto;-webkit-overflow-scrolling:touch;padding:16px 0;';
+    ov.appendChild(layer);
+  }
+  layer.innerHTML=h;
   var car=document.getElementById('un-car');
   var wrap=car.parentElement;
   var w=wrap.offsetWidth;
@@ -3633,7 +3642,7 @@ function _unRenderDetail(allShows,idx){
   car.ontouchstart=function(ev){
     _tSx=ev.touches[0].clientX;_tCx=_tSx;_tSy=ev.touches[0].clientY;
     _tDir=null;_tActive=true;
-    car.classList.remove('animating');wrap.style.transition='none';
+    car.classList.remove('animating');layer.style.transition='none';
     ev.stopPropagation();
   };
   car.ontouchmove=function(ev){
@@ -3648,8 +3657,8 @@ function _unRenderDetail(allShows,idx){
       var pct=-33.333+(dx/w)*33.333;
       car.style.transform='translateX('+pct+'%)';
     }else if(_tDir==='v'){
-      wrap.style.transform='translateY('+dy+'px)';
-      wrap.style.opacity=Math.max(0,1-Math.abs(dy)/300);
+      layer.style.transform='translateY('+dy+'px)';
+      layer.style.opacity=Math.max(0,1-Math.abs(dy)/300);
     }
     ev.stopPropagation();
   };
@@ -3665,13 +3674,16 @@ function _unRenderDetail(allShows,idx){
       else if(dx<-w*0.12){car.style.transform='translateX(-66.666%)';setTimeout(function(){_crNav(1)},320)}
       else{car.style.transform='translateX(-33.333%)'}
     }else if(_tDir==='v'){
-      // Vertical: dismiss detail (reveals queue underneath)
+      // Vertical: dismiss detail (queue is already behind the layer)
       if(Math.abs(dy)>80){
-        _unDismissDetail(dy>0?'down':'up',dy);
+        layer.style.transition='transform .25s ease, opacity .25s ease';
+        layer.style.transform='translateY('+(dy>0?'100%':'-100%')+')';
+        layer.style.opacity='0';
+        setTimeout(function(){layer.remove()},280);
       }else{
-        wrap.style.transition='transform .2s ease, opacity .2s ease';
-        wrap.style.transform='';wrap.style.opacity='';
-        setTimeout(function(){wrap.style.transition=''},220);
+        layer.style.transition='transform .2s ease, opacity .2s ease';
+        layer.style.transform='';layer.style.opacity='';
+        setTimeout(function(){layer.style.transition=''},220);
       }
     }else{
       // No significant movement — reset
@@ -3681,8 +3693,8 @@ function _unRenderDetail(allShows,idx){
     _tDir=null;
     if(ev)ev.stopPropagation();
   };
-  // Only scroll to top on fresh detail open or episode change, not prefetch re-renders
-  if(show.slug!==_wasSlug||show.episode!==_wasEp){document.getElementById('un-overlay').scrollTop=0}
+  // Scroll detail layer to top on fresh detail open or episode change
+  if(show.slug!==_wasSlug||show.episode!==_wasEp){layer.scrollTop=0}
   // Prefetch current (if missing data) + adjacent episodes, re-render when data arrives
   if(!show.ep_still&&!show.ep_title)_unPrefetchAndUpdate(show,show.episode);
   _unPrefetchAndUpdate(show,show.episode-1);
@@ -3711,35 +3723,14 @@ function _unPrefetchAndUpdate(base,epNum){
     }).catch(function(){});
 }
 
-function _unDismissDetail(dir,startDy){
-  // Slides detail away revealing the Up Next queue underneath
-  // dir: 'up' (default/button) or 'down'; startDy: current Y offset if mid-swipe
-  dir=dir||'up';startDy=startDy||0;
-  var el=document.getElementById('un-content');
-  var ov=document.getElementById('un-overlay');
-  var wrap=document.querySelector('.un-carousel-wrap');
-  if(!wrap){_unReturning=true;openUpNext();return}
-  // Reset mid-swipe transforms before capturing HTML
-  if(wrap){wrap.style.transform='';wrap.style.opacity='';wrap.style.transition=''}
-  var detailHtml=el.innerHTML;
-  var detailScroll=ov.scrollTop;
-  // Build queue behind (openUpNext with _unReturning skips slide-from-right)
-  _unReturning=true;
-  openUpNext();
-  // Overlay saved detail on top at current position
-  var dov=document.createElement('div');
-  dov.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;background:var(--bg,#181818);z-index:10;overflow:auto;-webkit-overflow-scrolling:touch;';
-  if(startDy){dov.style.transform='translateY('+startDy+'px)';dov.style.opacity=Math.max(0,1-Math.abs(startDy)/300)}
-  dov.innerHTML=detailHtml;
-  ov.appendChild(dov);
-  dov.scrollTop=detailScroll;
-  // Animate detail sliding away, revealing queue
-  requestAnimationFrame(function(){
-    dov.style.transition='transform .25s ease, opacity .25s ease';
-    dov.style.transform='translateY('+(dir==='down'?'100%':'-100%')+')';
-    dov.style.opacity='0';
-    setTimeout(function(){dov.remove()},280);
-  });
+function _unDismissDetail(){
+  // Animate detail layer up, revealing queue underneath
+  var layer=document.getElementById('un-detail-layer');
+  if(!layer)return;
+  layer.style.transition='transform .25s ease, opacity .25s ease';
+  layer.style.transform='translateY(-100%)';
+  layer.style.opacity='0';
+  setTimeout(function(){layer.remove()},280);
 }
 
 function _crNav(dir){
