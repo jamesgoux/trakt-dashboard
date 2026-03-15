@@ -3663,7 +3663,6 @@ function _unRenderDetail(allShows,idx){
       car.style.transform='translateX('+pct+'%)';
     }else if(_tDir==='v'){
       fg.style.transform='translateY('+dy+'px)';
-      fg.style.opacity=Math.max(0,1-Math.abs(dy)/300);
     }
     ev.stopPropagation();
   };
@@ -3681,8 +3680,8 @@ function _unRenderDetail(allShows,idx){
       if(Math.abs(dy)>80){
         _unDismissDetail(dy>0?'down':'up');
       }else{
-        fg.style.transition='transform .2s ease, opacity .2s ease';
-        fg.style.transform='';fg.style.opacity='';
+        fg.style.transition='transform .2s ease';
+        fg.style.transform='';
         setTimeout(function(){fg.style.transition=''},220);
       }
     }else{
@@ -3733,9 +3732,9 @@ function _unDismissDetail(dir){
   if(!fg){return}
   // Clear state so prefetch callbacks don't re-create the detail
   _crBase=null;_crAll=null;
-  fg.style.transition='transform .25s ease, opacity .25s ease';
+  fg.style.transition='transform .25s ease';
   fg.style.transform='translateY('+(dir==='down'?'100%':'-100%')+')';
-  fg.style.opacity='0';
+
   var _restoreScroll=el._savedScroll||ov.scrollTop;
   setTimeout(function(){
     fg.remove();
