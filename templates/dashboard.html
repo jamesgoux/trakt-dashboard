@@ -3699,14 +3699,18 @@ function _traktSync(epTraktId,watchedAt,onDone){
 
 // Inject a watched episode into D.c.r so it shows in recently watched immediately
 function _injectRecentWatch(slug,season,episode,watchedAt){
-  // Find show title from Up Next data or TL
-  var title='';
+  // Find show data from Up Next
   var unData=D.un||{};var shows=unData.shows||[];
-  for(var i=0;i<shows.length;i++){if(shows[i].slug===slug){title=shows[i].title;break}}
+  var showData=null;
+  for(var i=0;i<shows.length;i++){if(shows[i].slug===slug){showData=shows[i];break}}
+  var title=showData?showData.show:'';
   if(!title){for(var j=0;j<TL.length;j++){if(TL[j].sl===slug){title=TL[j].t;break}}}
   if(!title)title=slug;
-  var entry={type:'episode',title:title,detail:'S'+season+'E'+episode,watched_at:watchedAt.substring(0,10),yr:watchedAt.substring(0,4)};
-  D.c.r.unshift(entry);
+  // Inject into D.c.r (dashboard recently watched)
+  D.c.r.unshift({type:'episode',title:title,detail:'S'+season+'E'+episode,watched_at:watchedAt.substring(0,10),yr:watchedAt.substring(0,4)});
+  // Inject into D.un.recent (Up Next recently watched section)
+  if(!unData.recent)unData.recent=[];
+  unData.recent.unshift({show:title,slug:slug,season:season,episode:episode,ep_title:showData?showData.ep_title:'',watched_at:watchedAt,ep_id:showData?showData.ep_trakt_id:0,ep_aired:showData?showData.ep_aired:''});
 }
 
 function markWatchedAt(slug,season,episode,epTraktId,when){
