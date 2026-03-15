@@ -3736,6 +3736,34 @@ function markWatched(slug,season,episode,epTraktId,btn){
   _unWatched[key]=watchedAt;
   localStorage.setItem('iris_un_watched',JSON.stringify(_unWatched));
   _injectRecentWatch(slug,season,episode,watchedAt);
+  // Add to Recently Watched section in the DOM (at bottom, closest to New Episodes)
+  (function(){
+    var sections=document.querySelectorAll('#un-content .un-section');
+    var recentGrid=null;var newEpsSection=null;
+    sections.forEach(function(sec){
+      if(sec.textContent.indexOf('Recently Watched')>=0){recentGrid=sec.nextElementSibling}
+      if(sec.id==='un-default-scroll')newEpsSection=sec;
+    });
+    var showTitle=card.querySelector('.un-show');
+    var poster=card.querySelector('.un-poster');
+    var cardHtml='<div class="un-card" style="opacity:0;transition:opacity .3s">';
+    if(poster&&poster.src)cardHtml+='<img class="un-poster" src="'+poster.src+'" loading="lazy" onerror="this.style.display=\'none\'">';
+    else cardHtml+='<div class="un-poster-ph">📺</div>';
+    cardHtml+='<div class="un-info"><div class="un-show">'+(showTitle?showTitle.textContent:slug)+'</div>';
+    cardHtml+='<div class="un-ep">S'+String(season).padStart(2,'0')+'E'+String(episode).padStart(2,'0')+' — just watched</div>';
+    cardHtml+='<div class="un-meta"><span>'+watchedAt.substring(0,10)+'</span></div>';
+    cardHtml+='</div></div>';
+    if(recentGrid){
+      recentGrid.insertAdjacentHTML('beforeend',cardHtml);
+      var added=recentGrid.lastElementChild;requestAnimationFrame(function(){if(added)added.style.opacity='1'});
+    }else if(newEpsSection){
+      var sec=document.createElement('div');sec.className='un-section';sec.textContent='🕐 Recently Watched';
+      var grid=document.createElement('div');grid.className='un-grid';grid.innerHTML=cardHtml;
+      newEpsSection.parentElement.insertBefore(grid,newEpsSection);
+      newEpsSection.parentElement.insertBefore(sec,grid);
+      var added2=grid.firstElementChild;requestAnimationFrame(function(){if(added2)added2.style.opacity='1'});
+    }
+  })();
   // Advance the show to the next episode in D.un.shows
   var unData=D.un||{};var shows=unData.shows||[];
   var showObj=null;var hasMore=false;
@@ -3772,6 +3800,25 @@ function markWatched(slug,season,episode,epTraktId,btn){
       var newBadge=card.querySelector('.un-new');if(newBadge)newBadge.remove();
       // Fade back in
       card.style.opacity='1';card.style.pointerEvents='';
+      // Fetch next episode title/data from TMDB and update card
+      var tmdbId=card.dataset.tmdb||showObj.tmdb_id;
+      if(tmdbId){
+        var tk=(D.un||{}).tmdb_key||'';
+        if(tk){
+          fetch('https://api.themoviedb.org/3/tv/'+tmdbId+'/season/'+showObj.season+'/episode/'+showObj.episode+'?api_key='+tk)
+          .then(function(r){return r.json()}).then(function(d){
+            if(d.status_code)return;
+            showObj.ep_title=d.name||'';showObj.ep_aired=d.air_date||'';
+            var epEl2=card.querySelector('.un-ep');
+            if(epEl2){
+              var txt='S'+String(showObj.season).padStart(2,'0')+'E'+String(showObj.episode).padStart(2,'0');
+              if(d.name)txt+=' — '+d.name;
+              if(d.air_date)txt+=' <span style="color:#666;font-size:10px">· '+d.air_date+'</span>';
+              epEl2.innerHTML=txt;
+            }
+          }).catch(function(){});
+        }
+      }
     }else{
       // Last episode — collapse and remove
       card.style.transition='all .3s';card.style.maxHeight='0';card.style.overflow='hidden';card.style.padding='0';card.style.margin='0';card.style.border='none';
