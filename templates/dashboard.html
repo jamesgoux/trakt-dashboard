@@ -612,6 +612,10 @@ function stats(){
   var s=D.c.s;var h2='';
   if(ct==='movie'){h2=sc(mw.toLocaleString(),'🎞️ Movies','var(--ac)')+sc(movieDays,'⏱️ Days','#b0b0b0')}
   else if(ct==='show'){var seasonCount2=0;D.c.m.filter(function(m){return cy==='all'||m.month.startsWith(cy)}).forEach(function(m){seasonCount2+=m.seasons||0});h2=sc(s.unique_shows,'📺 Shows','var(--pu)')+sc(seasonCount2,'📦 Seasons','var(--pu)')+sc(ew.toLocaleString(),'🔢 Episodes','var(--pu)')+sc(showDays,'⏱️ Days','#b0b0b0')}
+  else if(ct==='movietv'){
+    var seasonCount3=0;D.c.m.filter(function(m){return cy==='all'||m.month.startsWith(cy)}).forEach(function(m){seasonCount3+=m.seasons||0});
+    h2=sc((mw+ew).toLocaleString(),'👁️ Watches','#b0b0b0')+sc(totalDays,'⏱️ Days','#b0b0b0')+sc((cy==='all'?s.unique_movies:mw).toLocaleString(),'🎞️ Movies','var(--ac)')+sc(movieDays+'d','🎞️ Movie Days','var(--ac)')+sc(s.unique_shows,'📺 Shows','var(--pu)')+sc(seasonCount3,'📦 Seasons','var(--pu)')+sc(ew.toLocaleString(),'🔢 Episodes','var(--pu)')+sc(showDays+'d','📺 Show Days','var(--pu)');
+  }
   else{
     var seasonCount=0;D.c.m.filter(function(m){return cy==='all'||m.month.startsWith(cy)}).forEach(function(m){seasonCount+=m.seasons||0});
     // M1: On mobile, show one highlight per type. On desktop, show full detail.
@@ -3718,14 +3722,15 @@ function _doRender(){ch.forEach(function(c){try{c.dispose()}catch(e){}});ch=[];
   document.querySelectorAll('.med-s').forEach(function(el){var meds=el.dataset.med||'';el.style.display=meds.indexOf(ct)>=0?'':'none'});
   // CRITICAL (above fold) — render immediately
   stats();renderLifeline();baseCharts();renderPosters();
-  // Batch 1: people tables + movies (next screen)
+  // Batch 1: people tables + movies (skip if life mode — not shown)
   requestAnimationFrame(function(){
-    ptbl('atb',D.a);ptbl('xtb',D.x);ptbl('dtb',D.d||[]);ptbl('wtb',D.w||[]);
-    movieCharts();renderLetterboxd();
-    // Batch 2: all remaining sections — staggered with setTimeout to avoid jank
-    setTimeout(function(){renderGoodreads();renderLastfm()},0);
-    setTimeout(function(){renderConcerts();renderTheater()},50);
-    setTimeout(function(){renderPodcasts();renderHealth();renderBoardGames();renderGames();renderSports();renderStatus()},100);
+    if(ct!=='life'){ptbl('atb',D.a);ptbl('xtb',D.x);ptbl('dtb',D.d||[]);ptbl('wtb',D.w||[]);movieCharts();renderLetterboxd()}
+    // Batch 2: type-specific sections (skip entirely in life mode)
+    if(ct!=='life'){
+      setTimeout(function(){renderGoodreads();renderLastfm()},0);
+      setTimeout(function(){renderConcerts();renderTheater()},50);
+      setTimeout(function(){renderPodcasts();renderHealth();renderBoardGames();renderGames();renderSports();renderStatus()},100);
+    }else{renderStatus()}
     // Dismiss initial loader after batch 1 (user sees content immediately)
     var loader=document.getElementById('iris-loader');if(loader){loader.classList.add('fade-out');setTimeout(function(){loader.remove();_bgPreload()},600)}
   })}
