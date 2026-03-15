@@ -3645,9 +3645,9 @@ function _unRenderDetail(allShows,idx){
   var prev=_unMakeEp(show,show.episode-1);
   var next=_unMakeEp(show,show.episode+1);
   var h='<div class="un-carousel-wrap" style="max-width:none;margin:0;height:100%;border-radius:0;border:none;background:var(--sf)"><div class="un-carousel" id="un-car" style="height:100%">';
-  h+='<div class="un-carousel-panel" style="height:100%">'+_unBuildPanel(prev)+'</div>';
-  h+='<div class="un-carousel-panel" style="height:100%">'+_unBuildPanel(show)+'</div>';
-  h+='<div class="un-carousel-panel" style="height:100%">'+_unBuildPanel(next)+'</div>';
+  h+='<div class="un-carousel-panel" style="height:100%;padding:0">'+_unBuildPanel(prev)+'</div>';
+  h+='<div class="un-carousel-panel" style="height:100%;padding:0">'+_unBuildPanel(show)+'</div>';
+  h+='<div class="un-carousel-panel" style="height:100%;padding:0">'+_unBuildPanel(next)+'</div>';
   h+='</div></div>';
   // Append detail to OVERLAY (covers header + content, true full-screen)
   var el=document.getElementById('un-content');
