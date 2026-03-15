@@ -312,7 +312,7 @@ body{overflow-x:hidden}
 <div class="cd"><h3><span class="i">📋</span>Recent Plays</h3><div class="stb" id="bg-recent" style="font-size:12px;max-height:350px"></div></div>
 </div>
 <!-- VIDEO GAMES -->
-<div class="g2 med-s" data-med="all game" id="gt-wrap" style="display:none">
+<div class="g2 med-s" data-med="all game" id="vg-wrap" style="display:none">
 <div id="sec-gt" class="cd fw"><h3><span class="i">🎮</span>Top Games by Playtime</h3><div id="gt-hours-chart" style="height:400px"></div></div>
 <div class="cd"><h3><span class="i">🖥️</span>Platforms</h3><div id="gt-platforms" style="height:280px"></div></div>
 <div class="cd"><h3><span class="i">📊</span>Status</h3><div id="gt-status" style="height:280px"></div></div>
@@ -3031,7 +3031,7 @@ function renderBoardGames(){
 }
 
 function renderGames(){
-  var gt=D.gt;var wrap=document.getElementById('gt-wrap');
+  var gt=D.gt;var wrap=document.getElementById('vg-wrap');
   if(!gt||!gt.total||!(_isAll()||ct==='game')){if(wrap)wrap.style.display='none';return}
   var allG=gt.all||[];
   var filtered=cy==='all'?allG:allG.filter(function(g){return g.yr===cy});
