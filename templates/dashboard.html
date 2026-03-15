@@ -3439,10 +3439,9 @@ function _unData(){var d=D.un||{};return{shows:d.shows||d||[],recent:d.recent||[
 
 var _unScrollPos=0;var _unReturning=false;var _unEverOpened=false;
 function openUpNext(){
-  // Close any popups/layers that might overlay
+  // Close any popups that might overlay
   document.querySelectorAll('.chart-detail').forEach(function(d){d.remove()});
   var llOv=document.getElementById('ll-feed-overlay');if(llOv)llOv.style.display='none';
-  var oldLayer=document.getElementById('un-detail-layer');if(oldLayer)oldLayer.remove();
   var ud=_unData();
   var shows=ud.shows.filter(function(s){
     if(_unWatched[s.slug+'|'+s.season+'|'+s.episode])return false;
@@ -3451,6 +3450,7 @@ function openUpNext(){
   });
   var recent=ud.recent||[];
   var el=document.getElementById('un-content');
+  el._savedQueue=null;el._savedScroll=0;
   if(!shows.length&&!recent.length){el.innerHTML='<div style="text-align:center;padding:60px;color:var(--t2)"><div style="font-size:40px;margin-bottom:12px">📺</div><div style="font-size:16px;margin-bottom:8px">No Up Next data yet</div><div style="font-size:12px;max-width:400px;margin:0 auto">Trigger a refresh from the <a href="https://github.com/jamesgoux/iris-stats/actions" style="color:var(--sp)">Actions tab</a>.</div></div>';document.getElementById('un-overlay').style.display='';_lockBody();return}
 
   var newItems=shows.filter(function(s){return s.is_new});
@@ -3625,15 +3625,10 @@ function _unRenderDetail(allShows,idx){
   h+='<div class="un-carousel-panel">'+_unBuildPanel(show)+'</div>';
   h+='<div class="un-carousel-panel">'+_unBuildPanel(next)+'</div>';
   h+='</div></div>';
-  // Render detail as a layer on top of the queue (queue stays behind for reveal)
-  var layer=document.getElementById('un-detail-layer');
-  if(!layer){
-    layer=document.createElement('div');
-    layer.id='un-detail-layer';
-    layer.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;background:var(--bg,#181818);z-index:10;overflow:auto;-webkit-overflow-scrolling:touch;padding:16px 0;';
-    ov.appendChild(layer);
-  }
-  layer.innerHTML=h;
+  // Save queue HTML for dismiss reveal, then show detail
+  var el=document.getElementById('un-content');
+  if(!el._savedQueue){el._savedQueue=el.innerHTML;el._savedScroll=ov.scrollTop}
+  el.innerHTML=h;
   var car=document.getElementById('un-car');
   var wrap=car.parentElement;
   var w=wrap.offsetWidth;
@@ -3642,7 +3637,7 @@ function _unRenderDetail(allShows,idx){
   car.ontouchstart=function(ev){
     _tSx=ev.touches[0].clientX;_tCx=_tSx;_tSy=ev.touches[0].clientY;
     _tDir=null;_tActive=true;
-    car.classList.remove('animating');layer.style.transition='none';
+    car.classList.remove('animating');wrap.style.transition='none';
     ev.stopPropagation();
   };
   car.ontouchmove=function(ev){
@@ -3657,8 +3652,8 @@ function _unRenderDetail(allShows,idx){
       var pct=-33.333+(dx/w)*33.333;
       car.style.transform='translateX('+pct+'%)';
     }else if(_tDir==='v'){
-      layer.style.transform='translateY('+dy+'px)';
-      layer.style.opacity=Math.max(0,1-Math.abs(dy)/300);
+      wrap.style.transform='translateY('+dy+'px)';
+      wrap.style.opacity=Math.max(0,1-Math.abs(dy)/300);
     }
     ev.stopPropagation();
   };
@@ -3674,16 +3669,13 @@ function _unRenderDetail(allShows,idx){
       else if(dx<-w*0.12){car.style.transform='translateX(-66.666%)';setTimeout(function(){_crNav(1)},320)}
       else{car.style.transform='translateX(-33.333%)'}
     }else if(_tDir==='v'){
-      // Vertical: dismiss detail (queue is already behind the layer)
+      // Vertical: dismiss detail
       if(Math.abs(dy)>80){
-        layer.style.transition='transform .25s ease, opacity .25s ease';
-        layer.style.transform='translateY('+(dy>0?'100%':'-100%')+')';
-        layer.style.opacity='0';
-        setTimeout(function(){layer.remove()},280);
+        _unDismissDetail(dy>0?'down':'up',dy);
       }else{
-        layer.style.transition='transform .2s ease, opacity .2s ease';
-        layer.style.transform='';layer.style.opacity='';
-        setTimeout(function(){layer.style.transition=''},220);
+        wrap.style.transition='transform .2s ease, opacity .2s ease';
+        wrap.style.transform='';wrap.style.opacity='';
+        setTimeout(function(){wrap.style.transition=''},220);
       }
     }else{
       // No significant movement — reset
@@ -3693,8 +3685,8 @@ function _unRenderDetail(allShows,idx){
     _tDir=null;
     if(ev)ev.stopPropagation();
   };
-  // Scroll detail layer to top on fresh detail open or episode change
-  if(show.slug!==_wasSlug||show.episode!==_wasEp){layer.scrollTop=0}
+  // Only scroll to top on fresh detail open or episode change, not prefetch re-renders
+  if(show.slug!==_wasSlug||show.episode!==_wasEp){ov.scrollTop=0}
   // Prefetch current (if missing data) + adjacent episodes, re-render when data arrives
   if(!show.ep_still&&!show.ep_title)_unPrefetchAndUpdate(show,show.episode);
   _unPrefetchAndUpdate(show,show.episode-1);
@@ -3723,14 +3715,38 @@ function _unPrefetchAndUpdate(base,epNum){
     }).catch(function(){});
 }
 
-function _unDismissDetail(){
-  // Animate detail layer up, revealing queue underneath
-  var layer=document.getElementById('un-detail-layer');
-  if(!layer)return;
-  layer.style.transition='transform .25s ease, opacity .25s ease';
-  layer.style.transform='translateY(-100%)';
-  layer.style.opacity='0';
-  setTimeout(function(){layer.remove()},280);
+function _unDismissDetail(dir,startDy){
+  // Restore queue, overlay detail on top, animate detail away
+  dir=dir||'up';startDy=startDy||0;
+  var el=document.getElementById('un-content');
+  var ov=document.getElementById('un-overlay');
+  // Capture detail HTML before restoring queue
+  var wrap=el.querySelector('.un-carousel-wrap');
+  if(wrap){wrap.style.transform='';wrap.style.opacity='';wrap.style.transition=''}
+  var detailHtml=el.innerHTML;
+  var detailScroll=ov.scrollTop;
+  // Restore saved queue
+  if(el._savedQueue){
+    el.innerHTML=el._savedQueue;
+    el._savedQueue=null;
+    ov.scrollTop=el._savedScroll||0;
+  }
+  // Create temporary overlay with the detail, animate it away
+  var dov=document.createElement('div');
+  dov.style.cssText='position:absolute;top:0;left:0;right:0;min-height:100%;background:var(--bg,#181818);z-index:10;';
+  if(startDy){dov.style.transform='translateY('+startDy+'px)';dov.style.opacity=Math.max(0,1-Math.abs(startDy)/300)}
+  dov.innerHTML=detailHtml;
+  el.style.position='relative';
+  el.appendChild(dov);
+  // Use ov.scrollTop to position absolute overlay at visible area
+  var scrollPos=ov.scrollTop;
+  dov.style.top=scrollPos+'px';
+  requestAnimationFrame(function(){
+    dov.style.transition='transform .25s ease, opacity .25s ease';
+    dov.style.transform='translateY('+(dir==='down'?'100%':'-100%')+')';
+    dov.style.opacity='0';
+    setTimeout(function(){dov.remove();el.style.position=''},280);
+  });
 }
 
 function _crNav(dir){
