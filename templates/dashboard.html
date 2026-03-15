@@ -3734,10 +3734,12 @@ function _unDismissDetail(dir){
   fg.style.transition='transform .25s ease, opacity .25s ease';
   fg.style.transform='translateY('+(dir==='down'?'100%':'-100%')+')';
   fg.style.opacity='0';
+  var _restoreScroll=el._savedScroll||ov.scrollTop;
   setTimeout(function(){
     fg.remove();
     el.style.position='';
     ov.style.overflow='';
+    ov.scrollTop=_restoreScroll;
   },280);
 }
 
