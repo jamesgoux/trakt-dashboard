@@ -152,10 +152,11 @@ body{overflow-x:hidden}
 <h1><svg class="iris-logo" viewBox="0 0 512 512" width="28" height="28" style="vertical-align:middle;margin-right:6px"><defs><radialGradient id="ig" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#e94560"/><stop offset="45%" stop-color="#7c3aed"/><stop offset="100%" stop-color="#c4b5fd"/></radialGradient></defs><path d="M256 96C128 96 32 256 32 256s96 160 224 160 224-160 224-160S384 96 256 96z" fill="#c4b5fd"/><circle cx="256" cy="256" r="200" fill="url(#ig)"/><circle cx="256" cy="256" r="80" fill="#0f0f0f"/><circle cx="220" cy="220" r="28" fill="rgba(255,255,255,0.4)"/><circle cx="280" cy="240" r="12" fill="rgba(255,255,255,0.2)"/></svg><span style="color:var(--ac);font-weight:800">iris</span> <span style="color:var(--t2);font-weight:400">// jamesgoux</span></h1>
 <div class="fctrls">
 <svg class="iris-logo-mob" viewBox="0 0 512 512" width="24" height="24" style="display:none;vertical-align:middle;flex-shrink:0"><defs><radialGradient id="igm" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#e94560"/><stop offset="45%" stop-color="#7c3aed"/><stop offset="100%" stop-color="#c4b5fd"/></radialGradient></defs><path d="M256 96C128 96 32 256 32 256s96 160 224 160 224-160 224-160S384 96 256 96z" fill="#c4b5fd"/><circle cx="256" cy="256" r="200" fill="url(#igm)"/><circle cx="256" cy="256" r="80" fill="#0f0f0f"/><circle cx="220" cy="220" r="28" fill="rgba(255,255,255,0.4)"/></svg>
-<button id="filter-btn" onclick="openFilterDialog()" style="padding:6px 14px;background:var(--sf);border:1px solid rgba(255,255,255,.15);border-radius:8px;color:var(--tx);font-size:13px;cursor:pointer;font-weight:600;min-height:36px;white-space:nowrap">2026 Life</button>
+<button id="filter-btn" onclick="openFilterDialog()" style="padding:6px 14px;background:var(--sf);border:1px solid rgba(255,255,255,.15);border-radius:8px;color:var(--tx);font-size:13px;cursor:pointer;font-weight:600;min-height:36px;white-space:nowrap;line-height:36px">🧬 2026 Life</button>
 <!-- Hidden selects for backward compat -->
 <select id="gs" style="display:none"><option value="all">All</option><option value="life">Life</option><option value="movietv">Movies/TV</option><option value="movie">Movies</option><option value="show">Shows</option><option value="book">Books</option><option value="music">Music</option><option value="concert">Concerts</option><option value="podcast">Podcasts</option><option value="theater">Theater</option><option value="boardgame">Board Games</option><option value="sports">Sports</option><option value="game">Video Games</option><option value="health">Workouts</option></select>
 <select id="ys" style="display:none"><option value="all">All Time</option></select>
+<div style="flex:1"></div>
 <button class="hbtn" id="refresh-btn" onclick="this.querySelector('.rf-icon').classList.add('hbtn-spin');this.style.color='var(--ac)';document.querySelector('.fbar').classList.add('fbar-pulse');setTimeout(function(){location.reload()},900)" title="Refresh"><span class="rf-icon" style="display:inline-block">↻</span></button>
 <div style="position:relative"><button class="hbtn" onclick="var m=document.getElementById('jmp-menu');m.style.display=m.style.display==='block'?'none':'block'" title="Jump to section"><span style="display:block;transform:translateY(-1px)">☰</span></button><div id="jmp-menu" style="display:none;position:absolute;right:0;top:100%;margin-top:6px;background:var(--sf);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:6px 0;min-width:200px;max-height:70vh;overflow-y:auto;z-index:150;box-shadow:0 8px 30px rgba(0,0,0,.5)"></div></div>
 <button class="hbtn" onclick="openSportsAdd()" title="Add Game">🏟️</button>
@@ -545,7 +546,8 @@ function _updateFilterBtn(){
   var btn=document.getElementById('filter-btn');
   var yl=cy==='all'?'All':cy;
   var tl=_fdTypes.find(function(t){return t.v===ct});
-  btn.textContent=yl+' '+(tl?tl.s:ct);
+  var emoji=tl?tl.l.split(' ')[0]:'';
+  btn.textContent=emoji+' '+yl+' '+(tl?tl.s:ct);
 }
 
 function readHash(){var h=location.hash.substring(1);var p=new URLSearchParams(h);var curYr=new Date().getFullYear().toString();var ysEl=document.getElementById('ys');
@@ -1080,8 +1082,29 @@ function baseCharts(){
   ch.push(c1);
   }
 
-  // Life mode: only needs activity chart (above), skip everything below
-  if(ct==='life')return;
+  // Life mode: skip genres/countries/etc but still render yearly chart
+  if(ct==='life'){
+    if(!isYear){
+      var yr2=D.c.y.filter(function(d){return parseInt(d.year)>=2012}).map(function(d){return{year:d.year,seasons:d.seasons||0,movies:d.movies}});
+      var c6b=echarts.init(document.getElementById('yrc'));
+      var yrS2=[];var yrL2=[];
+      yrS2.push({name:'Movies',type:'bar',stack:'t',data:yr2.map(function(d){return d.movies}),itemStyle:{color:'#fb923c'}});yrL2.push('Movies');
+      yrS2.push({name:'Seasons',type:'bar',stack:'t',data:yr2.map(function(d){return d.seasons}),itemStyle:{color:'#14b8a6'}});yrL2.push('Seasons');
+      var grY2=D.c.gr_y||{};if(Object.keys(grY2).length){yrS2.push({name:'Books',type:'bar',stack:'t',data:yr2.map(function(d){return grY2[d.year]||0}),itemStyle:{color:'#fbbf24'}});yrL2.push('Books')}
+      var conY2=D.c.con_y||{};if(Object.keys(conY2).length){yrS2.push({name:'Concerts',type:'bar',stack:'t',data:yr2.map(function(d){return conY2[d.year]||0}),itemStyle:{color:'#3b82f6'}});yrL2.push('Concerts')}
+      var thY2=D.c.th_y||{};if(Object.keys(thY2).length){yrS2.push({name:'Theater',type:'bar',stack:'t',data:yr2.map(function(d){return thY2[d.year]||0}),itemStyle:{color:'#a78bfa'}});yrL2.push('Theater')}
+      if(SP.length){var spYr2={};SP.forEach(function(e){if(e.date){var y=e.date.substring(0,4);spYr2[y]=(spYr2[y]||0)+1}});yrS2.push({name:'Sports',type:'bar',stack:'t',data:yr2.map(function(d){return spYr2[d.year]||0}),itemStyle:{color:'#0ea5e9'}});yrL2.push('Sports')}
+      var hwYr2=(D.health||{}).by_year||{};if(Object.keys(hwYr2).length){yrS2.push({name:'Workouts',type:'bar',stack:'t',data:yr2.map(function(d){return(hwYr2[d.year]||{}).count||0}),itemStyle:{color:'#1db954'}});yrL2.push('Workouts')}
+      var bgYr2=(D.bg||{}).agg&&(D.bg||{}).agg.by_year||{};if(Object.keys(bgYr2).length){yrS2.push({name:'Board Games',type:'bar',stack:'t',data:yr2.map(function(d){return bgYr2[d.year]||0}),itemStyle:{color:'#ec4899'}});yrL2.push('Board Games')}
+      var gtYr2=(D.gt||{}).by_year||{};if(Object.keys(gtYr2).length){yrS2.push({name:'Video Games',type:'bar',stack:'t',data:yr2.map(function(d){return(gtYr2[d.year]||{}).games||0}),itemStyle:{color:'#6366f1'}});yrL2.push('Video Games')}
+      var lfmYr2=D.lfm&&D.lfm.yearly?D.lfm.yearly:[];if(lfmYr2.length){var lfmYrM2={};lfmYr2.forEach(function(y){lfmYrM2[y.yr]=y.s||0});yrS2.push({name:'Scrobbles',type:'line',yAxisIndex:1,data:yr2.map(function(d){return lfmYrM2[d.year]||0}),itemStyle:{color:'#15803d'},lineStyle:{width:2},symbol:'circle',symbolSize:4});yrL2.push('Scrobbles')}
+      var yrLegRows2=Math.ceil(yrL2.length/4);var yrGridTop2=Math.max(36,yrLegRows2*22+8);
+      c6b.setOption({tooltip:{trigger:'axis',...tt,formatter:function(p){return p.map(function(s){return s.marker+s.seriesName+': '+s.value}).join('<br/>')}},legend:{data:yrL2,right:10,top:0,textStyle:{color:'#999',fontSize:10},itemWidth:12,itemHeight:8,itemGap:8},grid:{left:50,right:40,top:yrGridTop2,bottom:24},xAxis:{type:'category',data:yr2.map(function(d){return d.year}),axisLabel:{color:'#666',fontSize:10},axisLine:{lineStyle:{color:'#333'}}},yAxis:[{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},{type:'value',position:'right',axisLabel:{show:false},splitLine:{show:false}}],series:yrS2});
+      if(yrL2.length>1)legendIsolate(c6b,yrL2);
+      ch.push(c6b);
+    }
+    return;
+  }
 
   // Genres - respects type AND year filter
   var gd;
