@@ -3461,10 +3461,10 @@ function openUpNext(){
     return c;
   }
 
-  // Recently watched (scrolled up from default)
+  // Recently watched — reversed so most recent is at bottom (closest to New Episodes)
   if(recent.length){
     h+='<div class="un-section">🕐 Recently Watched</div><div class="un-grid">';
-    recent.forEach(function(s){h+=card(s,true)});
+    recent.slice().reverse().forEach(function(s){h+=card(s,true)});
     h+='</div>';
   }
   if(newItems.length){
