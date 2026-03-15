@@ -3715,8 +3715,8 @@ function _unPrefetchAndUpdate(base,epNum){
     .then(function(d){
       if(d.status_code)return;
       _epCache[k]={ep_title:d.name||'',ep_overview:(d.overview||'').substring(0,200),ep_still:d.still_path?'https://image.tmdb.org/t/p/w780'+d.still_path:'',ep_aired:d.air_date||'',ep_runtime:d.runtime||base.ep_runtime};
-      // Re-render if still viewing this show
-      if(_crBase&&_crBase.slug===base.slug&&_crAll){
+      // Re-render if still viewing this show (and detail fg is still open)
+      if(_crBase&&_crBase.slug===base.slug&&_crAll&&document.getElementById('un-detail-fg')){
         var ns=_unMakeEp(_crBase,_crEp);
         var ts=_crAll.slice();ts[_crIdx]=ns;
         _unRenderDetail(ts,_crIdx);
@@ -3731,6 +3731,8 @@ function _unDismissDetail(dir){
   var ov=document.getElementById('un-overlay');
   var fg=document.getElementById('un-detail-fg');
   if(!fg){return}
+  // Clear state so prefetch callbacks don't re-create the detail
+  _crBase=null;_crAll=null;
   fg.style.transition='transform .25s ease, opacity .25s ease';
   fg.style.transform='translateY('+(dir==='down'?'100%':'-100%')+')';
   fg.style.opacity='0';
