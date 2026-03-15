@@ -3628,18 +3628,16 @@ function _unRenderDetail(allShows,idx){
   // Append detail as foreground layer ON TOP of queue (queue DOM stays intact)
   var el=document.getElementById('un-content');
   var fg=document.getElementById('un-detail-fg');
+  var _isNewFg=false;
   if(!fg){
-    // First time entering detail: save scroll, create fg layer over queue
-    el._savedScroll=ov.scrollTop;
+    // First time entering detail: position fg at current scroll, lock overlay
+    _isNewFg=true;
     ov.style.overflow='hidden';
     fg=document.createElement('div');
     fg.id='un-detail-fg';
-    fg.style.cssText='position:absolute;top:0;left:0;right:0;height:'+window.innerHeight+'px;background:var(--bg,#181818);z-index:10;padding:16px 0;overflow:auto;-webkit-overflow-scrolling:touch;';
+    fg.style.cssText='position:absolute;top:'+ov.scrollTop+'px;left:0;right:0;height:'+window.innerHeight+'px;background:var(--bg,#181818);z-index:10;padding:16px 0;overflow:auto;-webkit-overflow-scrolling:touch;transform:translateY(-100%);';
     el.style.position='relative';
     el.appendChild(fg);
-    // Ensure fg covers all queue content + viewport
-    requestAnimationFrame(function(){fg.style.minHeight=Math.max(el.scrollHeight,window.innerHeight)+'px'});
-    ov.scrollTop=0;
   }
   fg.innerHTML=h;
   var car=document.getElementById('un-car');
@@ -3694,8 +3692,10 @@ function _unRenderDetail(allShows,idx){
     _tDir=null;
     if(ev)ev.stopPropagation();
   };
-  // Only scroll to top on fresh detail open or episode change
-  if(show.slug!==_wasSlug||show.episode!==_wasEp){ov.scrollTop=0}
+  // Scroll fg to top on fresh detail open or episode change
+  if(show.slug!==_wasSlug||show.episode!==_wasEp){fg.scrollTop=0}
+  // Slide in from above on first open
+  if(_isNewFg){requestAnimationFrame(function(){fg.style.transition='transform .3s ease';requestAnimationFrame(function(){fg.style.transform=''})})}
   // Prefetch current (if missing data) + adjacent episodes, re-render when data arrives
   if(!show.ep_still&&!show.ep_title)_unPrefetchAndUpdate(show,show.episode);
   _unPrefetchAndUpdate(show,show.episode-1);
@@ -3738,7 +3738,6 @@ function _unDismissDetail(dir){
     fg.remove();
     el.style.position='';
     ov.style.overflow='';
-    ov.scrollTop=el._savedScroll||0;
   },280);
 }
 
