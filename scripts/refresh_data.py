@@ -1019,11 +1019,17 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
                 if g_cy: gp[cur_year] = g_cy
                 p["g+"] = gp
 
+    a_out = [p for p in pd if p["g"] == "m"]
+    x_out = [p for p in pd if p["g"] == "f"]
+    # Trim headshots: only include people who appear in tables (tt >= 2)
+    table_names = set(p["n"] for p in a_out + x_out + dir_list + wr_list)
+    hs_trimmed = {n: url for n, url in headshots.items() if n in table_names}
+    print(f"  Headshots: {len(hs_trimmed)} included, {len(headshots) - len(hs_trimmed)} trimmed (1-title people)")
     return {
-        "a": [p for p in pd if p["g"] == "m"],
-        "x": [p for p in pd if p["g"] == "f"],
+        "a": a_out,
+        "x": x_out,
         "d": dir_list, "w": wr_list,
-        "tl": tl, "hs": headshots, "ps": posters, "sm": slug_meta,
+        "tl": tl, "hs": hs_trimmed, "ps": posters, "sm": slug_meta,
         "syd": [{"n": i["name"], "net": i["net"],
                  "yd": {y: {"e": d["e"], "m": d["m"]} for y, d in i["yd"].items()}}
                 for _, i in syd.items()],
