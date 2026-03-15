@@ -3450,7 +3450,7 @@ function openUpNext(){
   });
   var recent=ud.recent||[];
   var el=document.getElementById('un-content');
-  var oldFg=document.getElementById('un-detail-fg');if(oldFg){oldFg.remove();var _ov=document.getElementById('un-overlay');_ov.style.overflowY='auto';var _hdr=_ov.querySelector(':scope > div:first-child');if(_hdr)_hdr.style.display='flex'}
+  var oldFg=document.getElementById('un-detail-fg');if(oldFg){oldFg.remove();document.getElementById('un-overlay').style.overflowY='auto'}
   if(!shows.length&&!recent.length){el.innerHTML='<div style="text-align:center;padding:60px;color:var(--t2)"><div style="font-size:40px;margin-bottom:12px">📺</div><div style="font-size:16px;margin-bottom:8px">No Up Next data yet</div><div style="font-size:12px;max-width:400px;margin:0 auto">Trigger a refresh from the <a href="https://github.com/jamesgoux/iris-stats/actions" style="color:var(--sp)">Actions tab</a>.</div></div>';document.getElementById('un-overlay').style.display='';_lockBody();return}
 
   var newItems=shows.filter(function(s){return s.is_new});
@@ -3657,11 +3657,10 @@ function _unRenderDetail(allShows,idx){
     _isNewFg=true;
     el._savedScroll=ov.scrollTop;
     ov.style.overflowY='hidden';
-    var hdr=ov.querySelector(':scope > div:first-child');if(hdr)hdr.style.display='none';
     fg=document.createElement('div');
     fg.id='un-detail-fg';
-    fg.style.cssText='position:absolute;top:'+ov.scrollTop+'px;left:0;right:0;height:'+window.innerHeight+'px;z-index:302;background:var(--sf);overflow:auto;-webkit-overflow-scrolling:touch;transform:translateY(-100%);';
-    ov.appendChild(fg);
+    fg.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;z-index:400;background:var(--sf);overflow:auto;-webkit-overflow-scrolling:touch;transform:translateY(-100%);';
+    document.body.appendChild(fg);
   }
   fg.innerHTML=h;
   var car=document.getElementById('un-car');
@@ -3761,7 +3760,6 @@ function _unDismissDetail(dir){
   var _restoreScroll=el._savedScroll||ov.scrollTop;
   setTimeout(function(){
     fg.remove();
-    var hdr=ov.querySelector(':scope > div:first-child');if(hdr)hdr.style.display='flex';
     ov.style.overflowY='auto';
     ov.scrollTop=_restoreScroll;
   },280);
