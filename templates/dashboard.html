@@ -3412,8 +3412,11 @@ function _unlockBody(){document.body.style.position='';document.body.style.top='
 function _unFmtMin(m){if(!m)return'';var h=Math.floor(m/60);var mn=m%60;return h?h+'h'+(mn?' '+mn+'m':''):mn+'m'}
 function _unData(){var d=D.un||{};return{shows:d.shows||d||[],recent:d.recent||[]}}
 
-var _unScrollPos=0;var _unReturning=false;
+var _unScrollPos=0;var _unReturning=false;var _unEverOpened=false;
 function openUpNext(){
+  // Close any popups that might overlay
+  document.querySelectorAll('.chart-detail').forEach(function(d){d.remove()});
+  var llOv=document.getElementById('ll-feed-overlay');if(llOv)llOv.style.display='none';
   var ud=_unData();
   var shows=ud.shows.filter(function(s){
     if(_unWatched[s.slug+'|'+s.season+'|'+s.episode])return false;
@@ -3461,10 +3464,10 @@ function openUpNext(){
     return c;
   }
 
-  // Recently watched (scrolled up from default)
+  // Recently watched — reversed so most recent is at bottom (closest to New Episodes)
   if(recent.length){
     h+='<div class="un-section">🕐 Recently Watched</div><div class="un-grid">';
-    recent.forEach(function(s){h+=card(s,true)});
+    recent.slice().reverse().forEach(function(s){h+=card(s,true)});
     h+='</div>';
   }
   if(newItems.length){
@@ -3479,20 +3482,15 @@ function openUpNext(){
   }
   el.innerHTML=h;
   var ov=document.getElementById('un-overlay');
-  // Position scroll BEFORE showing to avoid visible jump
-  if(_unReturning){
-    var _sp=_unScrollPos;_unReturning=false;
-    ov.style.visibility='hidden';ov.style.display='';
-    requestAnimationFrame(function(){ov.scrollTop=_sp;ov.style.visibility=''});
-  }else{
-    ov.style.visibility='hidden';ov.style.display='';
-    // Scroll to New Episodes section before making visible
+  // Slide in from right + position scroll before visible
+  ov.style.visibility='hidden';ov.style.transition='none';ov.style.transform='translateX(100%)';ov.style.display='';
+  if(!_unEverOpened){
+    _unEverOpened=true;
     var anchor=document.getElementById('un-default-scroll');
-    if(anchor){
-      requestAnimationFrame(function(){anchor.scrollIntoView({behavior:'auto',block:'start'});ov.style.visibility=''});
-    }else{
-      ov.scrollTop=0;ov.style.visibility='';
-    }
+    requestAnimationFrame(function(){if(anchor)anchor.scrollIntoView({behavior:'auto',block:'start'});ov.style.visibility='';ov.style.transition='transform .3s ease';requestAnimationFrame(function(){ov.style.transform=''})});
+  }else{
+    var _sp=_unScrollPos;
+    requestAnimationFrame(function(){ov.scrollTop=_sp;ov.style.visibility='';ov.style.transition='transform .3s ease';requestAnimationFrame(function(){ov.style.transform=''})});
   }
   _lockBody();
 }
@@ -3720,6 +3718,15 @@ function markWatchedAt(slug,season,episode,epTraktId,when){
   _unWatched[key]=watchedAt;
   localStorage.setItem('iris_un_watched',JSON.stringify(_unWatched));
   _injectRecentWatch(slug,season,episode,watchedAt);
+  // Advance to next episode
+  var unData=D.un||{};var shows=unData.shows||[];
+  for(var i=0;i<shows.length;i++){
+    if(shows[i].slug===slug&&shows[i].season===season&&shows[i].episode===episode){
+      var s=shows[i];var hasMore=!s.aired_total||s.completed+1<s.aired_total;
+      if(hasMore){s.episode=episode+1;s.completed=(s.completed||0)+1;s.ep_title='';s.ep_overview='';s.ep_still='';s.ep_aired='';s.ep_trakt_id=0;s.is_new=false}
+      break;
+    }
+  }
   openUpNext();
   if(epTraktId)_traktSync(epTraktId,watchedAt);
 }
@@ -3732,7 +3739,108 @@ function markWatched(slug,season,episode,epTraktId,btn){
   _unWatched[key]=watchedAt;
   localStorage.setItem('iris_un_watched',JSON.stringify(_unWatched));
   _injectRecentWatch(slug,season,episode,watchedAt);
-  setTimeout(function(){card.style.transition='all .3s';card.style.maxHeight='0';card.style.overflow='hidden';card.style.padding='0';card.style.margin='0';card.style.border='none';setTimeout(function(){card.remove()},350)},150);
+  // Add to Recently Watched section in the DOM (at bottom, closest to New Episodes)
+  (function(){
+    var sections=document.querySelectorAll('#un-content .un-section');
+    var recentGrid=null;var newEpsSection=null;
+    sections.forEach(function(sec){
+      if(sec.textContent.indexOf('Recently Watched')>=0){recentGrid=sec.nextElementSibling}
+      if(sec.id==='un-default-scroll')newEpsSection=sec;
+    });
+    var showTitle=card.querySelector('.un-show');
+    var poster=card.querySelector('.un-poster');
+    var cardHtml='<div class="un-card" style="opacity:0;transition:opacity .3s">';
+    if(poster&&poster.src)cardHtml+='<img class="un-poster" src="'+poster.src+'" loading="lazy" onerror="this.style.display=\'none\'">';
+    else cardHtml+='<div class="un-poster-ph">📺</div>';
+    cardHtml+='<div class="un-info"><div class="un-show">'+(showTitle?showTitle.textContent:slug)+'</div>';
+    cardHtml+='<div class="un-ep">S'+String(season).padStart(2,'0')+'E'+String(episode).padStart(2,'0')+' — just watched</div>';
+    cardHtml+='<div class="un-meta"><span>'+watchedAt.substring(0,10)+'</span></div>';
+    cardHtml+='</div></div>';
+    var ov=document.getElementById('un-overlay');
+    var scrollBefore=ov.scrollTop;
+    if(recentGrid){
+      recentGrid.insertAdjacentHTML('beforeend',cardHtml);
+      var added=recentGrid.lastElementChild;
+      requestAnimationFrame(function(){
+        // Compensate scroll so the visible area doesn't shift
+        var addedH=added?added.offsetHeight:0;
+        ov.scrollTop=scrollBefore+addedH;
+        if(added)added.style.opacity='1';
+      });
+    }else if(newEpsSection){
+      var sec=document.createElement('div');sec.className='un-section';sec.textContent='🕐 Recently Watched';
+      var grid=document.createElement('div');grid.className='un-grid';grid.innerHTML=cardHtml;
+      newEpsSection.parentElement.insertBefore(grid,newEpsSection);
+      newEpsSection.parentElement.insertBefore(sec,grid);
+      var added2=grid.firstElementChild;
+      requestAnimationFrame(function(){
+        var addedH2=(sec.offsetHeight||0)+(added2?added2.offsetHeight:0);
+        ov.scrollTop=scrollBefore+addedH2;
+        if(added2)added2.style.opacity='1';
+      });
+    }
+  })();
+  // Advance the show to the next episode in D.un.shows
+  var unData=D.un||{};var shows=unData.shows||[];
+  var showObj=null;var hasMore=false;
+  for(var i=0;i<shows.length;i++){
+    if(shows[i].slug===slug&&shows[i].season===season&&shows[i].episode===episode){
+      showObj=shows[i];var nextEp=episode+1;
+      hasMore=!showObj.aired_total||showObj.completed+1<showObj.aired_total;
+      if(hasMore){
+        showObj.episode=nextEp;showObj.completed=(showObj.completed||0)+1;
+        showObj.ep_title='';showObj.ep_overview='';showObj.ep_still='';showObj.ep_aired='';showObj.ep_trakt_id=0;
+        showObj.is_new=false;showObj.eps_left=Math.max(0,(showObj.eps_left||1)-1);
+      }
+      break;
+    }
+  }
+  // Smooth in-place transition: fade out → update card → fade in
+  card.style.transition='opacity .2s';card.style.opacity='0.2';
+  setTimeout(function(){
+    if(hasMore&&showObj){
+      // Update card content in-place
+      var epEl=card.querySelector('.un-ep');
+      if(epEl){epEl.innerHTML='S'+String(showObj.season).padStart(2,'0')+'E'+String(showObj.episode).padStart(2,'0')}
+      // Update progress bar
+      var pct=showObj.aired_total?Math.round(showObj.completed/showObj.aired_total*100):0;
+      var progBar=card.querySelector('.un-prog-bar');if(progBar)progBar.style.width=pct+'%';
+      var progText=card.querySelector('.un-prog-text');
+      if(progText){var spans=progText.querySelectorAll('span');if(spans[1])spans[1].textContent=(showObj.eps_left||0)+' eps'}
+      // Update data attributes
+      card.dataset.e=showObj.episode;card.dataset.eid=showObj.ep_trakt_id||0;
+      // Update check button
+      var watchBtn=card.querySelector('.un-watch-btn');
+      if(watchBtn)watchBtn.setAttribute('onclick',"event.stopPropagation();markWatched('"+slug.replace(/'/g,"\\'")+"',"+showObj.season+","+showObj.episode+","+(showObj.ep_trakt_id||0)+",this)");
+      // Remove "New" badge
+      var newBadge=card.querySelector('.un-new');if(newBadge)newBadge.remove();
+      // Fade back in
+      card.style.opacity='1';card.style.pointerEvents='';
+      // Fetch next episode title/data from TMDB and update card
+      var tmdbId=card.dataset.tmdb||showObj.tmdb_id;
+      if(tmdbId){
+        var tk=(D.un||{}).tmdb_key||'';
+        if(tk){
+          fetch('https://api.themoviedb.org/3/tv/'+tmdbId+'/season/'+showObj.season+'/episode/'+showObj.episode+'?api_key='+tk)
+          .then(function(r){return r.json()}).then(function(d){
+            if(d.status_code)return;
+            showObj.ep_title=d.name||'';showObj.ep_aired=d.air_date||'';
+            var epEl2=card.querySelector('.un-ep');
+            if(epEl2){
+              var txt='S'+String(showObj.season).padStart(2,'0')+'E'+String(showObj.episode).padStart(2,'0');
+              if(d.name)txt+=' — '+d.name;
+              if(d.air_date)txt+=' <span style="color:#666;font-size:10px">· '+d.air_date+'</span>';
+              epEl2.innerHTML=txt;
+            }
+          }).catch(function(){});
+        }
+      }
+    }else{
+      // Last episode — collapse and remove
+      card.style.transition='all .3s';card.style.maxHeight='0';card.style.overflow='hidden';card.style.padding='0';card.style.margin='0';card.style.border='none';
+      setTimeout(function(){card.remove()},350);
+    }
+  },250);
   if(epTraktId)_traktSync(epTraktId,watchedAt);
 }
 
@@ -3743,7 +3851,9 @@ function removeRecent(epId,btn){
 }
 
 function closeUpNext(){
-  document.getElementById('un-overlay').style.display='none';
+  var ov=document.getElementById('un-overlay');
+  _unScrollPos=ov.scrollTop;
+  ov.style.display='none';
   _unlockBody();
 }
 // R2: Slide-to-dismiss Up Next — reveals content beneath as you drag right
@@ -3764,7 +3874,7 @@ function closeUpNext(){
     if(!tracking&&!moved)return;tracking=false;
     var dx=parseInt(ov.style.transform.replace(/[^0-9.-]/g,''))||0;
     ov.style.transition='transform .3s ease';
-    if(dx>window.innerWidth*0.35){ov.style.transform='translateX(100%)';setTimeout(function(){ov.style.display='none';ov.style.transform='';_unlockBody()},320)}
+    if(dx>window.innerWidth*0.35){_unScrollPos=ov.scrollTop;ov.style.transform='translateX(100%)';setTimeout(function(){ov.style.display='none';ov.style.transform='';_unlockBody()},320)}
     else{ov.style.transform=''}
     moved=false;
   },{passive:true});
