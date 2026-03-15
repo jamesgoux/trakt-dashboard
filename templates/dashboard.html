@@ -3582,13 +3582,30 @@ function _unBuildPanel(show){
   if(show.stream&&show.stream.length){h+='<div style="display:flex;gap:8px;margin-bottom:12px">';show.stream.forEach(function(st){h+='<img src="'+st.i+'" title="'+st.n+'" style="width:28px;height:28px;border-radius:6px">'});h+='</div>'}
   if(show.ep_runtime)h+='<div style="font-size:12px;color:var(--t2);margin-bottom:8px">⏱ '+_unFmtMin(show.ep_runtime)+'</div>';
   if(show.ep_overview)h+='<p style="font-size:13px;color:var(--t2);line-height:1.5;margin-bottom:16px">'+show.ep_overview+'</p>';
-  h+='<div style="display:flex;flex-direction:column;gap:8px">';
-  h+='<button onclick="markWatchedAt(\''+slug2+'\','+show.season+','+show.episode+','+(show.ep_trakt_id||0)+',\'now\')" style="width:100%;padding:14px;background:var(--tv);color:#fff;border:none;border-radius:10px;font-size:14px;cursor:pointer;font-weight:600;min-height:48px">✓ Watched Now</button>';
-  if(show.ep_aired)h+='<button onclick="markWatchedAt(\''+slug2+'\','+show.season+','+show.episode+','+(show.ep_trakt_id||0)+',\''+show.ep_aired+'\')" style="width:100%;padding:14px;background:rgba(20,184,166,.15);color:var(--tv);border:1px solid rgba(20,184,166,.3);border-radius:10px;font-size:14px;cursor:pointer;min-height:48px">📅 Watched on Air Date <span style=\'opacity:.6;font-size:12px\'>'+show.ep_aired+'</span></button>';
-  h+='<div style="display:flex;gap:8px"><input type="datetime-local" id="un-custom-date" style="flex:1;padding:14px;background:rgba(20,184,166,.08);border:1px solid rgba(20,184,166,.2);border-radius:10px;color:var(--tx);font-size:13px;min-height:48px"><button onclick="markWatchedAt(\''+slug2+'\','+show.season+','+show.episode+','+(show.ep_trakt_id||0)+',document.getElementById(\'un-custom-date\').value)" style="padding:14px 20px;background:rgba(20,184,166,.15);color:var(--tv);border:1px solid rgba(20,184,166,.3);border-radius:10px;font-size:14px;cursor:pointer;min-height:48px;white-space:nowrap">📅 Log Date</button></div>';
+  h+='<div style="display:flex;gap:8px">';
+  h+='<button onclick="markWatchedAt(\''+slug2+'\','+show.season+','+show.episode+','+(show.ep_trakt_id||0)+',\'now\')" style="flex:1;padding:14px 8px;background:var(--tv);color:#fff;border:none;border-radius:10px;font-size:13px;cursor:pointer;font-weight:600;min-height:48px">Just Now</button>';
+  if(show.ep_aired)h+='<button onclick="markWatchedAt(\''+slug2+'\','+show.season+','+show.episode+','+(show.ep_trakt_id||0)+',\''+show.ep_aired+'\')" style="flex:1;padding:14px 8px;background:#0e7490;color:#fff;border:none;border-radius:10px;font-size:13px;cursor:pointer;font-weight:600;min-height:48px">Air Date</button>';
+  h+='<button onclick="_unShowDatePicker(\''+slug2+'\','+show.season+','+show.episode+','+(show.ep_trakt_id||0)+')" style="flex:1;padding:14px 8px;background:#0e7490;color:#fff;border:none;border-radius:10px;font-size:13px;cursor:pointer;font-weight:600;min-height:48px">Other Date</button>';
   h+='</div>';
   h+='</div>';
   return h;
+}
+
+function _unShowDatePicker(slug,season,episode,epTraktId){
+  var existing=document.getElementById('un-date-prompt');
+  if(existing){existing.remove();return}
+  var ct=document.getElementById('un-detail-ct');
+  if(!ct)return;
+  var d=document.createElement('div');
+  d.id='un-date-prompt';
+  d.style.cssText='padding:12px 16px;margin-top:8px;';
+  d.innerHTML='<div style="display:flex;gap:8px;align-items:center"><input type="datetime-local" id="un-custom-date" style="flex:1;padding:12px;background:var(--sf);border:1px solid rgba(255,255,255,.15);border-radius:10px;color:var(--tx);font-size:13px;min-height:44px">'
+    +'<button onclick="document.getElementById(\'un-date-prompt\').remove()" style="padding:12px 16px;background:var(--sf);color:var(--t2);border:1px solid rgba(255,255,255,.1);border-radius:10px;font-size:13px;cursor:pointer;min-height:44px">Cancel</button>'
+    +'<button onclick="var v=document.getElementById(\'un-custom-date\').value;if(v){markWatchedAt(\''+slug.replace(/'/g,"\\'")+'\','+season+','+episode+','+epTraktId+',v)}" style="padding:12px 16px;background:var(--tv);color:#fff;border:none;border-radius:10px;font-size:13px;cursor:pointer;font-weight:600;min-height:44px">Log</button></div>';
+  // Insert after the buttons row
+  var btns=ct.querySelector('div:last-child');
+  if(btns&&btns.parentElement)btns.parentElement.insertBefore(d,btns.nextSibling);
+  else ct.appendChild(d);
 }
 
 var _crBase=null,_crEp=0,_crAll=null,_crIdx=0;
