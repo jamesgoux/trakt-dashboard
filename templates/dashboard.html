@@ -50,6 +50,11 @@ tr:hover td{background:rgba(255,255,255,.02)}
 .badge{display:inline-block;padding:1px 6px;border-radius:3px;font-size:10px;font-weight:600}
 .b-m{background:rgba(251,146,60,.15);color:var(--mv)}.b-e{background:rgba(20,184,166,.15);color:var(--tv)}.b-c{background:rgba(59,130,246,.15);color:var(--cn)}.b-th{background:rgba(167,139,250,.15);color:var(--th)}.b-bk{background:rgba(251,191,36,.15);color:var(--bk)}.b-pc{background:rgba(239,68,68,.15);color:#ef4444}.b-wk{background:rgba(29,185,84,.15);color:#1db954}.b-sp{background:rgba(14,165,233,.15);color:#0ea5e9}.b-bg{background:rgba(236,72,153,.15);color:#ec4899}.b-gt{background:rgba(99,102,241,.15);color:#6366f1}
 .pr{cursor:pointer}.pr:hover td{background:rgba(255,255,255,.04)}
+.fd-chip{display:block;width:100%;padding:10px 12px;margin:3px 0;border:1px solid rgba(255,255,255,.08);border-radius:10px;background:rgba(255,255,255,.03);color:var(--t2);font-size:13px;cursor:pointer;text-align:left;transition:all .15s;-webkit-tap-highlight-color:transparent}
+.fd-chip.fd-on{background:rgba(124,58,237,.2);border-color:rgba(124,58,237,.5);color:#fff;font-weight:600}
+.fd-chip:active{transform:scale(.97)}
+.fd-yr{text-align:center;padding:10px 8px;font-variant-numeric:tabular-nums}
+@media(min-width:768px){#filter-dialog{display:flex !important;align-items:center;justify-content:center}#filter-inner{height:auto !important;max-height:80vh;border-radius:16px;background:var(--bg);border:1px solid rgba(255,255,255,.1);box-shadow:0 20px 60px rgba(0,0,0,.5)}}
 .pn{display:flex;align-items:center;gap:10px}
 .hs{width:44px;height:44px;border-radius:50%;object-fit:cover;background:#222;flex-shrink:0}
 .hp{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#1a1a2e,#0f3460);display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--t2);font-weight:700;flex-shrink:0}
@@ -147,92 +152,114 @@ body{overflow-x:hidden}
 <h1><svg class="iris-logo" viewBox="0 0 512 512" width="28" height="28" style="vertical-align:middle;margin-right:6px"><defs><radialGradient id="ig" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#e94560"/><stop offset="45%" stop-color="#7c3aed"/><stop offset="100%" stop-color="#c4b5fd"/></radialGradient></defs><path d="M256 96C128 96 32 256 32 256s96 160 224 160 224-160 224-160S384 96 256 96z" fill="#c4b5fd"/><circle cx="256" cy="256" r="200" fill="url(#ig)"/><circle cx="256" cy="256" r="80" fill="#0f0f0f"/><circle cx="220" cy="220" r="28" fill="rgba(255,255,255,0.4)"/><circle cx="280" cy="240" r="12" fill="rgba(255,255,255,0.2)"/></svg><span style="color:var(--ac);font-weight:800">iris</span> <span style="color:var(--t2);font-weight:400">// jamesgoux</span></h1>
 <div class="fctrls">
 <svg class="iris-logo-mob" viewBox="0 0 512 512" width="24" height="24" style="display:none;vertical-align:middle;flex-shrink:0"><defs><radialGradient id="igm" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#e94560"/><stop offset="45%" stop-color="#7c3aed"/><stop offset="100%" stop-color="#c4b5fd"/></radialGradient></defs><path d="M256 96C128 96 32 256 32 256s96 160 224 160 224-160 224-160S384 96 256 96z" fill="#c4b5fd"/><circle cx="256" cy="256" r="200" fill="url(#igm)"/><circle cx="256" cy="256" r="80" fill="#0f0f0f"/><circle cx="220" cy="220" r="28" fill="rgba(255,255,255,0.4)"/></svg>
-<div class="fbtn"><select id="gs"><option value="all">🌐 All</option><option value="movie">🎞️ Movies</option><option value="show">📺 Shows</option><option value="book">📚 Books</option><option value="music">🎧 Music</option><option value="concert">🎸 Concerts</option><option value="podcast">🎙️ Podcasts</option><option value="theater">🎭 Theater</option><option value="boardgame">🎲 Board Games</option><option value="sports">🏟️ Sports</option><option value="game">🎮 Video Games</option><option value="health">🏃 Workouts</option></select></div>
-<div class="fbtn"><select id="ys"><option value="all">All Time</option></select></div>
+<button id="filter-btn" onclick="openFilterDialog()" style="padding:6px 14px;background:var(--sf);border:1px solid rgba(255,255,255,.15);border-radius:8px;color:var(--tx);font-size:13px;cursor:pointer;font-weight:600;min-height:36px;white-space:nowrap">2026 Life</button>
+<!-- Hidden selects for backward compat -->
+<select id="gs" style="display:none"><option value="all">All</option><option value="life">Life</option><option value="movietv">Movies/TV</option><option value="movie">Movies</option><option value="show">Shows</option><option value="book">Books</option><option value="music">Music</option><option value="concert">Concerts</option><option value="podcast">Podcasts</option><option value="theater">Theater</option><option value="boardgame">Board Games</option><option value="sports">Sports</option><option value="game">Video Games</option><option value="health">Workouts</option></select>
+<select id="ys" style="display:none"><option value="all">All Time</option></select>
 <button class="hbtn" id="refresh-btn" onclick="this.querySelector('.rf-icon').classList.add('hbtn-spin');this.style.color='var(--ac)';document.querySelector('.fbar').classList.add('fbar-pulse');setTimeout(function(){location.reload()},900)" title="Refresh"><span class="rf-icon" style="display:inline-block">↻</span></button>
 <div style="position:relative"><button class="hbtn" onclick="var m=document.getElementById('jmp-menu');m.style.display=m.style.display==='block'?'none':'block'" title="Jump to section"><span style="display:block;transform:translateY(-1px)">☰</span></button><div id="jmp-menu" style="display:none;position:absolute;right:0;top:100%;margin-top:6px;background:var(--sf);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:6px 0;min-width:200px;max-height:70vh;overflow-y:auto;z-index:150;box-shadow:0 8px 30px rgba(0,0,0,.5)"></div></div>
 <button class="hbtn" onclick="openSportsAdd()" title="Add Game">🏟️</button>
 <button class="hbtn" onclick="openUpNext()" title="Up Next">📺</button>
 </div>
 </div>
+<!-- Filter Dialog -->
+<div id="filter-dialog" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;z-index:9990;background:rgba(0,0,0,.85);backdrop-filter:blur(8px)">
+<div id="filter-inner" style="max-width:480px;width:100%;height:100%;margin:0 auto;display:flex;flex-direction:column;padding:0">
+<!-- Header -->
+<div style="padding:16px 20px 8px;text-align:center">
+<div style="font-size:20px;font-weight:800;color:var(--ac)">Filter</div>
+</div>
+<!-- Year + Type columns -->
+<div style="flex:1;display:flex;gap:0;overflow:hidden;padding:0 12px">
+<!-- Years -->
+<div id="fd-years" style="flex:0 0 80px;overflow-y:auto;padding:8px 4px;-webkit-overflow-scrolling:touch"></div>
+<!-- Types -->
+<div id="fd-types" style="flex:1;overflow-y:auto;padding:8px 4px;-webkit-overflow-scrolling:touch"></div>
+</div>
+<!-- Go button -->
+<div style="padding:12px 20px 28px;padding-bottom:max(28px,env(safe-area-inset-bottom))">
+<button id="fd-go" onclick="applyFilter()" style="width:100%;padding:16px;background:linear-gradient(135deg,#7c3aed,#e94560);color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer;letter-spacing:.5px">Go</button>
+</div>
+</div>
+</div>
 <div class="dash">
 <div class="sg" id="st"></div>
 <!-- LIFELINE: 30-day activity -->
-<div class="g2 med-s" data-med="all movie show book music concert theater">
+<div class="g2 med-s" data-med="all life movietv movie show book music concert theater">
 <div id="sec-ll" class="cd fw s-t"><h3><span class="i">🧬</span>Lifeline <span style="float:right;display:flex;gap:6px"><button onclick="openOnThisDay()" style="font-size:12px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);color:var(--tx);border-radius:6px;padding:6px 12px;cursor:pointer;min-height:32px;-webkit-tap-highlight-color:transparent;transition:background .15s">📅 On This Day</button><button onclick="openLifelineFeed()" style="font-size:12px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);color:var(--tx);border-radius:6px;padding:6px 12px;cursor:pointer;min-height:32px;-webkit-tap-highlight-color:transparent;transition:background .15s">📜 Full Feed</button></span></h3><div id="ll-sel" class="vtog" style="margin-bottom:4px"></div><div id="llc" style="height:280px"></div></div>
 </div>
 <!-- TIMELINE: Yearly / Monthly -->
-<div class="g2 med-s" data-med="all movie show book concert podcast sports theater health boardgame game">
+<div class="g2 med-s" data-med="all life movietv movie show book concert podcast sports theater health boardgame game">
 <div id="sec-tl" class="cd fw s-t"><h3 id="tlh"><span class="i">📈</span>Yearly Activity</h3><div id="yrc" style="height:280px"></div><div id="tlc" style="height:280px;display:none"></div></div>
 </div>
-<div class="g2 med-s" data-med="all movie show">
+<div class="g2 med-s" data-med="all movietv movie show">
 <div id="sec-act" class="cd s-a"><h3><span class="i">🎭</span>Most Watched Actors <button class="ptbl-new-btn" onclick="_ptblToggleNew('atb',D.a,this)" style="float:right;font-size:11px;padding:4px 10px;background:none;border:1px solid rgba(74,222,128,.3);color:#4ade80;border-radius:6px;cursor:pointer;display:none">↑ Climbers</button></h3><div class="stb"><table><thead><tr><th>#</th><th>Actor</th><th>Mov</th><th>Show</th><th>Total</th></tr></thead><tbody id="atb"></tbody></table></div></div>
 <div class="cd s-a"><h3><span class="i">🎭</span>Most Watched Actresses <button class="ptbl-new-btn" onclick="_ptblToggleNew('xtb',D.x,this)" style="float:right;font-size:11px;padding:4px 10px;background:none;border:1px solid rgba(74,222,128,.3);color:#4ade80;border-radius:6px;cursor:pointer;display:none">↑ Climbers</button></h3><div class="stb"><table><thead><tr><th>#</th><th>Actress</th><th>Mov</th><th>Show</th><th>Total</th></tr></thead><tbody id="xtb"></tbody></table></div></div>
 </div>
-<div class="g2 med-s" data-med="all movie show">
+<div class="g2 med-s" data-med="all movietv movie show">
 <div id="sec-crew" class="cd s-c"><h3><span class="i">🎬</span>Most Watched Directors <button class="ptbl-new-btn" onclick="_ptblToggleNew('dtb',D.d||[],this)" style="float:right;font-size:11px;padding:4px 10px;background:none;border:1px solid rgba(74,222,128,.3);color:#4ade80;border-radius:6px;cursor:pointer;display:none">↑ Climbers</button></h3><div class="stb"><table><thead><tr><th>#</th><th>Director</th><th>Mov</th><th>Show</th><th>Total</th></tr></thead><tbody id="dtb"></tbody></table></div></div>
 <div class="cd s-c"><h3><span class="i">✍️</span>Most Watched Writers <button class="ptbl-new-btn" onclick="_ptblToggleNew('wtb',D.w||[],this)" style="float:right;font-size:11px;padding:4px 10px;background:none;border:1px solid rgba(74,222,128,.3);color:#4ade80;border-radius:6px;cursor:pointer;display:none">↑ Climbers</button></h3><div class="stb"><table><thead><tr><th>#</th><th>Writer</th><th>Mov</th><th>Show</th><th>Total</th></tr></thead><tbody id="wtb"></tbody></table></div></div>
 </div>
 <!-- TOP SHOWS POSTERS -->
-<div class="g2 med-s" data-med="all show">
+<div class="g2 med-s" data-med="all movietv show">
 <div id="sec-shows" class="cd fw s-s"><h3><span class="i">📺</span>Most Watched Shows <span class="vtog" style="float:right"><button class="vb" id="ss-eps" onclick="window._showSort='eps';document.getElementById('ss-eps').classList.add('vb-on');document.getElementById('ss-dur').classList.remove('vb-on');renderPosters(true)">By Episodes</button><button class="vb vb-on" id="ss-dur" onclick="window._showSort='dur';document.getElementById('ss-dur').classList.add('vb-on');document.getElementById('ss-eps').classList.remove('vb-on');renderPosters(true)">By Duration</button></span></h3><div id="poster-grid" style="display:flex;flex-wrap:wrap;gap:10px;overflow-x:auto;padding:4px 0"></div></div>
 </div>
 <!-- EPISODES WATCHED -->
-<div class="g2 med-s" data-med="all show">
+<div class="g2 med-s" data-med="all movietv show">
 <div id="sec-eps" class="cd fw s-s"><h3><span class="i">📺</span>Episodes Watched <span class="vtog" id="ep-res-wrap" style="float:right"></span></h3><div id="epcc" style="height:300px"></div></div>
 </div>
 <!-- TTW + CATCH-UP (same row) -->
-<div class="g2 med-s" data-med="all show">
+<div class="g2 med-s" data-med="all movietv show">
 <div id="sec-ttw" class="cd s-s"><h3><span class="i">⏱️</span>Time to Watch</h3><div id="ttwc" style="height:400px"></div></div>
 <div class="cd s-s"><h3><span class="i">📚</span>Catch-Up Shows <span class="vtog" style="float:right"><button class="vb vb-on cup-tog" data-v="long" onclick="window._cupMode='long';document.querySelectorAll('.cup-tog').forEach(function(b){b.classList.toggle('vb-on',b.dataset.v==='long')});renderCatchup()">Longest</button><button class="vb cup-tog" data-v="short" onclick="window._cupMode='short';document.querySelectorAll('.cup-tog').forEach(function(b){b.classList.toggle('vb-on',b.dataset.v==='short')});renderCatchup()">Shortest</button></span></h3><div id="cupc" style="height:400px"></div></div>
 </div>
 <!-- MOVIES -->
-<div class="g2 med-s" data-med="all movie">
+<div class="g2 med-s" data-med="all movietv movie">
 <div id="sec-mov" class="cd fw s-m"><h3 id="mdh"><span class="i">🎞️</span>Watched Movies <span class="vtog" style="float:right"><button class="vb vb-on mv-mode" data-v="long" onclick="window._mvMode='long';movieCharts(true)">Longest</button><button class="vb mv-mode" data-v="short" onclick="window._mvMode='short';movieCharts(true)">Shortest</button><button class="vb mv-mode" data-v="rewatch" onclick="window._mvMode='rewatch';movieCharts(true)">Rewatched</button></span></h3><div id="mdc" class="cover-grid"></div></div>
 </div>
 <!-- RATINGS: movie row then TV row -->
-<div class="g3 med-s" data-med="all movie">
+<div class="g3 med-s" data-med="all movietv movie">
 <div id="sec-ratings" class="cd s-m"><h3><span class="i">⭐</span>My Movie Ratings (Letterboxd)</h3><div id="lbc" style="height:280px"></div></div>
 <div class="cd s-m"><h3><span class="i">⭐</span>My Movies (Letterboxd) <span class="vtog" style="float:right"><button class="vb vb-on rt-tog" data-v="high" onclick="window._rtMode='high';document.querySelectorAll('.rt-tog').forEach(function(b){b.classList.toggle('vb-on',b.dataset.v==='high')});renderRatings()">Highest</button><button class="vb rt-tog" data-v="low" onclick="window._rtMode='low';document.querySelectorAll('.rt-tog').forEach(function(b){b.classList.toggle('vb-on',b.dataset.v==='low')});renderRatings()">Lowest</button></span></h3><div class="stb" id="my-rat" style="font-size:12px"></div></div>
 <div class="cd s-m"><h3><span class="i">🎞️</span>Community Movies (Trakt) <span class="vtog" style="float:right"><button class="vb vb-on rt-tog" data-v="high" onclick="window._rtMode='high';document.querySelectorAll('.rt-tog').forEach(function(b){b.classList.toggle('vb-on',b.dataset.v==='high')});renderRatings()">Highest</button><button class="vb rt-tog" data-v="low" onclick="window._rtMode='low';document.querySelectorAll('.rt-tog').forEach(function(b){b.classList.toggle('vb-on',b.dataset.v==='low')});renderRatings()">Lowest</button></span></h3><div class="stb" id="mc-rat" style="font-size:12px"></div></div>
 </div>
-<div class="g3 med-s" data-med="all show">
+<div class="g3 med-s" data-med="all movietv show">
 <div id="sec-sz-ratings" class="cd s-s"><h3><span class="i">⭐</span>My TV Ratings (Serializd)</h3><div id="szc" style="height:280px"></div></div>
 <div class="cd s-s"><h3><span class="i">📺</span>My Seasons (Serializd) <span class="vtog" style="float:right"><button class="vb vb-on rt-tog" data-v="high" onclick="window._rtMode='high';document.querySelectorAll('.rt-tog').forEach(function(b){b.classList.toggle('vb-on',b.dataset.v==='high')});renderRatings()">Highest</button><button class="vb rt-tog" data-v="low" onclick="window._rtMode='low';document.querySelectorAll('.rt-tog').forEach(function(b){b.classList.toggle('vb-on',b.dataset.v==='low')});renderRatings()">Lowest</button></span></h3><div class="stb" id="sz-rat" style="font-size:12px"></div></div>
 <div class="cd s-s"><h3><span class="i">📺</span>Community TV (Trakt) <span class="vtog" style="float:right"><button class="vb vb-on rt-tog" data-v="high" onclick="window._rtMode='high';document.querySelectorAll('.rt-tog').forEach(function(b){b.classList.toggle('vb-on',b.dataset.v==='high')});renderRatings()">Highest</button><button class="vb rt-tog" data-v="low" onclick="window._rtMode='low';document.querySelectorAll('.rt-tog').forEach(function(b){b.classList.toggle('vb-on',b.dataset.v==='low')});renderRatings()">Lowest</button></span></h3><div class="stb" id="sc-rat" style="font-size:12px"></div></div>
 </div>
-<div class="g3 med-s" data-med="all movie show">
+<div class="g3 med-s" data-med="all movietv movie show">
 <div id="sec-time" class="cd s-t"><h3><span class="i">📅</span>Day of Week</h3><div id="dwc" style="height:360px"></div></div>
 <div class="cd s-t"><h3><span class="i">🕐</span>Time of Day</h3><div id="hodc" style="height:360px"></div></div>
 <div id="sec-meta" class="cd s-g"><h3 id="gnh"><span class="i">🎯</span>Genres</h3><div id="gnc" style="height:360px"></div></div>
 </div>
-<div class="g2 med-s" data-med="all movie show" id="gt-wrap">
+<div class="g2 med-s" data-med="all movietv movie show" id="gt-wrap">
 <div class="cd fw s-g"><h3><span class="i">📈</span>Genre Trends</h3><div id="gtc" style="height:350px"></div></div>
 </div>
-<div class="g2 med-s" data-med="all show">
+<div class="g2 med-s" data-med="all movietv show">
 <div class="cd s-n"><h3><span class="i">📡</span>Top Networks</h3><div id="netc" style="height:360px"></div></div>
 <div class="cd s-u"><h3><span class="i">🏢</span>Top Studios</h3><div id="stuc" style="height:360px"></div></div>
 </div>
 <!-- GEO -->
-<div class="g2 med-s" data-med="all movie show">
+<div class="g2 med-s" data-med="all movietv movie show">
 <div id="sec-geo" class="cd s-e"><h3><span class="i">🌍</span>Countries</h3><div id="ctryc"></div></div>
 <div class="cd s-e"><h3><span class="i">💬</span>Languages</h3><div id="langc"></div></div>
 </div>
 <!-- RELEASE YEARS -->
-<div class="g2 med-s" data-med="all movie show">
+<div class="g2 med-s" data-med="all movietv movie show">
 <div id="sec-vy" class="cd fw s-t"><h3><span class="i">📅</span>Content Release Years</h3><div class="vtog" style="margin:-6px 0 8px 0"><button class="vb vb-on vy-tog" data-v="year">Year</button><button class="vb vy-tog" data-v="decade">Decade</button><button class="vb vy-tog" data-v="pie">New vs Old</button></div><div id="vyc" style="height:300px"></div></div>
 </div>
 <!-- HOW I WATCH (own section) -->
-<div class="g2 med-s" data-med="all movie show">
+<div class="g2 med-s" data-med="all movietv movie show">
 <div id="sec-how" class="cd s-m"><h3><span class="i">👥</span>Watched With</h3><div id="pplc" style="height:280px"></div></div>
 <div class="cd s-m"><h3><span class="i">🏠</span>Where I Watch <span class="vtog" style="float:right"><button class="vb vb-on lb-loc" data-v="simple">Home/Theater</button><button class="vb lb-loc" data-v="detail">All Locations</button></span></h3><div id="locc" style="height:280px"></div></div>
 </div>
-<div class="g2 med-s" data-med="all movie show">
+<div class="g2 med-s" data-med="all movietv movie show">
 <div class="cd s-m"><h3><span class="i">📺</span>Streaming Services</h3><div id="strc" style="height:280px"></div></div>
 <div class="cd s-m"><h3><span class="i">📱</span>Devices &amp; Formats</h3><div id="devc" style="height:280px"></div></div>
 </div>
 <!-- FIRST + LAST WATCHES (same row) -->
-<div class="g2 med-s" data-med="all movie show">
+<div class="g2 med-s" data-med="all movietv movie show">
 <div class="cd s-r" id="sec-first"><h3><span class="i">🌅</span>First Watches</h3><table><thead><tr><th>Title</th><th>Type</th><th>Date</th></tr></thead><tbody id="ftb"></tbody></table></div>
 <div id="sec-rec" class="cd s-r"><h3><span class="i">👁️</span>Last Watches</h3><table><thead><tr><th>Title</th><th>Type</th><th>Date</th></tr></thead><tbody id="rtb"></tbody></table></div>
 </div>
@@ -443,13 +470,79 @@ function addClick(chart,el,field,arr,key){chart.on('click',function(p){
 document.addEventListener('click',function(e){if(!e.target.closest('.chart-detail')&&!e.target.closest('canvas')){document.querySelectorAll('.chart-detail').forEach(function(d){d.remove()})}})
 
 // URL hash persistence
-function readHash(){var h=location.hash.substring(1);var p=new URLSearchParams(h);var ysEl=document.getElementById('ys');var curYr=new Date().getFullYear().toString();var defY=ysEl.querySelector('option[value="'+curYr+'"]')?curYr:(ysEl.options[1]?ysEl.options[1].value:'all');cy=p.get('y')||(h?'all':defY);ct=p.get('t')||'all';ysEl.value=cy;document.getElementById('gs').value=ct}
-function writeHash(){var p=new URLSearchParams();if(cy!=='all')p.set('y',cy);if(ct!=='all')p.set('t',ct);history.replaceState(null,'','#'+p.toString())}
+// Filter dialog
+var _fdTypes=[
+  {v:'all',l:'🌐 Everything',s:'All'},
+  {v:'life',l:'🧬 Lifeline / Activity',s:'Life'},
+  {v:'movietv',l:'🎬 Movies & TV',s:'Movies/TV'},
+  {v:'movie',l:'🎞️ Movies Only',s:'Movies'},
+  {v:'show',l:'📺 TV Only',s:'TV'},
+  {v:'podcast',l:'🎙️ Podcasts',s:'Podcasts'},
+  {v:'music',l:'🎧 Music',s:'Music'},
+  {v:'book',l:'📚 Books',s:'Books'},
+  {v:'concert',l:'🎸 Concerts',s:'Concerts'},
+  {v:'theater',l:'🎭 Theater',s:'Theater'},
+  {v:'boardgame',l:'🎲 Board Games',s:'Board Games'},
+  {v:'game',l:'🎮 Video Games',s:'Video Games'},
+  {v:'sports',l:'🏟️ Sports',s:'Sports'},
+  {v:'health',l:'🏃 Workouts',s:'Workouts'}
+];
+var _fdYrSel='',_fdTySel='';
+function _fdBuildYears(){
+  var el=document.getElementById('fd-years');if(!el)return;
+  var yrs=new Set();D.c.m.forEach(function(m){yrs.add(m.month.substr(0,4))});
+  var sorted=Array.from(yrs).sort().reverse();
+  var h='<button class="fd-chip fd-yr'+(_fdYrSel==='all'?' fd-on':'')+'" onclick="_fdPickYr(\'all\',this)">All</button>';
+  sorted.forEach(function(y){h+='<button class="fd-chip fd-yr'+(_fdYrSel===y?' fd-on':'')+'" onclick="_fdPickYr(\''+y+'\',this)">'+y+'</button>'});
+  el.innerHTML=h;
+}
+function _fdBuildTypes(){
+  var el=document.getElementById('fd-types');if(!el)return;
+  var h='';_fdTypes.forEach(function(t){
+    h+='<button class="fd-chip'+(_fdTySel===t.v?' fd-on':'')+'" onclick="_fdPickTy(\''+t.v+'\',this)">'+t.l+'</button>';
+  });
+  el.innerHTML=h;
+}
+function _fdPickYr(v,btn){_fdYrSel=v;btn.parentElement.querySelectorAll('.fd-chip').forEach(function(b){b.classList.remove('fd-on')});btn.classList.add('fd-on');_fdUpdateGo()}
+function _fdPickTy(v,btn){_fdTySel=v;btn.parentElement.querySelectorAll('.fd-chip').forEach(function(b){b.classList.remove('fd-on')});btn.classList.add('fd-on');_fdUpdateGo()}
+function _fdUpdateGo(){
+  var btn=document.getElementById('fd-go');
+  var yl=_fdYrSel==='all'?'All':_fdYrSel;
+  var tl=_fdTypes.find(function(t){return t.v===_fdTySel});
+  btn.textContent=yl+' '+(tl?tl.s:_fdTySel)+' →';
+}
+function openFilterDialog(){
+  _fdYrSel=cy;_fdTySel=ct;
+  _fdBuildYears();_fdBuildTypes();_fdUpdateGo();
+  document.getElementById('filter-dialog').style.display='';
+  // Scroll current year into view
+  var active=document.querySelector('#fd-years .fd-on');if(active)active.scrollIntoView({block:'center'});
+}
+function closeFilterDialog(){document.getElementById('filter-dialog').style.display='none'}
+function applyFilter(){
+  cy=_fdYrSel;ct=_fdTySel;
+  closeFilterDialog();
+  window._llMonthExplicit=false;writeHash();_updateFilterBtn();render();
+}
+// Close on backdrop click
+document.getElementById('filter-dialog').addEventListener('click',function(e){if(e.target===this)closeFilterDialog()});
 
+function _updateFilterBtn(){
+  var btn=document.getElementById('filter-btn');
+  var yl=cy==='all'?'All':cy;
+  var tl=_fdTypes.find(function(t){return t.v===ct});
+  btn.textContent=yl+' '+(tl?tl.s:ct);
+}
+
+function readHash(){var h=location.hash.substring(1);var p=new URLSearchParams(h);var curYr=new Date().getFullYear().toString();var ysEl=document.getElementById('ys');
+  // Default: current year + life (not all/all)
+  cy=p.get('y')||(h?'all':curYr);ct=p.get('t')||(h?'all':'life');
+  ysEl.value=cy;document.getElementById('gs').value=ct;_updateFilterBtn()}
+function writeHash(){var p=new URLSearchParams();if(cy!=='all')p.set('y',cy);if(ct!=='life'&&ct!=='all')p.set('t',ct);if(ct==='all')p.set('t','all');history.replaceState(null,'','#'+p.toString())}
+
+// Populate hidden year select (backward compat)
 var ys=document.getElementById('ys');var yrs=new Set();D.c.m.forEach(function(m){yrs.add(m.month.substr(0,4))});
 Array.from(yrs).sort().reverse().forEach(function(y){var o=document.createElement('option');o.value=y;o.textContent=y;ys.appendChild(o)});
-ys.onchange=function(){cy=ys.value;window._llMonthExplicit=false;writeHash();render()};
-document.getElementById('gs').onchange=function(){ct=this.value;writeHash();render()};
 readHash();
 
 // Jump menu popup
@@ -462,8 +555,11 @@ document.addEventListener('click',function(e){if(!e.target.closest('#jmp-menu')&
 
 function fby(e){if(cy==='all')return e||{};var f={};if(e&&e[cy])f[cy]=e[cy];return f}
 function sm(e){return Object.values(e||{}).reduce(function(a,b){return a+b},0)}
-// Type filter helper: does this entry type match current filter?
-function tmatch(type){return ct==='all'||(ct==='movie'&&type==='movie')||(ct==='show'&&type!=='movie')}
+// Type filter helpers
+function _isAll(){return ct==='all'||ct==='life'}  // "all-like" modes for stats/charts
+function _isMov(){return ct==='all'||ct==='life'||ct==='movietv'||ct==='movie'}
+function _isShow(){return ct==='all'||ct==='life'||ct==='movietv'||ct==='show'}
+function tmatch(type){return _isAll()||(ct==='movietv')||(ct==='movie'&&type==='movie')||(ct==='show'&&type!=='movie')}
 
 function sc(val,label,color){if(val===0||val==='0'||val==='0h'||val==='0k'||val==='0%')return'';return'<div class="sc"><div class="v" style="color:'+color+'">'+val+'</div><div class="l">'+label+'</div></div>'}
 function stats(){
@@ -620,7 +716,7 @@ function renderLifeline(){
 
   // Pulse display: filter by type, split into positive and negative
   var bw=15;
-  var sEp=ct==='all'||ct==='show',sMv=ct==='all'||ct==='movie',sBk=ct==='all'||ct==='book',sSc=ct==='all'||ct==='music',sCo=ct==='all'||ct==='concert',sTh=ct==='all'||ct==='theater',sPc=ct==='all'||ct==='podcast',sWk=ct==='all'||ct==='health',sSp=ct==='all'||ct==='sports',sBg=ct==='all'||ct==='boardgame',sGt=ct==='all'||ct==='game';
+  var sEp=_isShow(),sMv=_isMov(),sBk=_isAll()||ct==='book',sSc=_isAll()||ct==='music',sCo=_isAll()||ct==='concert',sTh=_isAll()||ct==='theater',sPc=_isAll()||ct==='podcast',sWk=_isAll()||ct==='health',sSp=_isAll()||ct==='sports',sBg=_isAll()||ct==='boardgame',sGt=_isAll()||ct==='game';
   var posData={ep:[],mv:[],bk:[],wk:[],sp:[],bg:[],gt:[]};var negData={sc:[],co:[],th:[],pc:[]};
   days.forEach(function(d){var v=ll[d]||{};
     posData.ep.push(sEp?(v.ep||0):0);posData.mv.push(sMv?(v.mv||0):0);posData.bk.push(sBk?(v.bk||0):0);
@@ -3093,7 +3189,7 @@ var _llTypeInfo={ep:{icon:'📺',color:'#0a7d7d',label:'Episodes'},mv:{icon:'�
 var _llDayNames=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 var _llMonthNames=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 // Map dashboard type filter values to lifeline event types
-var _llTypeMap={all:null,movie:['mv'],show:['ep'],book:['bk'],music:['sc'],concert:['co'],theater:['th'],podcast:['pc'],sports:['sp'],health:['wk'],boardgame:['bg'],game:['gt']};
+var _llTypeMap={all:null,life:null,movietv:['mv','ep'],movie:['mv'],show:['ep'],book:['bk'],music:['sc'],concert:['co'],theater:['th'],podcast:['pc'],sports:['sp'],health:['wk'],boardgame:['bg'],game:['gt']};
 
 function _llFormatDate(ds){var d=new Date(ds+'T12:00:00');return _llDayNames[d.getDay()]+', '+_llMonthNames[d.getMonth()]+' '+d.getDate()+', '+d.getFullYear()}
 
@@ -3617,6 +3713,7 @@ function render(){
 }
 function _doRender(){ch.forEach(function(c){try{c.dispose()}catch(e){}});ch=[];
   // Show/hide sections based on medium filter
+  // Section visibility: data-med on each section lists which ct values show it
   document.querySelectorAll('.med-s').forEach(function(el){var meds=el.dataset.med||'';el.style.display=meds.indexOf(ct)>=0?'':'none'});
   // CRITICAL (above fold) — render immediately
   stats();renderLifeline();baseCharts();renderPosters();
