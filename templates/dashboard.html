@@ -153,8 +153,8 @@ body{overflow-x:hidden}
 <!-- Hidden selects for backward compat -->
 <select id="gs" style="display:none"><option value="all">All</option><option value="life">Life</option><option value="movietv">Movies/TV</option><option value="movie">Movies</option><option value="show">Shows</option><option value="book">Books</option><option value="music">Music</option><option value="concert">Concerts</option><option value="podcast">Podcasts</option><option value="theater">Theater</option><option value="boardgame">Board Games</option><option value="sports">Sports</option><option value="game">Video Games</option><option value="health">Workouts</option></select>
 <select id="ys" style="display:none"><option value="all">All Time</option></select>
-<button class="hbtn" id="refresh-btn" onclick="this.querySelector('.rf-icon').classList.add('hbtn-spin');this.style.color='var(--ac)';document.querySelector('.fbar').classList.add('fbar-pulse');setTimeout(function(){location.reload()},900)" title="Refresh"><span class="rf-icon" style="display:inline-block">↻</span></button>
 <div style="position:relative"><button class="hbtn" onclick="_buildJumpMenu();var m=document.getElementById('jmp-menu');m.style.display=m.style.display==='block'?'none':'block'" title="Jump to section"><span style="display:block;transform:translateY(-1px)">☰</span></button><div id="jmp-menu" style="display:none;position:absolute;right:0;top:100%;margin-top:6px;background:var(--sf);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:6px 0;min-width:200px;max-height:70vh;overflow-y:auto;z-index:150;box-shadow:0 8px 30px rgba(0,0,0,.5)"></div></div>
+<button class="hbtn" id="refresh-btn" onclick="this.querySelector('.rf-icon').classList.add('hbtn-spin');this.style.color='var(--ac)';document.querySelector('.fbar').classList.add('fbar-pulse');setTimeout(function(){location.reload()},900)" title="Refresh"><span class="rf-icon" style="display:inline-block">↻</span></button>
 <button class="hbtn" onclick="openSportsAdd()" title="Add Game">🏟️</button>
 <button class="hbtn" onclick="openUpNext()" title="Up Next">📺</button>
 </div>
@@ -3639,12 +3639,17 @@ function _unRenderDetail(allShows,idx){
   var _wasSlug=_crBase?_crBase.slug:'';var _wasEp=_crEp||0;
   _crBase=show;_crEp=show.episode;_crAll=allShows;_crIdx=idx;
   window._unAllShows=allShows;window._unIdx=idx;
-  // Don't pre-cache episode data from pipeline (overview may be truncated)
-  // Let _unPrefetchAndUpdate fetch full data from TMDB
+  // Pre-cache current episode data (images, title, etc.) but mark overview for TMDB refresh
+  if(show.tmdb_id&&show.episode){
+    var ck=_epCacheKey(show.tmdb_id,show.season,show.episode);
+    if(!_epCache[ck]&&(show.ep_title||show.ep_still)){
+      _epCache[ck]={ep_title:show.ep_title||'',ep_overview:show.ep_overview||'',ep_still:show.ep_still||'',ep_aired:show.ep_aired||'',ep_runtime:show.ep_runtime||0,_partial:true};
+    }
+  }
   var ov=document.getElementById('un-overlay');
   var prev=_unMakeEp(show,show.episode-1);
   var next=_unMakeEp(show,show.episode+1);
-  var h='<div class="un-carousel-wrap" style="max-width:none;margin:0;height:100%;border-radius:0;border:none;background:var(--sf)"><div class="un-carousel" id="un-car" style="height:100%">';
+  var h='<div class="un-carousel-wrap" style="max-width:none;margin:0;height:100%;border-radius:0;border:none;background:var(--bg,#0f0f0f)"><div class="un-carousel" id="un-car" style="height:100%">';
   h+='<div class="un-carousel-panel" style="height:100%;padding:0">'+_unBuildPanel(prev)+'</div>';
   h+='<div class="un-carousel-panel" style="height:100%;padding:0">'+_unBuildPanel(show)+'</div>';
   h+='<div class="un-carousel-panel" style="height:100%;padding:0">'+_unBuildPanel(next)+'</div>';
@@ -3659,7 +3664,7 @@ function _unRenderDetail(allShows,idx){
     ov.style.overflowY='hidden';
     fg=document.createElement('div');
     fg.id='un-detail-fg';
-    fg.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;z-index:400;background:var(--sf);overflow:auto;-webkit-overflow-scrolling:touch;transform:translateY(-100%);';
+    fg.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;z-index:400;background:var(--bg,#0f0f0f);overflow:auto;-webkit-overflow-scrolling:touch;transform:translateY(-100%);';
     document.body.appendChild(fg);
   }
   fg.innerHTML=h;
@@ -3729,7 +3734,7 @@ function _unRenderDetail(allShows,idx){
 function _unPrefetchAndUpdate(base,epNum){
   if(epNum<1||!base.tmdb_id)return;
   var k=_epCacheKey(base.tmdb_id,base.season,epNum);
-  if(_epCache[k])return;
+  if(_epCache[k]&&!_epCache[k]._partial)return;
   var tk=(D.un||{}).tmdb_key||'';
   if(!tk)return;
   fetch('https://api.themoviedb.org/3/tv/'+base.tmdb_id+'/season/'+base.season+'/episode/'+epNum+'?api_key='+tk)
