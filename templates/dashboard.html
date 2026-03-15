@@ -3733,7 +3733,7 @@ function render(){
 function _doRender(){ch.forEach(function(c){try{c.dispose()}catch(e){}});ch=[];
   // Show/hide sections based on medium filter
   // Section visibility: data-med on each section lists which ct values show it
-  document.querySelectorAll('.med-s').forEach(function(el){var meds=el.dataset.med||'';el.style.display=meds.indexOf(ct)>=0?'':'none'});
+  document.querySelectorAll('.med-s').forEach(function(el){var meds=(' '+el.dataset.med+' ');el.style.display=meds.indexOf(' '+ct+' ')>=0?'':'none'});
   // CRITICAL (above fold) — render immediately
   stats();renderLifeline();baseCharts();renderPosters();
   // Batch 1: people tables + movies (skip if life mode — not shown)
