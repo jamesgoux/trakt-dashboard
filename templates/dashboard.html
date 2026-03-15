@@ -3450,7 +3450,7 @@ function openUpNext(){
   });
   var recent=ud.recent||[];
   var el=document.getElementById('un-content');
-  var oldFg=document.getElementById('un-detail-fg');if(oldFg){oldFg.remove();var _ov=document.getElementById('un-overlay');_ov.style.overflowY='auto';var _hdr=_ov.querySelector(':scope > div:first-child');if(_hdr)_hdr.style.display=''}
+  var oldFg=document.getElementById('un-detail-fg');if(oldFg){oldFg.remove();var _ov=document.getElementById('un-overlay');_ov.style.overflowY='auto';var _hdr=_ov.querySelector(':scope > div:first-child');if(_hdr)_hdr.style.display='flex'}
   if(!shows.length&&!recent.length){el.innerHTML='<div style="text-align:center;padding:60px;color:var(--t2)"><div style="font-size:40px;margin-bottom:12px">📺</div><div style="font-size:16px;margin-bottom:8px">No Up Next data yet</div><div style="font-size:12px;max-width:400px;margin:0 auto">Trigger a refresh from the <a href="https://github.com/jamesgoux/iris-stats/actions" style="color:var(--sp)">Actions tab</a>.</div></div>';document.getElementById('un-overlay').style.display='';_lockBody();return}
 
   var newItems=shows.filter(function(s){return s.is_new});
@@ -3575,7 +3575,7 @@ function _unBuildPanel(show){
   h+='<button onclick="_crNav(1)" style="background:rgba(255,255,255,.08);border:none;color:var(--tx);border-radius:8px;padding:10px 16px;font-size:16px;cursor:pointer;min-width:48px">▶</button>';
   h+='</div></div>';
   // Still image — edge to edge
-  if(show.ep_still)h+='<img src="'+show.ep_still+'" alt="" style="width:calc(100% + 32px);margin-left:-16px;margin-bottom:16px;max-height:300px;object-fit:cover">';
+  if(show.ep_still)h+='<img src="'+show.ep_still+'" alt="" style="width:100%;margin-bottom:16px;max-height:300px;object-fit:cover;border-radius:10px">';
   // Show title + streaming icons — vertically centered
   h+='<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">';
   h+='<div style="font-size:20px;font-weight:700;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2">'+show.show+'</div>';
@@ -3761,7 +3761,7 @@ function _unDismissDetail(dir){
   var _restoreScroll=el._savedScroll||ov.scrollTop;
   setTimeout(function(){
     fg.remove();
-    var hdr=ov.querySelector(':scope > div:first-child');if(hdr)hdr.style.display='';
+    var hdr=ov.querySelector(':scope > div:first-child');if(hdr)hdr.style.display='flex';
     ov.style.overflowY='auto';
     ov.scrollTop=_restoreScroll;
   },280);
