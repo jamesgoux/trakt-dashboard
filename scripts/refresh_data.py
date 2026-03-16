@@ -1287,13 +1287,15 @@ if missing_slugs:
                 slug = ""
                 if r and r.status_code == 200:
                     results = r.json()
-                    for res in results[:3]:
+                    for res in results[:5]:
                         m = res.get("movie", {})
-                        if m.get("title", "").lower() == title.lower():
+                        m_title = m.get("title", "").lower()
+                        m_year = str(m.get("year", ""))
+                        # Require exact title match AND year match (or close year)
+                        if m_title == title.lower() and (m_year == year or abs(int(m_year or 0) - int(year or 0)) <= 1):
                             slug = m.get("ids", {}).get("slug", "")
                             break
-                    if not slug and results:
-                        slug = results[0].get("movie", {}).get("ids", {}).get("slug", "")
+                    # NO fallback to first result — wrong matches cause data corruption
                 slug_cache[cache_key] = slug
                 time.sleep(0.15)
             except Exception:
