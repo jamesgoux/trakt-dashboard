@@ -397,13 +397,18 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
         tl.append({"t":t["title"],"type":t["type"],"yr":t["year"],"eby":dict(t["eby"]),"tot":t["total"],"sl":slug})
 
     # People — use episode-level credits (eps) for accurate show counts
+    # Build set of watched episodes for filtering anthology/variety shows
+    _watched_eps = defaultdict(set)
+    for e in entries:
+        if e["type"] == "episode" and e.get("trakt_slug") and e.get("season") and e.get("episode_number"):
+            _watched_eps[e["trakt_slug"]].add((int(e["season"]), int(e["episode_number"])))
     ism = lambda g: g in (2, 'male'); isf = lambda g: g in (1, 'female')
     pd = []
     for pid, info in people.items():
         if not ism(info["gender"]) and not isf(info["gender"]): continue
         tis = []; mc = sc = 0
         max_recency = 0
-        person_eps = info.get("eps", {})  # show_slug -> [[s,e],[s,e],...]
+        person_eps = info.get("eps", {})  # show_slug -> [[s,e,yr],[s,e,yr],...]
         for ts in info["titles"]:
             rec = slug_recency.get(ts, 0)
             if rec > max_recency: max_recency = rec
@@ -412,8 +417,14 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
                 tis.append(ti[mk]); mc += 1
             sk = "show:" + ts
             if sk in ti:
+                # If we have per-episode data for this person+show, only count if
+                # they appeared in an episode the user actually watched
+                if ts in person_eps and ts in _watched_eps:
+                    pe = set((ep[0], ep[1]) for ep in person_eps[ts])
+                    if not (pe & _watched_eps[ts]):
+                        continue  # Person wasn't in any watched episode — skip this show
                 tis.append(ti[sk])
-                sc += 1  # Count 1 per show for ranking (episode detail shown on click)
+                sc += 1
         if mc + sc >= 2:
             entry = {"n": info["name"], "g": "m" if ism(info["gender"]) else "f", "m": mc, "s": sc, "tt": mc+sc, "ti": tis, "_rec": max_recency}
             # Add episode credits as year-counts: {slug: {year: count}} — compact for bandwidth
@@ -948,12 +959,20 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
         for pid, info in crew_raw.items():
             tis = []; mc = sc = 0
             max_rec = 0
+            cpid = _slugify(info["name"])
+            crew_person_eps = crew_ep_credits.get(cpid, {}) if cpid else {}
             for ts in info["titles"]:
                 rec = slug_recency.get(ts, 0)
                 if rec > max_rec: max_rec = rec
                 for pre, typ in [("movie:", "movie"), ("show:", "show")]:
                     k = pre + ts
-                    if k in ti: tis.append(ti[k]); mc += (1 if typ == "movie" else 0); sc += (1 if typ == "show" else 0)
+                    if k not in ti: continue
+                    # For shows with per-episode crew data, only count if they directed/wrote a watched episode
+                    if typ == "show" and ts in crew_person_eps and ts in _watched_eps:
+                        pe = set((ep[0], ep[1]) for ep in crew_person_eps[ts] if len(ep) >= 2)
+                        if not (pe & _watched_eps[ts]):
+                            continue
+                    tis.append(ti[k]); mc += (1 if typ == "movie" else 0); sc += (1 if typ == "show" else 0)
             if mc + sc >= 2:
                 entry = {"n": info["name"], "m": mc, "s": sc, "tt": mc + sc, "ti": tis, "_rec": max_rec}
                 # Add per-episode crew credits (for episode counts + green highlights)
