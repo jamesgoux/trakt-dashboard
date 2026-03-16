@@ -1314,6 +1314,44 @@ if missing_slugs:
         json.dump(slug_cache, f, separators=(",", ":"))
     print(f"  Resolved {resolved}/{len(missing_slugs)} slugs")
 
+# Enrich Letterboxd entries with language/country from Trakt
+meta_cache_path = "data/slug_meta_cache.json"
+meta_cache = {}
+if os.path.exists(meta_cache_path):
+    with open(meta_cache_path) as f:
+        meta_cache = json.load(f)
+needs_meta = [e for e in entries if e["type"] == "movie" and e.get("trakt_slug") and not e.get("country") and not e.get("language")]
+slugs_to_fetch = set(e["trakt_slug"] for e in needs_meta) - set(meta_cache.keys())
+if slugs_to_fetch:
+    print(f"  Fetching metadata for {len(slugs_to_fetch)} movies (language/country)...")
+    for i, slug in enumerate(slugs_to_fetch):
+        try:
+            r = retry_request("get", f"{BASE_URL}/movies/{slug}?extended=full", headers=HEADERS, timeout=10)
+            if r and r.status_code == 200:
+                d = r.json()
+                meta_cache[slug] = {"lang": d.get("language", ""), "ctry": d.get("country", "")}
+            else:
+                meta_cache[slug] = {"lang": "", "ctry": ""}
+            time.sleep(0.15)
+        except Exception:
+            meta_cache[slug] = {"lang": "", "ctry": ""}
+        if (i + 1) % 50 == 0:
+            print(f"    {i+1}/{len(slugs_to_fetch)} fetched")
+            with open(meta_cache_path, "w") as f:
+                json.dump(meta_cache, f, separators=(",", ":"))
+    with open(meta_cache_path, "w") as f:
+        json.dump(meta_cache, f, separators=(",", ":"))
+    print(f"  Cached metadata for {len(slugs_to_fetch)} slugs")
+# Apply cached metadata to entries
+meta_applied = 0
+for e in needs_meta:
+    m = meta_cache.get(e["trakt_slug"])
+    if m:
+        if m.get("lang"): e["language"] = m["lang"]; meta_applied += 1
+        if m.get("ctry"): e["country"] = m["ctry"]
+if meta_applied:
+    print(f"  Applied language/country to {meta_applied} Letterboxd entries")
+
 os.makedirs("data", exist_ok=True)
 
 # Cast+studios: only on full refresh (FULL_REFRESH=1) or when no people.json exists
