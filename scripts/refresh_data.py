@@ -134,11 +134,16 @@ def fetch_cast_and_studios(entries):
     for pid, info in people.items():
         for t in info["titles"]:
             slug_people_count[t] += 1
+    # Pre-build set of slugs that already have director/writer credits
+    slugs_with_crew = set()
+    for d in directors.values():
+        slugs_with_crew.update(d["titles"])
+    for w in writers.values():
+        slugs_with_crew.update(w["titles"])
     all_slugs = [(s, "shows") for s in show_slugs] + [(s, "movies") for s in movie_slugs]
     for slug, kind in all_slugs:
         # Skip if we have >=15 people AND studios AND at least one director/writer
-        has_crew = any(slug in d["titles"] for d in directors.values()) or any(slug in w["titles"] for w in writers.values())
-        if slug_people_count.get(slug, 0) >= 15 and slug in slug_studios and has_crew:
+        if slug_people_count.get(slug, 0) >= 15 and slug in slug_studios and slug in slugs_with_crew:
             done += 1; skipped += 1; continue
         fetched = False
         # Try TMDB first (richer cast data: 30-50+ vs Trakt's 5-10)
