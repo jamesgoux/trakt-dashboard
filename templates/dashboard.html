@@ -1344,15 +1344,15 @@ function baseCharts(){
   var dwData=D.c.dw;if(cy!=='all'&&D.c.dw_y&&D.c.dw_y[cy])dwData=D.c.dw_y[cy];
   var c4=echarts.init(document.getElementById('dwc'));
   var dwSeries=[];var dwShowLeg=false;
-  if((_isAll()||ct==='movietv')&&dwData[0]&&dwData[0].m!==undefined){
-    if(_isMov())dwSeries.push({name:'Movies',type:'bar',stack:'dw',data:dwData.map(function(d){return d.m||0}),itemStyle:{color:'#fb923c'},barMaxWidth:50});
-    if(_isShow())dwSeries.push({name:'Shows',type:'bar',stack:'dw',data:dwData.map(function(d){return d.s||0}),itemStyle:{color:'#14b8a6'},barMaxWidth:50});
+  if(dwData[0]&&dwData[0].m!==undefined){
+    if(ct!=='show')dwSeries.push({name:'Movies',type:'bar',stack:'dw',data:dwData.map(function(d){return d.m||0}),itemStyle:{color:'#fb923c'},barMaxWidth:50});
+    if(ct!=='movie')dwSeries.push({name:'Shows',type:'bar',stack:'dw',data:dwData.map(function(d){return d.s||0}),itemStyle:{color:'#14b8a6'},barMaxWidth:50});
     dwShowLeg=dwSeries.length>1;
   }else{
     var dwC=['#60a5fa','#a78bfa','#4ade80','#fb923c','#e94560','#60a5fa','#a78bfa'];
-    dwSeries.push({type:'bar',data:dwData.map(function(d,i){return{value:ct==='movie'?(d.m||d.count):ct==='show'?(d.s||d.count):d.count,itemStyle:{color:dwC[i]}}}),barMaxWidth:50});
+    dwSeries.push({type:'bar',data:dwData.map(function(d,i){return{value:d.count,itemStyle:{color:dwC[i]}}}),barMaxWidth:50});
   }
-  c4.setOption({tooltip:{trigger:mob?'item':'axis',axisPointer:{type:'shadow'},...tt},legend:{data:dwShowLeg?['Movies','Shows']:[],right:10,top:0,textStyle:{color:'#999'}},grid:{left:50,right:20,top:dwShowLeg?30:8,bottom:24},xAxis:{type:'category',data:dwData.map(function(d){return d.day}),axisLabel:{color:'#ccc'},axisLine:{lineStyle:{color:'#333'}}},yAxis:{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},series:dwSeries});
+  c4.setOption({tooltip:{trigger:mob?'item':'axis',axisPointer:{type:'shadow'},...tt},legend:{data:dwShowLeg?['Movies','Shows']:[],right:10,top:0,textStyle:{color:'#999'}},grid:{left:50,right:20,top:dwShowLeg?30:10,bottom:24},xAxis:{type:'category',data:dwData.map(function(d){return d.day}),axisLabel:{color:'#ccc'},axisLine:{lineStyle:{color:'#333'}}},yAxis:{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},series:dwSeries});
 
   // Hour of day
   var hodData=D.c.hod||{};if(cy!=='all'&&D.c.hod_y&&D.c.hod_y[cy])hodData=D.c.hod_y[cy];
