@@ -350,8 +350,10 @@ def fetch_cast_and_studios(entries):
         crew_ep_out[cpid] = {slug: sorted([list(t) for t in eps]) for slug, eps in shows.items()}
     return people_out, slug_studios, dir_out, wr_out, crew_ep_out
 
-def build_data(entries, people, headshots, posters, slug_studios, directors_raw, writers_raw, crew_ep_credits=None):
+def build_data(entries, people, headshots, posters, slug_studios, directors_raw, writers_raw, crew_ep_credits=None, season_cache=None, slug_tmdb=None):
     if crew_ep_credits is None: crew_ep_credits = {}
+    if season_cache is None: season_cache = {}
+    if slug_tmdb is None: slug_tmdb = {}
     # Build episode watch dates from entries (for green highlight per-person checks)
     ep_watch_date = {}
     for e in entries:
@@ -397,11 +399,21 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
         tl.append({"t":t["title"],"type":t["type"],"yr":t["year"],"eby":dict(t["eby"]),"tot":t["total"],"sl":slug})
 
     # People — use episode-level credits (eps) for accurate show counts
-    # Build set of watched episodes for filtering anthology/variety shows
+    # Build set of watched episodes and shows with season credits
     _watched_eps = defaultdict(set)
     for e in entries:
         if e["type"] == "episode" and e.get("trakt_slug") and e.get("season") and e.get("episode_number"):
             _watched_eps[e["trakt_slug"]].add((int(e["season"]), int(e["episode_number"])))
+    # Shows with season credits — episode-level filtering is possible
+    _tmdb_to_slug = {}
+    for _s, _t in slug_tmdb.items():
+        _tid = _t[0] if isinstance(_t, (list, tuple)) else str(_t)
+        _tmdb_to_slug[_tid] = _s
+    _shows_with_sc = set()
+    for _k in season_cache:
+        _tid = _k.split("|")[0]
+        _sl = _tmdb_to_slug.get(_tid, "")
+        if _sl: _shows_with_sc.add(_sl)
     ism = lambda g: g in (2, 'male'); isf = lambda g: g in (1, 'female')
     pd = []
     for pid, info in people.items():
@@ -417,12 +429,13 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
                 tis.append(ti[mk]); mc += 1
             sk = "show:" + ts
             if sk in ti:
-                # If we have per-episode data for this person+show, only count if
-                # they appeared in an episode the user actually watched
-                if ts in person_eps and ts in _watched_eps:
+                # If season credits exist for this show, filter by watched episodes
+                if ts in _shows_with_sc and ts in _watched_eps:
+                    if ts not in person_eps:
+                        continue  # Season data exists but person not in any watched episode
                     pe = set((ep[0], ep[1]) for ep in person_eps[ts])
                     if not (pe & _watched_eps[ts]):
-                        continue  # Person wasn't in any watched episode — skip this show
+                        continue  # Person wasn't in any watched episode
                 tis.append(ti[sk])
                 sc += 1
         if mc + sc >= 2:
@@ -967,8 +980,10 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
                 for pre, typ in [("movie:", "movie"), ("show:", "show")]:
                     k = pre + ts
                     if k not in ti: continue
-                    # For shows with per-episode crew data, only count if they directed/wrote a watched episode
-                    if typ == "show" and ts in crew_person_eps and ts in _watched_eps:
+                    # For shows with season credits, filter by watched episodes
+                    if typ == "show" and ts in _shows_with_sc and ts in _watched_eps:
+                        if ts not in crew_person_eps:
+                            continue  # Season data exists but person not in any watched episode
                         pe = set((ep[0], ep[1]) for ep in crew_person_eps[ts] if len(ep) >= 2)
                         if not (pe & _watched_eps[ts]):
                             continue
@@ -1511,7 +1526,14 @@ if os.path.exists("data/mezzanine.csv"):
             })
 
 print(f"\n[3/3] Building dashboard ({len(entries)} entries, {len(people)} people, {len(hs)} headshots, {len(ps)} posters)...")
-data = build_data(entries, people, hs, ps, slug_studios, directors_raw, writers_raw, crew_ep_credits)
+_sc_cache = {}
+if os.path.exists("data/season_credits.json"):
+    with open("data/season_credits.json") as f: _sc_cache = json.load(f)
+_slug_tmdb = {}
+for e in entries:
+    if e.get("trakt_slug") and e.get("tmdb_id"):
+        _slug_tmdb[e["trakt_slug"]] = (str(e["tmdb_id"]), e["type"] != "movie")
+data = build_data(entries, people, hs, ps, slug_studios, directors_raw, writers_raw, crew_ep_credits, _sc_cache, _slug_tmdb)
 data["lg"] = logos  # studio/network logos
 
 # Letterboxd data: match to Trakt entries via TMDB ID, build rating distribution + tag cloud
