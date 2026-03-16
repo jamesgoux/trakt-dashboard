@@ -130,20 +130,16 @@ def fetch_cast_and_studios(entries):
         for k, v in raw.items():
             slug_studios[k] = v if isinstance(v, list) else [v]
     total = len(show_slugs) + len(movie_slugs); done = 0; skipped = 0; tmdb_ok = 0; trakt_fallback = 0
-    slug_people_count = Counter()
-    for pid, info in people.items():
-        for t in info["titles"]:
-            slug_people_count[t] += 1
-    # Pre-build set of slugs that already have director/writer credits
-    slugs_with_crew = set()
-    for d in directors.values():
-        slugs_with_crew.update(d["titles"])
-    for w in writers.values():
-        slugs_with_crew.update(w["titles"])
+    # Track which slugs have been fully fetched from TMDB credits
+    tmdb_credits_done = set()
+    if os.path.exists("data/tmdb_credits_done.json"):
+        with open("data/tmdb_credits_done.json") as f:
+            tmdb_credits_done = set(json.load(f))
+        print(f"  Loaded {len(tmdb_credits_done)} TMDB credits-done slugs")
     all_slugs = [(s, "shows") for s in show_slugs] + [(s, "movies") for s in movie_slugs]
     for slug, kind in all_slugs:
-        # Skip if we have >=15 people AND studios AND at least one director/writer
-        if slug_people_count.get(slug, 0) >= 15 and slug in slug_studios and slug in slugs_with_crew:
+        # Only skip if TMDB credits were already successfully fetched AND we have studios
+        if slug in tmdb_credits_done and slug in slug_studios:
             done += 1; skipped += 1; continue
         fetched = False
         # Try TMDB first (richer cast data: 30-50+ vs Trakt's 5-10)
@@ -180,7 +176,7 @@ def fetch_cast_and_studios(entries):
                         elif dept == "Writing" and job in ("Writer", "Screenplay", "Author", "Original Story", "Story", "Novel"):
                             writers[pid]["name"] = name
                             writers[pid]["titles"].add(slug)
-                    fetched = True; tmdb_ok += 1
+                    fetched = True; tmdb_ok += 1; tmdb_credits_done.add(slug)
             except Exception as e:
                 pass
             time.sleep(0.05)  # TMDB rate limit: ~40/sec
@@ -223,9 +219,13 @@ def fetch_cast_and_studios(entries):
             _p = {pid: {"name": i["name"], "gender": i["gender"], "titles": list(i["titles"])} for pid, i in people.items()}
             with open("data/people.json", "w") as f: json.dump(_p, f, separators=(',', ':'))
             with open("data/studios.json", "w") as f: json.dump(slug_studios, f, separators=(',', ':'))
+            with open("data/tmdb_credits_done.json", "w") as f: json.dump(sorted(tmdb_credits_done), f, separators=(',', ':'))
             time.sleep(0.8)  # respect Trakt rate limits (0.3 caused frequent 429s)
     print(f"  people: {len(people)}, studios: {len(slug_studios)}, directors: {len(directors)}, writers: {len(writers)}")
     print(f"  Sources: TMDB={tmdb_ok}, Trakt fallback={trakt_fallback}, Skipped={skipped}")
+    # Save TMDB credits tracking
+    with open("data/tmdb_credits_done.json", "w") as f:
+        json.dump(sorted(tmdb_credits_done), f, separators=(',', ':'))
 
     # === EPISODE-LEVEL CREDITS: fetch per-season cast from TMDB ===
     # This gives accurate episode counts per person per show
