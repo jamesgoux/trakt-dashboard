@@ -219,6 +219,27 @@ def run():
     new_items = sorted([r for r in results if r["is_new"]], key=lambda x: x.get("last_watched", ""), reverse=True)
     rest = sorted([r for r in results if not r["is_new"]], key=lambda x: x.get("last_watched", ""), reverse=True)
 
+    # Merge with previous data to preserve shows lost to API failures
+    prev_shows = []
+    if os.path.exists("data/up_next.json"):
+        try:
+            with open("data/up_next.json") as f:
+                prev = json.load(f)
+            prev_shows = prev.get("shows", [])
+        except Exception:
+            pass
+    current_slugs = set(r["slug"] for r in results)
+    preserved = 0
+    for ps in prev_shows:
+        if ps.get("slug") and ps["slug"] not in current_slugs:
+            results.append(ps)
+            preserved += 1
+    if preserved:
+        # Re-sort after merge
+        new_items = sorted([r for r in results if r.get("is_new")], key=lambda x: x.get("last_watched", ""), reverse=True)
+        rest = sorted([r for r in results if not r.get("is_new")], key=lambda x: x.get("last_watched", ""), reverse=True)
+        print(f"  Preserved {preserved} shows from previous data (API failures)")
+
     output = {"shows": new_items + rest, "recent": recent, "tmdb_key": TMDB_API_KEY}
 
     os.makedirs("data", exist_ok=True)
