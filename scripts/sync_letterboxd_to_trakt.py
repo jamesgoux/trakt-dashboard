@@ -10,10 +10,10 @@ Requires: TRAKT_CLIENT_ID, TRAKT_ACCESS_TOKEN
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import json, time, requests
-from utils import retry_request
+from utils import retry_request, get_trakt_access_token
 
 CLIENT_ID = os.environ.get("TRAKT_CLIENT_ID", "")
-ACCESS_TOKEN = os.environ.get("TRAKT_ACCESS_TOKEN", "")
+ACCESS_TOKEN = get_trakt_access_token()
 
 if not CLIENT_ID or not ACCESS_TOKEN:
     print("Need TRAKT_CLIENT_ID and TRAKT_ACCESS_TOKEN, skipping sync")
