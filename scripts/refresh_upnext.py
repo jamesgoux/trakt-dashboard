@@ -139,7 +139,23 @@ def run():
             completed = prog.get("completed", 0)
             if aired <= completed:
                 continue
-            continue
+            # next_episode is null but unwatched episodes exist — derive from seasons
+            for sn in prog.get("seasons", []):
+                sn_num = sn.get("number", 0)
+                if sn_num == 0:
+                    continue  # skip specials
+                for ep in sn.get("episodes", []):
+                    if not ep.get("completed", False):
+                        next_ep = {"season": sn_num, "number": ep.get("number", 0),
+                                   "title": ep.get("title", ""), "first_aired": ep.get("first_aired", ""),
+                                   "runtime": ep.get("runtime", 0), "overview": ep.get("overview", ""),
+                                   "ids": {"trakt": ep.get("ids", {}).get("trakt", "")}}
+                        break
+                if next_ep:
+                    break
+            if not next_ep:
+                continue  # truly nothing to watch
+            print(f"  Derived next ep for {slug}: S{next_ep['season']:02d}E{next_ep['number']:02d}")
 
         ep_aired = next_ep.get("first_aired", "")
         is_aired = False
