@@ -5,11 +5,11 @@ from datetime import datetime, timezone
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 os.chdir(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from utils import retry_request
+from utils import retry_request, get_trakt_access_token
 
 CLIENT_ID = os.environ.get("TRAKT_CLIENT_ID")
 USERNAME = os.environ.get("TRAKT_USERNAME")
-ACCESS_TOKEN = os.environ.get("TRAKT_ACCESS_TOKEN", "")
+ACCESS_TOKEN = get_trakt_access_token()
 TMDB_API_KEY = os.environ.get("TMDB_API_KEY", "")
 BASE = "https://api.trakt.tv"
 HEADERS = {"Content-Type": "application/json", "trakt-api-version": "2", "trakt-api-key": CLIENT_ID}
