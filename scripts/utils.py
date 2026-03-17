@@ -1,7 +1,24 @@
 """Shared utilities for Iris data pipeline scripts."""
 
+import os
+import json
 import time
 import requests
+
+
+def get_trakt_access_token():
+    """Get freshest Trakt access token: data/trakt_auth.json first, env var fallback."""
+    auth_file = os.path.join(os.path.dirname(__file__), "..", "data", "trakt_auth.json")
+    if os.path.exists(auth_file):
+        try:
+            with open(auth_file) as f:
+                data = json.load(f)
+            token = data.get("access_token", "")
+            if token:
+                return token
+        except Exception:
+            pass
+    return os.environ.get("TRAKT_ACCESS_TOKEN", "")
 
 
 def retry_request(method, url, max_retries=3, backoff=1.0, **kwargs):

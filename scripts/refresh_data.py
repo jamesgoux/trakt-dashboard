@@ -10,7 +10,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import json, time, requests
 from collections import defaultdict, Counter
 from datetime import datetime
-from utils import retry_request
+from utils import retry_request, get_trakt_access_token
 
 CLIENT_ID = os.environ.get("TRAKT_CLIENT_ID")
 USERNAME = os.environ.get("TRAKT_USERNAME")
@@ -2432,7 +2432,7 @@ if os.path.exists("data/health.json"):
         print(f"  Health: {len(health_deduped)} workouts, {len(by_type)} types, {round(total_dur/3600,1)}h total")
 
 # Inject Trakt credentials for client-side mark-as-watched
-_trakt_token = os.environ.get("TRAKT_ACCESS_TOKEN", "")
+_trakt_token = get_trakt_access_token()
 if _trakt_token and CLIENT_ID:
     data["_tc"] = CLIENT_ID
     data["_tt"] = _trakt_token
