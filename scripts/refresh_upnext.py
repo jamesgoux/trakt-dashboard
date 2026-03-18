@@ -86,14 +86,14 @@ def fetch_recent_history():
 
 
 def run():
-    # Load existing streaming cache
+    # Load existing streaming cache (including empty results to avoid re-fetching)
     stream_cache = {}
     if os.path.exists("data/up_next.json"):
         with open("data/up_next.json") as f:
             raw = json.load(f)
             if isinstance(raw, dict):
                 for item in raw.get("shows", []):
-                    if item.get("stream"):
+                    if "stream" in item:
                         stream_cache[item["slug"]] = item["stream"]
 
     # Fetch recent watch history
@@ -205,7 +205,7 @@ def run():
 
         # Streaming info (cache to avoid hammering JustWatch)
         stream = stream_cache.get(slug)
-        if stream is None and stream_fetched < 50:
+        if stream is None and stream_fetched < 100:
             stream = fetch_streaming(slug)
             stream_cache[slug] = stream
             stream_fetched += 1
@@ -266,7 +266,10 @@ def run():
         rest = sorted([r for r in results if not r.get("is_new")], key=lambda x: x.get("last_watched", ""), reverse=True)
         print(f"  Preserved {preserved} shows from previous data (API failures)")
 
-    output = {"shows": new_items + rest, "recent": recent, "tmdb_key": TMDB_API_KEY}
+    all_shows = new_items + rest
+    with_stream = sum(1 for s in all_shows if s.get("stream"))
+    print(f"  Streaming: {with_stream}/{len(all_shows)} shows, {stream_fetched} new lookups")
+    output = {"shows": all_shows, "recent": recent, "tmdb_key": TMDB_API_KEY}
 
     os.makedirs("data", exist_ok=True)
     with open("data/up_next.json", "w") as f:
