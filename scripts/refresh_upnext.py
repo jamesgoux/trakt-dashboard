@@ -101,6 +101,11 @@ def run():
     recent = fetch_recent_history()
     print(f"  {len(recent)} recent episodes")
 
+    # Build set of recently watched episodes for cross-check against stale progress
+    recent_set = set()
+    for re_ep in recent:
+        recent_set.add(f"{re_ep.get('slug')}|{re_ep.get('season')}|{re_ep.get('episode')}")
+
     print("Fetching watched shows...")
     r = retry_request("get", f"{BASE}/users/{USERNAME}/watched/shows?extended=full",
                       headers=AUTH_HEADERS, timeout=15)
@@ -182,6 +187,11 @@ def run():
         completed = prog.get("completed", 0)
         if aired_total and completed >= aired_total:
             continue  # 100% caught up
+
+        # Skip if this episode already appears in recent history (progress API stale)
+        ep_key = f"{slug}|{next_ep.get('season', 0)}|{next_ep.get('number', 0)}"
+        if ep_key in recent_set:
+            continue
 
         # Episode overview from extended data
         ep_overview = next_ep.get("overview", "")
