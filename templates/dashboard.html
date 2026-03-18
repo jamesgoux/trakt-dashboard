@@ -3430,11 +3430,14 @@ function _llRenderBatch(){
 
 // Up Next page
 var _unWatched=JSON.parse(localStorage.getItem('iris_un_watched')||'{}');
-// Prune _unWatched: if pipeline data says an episode is still the next one,
-// Trakt doesn't consider it watched (user may have un-watched it).
-(function(){var d=(D.un||{}).shows||[];var pruned=false;d.forEach(function(s){
+// Prune _unWatched: if pipeline says ep is still next AND it's not in recent history,
+// Trakt doesn't consider it watched (user may have un-watched it on Trakt).
+// But if it IS in recent history, keep _unWatched — pipeline progress is just stale.
+(function(){var d=(D.un||{}).shows||[];var rec=(D.un||{}).recent||[];var rSet={};
+rec.forEach(function(r){rSet[r.slug+'|'+r.season+'|'+r.episode]=true});
+var pruned=false;d.forEach(function(s){
   var key=s.slug+'|'+s.season+'|'+s.episode;
-  if(_unWatched[key]){delete _unWatched[key];pruned=true}
+  if(_unWatched[key]&&!rSet[key]){delete _unWatched[key];pruned=true}
 });if(pruned)localStorage.setItem('iris_un_watched',JSON.stringify(_unWatched))})();
 var _scrollY=0;
 function _lockBody(){_scrollY=window.scrollY;document.body.style.position='fixed';document.body.style.top='-'+_scrollY+'px';document.body.style.width='100%';document.body.style.overflow='hidden'}
@@ -3449,12 +3452,15 @@ function openUpNext(){
   document.querySelectorAll('.chart-detail').forEach(function(d){d.remove()});
   var llOv=document.getElementById('ll-feed-overlay');if(llOv)llOv.style.display='none';
   var ud=_unData();
+  var recent=ud.recent||[];
+  var recentSet={};recent.forEach(function(r){recentSet[r.slug+'|'+r.season+'|'+r.episode]=true});
   var shows=ud.shows.filter(function(s){
-    if(_unWatched[s.slug+'|'+s.season+'|'+s.episode])return false;
+    var key=s.slug+'|'+s.season+'|'+s.episode;
+    if(_unWatched[key])return false;
+    if(recentSet[key])return false;  // already in recent history — pipeline progress stale
     if(s.aired_total&&s.completed>=s.aired_total)return false;
     return true;
   });
-  var recent=ud.recent||[];
   var el=document.getElementById('un-content');
   var oldFg=document.getElementById('un-detail-fg');if(oldFg){oldFg.remove();document.getElementById('un-overlay').style.overflowY='auto'}
   if(!shows.length&&!recent.length){el.innerHTML='<div style="text-align:center;padding:60px;color:var(--t2)"><div style="font-size:40px;margin-bottom:12px">📺</div><div style="font-size:16px;margin-bottom:8px">No Up Next data yet</div><div style="font-size:12px;max-width:400px;margin:0 auto">Trigger a refresh from the <a href="https://github.com/jamesgoux/iris-stats/actions" style="color:var(--sp)">Actions tab</a>.</div></div>';document.getElementById('un-overlay').style.display='';_lockBody();return}
@@ -3544,8 +3550,11 @@ function showEpDetail(card){
   _unScrollPos=document.getElementById('un-overlay').scrollTop;
   var slug=card.dataset.slug,s=parseInt(card.dataset.s),e=parseInt(card.dataset.e),eid=card.dataset.eid,tmdb=card.dataset.tmdb;
   var ud=_unData();
+  var rec=ud.recent||[];var rS={};rec.forEach(function(r){rS[r.slug+'|'+r.season+'|'+r.episode]=true});
   var allShows=ud.shows.filter(function(x){
-    if(_unWatched[x.slug+'|'+x.season+'|'+x.episode])return false;
+    var k=x.slug+'|'+x.season+'|'+x.episode;
+    if(_unWatched[k])return false;
+    if(rS[k])return false;
     if(x.aired_total&&x.completed>=x.aired_total)return false;
     return true;
   });
