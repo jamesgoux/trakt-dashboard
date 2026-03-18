@@ -1217,6 +1217,23 @@ else:
     else:
         print(f"  Cached: {len(entries)} entries (no timestamp, using as-is)")
 
+# ── Metadata overrides (correct known TMDB errors) ──
+METADATA_OVERRIDES = {
+    "it-was-just-an-accident-2025": {"language": "fa"},  # Persian, not French
+}
+_overrides_applied = 0
+for e in entries:
+    ovr = METADATA_OVERRIDES.get(e.get("trakt_slug", ""))
+    if ovr:
+        for k, v in ovr.items():
+            if e.get(k) != v:
+                e[k] = v
+                _overrides_applied += 1
+if _overrides_applied:
+    print(f"  Applied {_overrides_applied} metadata override(s)")
+    with open(entries_cache_path, "w") as f:
+        json.dump(entries, f, separators=(",", ":"))
+
 # ── Letterboxd backfill: merge old watches (2015-2022) not in Trakt ──
 if os.path.exists("data/letterboxd.json"):
     with open("data/letterboxd.json") as f:
