@@ -16,12 +16,12 @@ from utils import retry_request, get_trakt_access_token
 LOCAL_TZ = ZoneInfo("America/Los_Angeles")
 
 def to_local(utc_str):
-    """Convert UTC ISO timestamp to local timezone, preserving ISO format."""
+    """Convert UTC ISO timestamp to local timezone, preserving ISO format with tz info."""
     if not utc_str:
         return ""
     try:
         dt = datetime.fromisoformat(utc_str.replace("Z", "+00:00"))
-        return dt.astimezone(LOCAL_TZ).strftime("%Y-%m-%dT%H:%M:%S")
+        return dt.astimezone(LOCAL_TZ).isoformat()
     except Exception:
         return utc_str
 
