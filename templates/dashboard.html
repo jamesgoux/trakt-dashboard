@@ -3430,21 +3430,41 @@ function _llRenderBatch(){
 
 // Up Next page
 var _unWatched=JSON.parse(localStorage.getItem('iris_un_watched')||'{}');
-// Prune stale _unWatched entries on new builds.
-// Only prune if: (a) pipeline still shows ep as next, (b) not in recent history,
-// AND (c) the _unWatched timestamp predates this build (so fresh marks survive).
-(function(){var build='__BUILD_TIME__';var lastBuild=localStorage.getItem('iris_un_build')||'';
-if(build===lastBuild||build==='__BUILD_'+'TIME__')return;
-localStorage.setItem('iris_un_build',build);
-var buildMs=new Date(build.replace(' UTC','')+' UTC').getTime()||0;
-var d=(D.un||{}).shows||[];var rec=(D.un||{}).recent||[];var rSet={};
-rec.forEach(function(r){rSet[r.slug+'|'+r.season+'|'+r.episode]=true});
-var pruned=false;d.forEach(function(s){
+// Apply _unWatched as advances to show data (not filters).
+// When user marks ep as watched via dashboard but pipeline hasn't caught up,
+// advance the show to the next episode instead of hiding it entirely.
+// Also reconstruct recent entries from _unWatched so they appear in Recently Watched.
+(function(){
+var shows=(D.un||{}).shows||[];var recent=(D.un||{}).recent||[];
+// Prune on new builds: remove entries older than build where pipeline has caught up
+var build='__BUILD_TIME__';var lastBuild=localStorage.getItem('iris_un_build')||'';
+if(build!==lastBuild&&build!=='__BUILD_'+'TIME__'){
+  localStorage.setItem('iris_un_build',build);
+  var buildMs=new Date(build.replace(' UTC','')+' UTC').getTime()||0;
+  var rSet={};recent.forEach(function(r){rSet[r.slug+'|'+r.season+'|'+r.episode]=true});
+  var pruned=false;shows.forEach(function(s){
+    var key=s.slug+'|'+s.season+'|'+s.episode;
+    if(!_unWatched[key]||rSet[key])return;
+    var wMs=new Date(_unWatched[key]).getTime()||0;
+    if(wMs<buildMs){delete _unWatched[key];pruned=true}
+  });if(pruned)localStorage.setItem('iris_un_watched',JSON.stringify(_unWatched));
+}
+// Advance shows based on _unWatched entries
+shows.forEach(function(s){
   var key=s.slug+'|'+s.season+'|'+s.episode;
-  if(!_unWatched[key]||rSet[key])return;
-  var wMs=new Date(_unWatched[key]).getTime()||0;
-  if(wMs<buildMs){delete _unWatched[key];pruned=true}  // watch predates build — stale
-});if(pruned)localStorage.setItem('iris_un_watched',JSON.stringify(_unWatched))})();
+  while(_unWatched[key]){
+    // Inject into recent if not already there
+    var inRecent=recent.some(function(r){return r.slug===s.slug&&r.season===s.season&&r.episode===s.episode});
+    if(!inRecent)recent.unshift({show:s.show,slug:s.slug,season:s.season,episode:s.episode,ep_title:s.ep_title||'',watched_at:_unWatched[key],ep_id:0,ep_aired:s.ep_aired||''});
+    // Advance to next episode
+    s.episode++;s.completed=(s.completed||0)+1;
+    s.eps_left=Math.max(0,(s.eps_left||1)-1);
+    s.remaining_min=Math.max(0,(s.remaining_min||0)-(s.ep_runtime||0));
+    s.ep_title='';s.ep_overview='';s.ep_still='';s.ep_trakt_id=0;s.is_new=false;
+    key=s.slug+'|'+s.season+'|'+s.episode;
+  }
+});
+})();
 var _scrollY=0;
 function _lockBody(){_scrollY=window.scrollY;document.body.style.position='fixed';document.body.style.top='-'+_scrollY+'px';document.body.style.width='100%';document.body.style.overflow='hidden'}
 function _unlockBody(){document.body.style.position='';document.body.style.top='';document.body.style.width='';document.body.style.overflow='';window.scrollTo(0,_scrollY)}
@@ -3465,9 +3485,7 @@ function openUpNext(){
   var recent=ud.recent||[];
   var recentSet={};recent.forEach(function(r){recentSet[r.slug+'|'+r.season+'|'+r.episode]=true});
   var shows=ud.shows.filter(function(s){
-    var key=s.slug+'|'+s.season+'|'+s.episode;
-    if(_unWatched[key])return false;
-    if(recentSet[key])return false;  // already in recent history — pipeline progress stale
+    if(recentSet[s.slug+'|'+s.season+'|'+s.episode])return false;  // in recent history
     if(s.aired_total&&s.completed>=s.aired_total)return false;
     return true;
   });
@@ -3485,7 +3503,7 @@ function openUpNext(){
     // Find poster from shows data if not on the item
     var poster=s.poster;
     if(!poster){var match=ud.shows.find(function(x){return x.slug===s.slug});if(match)poster=match.poster}
-    var c='<div class="un-card'+(isRecent?'':' un-card-tap')+'" data-slug="'+s.slug+'" data-s="'+s.season+'" data-e="'+s.episode+'" data-eid="'+(s.ep_trakt_id||0)+'" data-tmdb="'+(s.tmdb_id||'')+'">';
+    var c='<div class="un-card'+(isRecent?'':' un-card-tap')+'" data-slug="'+s.slug+'" data-s="'+s.season+'" data-e="'+s.episode+'" data-eid="'+(s.ep_trakt_id||0)+'" data-tmdb="'+(s.tmdb_id||'')+'"'+(isRecent?'':' onclick="showEpDetail(this)"')+'>';
     if(poster)c+='<img class="un-poster" src="'+poster+'" loading="lazy" onerror="this.style.display=\'none\'" alt="">';
     else c+='<div class="un-poster-ph">📺</div>';
     c+='<div class="un-info">';
@@ -3562,9 +3580,7 @@ function showEpDetail(card){
   var ud=_unData();
   var rec=ud.recent||[];var rS={};rec.forEach(function(r){rS[r.slug+'|'+r.season+'|'+r.episode]=true});
   var allShows=ud.shows.filter(function(x){
-    var k=x.slug+'|'+x.season+'|'+x.episode;
-    if(_unWatched[k])return false;
-    if(rS[k])return false;
+    if(rS[x.slug+'|'+x.season+'|'+x.episode])return false;
     if(x.aired_total&&x.completed>=x.aired_total)return false;
     return true;
   });
@@ -3689,7 +3705,7 @@ function _unRenderDetail(allShows,idx){
     ov.style.overflowY='hidden';
     fg=document.createElement('div');
     fg.id='un-detail-fg';
-    fg.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;z-index:400;background:var(--bg,#0f0f0f);overflow:auto;-webkit-overflow-scrolling:touch;transform:translateY(-100%);';
+    fg.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;z-index:9100;background:var(--bg,#0f0f0f);overflow:auto;-webkit-overflow-scrolling:touch;transform:translateY(-100%);';
     document.body.appendChild(fg);
   }
   fg.innerHTML=h;
