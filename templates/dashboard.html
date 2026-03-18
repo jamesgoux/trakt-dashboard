@@ -3430,6 +3430,12 @@ function _llRenderBatch(){
 
 // Up Next page
 var _unWatched=JSON.parse(localStorage.getItem('iris_un_watched')||'{}');
+// Prune _unWatched: if pipeline data says an episode is still the next one,
+// Trakt doesn't consider it watched (user may have un-watched it).
+(function(){var d=(D.un||{}).shows||[];var pruned=false;d.forEach(function(s){
+  var key=s.slug+'|'+s.season+'|'+s.episode;
+  if(_unWatched[key]){delete _unWatched[key];pruned=true}
+});if(pruned)localStorage.setItem('iris_un_watched',JSON.stringify(_unWatched))})();
 var _scrollY=0;
 function _lockBody(){_scrollY=window.scrollY;document.body.style.position='fixed';document.body.style.top='-'+_scrollY+'px';document.body.style.width='100%';document.body.style.overflow='hidden'}
 function _unlockBody(){document.body.style.position='';document.body.style.top='';document.body.style.width='';document.body.style.overflow='';window.scrollTo(0,_scrollY)}
