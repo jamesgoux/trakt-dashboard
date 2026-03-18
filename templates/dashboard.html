@@ -3430,20 +3430,20 @@ function _llRenderBatch(){
 
 // Up Next page
 var _unWatched=JSON.parse(localStorage.getItem('iris_un_watched')||'{}');
-// Prune _unWatched only when pipeline data changes (new build).
-// This prevents pruning after a page reload when user just marked something watched
-// via the UI but the pipeline hasn't caught up yet.
-// When pipeline DOES update: prune entries where the pipeline still shows ep as next
-// AND it's not in recent history (meaning Trakt doesn't consider it watched — user
-// may have un-watched it on Trakt).
+// Prune stale _unWatched entries on new builds.
+// Only prune if: (a) pipeline still shows ep as next, (b) not in recent history,
+// AND (c) the _unWatched timestamp predates this build (so fresh marks survive).
 (function(){var build='__BUILD_TIME__';var lastBuild=localStorage.getItem('iris_un_build')||'';
-if(build===lastBuild||build==='__BUILD_'+'TIME__')return;  // same build or template placeholder
+if(build===lastBuild||build==='__BUILD_'+'TIME__')return;
 localStorage.setItem('iris_un_build',build);
+var buildMs=new Date(build.replace(' UTC','')+' UTC').getTime()||0;
 var d=(D.un||{}).shows||[];var rec=(D.un||{}).recent||[];var rSet={};
 rec.forEach(function(r){rSet[r.slug+'|'+r.season+'|'+r.episode]=true});
 var pruned=false;d.forEach(function(s){
   var key=s.slug+'|'+s.season+'|'+s.episode;
-  if(_unWatched[key]&&!rSet[key]){delete _unWatched[key];pruned=true}
+  if(!_unWatched[key]||rSet[key])return;
+  var wMs=new Date(_unWatched[key]).getTime()||0;
+  if(wMs<buildMs){delete _unWatched[key];pruned=true}  // watch predates build — stale
 });if(pruned)localStorage.setItem('iris_un_watched',JSON.stringify(_unWatched))})();
 var _scrollY=0;
 function _lockBody(){_scrollY=window.scrollY;document.body.style.position='fixed';document.body.style.top='-'+_scrollY+'px';document.body.style.width='100%';document.body.style.overflow='hidden'}
