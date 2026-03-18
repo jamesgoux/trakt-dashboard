@@ -10,7 +10,20 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import json, time, requests
 from collections import defaultdict, Counter
 from datetime import datetime
+from zoneinfo import ZoneInfo
 from utils import retry_request, get_trakt_access_token
+
+LOCAL_TZ = ZoneInfo("America/Los_Angeles")
+
+def to_local(utc_str):
+    """Convert UTC ISO timestamp to local timezone, preserving ISO format."""
+    if not utc_str:
+        return ""
+    try:
+        dt = datetime.fromisoformat(utc_str.replace("Z", "+00:00"))
+        return dt.astimezone(LOCAL_TZ).strftime("%Y-%m-%dT%H:%M:%S")
+    except Exception:
+        return utc_str
 
 CLIENT_ID = os.environ.get("TRAKT_CLIENT_ID")
 USERNAME = os.environ.get("TRAKT_USERNAME")
@@ -59,7 +72,7 @@ def fetch_history(media_type):
 
 def norm_movie(e):
     m = e.get("movie", {}); ids = m.get("ids", {})
-    return {"type": "movie", "watched_at": e.get("watched_at", ""), "title": m.get("title", ""),
+    return {"type": "movie", "watched_at": to_local(e.get("watched_at", "")), "title": m.get("title", ""),
             "year": m.get("year", ""), "runtime": m.get("runtime", ""),
             "genres": ", ".join(m.get("genres", [])), "trakt_slug": ids.get("slug", ""),
             "tmdb_id": ids.get("tmdb", ""),
@@ -69,7 +82,7 @@ def norm_movie(e):
 
 def norm_show(e):
     s = e.get("show", {}); ep = e.get("episode", {}); ids = s.get("ids", {})
-    return {"type": "episode", "watched_at": e.get("watched_at", ""), "title": ep.get("title", ""),
+    return {"type": "episode", "watched_at": to_local(e.get("watched_at", "")), "title": ep.get("title", ""),
             "year": s.get("year", ""), "runtime": ep.get("runtime", ""),
             "genres": ", ".join(s.get("genres", [])), "trakt_slug": ids.get("slug", ""),
             "tmdb_id": ids.get("tmdb", ""),
@@ -1163,6 +1176,16 @@ else:
     print("\n[1/3] Incremental watch history fetch...")
     with open(entries_cache_path) as f:
         entries = json.load(f)
+    # Migrate cached entries from UTC to local timezone if needed
+    sample = entries[0].get("watched_at", "") if entries else ""
+    if sample and ("Z" in sample or "+00:00" in sample):
+        print("  Migrating cached timestamps to local timezone...")
+        for e in entries:
+            if e.get("watched_at"):
+                e["watched_at"] = to_local(e["watched_at"])
+        with open(entries_cache_path, "w") as f:
+            json.dump(entries, f, separators=(",", ":"))
+        print(f"  Migrated {len(entries)} entries")
     # Find the most recent watched_at in cached entries
     latest = entries[0]["watched_at"] if entries else ""
     if latest:
