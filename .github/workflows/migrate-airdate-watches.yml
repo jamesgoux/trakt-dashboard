@@ -33,6 +33,8 @@ jobs:
         env:
           TRAKT_CLIENT_ID: ${{ secrets.TRAKT_CLIENT_ID }}
           TRAKT_ACCESS_TOKEN: ${{ secrets.TRAKT_ACCESS_TOKEN }}
+          TRAKT_CLIENT_SECRET: ${{ secrets.TRAKT_CLIENT_SECRET }}
+          TRAKT_REFRESH_TOKEN: ${{ secrets.TRAKT_REFRESH_TOKEN }}
           TRAKT_USERNAME: ${{ secrets.TRAKT_USERNAME }}
         run: python scripts/migrate_airdate_watches.py --${{ github.event.inputs.mode }}
 
