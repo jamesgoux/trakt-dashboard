@@ -32,7 +32,7 @@ def refresh_access_token():
     """Refresh expired access token using refresh token."""
     global ACCESS_TOKEN
     if not REFRESH_TOKEN or not CLIENT_SECRET:
-        print("ERROR: Cannot refresh token — TRAKT_REFRESH_TOKEN or TRAKT_CLIENT_SECRET not set")
+        print("  No refresh token available, skipping refresh")
         return False
     print("  Refreshing expired access token...", flush=True)
     r = requests.post(f"{BASE}/oauth/token", json={
@@ -46,14 +46,58 @@ def refresh_access_token():
         data = r.json()
         ACCESS_TOKEN = data["access_token"]
         print(f"  Token refreshed successfully", flush=True)
-        # Output for GH Actions to capture and update secret
-        new_refresh = data.get("refresh_token", "")
-        if new_refresh:
-            print(f"::notice::New refresh token issued — update TRAKT_REFRESH_TOKEN secret")
         return True
     else:
-        print(f"  Token refresh failed: HTTP {r.status_code} — {r.text[:200]}")
+        print(f"  Refresh failed: {r.text[:100]}")
         return False
+
+def device_code_auth():
+    """Full re-auth via device code flow. User must visit URL and enter code."""
+    global ACCESS_TOKEN
+    if not CLIENT_ID or not CLIENT_SECRET:
+        print("ERROR: TRAKT_CLIENT_ID and TRAKT_CLIENT_SECRET required for device auth")
+        return False
+    print("\n  Requesting device code for re-authentication...", flush=True)
+    r = requests.post(f"{BASE}/oauth/device/code", json={"client_id": CLIENT_ID})
+    if r.status_code != 200:
+        print(f"  Device code request failed: HTTP {r.status_code}")
+        return False
+    data = r.json()
+    user_code = data["user_code"]
+    verify_url = data["verification_url"]
+    device_code = data["device_code"]
+    interval = data.get("interval", 5)
+    expires_in = data.get("expires_in", 600)
+
+    print(f"\n{'='*50}", flush=True)
+    print(f"  Go to: {verify_url}", flush=True)
+    print(f"  Enter code: {user_code}", flush=True)
+    print(f"{'='*50}", flush=True)
+    print(f"  Waiting for authorization (up to {expires_in}s)...", flush=True)
+
+    start = time.time()
+    while time.time() - start < expires_in:
+        time.sleep(interval)
+        r = requests.post(f"{BASE}/oauth/device/token", json={
+            "code": device_code,
+            "client_id": CLIENT_ID,
+            "client_secret": CLIENT_SECRET,
+        })
+        if r.status_code == 200:
+            token_data = r.json()
+            ACCESS_TOKEN = token_data["access_token"]
+            print(f"\n  Authorized! Token obtained.", flush=True)
+            return True
+        elif r.status_code == 400:
+            print(".", end="", flush=True)
+        elif r.status_code == 410:
+            print("\n  Code expired.")
+            return False
+        elif r.status_code == 418:
+            print("\n  Denied by user.")
+            return False
+    print("\n  Timed out waiting for authorization.")
+    return False
 
 def get_headers(auth=False):
     h = {
@@ -314,12 +358,15 @@ def main():
     if not is_dry and not ACCESS_TOKEN:
         print("ERROR: TRAKT_ACCESS_TOKEN not set"); sys.exit(1)
 
-    # Verify auth for execute mode (auto-refresh if expired)
+    # Verify auth for execute mode (auto-refresh → device code flow if needed)
     if not is_dry:
         resp = requests.get(f"{BASE}/users/me", headers=get_headers(auth=True))
         if resp.status_code == 401:
+            print("  Access token expired, trying refresh...", flush=True)
             if not refresh_access_token():
-                sys.exit(1)
+                print("  Refresh failed, falling back to device code auth...", flush=True)
+                if not device_code_auth():
+                    print("ERROR: All auth methods failed"); sys.exit(1)
             resp = requests.get(f"{BASE}/users/me", headers=get_headers(auth=True))
         if resp.status_code != 200:
             print(f"ERROR: Auth failed (HTTP {resp.status_code})"); sys.exit(1)
