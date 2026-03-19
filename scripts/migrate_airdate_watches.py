@@ -102,6 +102,7 @@ def identify_candidates(entries):
         watched_str = entry.get('watched_at')
         aired_str = ep.get('first_aired')
         history_id = entry.get('id')
+        trakt_ep_id = ep.get('ids', {}).get('trakt')
 
         if not watched_str or not aired_str or not history_id:
             continue
@@ -119,6 +120,7 @@ def identify_candidates(entries):
 
         info = {
             'history_id': history_id,
+            'trakt_ep_id': trakt_ep_id,
             'show': show_title,
             'season': ep.get('season'),
             'episode': ep.get('number'),
@@ -164,6 +166,7 @@ def remove_history(history_ids):
         batch_num = i // BATCH + 1
         total_batches = (total + BATCH - 1) // BATCH
 
+        resp = None
         for attempt in range(3):
             resp = requests.post(f"{BASE}/sync/history/remove",
                 json={"ids": batch}, headers=get_headers(auth=True))
@@ -174,7 +177,7 @@ def remove_history(history_ids):
                 continue
             break
 
-        if resp.status_code == 200:
+        if resp and resp.status_code == 200:
             result = resp.json()
             deleted = result.get('deleted', {}).get('episodes', 0)
             not_found = result.get('not_found', {}).get('ids', [])
@@ -185,12 +188,56 @@ def remove_history(history_ids):
             nf_str = f", {nf} not found" if nf else ""
             print(f"  Batch {batch_num}/{total_batches}: {deleted} removed{nf_str}  [{pct:.0f}%]", flush=True)
         else:
-            print(f"  Batch {batch_num}/{total_batches}: HTTP {resp.status_code}", flush=True)
+            status = resp.status_code if resp else "no response"
+            print(f"  Batch {batch_num}/{total_batches}: HTTP {status}", flush=True)
             failed += len(batch)
 
         time.sleep(0.3)
 
     return removed, failed
+
+def readd_without_dates(trakt_ep_ids):
+    """Re-add episodes as dateless watches (no watched_at = Trakt 'unknown date')."""
+    total = len(trakt_ep_ids)
+    added = 0
+    failed = 0
+    BATCH = 200
+
+    for i in range(0, total, BATCH):
+        batch = trakt_ep_ids[i:i+BATCH]
+        batch_num = i // BATCH + 1
+        total_batches = (total + BATCH - 1) // BATCH
+
+        body = {"episodes": [{"ids": {"trakt": tid}} for tid in batch]}
+
+        resp = None
+        for attempt in range(3):
+            resp = requests.post(f"{BASE}/sync/history",
+                json=body, headers=get_headers(auth=True))
+            if resp.status_code == 429:
+                retry = int(resp.headers.get("Retry-After", 10))
+                print(f"    Rate limited, waiting {retry}s...", flush=True)
+                time.sleep(retry)
+                continue
+            break
+
+        if resp and resp.status_code == 201:
+            result = resp.json()
+            n = result.get('added', {}).get('episodes', 0)
+            nf = len(result.get('not_found', {}).get('episodes', []))
+            added += n
+            failed += nf
+            pct = min((i + len(batch)) / total * 100, 100)
+            nf_str = f", {nf} not found" if nf else ""
+            print(f"  Batch {batch_num}/{total_batches}: {n} re-added{nf_str}  [{pct:.0f}%]", flush=True)
+        else:
+            status = resp.status_code if resp else "no response"
+            print(f"  Batch {batch_num}/{total_batches}: HTTP {status}", flush=True)
+            failed += len(batch)
+
+        time.sleep(0.3)
+
+    return added, failed
 
 def main():
     mode = sys.argv[1] if len(sys.argv) > 1 else "--dry-run"
@@ -206,7 +253,7 @@ def main():
     if not is_dry and not ACCESS_TOKEN:
         print("ERROR: TRAKT_ACCESS_TOKEN not set"); sys.exit(1)
 
-    # Verify auth
+    # Verify auth for execute mode
     if not is_dry:
         resp = requests.get(f"{BASE}/users/me", headers=get_headers(auth=True))
         if resp.status_code != 200:
@@ -229,22 +276,54 @@ def main():
     print(f"Shows affected:      {len(by_show)}")
     print(f"{'='*60}")
     for show in sorted(by_show, key=lambda x: len(by_show[x]), reverse=True):
-        print(f"  {show:50s} {len(by_show[show]):4d}")
-    print(f"  {'TOTAL':50s} {len(candidates):4d}")
+        eps = by_show[show]
+        seasons = sorted(set(e['season'] for e in eps if e['season'] is not None))
+        s_str = f"  S{','.join(str(s) for s in seasons)}" if len(seasons) <= 5 else f"  S{seasons[0]}-{seasons[-1]}"
+        print(f"  {show:45s} {len(eps):4d} eps{s_str}")
+    print(f"  {'TOTAL':45s} {len(candidates):4d}")
+
+    # Show KEEP summary too
+    if kept:
+        kept_by_show = defaultdict(int)
+        for k in kept:
+            kept_by_show[k['show']] += 1
+        print(f"\nKEPT (airdate matches preserved):")
+        for show in sorted(kept_by_show, key=lambda x: kept_by_show[x], reverse=True):
+            print(f"  {show:45s} {kept_by_show[show]:4d} eps")
 
     if is_dry:
         print(f"\nDRY RUN complete. Run with --execute to migrate.")
+        print(f"Migration will: remove {len(candidates):,} dated entries → re-add as dateless watches.")
         return
 
-    print(f"\nRemoving {len(candidates):,} history entries...")
+    # Check for missing trakt episode IDs
+    missing_ids = [c for c in candidates if not c.get('trakt_ep_id')]
+    if missing_ids:
+        print(f"\nWARNING: {len(missing_ids)} candidates missing trakt episode ID — these will be removed but NOT re-added!")
+        for m in missing_ids[:10]:
+            print(f"  {m['show']} S{m['season']:02d}E{m['episode']:02d}")
+
+    # Step 1: Remove dated history entries
+    print(f"\nStep 1: Removing {len(candidates):,} dated history entries...")
     history_ids = [c['history_id'] for c in candidates]
-    removed, failed = remove_history(history_ids)
+    removed, remove_failed = remove_history(history_ids)
+    print(f"  Removed: {removed:,}, Failed: {remove_failed:,}")
+
+    # Step 2: Re-add as dateless watches
+    trakt_ep_ids = [c['trakt_ep_id'] for c in candidates if c.get('trakt_ep_id')]
+    # Deduplicate (same episode watched multiple times → only re-add once)
+    unique_ep_ids = list(dict.fromkeys(trakt_ep_ids))
+    print(f"\nStep 2: Re-adding {len(unique_ep_ids):,} unique episodes as dateless watches...")
+    added, add_failed = readd_without_dates(unique_ep_ids)
+    print(f"  Re-added: {added:,}, Failed: {add_failed:,}")
 
     print(f"\n{'='*60}")
     print(f"MIGRATION COMPLETE")
     print(f"{'='*60}")
-    print(f"  Removed: {removed:,}")
-    print(f"  Failed:  {failed:,}")
+    print(f"  Dated entries removed:   {removed:,}")
+    print(f"  Dateless watches added:  {added:,}")
+    print(f"  Remove failures:         {remove_failed:,}")
+    print(f"  Re-add failures:         {add_failed:,}")
 
 if __name__ == "__main__":
     main()
