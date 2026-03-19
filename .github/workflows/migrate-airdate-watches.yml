@@ -11,11 +11,13 @@ on:
         options:
           - dry-run
           - execute
-          - investigate
+          - restore-dateless
+          - restore-dump
 
 jobs:
   migrate:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
 
@@ -28,16 +30,27 @@ jobs:
         run: pip install requests
 
       - name: Run migration
-        if: github.event.inputs.mode != 'investigate'
+        if: inputs.mode == 'dry-run' || inputs.mode == 'execute'
         env:
           TRAKT_CLIENT_ID: ${{ secrets.TRAKT_CLIENT_ID }}
           TRAKT_ACCESS_TOKEN: ${{ secrets.TRAKT_ACCESS_TOKEN }}
+          TRAKT_CLIENT_SECRET: ${{ secrets.TRAKT_CLIENT_SECRET }}
+          TRAKT_REFRESH_TOKEN: ${{ secrets.TRAKT_REFRESH_TOKEN }}
           TRAKT_USERNAME: ${{ secrets.TRAKT_USERNAME }}
         run: python scripts/migrate_airdate_watches.py --${{ github.event.inputs.mode }}
 
-      - name: Investigate X-Files
-        if: github.event.inputs.mode == 'investigate'
+      - name: Restore dateless watches
+        if: inputs.mode == 'restore-dateless'
         env:
           TRAKT_CLIENT_ID: ${{ secrets.TRAKT_CLIENT_ID }}
-          TRAKT_USERNAME: ${{ secrets.TRAKT_USERNAME }}
-        run: python scripts/investigate_xfiles.py
+          TRAKT_ACCESS_TOKEN: ${{ secrets.TRAKT_ACCESS_TOKEN }}
+        run: python scripts/restore_dateless_watches.py --execute
+
+      - name: Restore June 30 dump episodes
+        if: inputs.mode == 'restore-dump'
+        env:
+          TRAKT_CLIENT_ID: ${{ secrets.TRAKT_CLIENT_ID }}
+          TRAKT_ACCESS_TOKEN: ${{ secrets.TRAKT_ACCESS_TOKEN }}
+          TRAKT_REFRESH_TOKEN: ${{ secrets.TRAKT_REFRESH_TOKEN }}
+          TRAKT_CLIENT_SECRET: ${{ secrets.TRAKT_CLIENT_SECRET }}
+        run: python scripts/restore_dump_episodes.py --execute
