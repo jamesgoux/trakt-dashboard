@@ -11,10 +11,12 @@ on:
         options:
           - dry-run
           - execute
+          - restore-dateless
 
 jobs:
   migrate:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
 
@@ -27,8 +29,16 @@ jobs:
         run: pip install requests
 
       - name: Run migration
+        if: inputs.mode != 'restore-dateless'
         env:
           TRAKT_CLIENT_ID: ${{ secrets.TRAKT_CLIENT_ID }}
           TRAKT_ACCESS_TOKEN: ${{ secrets.TRAKT_ACCESS_TOKEN }}
           TRAKT_USERNAME: ${{ secrets.TRAKT_USERNAME }}
         run: python scripts/migrate_airdate_watches.py --${{ github.event.inputs.mode }}
+
+      - name: Restore dateless watches
+        if: inputs.mode == 'restore-dateless'
+        env:
+          TRAKT_CLIENT_ID: ${{ secrets.TRAKT_CLIENT_ID }}
+          TRAKT_ACCESS_TOKEN: ${{ secrets.TRAKT_ACCESS_TOKEN }}
+        run: python scripts/restore_dateless_watches.py --execute
