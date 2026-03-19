@@ -1221,6 +1221,18 @@ else:
     else:
         print(f"  Cached: {len(entries)} entries (no timestamp, using as-is)")
 
+# ── Filter out epoch/dateless entries (1969/1970 from stale cache) ──
+_epoch_fixed = 0
+for e in entries:
+    wa = e.get("watched_at", "")
+    if wa and wa[:4] in ("1969", "1970"):
+        e["watched_at"] = ""  # treat as dateless
+        _epoch_fixed += 1
+if _epoch_fixed:
+    print(f"  Cleaned {_epoch_fixed} epoch (1969/1970) entries → dateless")
+    with open(entries_cache_path, "w") as f:
+        json.dump(entries, f, separators=(",", ":"))
+
 # ── Metadata overrides (correct known TMDB errors) ──
 METADATA_OVERRIDES = {
     "it-was-just-an-accident-2025": {"language": "fa"},  # Persian, not French
