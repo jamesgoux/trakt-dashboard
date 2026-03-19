@@ -13,7 +13,7 @@ on:
           - execute
           - restore-dateless
           - restore-dump
-          - cleanup-pre2012
+          - check-actions
 
 jobs:
   migrate:
@@ -56,12 +56,10 @@ jobs:
           TRAKT_CLIENT_SECRET: ${{ secrets.TRAKT_CLIENT_SECRET }}
         run: python scripts/restore_dump_episodes.py --execute
 
-      - name: Cleanup pre-2012 entries
-        if: inputs.mode == 'cleanup-pre2012'
+      - name: Check action types
+        if: inputs.mode == 'check-actions'
         env:
           TRAKT_CLIENT_ID: ${{ secrets.TRAKT_CLIENT_ID }}
           TRAKT_ACCESS_TOKEN: ${{ secrets.TRAKT_ACCESS_TOKEN }}
-          TRAKT_REFRESH_TOKEN: ${{ secrets.TRAKT_REFRESH_TOKEN }}
-          TRAKT_CLIENT_SECRET: ${{ secrets.TRAKT_CLIENT_SECRET }}
           TRAKT_USERNAME: ${{ secrets.TRAKT_USERNAME }}
-        run: python scripts/cleanup_pre2012.py --execute
+        run: python scripts/check_actions.py
