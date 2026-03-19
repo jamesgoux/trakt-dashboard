@@ -623,8 +623,10 @@ function stats(){
     var hw=D.health||{};var hby=hw.by_year||{};var htW=0,htD=0,htC=0;
     Object.entries(hby).forEach(function(e){if(cy==='all'||e[0]===cy){htW+=e[1].count;htD+=e[1].dur;htC+=e[1].cal}});
     el.innerHTML=sc(htW,'🏋️ Workouts','#1db954')+sc((htD/3600).toFixed(1)+'h','⏱️ Hours','#1db954')+sc((htC/1000).toFixed(2)+'k','🔥 Calories','#1db954');return}
-  // Movie/show/all — compute counts
-  var mw=0,ew=0,rt=0,rtm=0,rts=0;D.c.m.filter(function(m){return cy==='all'||m.month.startsWith(cy)}).forEach(function(m){mw+=m.movies;ew+=m.episodes;rt+=(m.rt||0);rtm+=(m.rt_m||0);rts+=(m.rt_s||0)});
+  // Movie/show/all — compute counts (use pipeline stats for 'all' to include dateless entries)
+  var mw=0,ew=0,rt=0,rtm=0,rts=0;
+  if(cy==='all'){mw=D.c.s.movie_watches;ew=D.c.s.episode_watches;rt=Math.round(D.c.s.total_runtime_days*24*60);rtm=Math.round(D.c.s.movie_runtime_days*24*60);rts=Math.round(D.c.s.show_runtime_days*24*60)}
+  else{D.c.m.filter(function(m){return m.month.startsWith(cy)}).forEach(function(m){mw+=m.movies;ew+=m.episodes;rt+=(m.rt||0);rtm+=(m.rt_m||0);rts+=(m.rt_s||0)})}
   var totalDays=Math.round(rt/60/24*10)/10;var movieDays=Math.round(rtm/60/24*10)/10;var showDays=Math.round(rts/60/24*10)/10;
   var s=D.c.s;var h2='';
   if(ct==='movie'){h2=sc(mw.toLocaleString(),'🎞️ Movies','var(--ac)')+sc(movieDays,'⏱️ Days','#b0b0b0')}
