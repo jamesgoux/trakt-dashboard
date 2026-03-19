@@ -1,0 +1,43 @@
+name: Migrate Airdate Watches
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Run mode'
+        required: true
+        default: 'dry-run'
+        type: choice
+        options:
+          - dry-run
+          - execute
+          - investigate
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Run migration
+        if: github.event.inputs.mode != 'investigate'
+        env:
+          TRAKT_CLIENT_ID: ${{ secrets.TRAKT_CLIENT_ID }}
+          TRAKT_ACCESS_TOKEN: ${{ secrets.TRAKT_ACCESS_TOKEN }}
+          TRAKT_USERNAME: ${{ secrets.TRAKT_USERNAME }}
+        run: python scripts/migrate_airdate_watches.py --${{ github.event.inputs.mode }}
+
+      - name: Investigate X-Files
+        if: github.event.inputs.mode == 'investigate'
+        env:
+          TRAKT_CLIENT_ID: ${{ secrets.TRAKT_CLIENT_ID }}
+          TRAKT_USERNAME: ${{ secrets.TRAKT_USERNAME }}
+        run: python scripts/investigate_xfiles.py
