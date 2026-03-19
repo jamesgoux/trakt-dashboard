@@ -23,8 +23,37 @@ from collections import defaultdict
 
 CLIENT_ID = os.environ.get("TRAKT_CLIENT_ID")
 ACCESS_TOKEN = os.environ.get("TRAKT_ACCESS_TOKEN")
+CLIENT_SECRET = os.environ.get("TRAKT_CLIENT_SECRET")
+REFRESH_TOKEN = os.environ.get("TRAKT_REFRESH_TOKEN")
 USERNAME = os.environ.get("TRAKT_USERNAME", "jamesgoux")
 BASE = "https://api.trakt.tv"
+
+def refresh_access_token():
+    """Refresh expired access token using refresh token."""
+    global ACCESS_TOKEN
+    if not REFRESH_TOKEN or not CLIENT_SECRET:
+        print("ERROR: Cannot refresh token — TRAKT_REFRESH_TOKEN or TRAKT_CLIENT_SECRET not set")
+        return False
+    print("  Refreshing expired access token...", flush=True)
+    r = requests.post(f"{BASE}/oauth/token", json={
+        "refresh_token": REFRESH_TOKEN,
+        "client_id": CLIENT_ID,
+        "client_secret": CLIENT_SECRET,
+        "redirect_uri": "urn:ietf:wg:oauth:2.0:oob",
+        "grant_type": "refresh_token",
+    })
+    if r.status_code == 200:
+        data = r.json()
+        ACCESS_TOKEN = data["access_token"]
+        print(f"  Token refreshed successfully", flush=True)
+        # Output for GH Actions to capture and update secret
+        new_refresh = data.get("refresh_token", "")
+        if new_refresh:
+            print(f"::notice::New refresh token issued — update TRAKT_REFRESH_TOKEN secret")
+        return True
+    else:
+        print(f"  Token refresh failed: HTTP {r.status_code} — {r.text[:200]}")
+        return False
 
 def get_headers(auth=False):
     h = {
@@ -285,9 +314,13 @@ def main():
     if not is_dry and not ACCESS_TOKEN:
         print("ERROR: TRAKT_ACCESS_TOKEN not set"); sys.exit(1)
 
-    # Verify auth for execute mode
+    # Verify auth for execute mode (auto-refresh if expired)
     if not is_dry:
         resp = requests.get(f"{BASE}/users/me", headers=get_headers(auth=True))
+        if resp.status_code == 401:
+            if not refresh_access_token():
+                sys.exit(1)
+            resp = requests.get(f"{BASE}/users/me", headers=get_headers(auth=True))
         if resp.status_code != 200:
             print(f"ERROR: Auth failed (HTTP {resp.status_code})"); sys.exit(1)
         print(f"Authenticated as: {resp.json().get('username')}\n")
