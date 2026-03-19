@@ -231,8 +231,12 @@ def remove_history(history_ids):
 
     return removed, failed
 
+EPOCH = "1970-01-01T00:00:00.000Z"
+
 def readd_without_dates(trakt_ep_ids):
-    """Re-add episodes as dateless watches (no watched_at = Trakt 'unknown date')."""
+    """Re-add episodes as dateless watches using epoch timestamp.
+    Note: omitting watched_at causes Trakt to use the episode's release date,
+    so we explicitly use epoch (1970-01-01) which is Trakt's dateless convention."""
     total = len(trakt_ep_ids)
     added = 0
     failed = 0
@@ -243,7 +247,7 @@ def readd_without_dates(trakt_ep_ids):
         batch_num = i // BATCH + 1
         total_batches = (total + BATCH - 1) // BATCH
 
-        body = {"episodes": [{"ids": {"trakt": tid}} for tid in batch]}
+        body = {"episodes": [{"ids": {"trakt": tid}, "watched_at": EPOCH} for tid in batch]}
 
         resp = None
         for attempt in range(3):
