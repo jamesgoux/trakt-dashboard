@@ -3438,18 +3438,25 @@ var _unWatched=JSON.parse(localStorage.getItem('iris_un_watched')||'{}');
 // Also reconstruct recent entries from _unWatched so they appear in Recently Watched.
 (function(){
 var shows=(D.un||{}).shows||[];var recent=(D.un||{}).recent||[];
-// Prune on new builds: remove entries older than build where pipeline has caught up
+// Prune on new builds: remove stale _unWatched entries
 var build='__BUILD_TIME__';var lastBuild=localStorage.getItem('iris_un_build')||'';
 if(build!==lastBuild&&build!=='__BUILD_'+'TIME__'){
   localStorage.setItem('iris_un_build',build);
   var buildMs=new Date(build.replace(' UTC','')+' UTC').getTime()||0;
   var rSet={};recent.forEach(function(r){rSet[r.slug+'|'+r.season+'|'+r.episode]=true});
-  var pruned=false;shows.forEach(function(s){
-    var key=s.slug+'|'+s.season+'|'+s.episode;
-    if(!_unWatched[key]||rSet[key])return;
+  // Build set of all known show slugs from Up Next data
+  var knownSlugs={};shows.forEach(function(s){knownSlugs[s.slug]=true});
+  recent.forEach(function(r){knownSlugs[r.slug]=true});
+  var pruned=false;
+  Object.keys(_unWatched).forEach(function(key){
+    var parts=key.split('|');var slug=parts[0]||'';
+    // Prune if: pipeline already has it in recent, OR slug not in any Up Next data (ghost entry), OR older than build
+    if(rSet[key]){delete _unWatched[key];pruned=true;return}
+    if(!knownSlugs[slug]){delete _unWatched[key];pruned=true;return}
     var wMs=new Date(_unWatched[key]).getTime()||0;
-    if(wMs<buildMs){delete _unWatched[key];pruned=true}
-  });if(pruned)localStorage.setItem('iris_un_watched',JSON.stringify(_unWatched));
+    if(wMs&&wMs<buildMs){delete _unWatched[key];pruned=true}
+  });
+  if(pruned)localStorage.setItem('iris_un_watched',JSON.stringify(_unWatched));
   // Prune old removals: if entry not in recent anymore (pipeline caught up), clear it
   var rmPruned=false;Object.keys(_unRemoved).forEach(function(k){
     if(!rSet[k]){delete _unRemoved[k];rmPruned=true}
