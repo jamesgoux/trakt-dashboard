@@ -3505,7 +3505,7 @@ function openUpNext(){
     // Find poster from shows data if not on the item
     var poster=s.poster;
     if(!poster){var match=ud.shows.find(function(x){return x.slug===s.slug});if(match)poster=match.poster}
-    var c='<div class="un-card'+(isRecent?'':' un-card-tap')+'" data-slug="'+s.slug+'" data-s="'+s.season+'" data-e="'+s.episode+'" data-eid="'+(s.ep_trakt_id||0)+'" data-tmdb="'+(s.tmdb_id||'')+'"'+(isRecent?'':' onclick="showEpDetail(this)"')+'>';
+    var c='<div class="un-card un-card-tap" data-slug="'+s.slug+'" data-s="'+s.season+'" data-e="'+s.episode+'" data-eid="'+(s.ep_trakt_id||0)+'" data-tmdb="'+(s.tmdb_id||'')+'" onclick="showEpDetail(this)">';
     if(poster)c+='<img class="un-poster" src="'+poster+'" loading="lazy" onerror="this.style.display=\'none\'" alt="">';
     else c+='<div class="un-poster-ph">📺</div>';
     c+='<div class="un-info">';
@@ -3587,7 +3587,18 @@ function showEpDetail(card){
     return true;
   });
   var idx=allShows.findIndex(function(x){return x.slug===slug&&x.season==s&&x.episode==e});
-  if(idx<0)return;
+  if(idx<0){
+    // Episode not in Up Next list (recently watched or fully caught up show)
+    // Build a minimal show object so the detail panel can render
+    var showTitle=slug;var poster='';var stream=[];var tmdbId=tmdb||'';
+    // Try to find show info from Up Next data or recent
+    var match=ud.shows.find(function(x){return x.slug===slug});
+    if(match){showTitle=match.show||match.title||slug;poster=match.poster||'';stream=match.stream||[];tmdbId=match.tmdb_id||tmdb||''}
+    else{var rm=rec.find(function(x){return x.slug===slug});if(rm)showTitle=rm.show||slug}
+    var synth={slug:slug,show:showTitle,season:s,episode:e,ep_title:'',ep_overview:'',ep_still:'',ep_aired:'',ep_runtime:0,ep_trakt_id:parseInt(eid)||0,tmdb_id:tmdbId,poster:poster,stream:stream,aired_total:0,completed:0,eps_left:0,is_new:false};
+    allShows.push(synth);
+    idx=allShows.length-1;
+  }
   _unRenderDetail(allShows,idx);
 }
 
@@ -3856,44 +3867,54 @@ function _traktSync(epTraktId,watchedAt,onDone){
 }
 
 // Fetch and display watch history for an episode
+// Step 1: lookup Trakt episode ID, Step 2: fetch history by that ID
 function _fetchEpHistory(slug,season,episode){
   var ct=document.getElementById('un-ep-history');
   if(!ct)return;
   var cid=D._tc,tok=D._tt;
   if(!cid||!tok){ct.innerHTML='';return}
   ct.innerHTML='<div style="font-size:12px;color:var(--t2);padding:8px 0">Loading watch history…</div>';
-  var url='https://api.trakt.tv/users/jamesgoux/history/episodes?limit=20';
-  // We need to search by show slug + season + episode — use the show history endpoint
-  url='https://api.trakt.tv/users/jamesgoux/history/shows/'+encodeURIComponent(slug)+'/seasons/'+season+'/episodes/'+episode+'?limit=20';
-  fetch(url,{headers:{'Content-Type':'application/json','trakt-api-version':'2','trakt-api-key':cid,'Authorization':'Bearer '+tok}})
-  .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json()})
+  var hdr={'Content-Type':'application/json','trakt-api-version':'2','trakt-api-key':cid,'Authorization':'Bearer '+tok};
+  // Step 1: Get the Trakt episode ID from slug/season/episode
+  fetch('https://api.trakt.tv/shows/'+encodeURIComponent(slug)+'/seasons/'+season+'/episodes/'+episode,{headers:hdr})
+  .then(function(r){if(!r.ok)throw new Error('Lookup HTTP '+r.status);return r.json()})
+  .then(function(epData){
+    var traktId=epData&&epData.ids?epData.ids.trakt:0;
+    if(!traktId)throw new Error('No Trakt ID for episode');
+    // Step 2: Fetch watch history for this specific episode
+    return fetch('https://api.trakt.tv/users/jamesgoux/history/episodes/'+traktId+'?limit=20',{headers:hdr});
+  })
+  .then(function(r){if(!r.ok)throw new Error('History HTTP '+r.status);return r.json()})
   .then(function(entries){
     ct=document.getElementById('un-ep-history');
     if(!ct)return;
     if(!entries||!entries.length){ct.innerHTML='<div style="font-size:12px;color:var(--t2);padding:4px 0;opacity:.6">Not watched</div>';return}
-    var h='<div style="border-radius:10px;background:rgba(255,255,255,.04);padding:12px;margin-top:4px">';
-    h+='<div style="font-size:12px;font-weight:600;color:var(--t2);margin-bottom:8px">✅ Watched '+entries.length+'×</div>';
-    entries.forEach(function(e){
-      var wa=e.watched_at||'';
-      var isEpoch=wa.startsWith('1970');
-      var dateStr=isEpoch?'No date':wa.substring(0,10);
-      var timeStr=isEpoch?'(dateless)':wa.substring(11,16);
-      var hid=e.id||0;
-      h+='<div class="un-hist-row" data-hid="'+hid+'" style="display:flex;align-items:center;gap:8px;padding:6px 0;border-top:1px solid rgba(255,255,255,.06)">';
-      h+='<div style="flex:1;font-size:13px;color:var(--tx)">'+dateStr;
-      if(!isEpoch)h+=' <span style="color:var(--t2);font-size:11px">'+timeStr+'</span>';
-      h+='</div>';
-      h+='<button onclick="_removeEpWatch('+hid+',this)" style="background:rgba(239,68,68,.15);color:#ef4444;border:none;border-radius:6px;padding:6px 10px;font-size:11px;cursor:pointer;font-weight:600;min-height:32px">Remove</button>';
-      h+='</div>';
-    });
-    h+='</div>';
-    ct.innerHTML=h;
+    _renderEpHistory(ct,entries);
   })
   .catch(function(err){
     ct=document.getElementById('un-ep-history');
-    if(ct)ct.innerHTML='<div style="font-size:12px;color:#ef4444;padding:4px 0">Could not load history</div>';
+    if(ct)ct.innerHTML='';
     console.error('Episode history fetch failed:',err);
   });
+}
+function _renderEpHistory(ct,entries){
+  var h='<div style="border-radius:10px;background:rgba(255,255,255,.04);padding:12px;margin-top:4px">';
+  h+='<div style="font-size:12px;font-weight:600;color:var(--t2);margin-bottom:8px">✅ Watched '+entries.length+'×</div>';
+  entries.forEach(function(e){
+    var wa=e.watched_at||'';
+    var isEpoch=wa.startsWith('1970');
+    var dateStr=isEpoch?'No date':wa.substring(0,10);
+    var timeStr=isEpoch?'(dateless)':wa.substring(11,16);
+    var hid=e.id||0;
+    h+='<div class="un-hist-row" data-hid="'+hid+'" style="display:flex;align-items:center;gap:8px;padding:6px 0;border-top:1px solid rgba(255,255,255,.06)">';
+    h+='<div style="flex:1;font-size:13px;color:var(--tx)">'+dateStr;
+    if(!isEpoch)h+=' <span style="color:var(--t2);font-size:11px">'+timeStr+'</span>';
+    h+='</div>';
+    h+='<button onclick="_removeEpWatch('+hid+',this)" style="background:rgba(239,68,68,.15);color:#ef4444;border:none;border-radius:6px;padding:6px 10px;font-size:11px;cursor:pointer;font-weight:600;min-height:32px">Remove</button>';
+    h+='</div>';
+  });
+  h+='</div>';
+  ct.innerHTML=h;
 }
 
 // Remove a single watch entry by Trakt history ID
