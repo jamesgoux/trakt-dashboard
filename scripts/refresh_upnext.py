@@ -64,7 +64,7 @@ def fetch_ep_still(tmdb_id, season, episode):
 
 def fetch_recent_history():
     """Fetch last 20 watched episodes from Trakt history."""
-    r = retry_request("get", f"{BASE}/users/{USERNAME}/history/episodes?limit=20&extended=full",
+    r = retry_request("get", f"{BASE}/users/{USERNAME}/history/episodes?limit=100&extended=full",
                       headers=AUTH_HEADERS, timeout=10)
     if not r or r.status_code != 200:
         return []
