@@ -3688,7 +3688,7 @@ function _syncExternalWatches(){
         if(!inRecent){if(!ud.recent)ud.recent=[];ud.recent.unshift({show:ew.show,slug:ew.slug,season:ew.season,episode:ew.episode,ep_title:ew.ep_title,watched_at:ew.watched_at,ep_id:ew.ep_id,ep_aired:ew.ep_aired})}
       }
     });
-    if(changed){console.log('External watches detected, re-rendering Up Next');openUpNext()}
+    if(changed){console.log('External watches detected, re-rendering Up Next');_unScrollPos=document.getElementById('un-overlay').scrollTop;_unReturning=true;openUpNext()}
   }).catch(function(e){console.error('External sync failed:',e)});
 }
 
