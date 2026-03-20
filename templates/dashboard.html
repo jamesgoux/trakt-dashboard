@@ -4384,8 +4384,14 @@ function markWatchedAt(slug,season,episode,epTraktId,when){
       break;
     }
   }
-  _unScrollPos=document.getElementById('un-overlay').scrollTop;
-  openUpNext(true);
+  // Slide episode detail away (if visible), then re-render queue
+  if(document.getElementById('un-detail-fg')){
+    _unDismissDetail();
+    setTimeout(function(){_unScrollPos=document.getElementById('un-overlay').scrollTop;openUpNext(true)},350);
+  }else{
+    _unScrollPos=document.getElementById('un-overlay').scrollTop;
+    openUpNext(true);
+  }
   if(epTraktId)_traktSync(epTraktId,watchedAt);
 }
 
