@@ -4264,6 +4264,8 @@ function removeRecent(epId,btn){
       .then(function(r){return r.json()}).then(function(d){console.log('Trakt recent removed:',d)}).catch(function(e){console.error('Trakt remove failed:',e)});
     }
   }
+  // Re-render Up Next after card animation completes to show episode in queue
+  setTimeout(function(){openUpNext()},600);
 }
 
 function closeUpNext(){
