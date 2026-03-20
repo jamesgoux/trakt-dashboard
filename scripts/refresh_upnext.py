@@ -139,12 +139,25 @@ def run():
 
         prog = r2.json()
         next_ep = prog.get("next_episode")
+
+        # Verify next_episode isn't stale (already completed per season data)
+        if next_ep:
+            ne_s = next_ep.get("season", 0)
+            ne_e = next_ep.get("number", 0)
+            for sn in prog.get("seasons", []):
+                if sn.get("number") == ne_s:
+                    for ep in sn.get("episodes", []):
+                        if ep.get("number") == ne_e and ep.get("completed", False):
+                            print(f"  Stale next_episode for {slug}: S{ne_s:02d}E{ne_e:02d} already completed, deriving...")
+                            next_ep = None  # Fall through to derive from seasons
+                    break
+
         if not next_ep:
             aired = prog.get("aired", 0)
             completed = prog.get("completed", 0)
             if aired <= completed:
                 continue
-            # next_episode is null but unwatched episodes exist — derive from seasons
+            # next_episode is null/stale — derive from seasons (first unwatched episode)
             for sn in prog.get("seasons", []):
                 sn_num = sn.get("number", 0)
                 if sn_num == 0:

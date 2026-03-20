@@ -3570,7 +3570,7 @@ function openUpNext(skipSync){
   if(needsSync){
     _lastExternalSync=Date.now();
     var hdr={'Content-Type':'application/json','trakt-api-version':'2','trakt-api-key':D._tc,'Authorization':'Bearer '+D._tt};
-    fetch('https://api.trakt.tv/users/jamesgoux/history/episodes?limit=50',{headers:hdr})
+    fetch('https://api.trakt.tv/users/jamesgoux/history/episodes?limit=100',{headers:hdr})
     .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json()})
     .then(function(entries){
       _applyExternalWatches(entries);
@@ -4071,6 +4071,8 @@ function _fetchEpHistory(slug,season,episode,ver){
     if(!el)return;
     if(!entries||!entries.length){el.innerHTML='<div style="font-size:12px;color:var(--t2);padding:4px 0;opacity:.6">Not watched</div>';return}
     _renderEpHistory(el,entries);
+    // Auto-advance: if this episode is the current Up Next for this show, it's stale
+    _autoAdvanceIfWatched(slug,season,episode);
   })
   .catch(function(err){
     if(err==='stale')return;
@@ -4078,6 +4080,20 @@ function _fetchEpHistory(slug,season,episode,ver){
     if(el)el.innerHTML='';
     console.error('Episode history fetch failed:',err);
   });
+}
+// If this episode is the show's current Up Next episode but has watches, advance past it
+function _autoAdvanceIfWatched(slug,season,episode){
+  var ud=D.un||{};var shows=ud.shows||[];
+  var show=shows.find(function(s){return s.slug===slug&&s.season==season&&s.episode==episode});
+  if(!show)return;// not the current Up Next episode for this show
+  console.log('Auto-advancing stale episode: '+slug+' S'+season+'E'+episode);
+  show.episode++;show.completed=(show.completed||0)+1;
+  show.eps_left=Math.max(0,(show.eps_left||1)-1);
+  show.remaining_min=Math.max(0,(show.remaining_min||0)-(show.ep_runtime||0));
+  show.ep_title='';show.ep_overview='';show.ep_still='';show.ep_aired='';show.ep_trakt_id=0;show.is_new=false;
+  // Add to recent if not there
+  var inRecent=(ud.recent||[]).some(function(r){return r.slug===slug&&r.season==season&&r.episode==episode});
+  if(!inRecent){if(!ud.recent)ud.recent=[];ud.recent.unshift({show:show.show,slug:slug,season:season,episode:episode,ep_title:'',watched_at:new Date().toISOString(),ep_id:0,ep_aired:''})}
 }
 function _renderEpHistory(ct,entries){
   var h='<div style="border-radius:10px;background:rgba(255,255,255,.04);padding:12px;margin-top:4px">';
