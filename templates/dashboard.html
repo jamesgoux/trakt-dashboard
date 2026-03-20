@@ -4264,8 +4264,37 @@ function removeRecent(epId,btn){
       .then(function(r){return r.json()}).then(function(d){console.log('Trakt recent removed:',d)}).catch(function(e){console.error('Trakt remove failed:',e)});
     }
   }
-  // Re-render Up Next after card animation completes to show episode in queue
-  setTimeout(function(){openUpNext()},600);
+  // Inject card into New Episodes section in-place (no full re-render)
+  var showData=existing||shows.find(function(x){return x.slug===slug});
+  if(showData){
+    setTimeout(function(){
+      // Find the New Episodes grid in the DOM
+      var sections=document.querySelectorAll('#un-content .un-section');
+      var newGrid=null;
+      sections.forEach(function(sec){if(sec.id==='un-default-scroll')newGrid=sec.nextElementSibling});
+      if(!newGrid)return;
+      // Build the card HTML
+      var s=showData;var p=s.poster||poster;
+      var nc='<div class="un-card un-card-tap" data-slug="'+s.slug+'" data-s="'+s.season+'" data-e="'+s.episode+'" data-eid="'+(s.ep_trakt_id||0)+'" data-tmdb="'+(s.tmdb_id||'')+'" onclick="showEpDetail(this)" style="opacity:0;transition:opacity .4s">';
+      if(p)nc+='<img class="un-poster" src="'+p+'" loading="lazy" onerror="this.style.display=\'none\'" alt="">';
+      else nc+='<div class="un-poster-ph">📺</div>';
+      nc+='<div class="un-info"><div style="display:flex;align-items:center;gap:6px"><div class="un-show" style="flex:1;min-width:0">'+(s.show||slug)+'</div></div>';
+      nc+='<div class="un-ep">S'+String(s.season).padStart(2,'0')+'E'+String(s.episode).padStart(2,'0');
+      if(s.ep_title)nc+=' — '+s.ep_title;nc+='</div>';
+      nc+='<div class="un-meta"><span>'+(s.ep_runtime?_unFmtMin(s.ep_runtime):'')+'</span><span>'+(s.eps_left||1)+' eps</span></div>';
+      nc+='</div>';
+      nc+='<div class="un-new">New</div>';
+      nc+='<button onclick="event.stopPropagation();markWatched(\''+s.slug.replace(/'/g,"\\'")+'\','+s.season+','+s.episode+','+(s.ep_trakt_id||0)+',this)" class="un-watch-btn" title="Mark watched">✓</button>';
+      nc+='</div>';
+      // Insert at the top of New Episodes grid
+      newGrid.insertAdjacentHTML('afterbegin',nc);
+      var added=newGrid.firstElementChild;
+      // Update the section header count
+      var secHdr=newGrid.previousElementSibling;
+      if(secHdr){var m=secHdr.textContent.match(/\((\d+)\)/);if(m)secHdr.textContent=secHdr.textContent.replace('('+m[1]+')','('+(parseInt(m[1])+1)+')')}
+      requestAnimationFrame(function(){if(added)added.style.opacity='1'});
+    },500);
+  }
 }
 
 function closeUpNext(){
