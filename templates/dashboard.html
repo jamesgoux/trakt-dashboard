@@ -4036,15 +4036,19 @@ function _removeEpDone(btn,row,slug,season,ep,ud){
         existing.completed=Math.max(0,(existing.completed||0)-1);
         existing.eps_left=(existing.eps_left||0)+1;
         existing.ep_title='';existing.ep_overview='';existing.ep_still='';existing.ep_aired='';existing.ep_trakt_id=0;
+        existing.is_new=true;
       }
     }else{
       var showTitle=_crBase?_crBase.show:'';var poster=_crBase?_crBase.poster:'';
-      var stream=_crBase?_crBase.stream:[];var tmdbId=_crBase?_crBase.tmdb_id:'';
+      var stream=_crBase?_crBase.stream||[]:[];var tmdbId=_crBase?_crBase.tmdb_id:'';
       shows.unshift({slug:slug,show:showTitle,season:season,episode:ep,
-        ep_title:'',ep_overview:'',ep_still:'',ep_aired:'',ep_runtime:_crBase?_crBase.ep_runtime:0,
-        ep_trakt_id:0,tmdb_id:tmdbId,poster:poster,stream:stream,
+        ep_title:_crBase?_crBase.ep_title:'',ep_overview:_crBase?_crBase.ep_overview:'',
+        ep_still:_crBase?_crBase.ep_still:'',ep_aired:_crBase?_crBase.ep_aired:'',
+        ep_runtime:_crBase?_crBase.ep_runtime:0,
+        ep_trakt_id:_crBase?_crBase.ep_trakt_id:0,tmdb_id:tmdbId,poster:poster,stream:stream,
         aired_total:_crBase?_crBase.aired_total:0,completed:Math.max(0,(_crBase?_crBase.completed:1)-1),
-        eps_left:(_crBase?_crBase.eps_left:0)+1,remaining_min:0,is_new:false,last_watched:''});
+        eps_left:(_crBase?_crBase.eps_left:0)+1,remaining_min:_crBase?_crBase.ep_runtime:0,
+        is_new:true,last_watched:''});
     }
     _unDismissDetail();
     setTimeout(function(){openUpNext()},350);
@@ -4202,8 +4206,54 @@ function markWatched(slug,season,episode,epTraktId,btn){
 
 function removeRecent(epId,btn){
   var card=btn.closest('.un-card');
+  var slug=card?card.dataset.slug:'';
+  var season=card?parseInt(card.dataset.s):0;
+  var episode=card?parseInt(card.dataset.e):0;
+  // Animate out
   card.style.transition='all .3s';card.style.opacity='0';
   setTimeout(function(){card.style.maxHeight='0';card.style.padding='0';card.style.margin='0';card.style.border='none';setTimeout(function(){card.remove()},300)},200);
+  if(!slug)return;
+  // Persist removal in localStorage
+  _markRemoved(slug,season,episode);
+  // Clear from _unWatched
+  var lsKey=slug+'|'+season+'|'+episode;
+  if(_unWatched[lsKey]){delete _unWatched[lsKey];localStorage.setItem('iris_un_watched',JSON.stringify(_unWatched))}
+  // Clear from D.un.recent
+  var ud=D.un||{};
+  if(ud.recent){ud.recent=ud.recent.filter(function(r){return !(r.slug===slug&&r.season==season&&r.episode==episode)})}
+  // Clear history cache
+  delete _epHistCache[slug+'|'+season+'|'+episode];
+  // Move episode back to Up Next queue
+  var shows=ud.shows||[];
+  var existing=shows.find(function(x){return x.slug===slug});
+  // Find show info for metadata
+  var showTitle='';var poster='';var stream=[];var tmdbId='';var airedTotal=0;var completed=0;var epRuntime=0;
+  if(existing){showTitle=existing.show;poster=existing.poster;stream=existing.stream;tmdbId=existing.tmdb_id;airedTotal=existing.aired_total;completed=existing.completed;epRuntime=existing.ep_runtime}
+  else{var rm=(ud.recent||[]).find(function(r){return r.slug===slug});if(rm)showTitle=rm.show}
+  if(existing){
+    // Regress to this episode if it's earlier
+    if(season<existing.season||(season===existing.season&&episode<=existing.episode)){
+      existing.season=season;existing.episode=episode;
+      existing.completed=Math.max(0,(existing.completed||0)-1);
+      existing.eps_left=(existing.eps_left||0)+1;
+      existing.ep_title='';existing.ep_overview='';existing.ep_still='';existing.ep_aired='';existing.ep_trakt_id=0;
+      existing.is_new=true;
+    }
+  }else{
+    shows.unshift({slug:slug,show:showTitle,season:season,episode:episode,
+      ep_title:'',ep_overview:'',ep_still:'',ep_aired:'',ep_runtime:epRuntime,
+      ep_trakt_id:0,tmdb_id:tmdbId,poster:poster,stream:stream,
+      aired_total:airedTotal,completed:Math.max(0,completed-1),
+      eps_left:1,remaining_min:epRuntime,is_new:true,last_watched:''});
+  }
+  // Remove from Trakt via API
+  if(epId){
+    var cid=D._tc,tok=D._tt;
+    if(cid&&tok){
+      fetch('https://api.trakt.tv/sync/history/remove',{method:'POST',headers:{'Content-Type':'application/json','trakt-api-version':'2','trakt-api-key':cid,'Authorization':'Bearer '+tok},body:JSON.stringify({ids:[epId]})})
+      .then(function(r){return r.json()}).then(function(d){console.log('Trakt recent removed:',d)}).catch(function(e){console.error('Trakt remove failed:',e)});
+    }
+  }
 }
 
 function closeUpNext(){
