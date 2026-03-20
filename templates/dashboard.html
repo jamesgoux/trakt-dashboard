@@ -3473,7 +3473,7 @@ function _restoreMetadata(existing,slug,season,episode){
         if(sh2&&sh2.season==season&&sh2.episode==episode){
           sh2.ep_title=_epCache[ck2].ep_title;sh2.ep_overview=_epCache[ck2].ep_overview;sh2.ep_still=_epCache[ck2].ep_still;sh2.ep_aired=_epCache[ck2].ep_aired;sh2.ep_runtime=_epCache[ck2].ep_runtime||sh2.ep_runtime;
           if(sh2.ep_aired){var dd2=Math.floor((Date.now()-new Date(sh2.ep_aired).getTime())/86400000);sh2.is_new=dd2>=0&&dd2<=30}
-          if(document.getElementById('un-overlay').style.display!=='none')openUpNext();
+          if(document.getElementById('un-overlay').style.display!=='none')openUpNext(true);
         }
       }).catch(function(){});
     }
@@ -3555,19 +3555,61 @@ function _unFmtMin(m){if(!m)return'';var h=Math.floor(m/60);var mn=m%60;return h
 function _unData(){var d=D.un||{};return{shows:d.shows||d||[],recent:d.recent||[]}}
 
 var _unScrollPos=0;var _unReturning=false;var _unEverOpened=false;
-function openUpNext(){
+var _lastExternalSync=0;
+// Sync-first architecture: openUpNext syncs with Trakt BEFORE rendering (single paint).
+// Internal callers (markWatched, removeRecent, etc.) pass skipSync=true since they just modified data.
+function openUpNext(skipSync){
   // Close any popups/tooltips that might overlay
   document.querySelectorAll('.chart-detail').forEach(function(d){d.remove()});
-  // Dismiss all ECharts tooltips
   if(window.echarts){document.querySelectorAll('[_echarts_instance_]').forEach(function(el){
     var c=echarts.getInstanceByDom(el);if(c)c.dispatchAction({type:'hideTip'})
   })}
   var llOv=document.getElementById('ll-feed-overlay');if(llOv)llOv.style.display='none';
+  // If sync needed (user-initiated open, not internal re-render), fetch first then render
+  var needsSync=!skipSync&&D._tc&&D._tt&&(Date.now()-_lastExternalSync>30000);
+  if(needsSync){
+    _lastExternalSync=Date.now();
+    var hdr={'Content-Type':'application/json','trakt-api-version':'2','trakt-api-key':D._tc,'Authorization':'Bearer '+D._tt};
+    fetch('https://api.trakt.tv/users/jamesgoux/history/episodes?limit=100',{headers:hdr})
+    .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json()})
+    .then(function(entries){
+      _applyExternalWatches(entries);
+      _renderUpNext();
+    }).catch(function(e){console.error('External sync failed:',e);_renderUpNext()});
+  }else{
+    _renderUpNext();
+  }
+}
+function _applyExternalWatches(entries){
+  var ud=D.un||{};var shows=ud.shows||[];
+  var extWatched={};
+  entries.forEach(function(e){
+    var show=e.show||{};var ep=e.episode||{};
+    var slug=show.ids?show.ids.slug:'';if(!slug)return;
+    var key=slug+'|'+(ep.season||0)+'|'+(ep.number||0);
+    if(!_unWatched[key]){
+      extWatched[key]={slug:slug,season:ep.season||0,episode:ep.number||0,watched_at:e.watched_at||'',show:show.title||'',ep_title:ep.title||'',ep_id:e.id||0,ep_aired:(ep.first_aired||'').substring(0,10)};
+    }
+  });
+  shows.forEach(function(s){
+    var key=s.slug+'|'+s.season+'|'+s.episode;
+    var ew=extWatched[key];
+    if(ew){
+      s.episode++;s.completed=(s.completed||0)+1;
+      s.eps_left=Math.max(0,(s.eps_left||1)-1);
+      s.remaining_min=Math.max(0,(s.remaining_min||0)-(s.ep_runtime||0));
+      s.ep_title='';s.ep_overview='';s.ep_still='';s.ep_aired='';s.ep_trakt_id=0;s.is_new=false;
+      var inRecent=(ud.recent||[]).some(function(r){return r.slug===ew.slug&&r.season===ew.season&&r.episode===ew.episode});
+      if(!inRecent){if(!ud.recent)ud.recent=[];ud.recent.unshift({show:ew.show,slug:ew.slug,season:ew.season,episode:ew.episode,ep_title:ew.ep_title,watched_at:ew.watched_at,ep_id:ew.ep_id,ep_aired:ew.ep_aired})}
+    }
+  });
+}
+function _renderUpNext(){
   var ud=_unData();
   var recent=ud.recent||[];
   var recentSet={};recent.forEach(function(r){recentSet[r.slug+'|'+r.season+'|'+r.episode]=true});
   var shows=ud.shows.filter(function(s){
-    if(recentSet[s.slug+'|'+s.season+'|'+s.episode])return false;  // in recent history
+    if(recentSet[s.slug+'|'+s.season+'|'+s.episode])return false;
     if(s.aired_total&&s.completed>=s.aired_total)return false;
     return true;
   });
@@ -3582,7 +3624,6 @@ function openUpNext(){
   function card(s,isRecent){
     var key=s.slug+'|'+s.season+'|'+s.episode;
     var pct=s.aired_total?Math.round(s.completed/s.aired_total*100):0;
-    // Find poster from shows data if not on the item
     var poster=s.poster;
     if(!poster){var match=ud.shows.find(function(x){return x.slug===s.slug});if(match)poster=match.poster}
     var c='<div class="un-card un-card-tap" data-slug="'+s.slug+'" data-s="'+s.season+'" data-e="'+s.episode+'" data-eid="'+(s.ep_trakt_id||0)+'" data-tmdb="'+(s.tmdb_id||'')+'" onclick="showEpDetail(this)">';
@@ -3596,7 +3637,6 @@ function openUpNext(){
     if(s.ep_title)c+=' — '+s.ep_title;
     c+='</div>';
     if(!isRecent){
-      // Progress bar with text inside
       c+='<div class="un-prog-wrap"><div class="un-prog"><div class="un-prog-bar" style="width:'+pct+'%"></div>';
       c+='<div class="un-prog-text"><span>'+(s.ep_runtime?_unFmtMin(s.ep_runtime):'')+'</span><span>'+(s.eps_left||0)+' eps · '+_unFmtMin(s.remaining_min)+'</span></div>';
       c+='</div></div>';
@@ -3611,8 +3651,6 @@ function openUpNext(){
     return c;
   }
 
-  // Recently watched — reversed so most recent is at bottom (closest to New Episodes)
-  // Filter out episodes that were removed via the watch history panel
   var recentFiltered=recent.filter(function(s){return !_isRemoved(s.slug,s.season,s.episode)});
   if(recentFiltered.length){
     h+='<div class="un-section">🕐 Recently Watched</div><div class="un-grid">';
@@ -3631,10 +3669,8 @@ function openUpNext(){
   }
   el.innerHTML=h;
   var ov=document.getElementById('un-overlay');
-  // Slide in from right (fresh open) or instant restore (returning from episode detail)
   ov.style.display='';
   if(_unReturning){
-    // Returning from episode detail — no slide animation, just restore scroll
     _unReturning=false;
     ov.style.transition='none';ov.style.transform='';ov.style.visibility='';
     requestAnimationFrame(function(){ov.scrollTop=_unScrollPos});
@@ -3649,47 +3685,6 @@ function openUpNext(){
     requestAnimationFrame(function(){ov.scrollTop=_sp;ov.style.visibility='';ov.style.transition='transform .3s ease';requestAnimationFrame(function(){ov.style.transform=''})});
   }
   _lockBody();
-  // Background sync: detect external Trakt watches (e.g. from Trakt app)
-  _syncExternalWatches();
-}
-var _lastExternalSync=0;
-function _syncExternalWatches(){
-  var now=Date.now();if(now-_lastExternalSync<30000)return;// throttle to 30s
-  _lastExternalSync=now;
-  var cid=D._tc,tok=D._tt;if(!cid||!tok)return;
-  var hdr={'Content-Type':'application/json','trakt-api-version':'2','trakt-api-key':cid,'Authorization':'Bearer '+tok};
-  fetch('https://api.trakt.tv/users/jamesgoux/history/episodes?limit=50',{headers:hdr})
-  .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json()})
-  .then(function(entries){
-    var ud=D.un||{};var shows=ud.shows||[];var changed=false;
-    // Build set of externally watched episodes (not from our _unWatched)
-    var extWatched={};
-    entries.forEach(function(e){
-      var show=e.show||{};var ep=e.episode||{};
-      var slug=show.ids?show.ids.slug:'';if(!slug)return;
-      var key=slug+'|'+(ep.season||0)+'|'+(ep.number||0);
-      if(!_unWatched[key]){// Not a dashboard-initiated watch
-        extWatched[key]={slug:slug,season:ep.season||0,episode:ep.number||0,watched_at:e.watched_at||'',show:show.title||'',ep_title:ep.title||'',ep_id:e.id||0,ep_aired:(ep.first_aired||'').substring(0,10)};
-      }
-    });
-    // Check if any Up Next shows have their next episode watched externally
-    shows.forEach(function(s){
-      var key=s.slug+'|'+s.season+'|'+s.episode;
-      var ew=extWatched[key];
-      if(ew){
-        // Advance show past this externally-watched episode
-        s.episode++;s.completed=(s.completed||0)+1;
-        s.eps_left=Math.max(0,(s.eps_left||1)-1);
-        s.remaining_min=Math.max(0,(s.remaining_min||0)-(s.ep_runtime||0));
-        s.ep_title='';s.ep_overview='';s.ep_still='';s.ep_aired='';s.ep_trakt_id=0;s.is_new=false;
-        changed=true;
-        // Add to recent if not already there
-        var inRecent=(ud.recent||[]).some(function(r){return r.slug===ew.slug&&r.season===ew.season&&r.episode===ew.episode});
-        if(!inRecent){if(!ud.recent)ud.recent=[];ud.recent.unshift({show:ew.show,slug:ew.slug,season:ew.season,episode:ew.episode,ep_title:ew.ep_title,watched_at:ew.watched_at,ep_id:ew.ep_id,ep_aired:ew.ep_aired})}
-      }
-    });
-    if(changed){console.log('External watches detected, re-rendering Up Next');openUpNext()}
-  }).catch(function(e){console.error('External sync failed:',e)});
 }
 
 // Delegated click handler for Up Next cards (U1: reliable click targets)
@@ -4076,6 +4071,8 @@ function _fetchEpHistory(slug,season,episode,ver){
     if(!el)return;
     if(!entries||!entries.length){el.innerHTML='<div style="font-size:12px;color:var(--t2);padding:4px 0;opacity:.6">Not watched</div>';return}
     _renderEpHistory(el,entries);
+    // Auto-advance: if this episode is the current Up Next for this show, it's stale
+    _autoAdvanceIfWatched(slug,season,episode);
   })
   .catch(function(err){
     if(err==='stale')return;
@@ -4083,6 +4080,20 @@ function _fetchEpHistory(slug,season,episode,ver){
     if(el)el.innerHTML='';
     console.error('Episode history fetch failed:',err);
   });
+}
+// If this episode is the show's current Up Next episode but has watches, advance past it
+function _autoAdvanceIfWatched(slug,season,episode){
+  var ud=D.un||{};var shows=ud.shows||[];
+  var show=shows.find(function(s){return s.slug===slug&&s.season==season&&s.episode==episode});
+  if(!show)return;// not the current Up Next episode for this show
+  console.log('Auto-advancing stale episode: '+slug+' S'+season+'E'+episode);
+  show.episode++;show.completed=(show.completed||0)+1;
+  show.eps_left=Math.max(0,(show.eps_left||1)-1);
+  show.remaining_min=Math.max(0,(show.remaining_min||0)-(show.ep_runtime||0));
+  show.ep_title='';show.ep_overview='';show.ep_still='';show.ep_aired='';show.ep_trakt_id=0;show.is_new=false;
+  // Add to recent if not there
+  var inRecent=(ud.recent||[]).some(function(r){return r.slug===slug&&r.season==season&&r.episode==episode});
+  if(!inRecent){if(!ud.recent)ud.recent=[];ud.recent.unshift({show:show.show,slug:slug,season:season,episode:episode,ep_title:'',watched_at:new Date().toISOString(),ep_id:0,ep_aired:''})}
 }
 function _renderEpHistory(ct,entries){
   var h='<div style="border-radius:10px;background:rgba(255,255,255,.04);padding:12px;margin-top:4px">';
@@ -4172,7 +4183,7 @@ function _removeEpDone(btn,row,slug,season,ep,ud){
       _restoreMetadata(newEntry,slug,season,ep);
     }
     _unDismissDetail();
-    setTimeout(function(){openUpNext()},350);
+    setTimeout(function(){openUpNext(true)},350);
   }
 }
 
@@ -4210,7 +4221,7 @@ function markWatchedAt(slug,season,episode,epTraktId,when){
       break;
     }
   }
-  openUpNext();
+  openUpNext(true);
   if(epTraktId)_traktSync(epTraktId,watchedAt);
 }
 
@@ -4382,7 +4393,7 @@ function removeRecent(epId,btn){
   // Remove from Trakt — look up real history entry ID for reliable removal
   _traktRemoveWatch(slug,season,episode,epId||0);
   // Re-render Up Next from correct data state (no manual DOM injection)
-  setTimeout(function(){openUpNext()},500);
+  setTimeout(function(){openUpNext(true)},500);
 }
 
 function closeUpNext(){
