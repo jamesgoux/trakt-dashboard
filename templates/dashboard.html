@@ -3432,6 +3432,7 @@ function _llRenderBatch(){
 
 // Up Next page
 var _unWatched=JSON.parse(localStorage.getItem('iris_un_watched')||'{}');
+var _unRemoved=JSON.parse(localStorage.getItem('iris_un_removed')||'{}');
 var _undoStack={};// Saved episode metadata before advancing, keyed by slug|season|episode
 function _saveUndoState(show,season,episode){
   var k=show.slug+'|'+season+'|'+episode;
@@ -4203,7 +4204,6 @@ function _renderEpHistory(ct,entries){
 }
 
 // Persistent removed-watches tracker (survives page refresh)
-var _unRemoved=JSON.parse(localStorage.getItem('iris_un_removed')||'{}');
 function _isRemoved(slug,season,ep,watchedAt){
   var k=slug+'|'+season+'|'+ep;var rmTime=_unRemoved[k];if(!rmTime)return false;
   // If the episode was re-watched AFTER removal, show it (the removal is stale)
