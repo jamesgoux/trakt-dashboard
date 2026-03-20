@@ -3893,10 +3893,11 @@ function _unShowDatePicker(slug,season,episode,epTraktId){
   hdr+='<button onclick="_dpConfirm()" style="width:44px;height:44px;border-radius:50%;background:var(--tv);border:none;color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center">✓</button>';
   hdr+='</div>';
   // Scroll columns — each 150px tall with 38px items, center selection
-  var ih=38;// item height
-  var pad=Math.floor(150/2-ih/2);// padding to center first/last item
+  var ih=42;// item height
+  var colH=280;// column height — taller = more rows visible, touch zone closer to mid-screen
+  var pad=Math.floor(colH/2-ih/2);// padding to center first/last item
   function col(id,items,selIdx){
-    var c='<div id="'+id+'" style="flex:1;height:150px;overflow-y:auto;scroll-snap-type:y mandatory;-webkit-overflow-scrolling:touch;position:relative" data-sel="'+selIdx+'">';
+    var c='<div id="'+id+'" style="flex:1;height:'+colH+'px;overflow-y:auto;scroll-snap-type:y mandatory;-webkit-overflow-scrolling:touch;position:relative" data-sel="'+selIdx+'">';
     c+='<div style="height:'+pad+'px"></div>';
     items.forEach(function(it,i){
       var isBold=i===selIdx;
@@ -3927,11 +3928,11 @@ function _unShowDatePicker(slug,season,episode,epTraktId){
       var sel=parseInt(el.dataset.sel)||0;
       el.scrollTop=sel*ih;
       // Live highlight on scroll
-      el.addEventListener('scroll',function(){_dpHighlight(el,ih)},{passive:true});
+      el.addEventListener('scroll',function(){_dpHighlight(el)},{passive:true});
     });
   },50);
 }
-function _dpHighlight(col,ih){
+function _dpHighlight(col){var ih=42;
   var idx=Math.round(col.scrollTop/ih);
   col.querySelectorAll('[data-i]').forEach(function(el){
     var i=parseInt(el.dataset.i);
@@ -3942,7 +3943,7 @@ function _dpHighlight(col,ih){
 }
 function _dpScrollToday(){
   var el=document.getElementById('dp-date');if(!el)return;
-  var ih=38;el.scrollTo({top:60*ih,behavior:'smooth'});
+  var ih=42;el.scrollTo({top:60*ih,behavior:'smooth'});
   // Reset time to now
   var now=new Date();var h12=now.getHours()%12||12;
   var hEl=document.getElementById('dp-hour');if(hEl)hEl.scrollTo({top:(h12-1)*ih,behavior:'smooth'});
@@ -3950,7 +3951,7 @@ function _dpScrollToday(){
   var aEl=document.getElementById('dp-ap');if(aEl)aEl.scrollTo({top:(now.getHours()<12?0:1)*ih,behavior:'smooth'});
 }
 function _dpConfirm(){
-  var ih=38;
+  var ih=42;
   var dEl=document.getElementById('dp-date');var hEl=document.getElementById('dp-hour');
   var mEl=document.getElementById('dp-min');var aEl=document.getElementById('dp-ap');
   if(!dEl)return;
