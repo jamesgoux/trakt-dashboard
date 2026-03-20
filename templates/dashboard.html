@@ -3743,7 +3743,9 @@ function _unRenderDetail(allShows,idx){
       _tDir=Math.abs(dx)>=Math.abs(dy)?'h':'v';
     }
     if(_tDir==='h'){
+      // Clamp swipe: don't animate past boundaries (no prev when E1, always allow next)
       var pct=-33.333+(dx/w)*33.333;
+      if(_crEp<=1&&dx>0)pct=Math.max(pct,-33.333); // block left swipe on E1
       car.style.transform='translateX('+pct+'%)';
     }else if(_tDir==='v'){
       fg.style.transform='translateY('+dy+'px)';
@@ -3869,13 +3871,23 @@ function _traktSync(epTraktId,watchedAt,onDone){
   .catch(function(e){console.error('Trakt sync failed:',e);alert('Failed to sync to Trakt: '+e.message);if(onDone)onDone(false)});
 }
 
+// Episode watch history cache: "slug|S|E" -> entries array (or [] for not watched)
+var _epHistCache={};
+
 // Fetch and display watch history for an episode
-// Step 1: lookup Trakt episode ID, Step 2: fetch history by that ID
-// ver = version counter to prevent stale renders after TMDB re-renders
+// Uses cache to survive TMDB re-renders, fetches fresh from Trakt on first load
 function _fetchEpHistory(slug,season,episode,ver){
   var ctId='un-ep-history-'+season+'-'+episode;
   var ct=document.getElementById(ctId);
   if(!ct)return;
+  var cacheKey=slug+'|'+season+'|'+episode;
+  // If cached, render immediately (survives TMDB re-renders)
+  if(_epHistCache[cacheKey]!==undefined){
+    var cached=_epHistCache[cacheKey];
+    if(!cached.length){ct.innerHTML='<div style="font-size:12px;color:var(--t2);padding:4px 0;opacity:.6">Not watched</div>'}
+    else{_renderEpHistory(ct,cached)}
+    return;
+  }
   var cid=D._tc,tok=D._tt;
   if(!cid||!tok){ct.innerHTML='';return}
   ct.innerHTML='<div style="font-size:12px;color:var(--t2);padding:8px 0">Loading…</div>';
@@ -3887,13 +3899,12 @@ function _fetchEpHistory(slug,season,episode,ver){
     if(ver!==_epHistVer)return Promise.reject('stale');
     var traktId=epData&&epData.ids?epData.ids.trakt:0;
     if(!traktId)throw new Error('No Trakt ID for episode');
-    // Step 2: Fetch watch history for this specific episode
     return fetch('https://api.trakt.tv/users/jamesgoux/history/episodes/'+traktId+'?limit=20',{headers:hdr});
   })
   .then(function(r){if(!r.ok)throw new Error('History HTTP '+r.status);return r.json()})
   .then(function(entries){
     if(ver!==_epHistVer)return;
-    // Find the container — might be in a re-rendered DOM
+    _epHistCache[cacheKey]=entries||[];
     var el=document.getElementById(ctId)||document.querySelector('.un-ep-hist');
     if(!el)return;
     if(!entries||!entries.length){el.innerHTML='<div style="font-size:12px;color:var(--t2);padding:4px 0;opacity:.6">Not watched</div>';return}
@@ -3932,6 +3943,11 @@ function _removeEpWatch(historyId,btn){
   if(!confirm('Remove this watch?'))return;
   var row=btn.closest('.un-hist-row');
   if(row){row.style.opacity='0.3';row.style.pointerEvents='none'}
+  // Also clear from _unWatched localStorage so it doesn't reappear in Recently Watched
+  if(_crBase){
+    var lsKey=_crBase.slug+'|'+_crBase.season+'|'+_crEp;
+    if(_unWatched[lsKey]){delete _unWatched[lsKey];localStorage.setItem('iris_un_watched',JSON.stringify(_unWatched))}
+  }
   var cid=D._tc,tok=D._tt;
   if(!cid||!tok){alert('Trakt credentials not available');return}
   fetch('https://api.trakt.tv/sync/history/remove',{method:'POST',headers:{'Content-Type':'application/json','trakt-api-version':'2','trakt-api-key':cid,'Authorization':'Bearer '+tok},body:JSON.stringify({ids:[historyId]})})
@@ -3939,6 +3955,8 @@ function _removeEpWatch(historyId,btn){
   .then(function(d){
     console.log('Watch removed:',d);
     if(row)row.remove();
+    // Clear history cache so it re-fetches fresh
+    if(_crBase){delete _epHistCache[_crBase.slug+'|'+_crBase.season+'|'+_crEp]}
     // Update the watch count header
     var ct=btn.closest('.un-ep-hist');
     if(ct){
