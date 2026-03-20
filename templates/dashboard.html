@@ -3473,7 +3473,7 @@ function _restoreMetadata(existing,slug,season,episode){
         if(sh2&&sh2.season==season&&sh2.episode==episode){
           sh2.ep_title=_epCache[ck2].ep_title;sh2.ep_overview=_epCache[ck2].ep_overview;sh2.ep_still=_epCache[ck2].ep_still;sh2.ep_aired=_epCache[ck2].ep_aired;sh2.ep_runtime=_epCache[ck2].ep_runtime||sh2.ep_runtime;
           if(sh2.ep_aired){var dd2=Math.floor((Date.now()-new Date(sh2.ep_aired).getTime())/86400000);sh2.is_new=dd2>=0&&dd2<=30}
-          if(document.getElementById('un-overlay').style.display!=='none')openUpNext(true);
+          var _ov2=document.getElementById('un-overlay');if(_ov2&&_ov2.style.display!=='none'){_unScrollPos=_ov2.scrollTop;_unReturning=true;openUpNext(true)}
         }
       }).catch(function(){});
     }
@@ -3729,7 +3729,7 @@ function _renderUpNext(){
     return c;
   }
 
-  var recentFiltered=recent.filter(function(s){return !_isRemoved(s.slug,s.season,s.episode)});
+  var recentFiltered=recent.filter(function(s){return !_isRemoved(s.slug,s.season,s.episode,s.watched_at)});
   if(recentFiltered.length){
     h+='<div class="un-section">🕐 Recently Watched</div><div class="un-grid">';
     recentFiltered.slice().reverse().forEach(function(s){h+=card(s,true)});
@@ -4195,7 +4195,12 @@ function _renderEpHistory(ct,entries){
 
 // Persistent removed-watches tracker (survives page refresh)
 var _unRemoved=JSON.parse(localStorage.getItem('iris_un_removed')||'{}');
-function _isRemoved(slug,season,ep){return !!_unRemoved[slug+'|'+season+'|'+ep]}
+function _isRemoved(slug,season,ep,watchedAt){
+  var k=slug+'|'+season+'|'+ep;var rmTime=_unRemoved[k];if(!rmTime)return false;
+  // If the episode was re-watched AFTER removal, show it (the removal is stale)
+  if(watchedAt){var wt=new Date(watchedAt).getTime();if(wt&&wt>rmTime){delete _unRemoved[k];localStorage.setItem('iris_un_removed',JSON.stringify(_unRemoved));return false}}
+  return true;
+}
 function _markRemoved(slug,season,ep){_unRemoved[slug+'|'+season+'|'+ep]=Date.now();localStorage.setItem('iris_un_removed',JSON.stringify(_unRemoved))}
 
 // Remove a single watch entry — executes immediately on tap
