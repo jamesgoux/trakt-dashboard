@@ -3873,17 +3873,30 @@ function _unShowDatePicker(slug,season,episode,epTraktId){
   // Hide the original 3 watch buttons, replace with date picker in same spot
   var btnsRow=ct.lastElementChild;
   if(btnsRow){btnsRow.style.display='none';btnsRow.id='un-watch-btns-orig'}
+  // Pre-fill with current local date and time
+  var now=new Date();
+  var dVal=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
+  var tVal=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
   var d=document.createElement('div');
   d.id='un-date-prompt';
   d.style.cssText='padding-bottom:120px;';
-  d.innerHTML='<input type="datetime-local" id="un-custom-date" style="width:100%;padding:14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.15);border-radius:10px;color:var(--tx);font-size:15px;min-height:48px;box-sizing:border-box;margin-bottom:10px">'
+  d.innerHTML='<div style="display:flex;gap:8px;margin-bottom:10px">'
+    +'<input type="date" id="un-pick-date" value="'+dVal+'" style="flex:1;padding:12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.15);border-radius:10px;color:var(--tx);font-size:14px;min-height:44px;text-align:center">'
+    +'<input type="time" id="un-pick-time" value="'+tVal+'" style="flex:1;padding:12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.15);border-radius:10px;color:var(--tx);font-size:14px;min-height:44px;text-align:center">'
+    +'</div>'
     +'<div style="display:flex;gap:8px">'
     +'<button onclick="document.getElementById(\'un-date-prompt\').remove();_unRestoreWatchBtns()" style="flex:1;padding:14px 8px;background:rgba(255,255,255,.06);color:var(--t2);border:1px solid rgba(255,255,255,.1);border-radius:10px;font-size:14px;cursor:pointer;min-height:48px">Cancel</button>'
-    +'<button onclick="var v=document.getElementById(\'un-custom-date\').value;if(v){markWatchedAt(\''+slug2+'\','+season+','+episode+','+epTraktId+',v)}else{document.getElementById(\'un-custom-date\').click()}" style="flex:1;padding:14px 8px;background:var(--tv);color:#fff;border:none;border-radius:10px;font-size:14px;cursor:pointer;font-weight:600;min-height:48px">Log Watch</button>'
+    +'<button onclick="_unLogCustomDate(\''+slug2+'\','+season+','+episode+','+epTraktId+')" style="flex:1;padding:14px 8px;background:var(--tv);color:#fff;border:none;border-radius:10px;font-size:14px;cursor:pointer;font-weight:600;min-height:48px">Log Watch</button>'
     +'</div>';
   ct.appendChild(d);
-  // Trigger native date picker — click() works on iOS within user gesture chain
-  setTimeout(function(){var inp=document.getElementById('un-custom-date');if(inp)inp.click()},50);
+  // Scroll the picker into view
+  d.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+function _unLogCustomDate(slug,season,episode,epTraktId){
+  var dv=document.getElementById('un-pick-date');var tv=document.getElementById('un-pick-time');
+  if(!dv||!dv.value)return;
+  var when=dv.value+'T'+(tv&&tv.value?tv.value:'12:00');
+  markWatchedAt(slug,season,episode,epTraktId,when);
 }
 function _unRestoreWatchBtns(){var b=document.getElementById('un-watch-btns-orig');if(b){b.style.display='';b.id=''}}
 
@@ -4163,8 +4176,6 @@ function _fetchEpHistory(slug,season,episode,ver){
     if(!el)return;
     if(!entries||!entries.length){el.innerHTML='<div style="font-size:12px;color:var(--t2);padding:4px 0;opacity:.6">Not watched</div>';return}
     _renderEpHistory(el,entries);
-    // Auto-advance: if this episode is the current Up Next for this show, it's stale
-    _autoAdvanceIfWatched(slug,season,episode);
   })
   .catch(function(err){
     if(err==='stale')return;
@@ -4173,20 +4184,8 @@ function _fetchEpHistory(slug,season,episode,ver){
     console.error('Episode history fetch failed:',err);
   });
 }
-// If this episode is the show's current Up Next episode but has watches, advance past it
-function _autoAdvanceIfWatched(slug,season,episode){
-  var ud=D.un||{};var shows=ud.shows||[];
-  var show=shows.find(function(s){return s.slug===slug&&s.season==season&&s.episode==episode});
-  if(!show)return;// not the current Up Next episode for this show
-  console.log('Auto-advancing stale episode: '+slug+' S'+season+'E'+episode);
-  show.episode++;show.completed=(show.completed||0)+1;
-  show.eps_left=Math.max(0,(show.eps_left||1)-1);
-  show.remaining_min=Math.max(0,(show.remaining_min||0)-(show.ep_runtime||0));
-  show.ep_title='';show.ep_overview='';show.ep_still='';show.ep_aired='';show.ep_trakt_id=0;show.is_new=false;
-  // Add to recent if not there
-  var inRecent=(ud.recent||[]).some(function(r){return r.slug===slug&&r.season==season&&r.episode==episode});
-  if(!inRecent){if(!ud.recent)ud.recent=[];ud.recent.unshift({show:show.show,slug:slug,season:season,episode:episode,ep_title:'',watched_at:new Date().toISOString(),ep_id:0,ep_aired:''})}
-}
+// Auto-advance removed: was too aggressive (fired on episode detail view).
+// Stale episode detection is handled by _liveCheckProgress on Up Next open.
 function _renderEpHistory(ct,entries){
   var h='<div style="border-radius:10px;background:rgba(255,255,255,.04);padding:12px;margin-top:4px">';
   h+='<div style="font-size:12px;font-weight:600;color:var(--t2);margin-bottom:8px">✅ Watched '+entries.length+'×</div>';
