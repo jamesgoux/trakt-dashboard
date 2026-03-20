@@ -3565,20 +3565,98 @@ function openUpNext(skipSync){
     var c=echarts.getInstanceByDom(el);if(c)c.dispatchAction({type:'hideTip'})
   })}
   var llOv=document.getElementById('ll-feed-overlay');if(llOv)llOv.style.display='none';
-  // If sync needed (user-initiated open, not internal re-render), fetch first then render
+  // If sync needed (user-initiated open, not internal re-render):
+  // 1) Fetch recent history (catches external watches)
+  // 2) Live-check progress for top shows (catches stale next_episode)
+  // Both run in parallel, then render once.
   var needsSync=!skipSync&&D._tc&&D._tt&&(Date.now()-_lastExternalSync>30000);
   if(needsSync){
     _lastExternalSync=Date.now();
     var hdr={'Content-Type':'application/json','trakt-api-version':'2','trakt-api-key':D._tc,'Authorization':'Bearer '+D._tt};
-    fetch('https://api.trakt.tv/users/jamesgoux/history/episodes?limit=100',{headers:hdr})
-    .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json()})
-    .then(function(entries){
-      _applyExternalWatches(entries);
+    var histP=fetch('https://api.trakt.tv/users/jamesgoux/history/episodes?limit=100',{headers:hdr})
+      .then(function(r){return r.ok?r.json():[]}).catch(function(){return[]});
+    var progP=_liveCheckProgress(hdr);
+    Promise.all([histP,progP]).then(function(res){
+      _applyExternalWatches(res[0]);
+      // Progress corrections already applied by _liveCheckProgress (authoritative)
       _renderUpNext();
-    }).catch(function(e){console.error('External sync failed:',e);_renderUpNext()});
+    }).catch(function(e){console.error('Sync failed:',e);_renderUpNext()});
   }else{
     _renderUpNext();
   }
+}
+// Live-check Trakt progress for top shows (new episodes + top 15 recently active).
+// Updates D.un.shows in place with authoritative next-episode data from Trakt.
+function _liveCheckProgress(hdr){
+  var shows=(D.un||{}).shows||[];if(!shows.length)return Promise.resolve();
+  // Pick shows to check: all "new" + top 15 by last_watched
+  var seen={};var toCheck=[];
+  shows.forEach(function(s){if(s.is_new&&!seen[s.slug]){seen[s.slug]=true;toCheck.push(s)}});
+  shows.slice().sort(function(a,b){return(b.last_watched||'').localeCompare(a.last_watched||'')}).forEach(function(s){
+    if(!seen[s.slug]&&toCheck.length<20){seen[s.slug]=true;toCheck.push(s)}
+  });
+  if(!toCheck.length)return Promise.resolve();
+  console.log('Live-checking progress for '+toCheck.length+' shows');
+  var promises=toCheck.map(function(show){
+    return fetch('https://api.trakt.tv/shows/'+encodeURIComponent(show.slug)+'/progress/watched?extended=full',{headers:hdr})
+    .then(function(r){return r.ok?r.json():null})
+    .then(function(prog){
+      if(!prog)return;
+      // Fully caught up?
+      if(prog.aired&&prog.completed>=prog.aired){show.completed=prog.completed;show.aired_total=prog.aired;return}
+      // Get next episode, verify not stale
+      var nextEp=prog.next_episode;
+      if(nextEp){
+        var neS=nextEp.season||0,neE=nextEp.number||0;
+        var seasons=prog.seasons||[];
+        for(var i=0;i<seasons.length;i++){if(seasons[i].number===neS){
+          var eps=seasons[i].episodes||[];
+          for(var j=0;j<eps.length;j++){if(eps[j].number===neE&&eps[j].completed){nextEp=null;break}}
+          break;
+        }}
+      }
+      // Stale or null — derive from seasons
+      if(!nextEp){
+        var seasons2=prog.seasons||[];
+        for(var i2=0;i2<seasons2.length;i2++){
+          if(seasons2[i2].number===0)continue;
+          var eps2=seasons2[i2].episodes||[];
+          for(var j2=0;j2<eps2.length;j2++){
+            if(!eps2[j2].completed){
+              nextEp={season:seasons2[i2].number,number:eps2[j2].number,title:'',first_aired:'',ids:{}};
+              break;
+            }
+          }
+          if(nextEp)break;
+        }
+      }
+      if(!nextEp){show.completed=prog.completed;show.aired_total=prog.aired;return}// truly done
+      var newS=nextEp.season||0,newE=nextEp.number||0;
+      if(newS!==show.season||newE!==show.episode){
+        console.log('  '+show.slug+': S'+show.season+'E'+show.episode+' → S'+newS+'E'+newE);
+        show.season=newS;show.episode=newE;
+        show.ep_title=nextEp.title||'';
+        show.ep_overview=(nextEp.overview||'').substring(0,500);
+        show.ep_aired=(nextEp.first_aired||'').substring(0,10);
+        show.ep_runtime=nextEp.runtime||show.ep_runtime;
+        show.ep_trakt_id=(nextEp.ids||{}).trakt||0;
+        show.ep_still='';show.ep_overview='';
+      }
+      show.completed=prog.completed||show.completed;
+      show.aired_total=prog.aired||show.aired_total;
+      show.eps_left=Math.max(0,(prog.aired||0)-(prog.completed||0));
+      // Recalculate is_new from air date
+      var ea=show.ep_aired||(nextEp.first_aired||'').substring(0,10);
+      if(ea){var dd=Math.floor((Date.now()-new Date(ea).getTime())/86400000);show.is_new=dd>=0&&dd<=30}
+      else{show.is_new=false}
+      // Recalculate remaining_min
+      var rm=0;(prog.seasons||[]).forEach(function(sn){(sn.episodes||[]).forEach(function(ep){
+        if(!ep.completed)rm+=(ep.runtime||show.ep_runtime||0)
+      })});
+      if(rm)show.remaining_min=rm;
+    }).catch(function(){});// per-show failure is OK
+  });
+  return Promise.all(promises);
 }
 function _applyExternalWatches(entries){
   var ud=D.un||{};var shows=ud.shows||[];
