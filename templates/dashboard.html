@@ -154,7 +154,7 @@ body{overflow-x:hidden}
 <select id="gs" style="display:none"><option value="all">All</option><option value="life">Life</option><option value="movietv">Movies/TV</option><option value="movie">Movies</option><option value="show">Shows</option><option value="book">Books</option><option value="music">Music</option><option value="concert">Concerts</option><option value="podcast">Podcasts</option><option value="theater">Theater</option><option value="boardgame">Board Games</option><option value="sports">Sports</option><option value="game">Video Games</option><option value="health">Workouts</option></select>
 <select id="ys" style="display:none"><option value="all">All Time</option></select>
 <div style="position:relative"><button class="hbtn" onclick="_buildJumpMenu();var m=document.getElementById('jmp-menu');m.style.display=m.style.display==='block'?'none':'block'" title="Jump to section"><span style="display:block;transform:translateY(-1px)">☰</span></button><div id="jmp-menu" style="display:none;position:absolute;right:0;top:100%;margin-top:6px;background:var(--sf);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:6px 0;min-width:200px;max-height:70vh;overflow-y:auto;z-index:150;box-shadow:0 8px 30px rgba(0,0,0,.5)"></div></div>
-<button class="hbtn" id="refresh-btn" onclick="this.querySelector('.rf-icon').classList.add('hbtn-spin');this.style.color='var(--ac)';document.querySelector('.fbar').classList.add('fbar-pulse');setTimeout(function(){location.reload()},900)" title="Refresh"><span class="rf-icon" style="display:inline-block">↻</span></button>
+<button class="hbtn" id="refresh-btn" onclick="this.querySelector('.rf-icon').classList.add('hbtn-spin');this.style.color='var(--ac)';document.querySelector('.fbar').classList.add('fbar-pulse');setTimeout(function(){location.href=location.pathname+'?_='+Date.now()+(location.hash||'')},900)" title="Refresh"><span class="rf-icon" style="display:inline-block">↻</span></button>
 <button class="hbtn" onclick="openSportsAdd()" title="Add Game">🏟️</button>
 <button class="hbtn" onclick="openUpNext()" title="Up Next">📺</button>
 </div>
@@ -3432,6 +3432,72 @@ function _llRenderBatch(){
 
 // Up Next page
 var _unWatched=JSON.parse(localStorage.getItem('iris_un_watched')||'{}');
+var _undoStack={};// Saved episode metadata before advancing, keyed by slug|season|episode
+function _saveUndoState(show,season,episode){
+  var k=show.slug+'|'+season+'|'+episode;
+  _undoStack[k]={ep_title:show.ep_title||'',ep_overview:show.ep_overview||'',ep_still:show.ep_still||'',ep_aired:show.ep_aired||'',ep_runtime:show.ep_runtime||0,ep_trakt_id:show.ep_trakt_id||0,is_new:!!show.is_new,tmdb_id:show.tmdb_id||'',poster:show.poster||'',stream:show.stream||[],show:show.show||'',aired_total:show.aired_total||0,completed:show.completed||0,eps_left:show.eps_left||0,remaining_min:show.remaining_min||0,last_watched:show.last_watched||''};
+  // Also seed _epCache so metadata survives
+  if(show.tmdb_id&&(show.ep_title||show.ep_still)){var ck=_epCacheKey(show.tmdb_id,season,episode);if(!_epCache[ck])_epCache[ck]={ep_title:show.ep_title||'',ep_overview:show.ep_overview||'',ep_still:show.ep_still||'',ep_aired:show.ep_aired||'',ep_runtime:show.ep_runtime||0}}
+}
+function _restoreMetadata(existing,slug,season,episode){
+  var k=slug+'|'+season+'|'+episode;
+  var saved=_undoStack[k];
+  if(saved){
+    existing.ep_title=saved.ep_title;existing.ep_overview=saved.ep_overview;existing.ep_still=saved.ep_still;
+    existing.ep_aired=saved.ep_aired;existing.ep_runtime=saved.ep_runtime||existing.ep_runtime;
+    existing.ep_trakt_id=saved.ep_trakt_id||0;
+    delete _undoStack[k];
+  }else{
+    var tid=existing.tmdb_id||'';
+    var ck=tid?_epCacheKey(tid,season,episode):'';
+    var cached=ck?_epCache[ck]:null;
+    if(cached){existing.ep_title=cached.ep_title;existing.ep_overview=cached.ep_overview;existing.ep_still=cached.ep_still;existing.ep_aired=cached.ep_aired;existing.ep_runtime=cached.ep_runtime||existing.ep_runtime}
+    else{existing.ep_title='';existing.ep_overview='';existing.ep_still='';existing.ep_aired='';existing.ep_trakt_id=0}
+  }
+  // Determine is_new from actual air date (within 30 days), not hardcoded
+  var ea=existing.ep_aired||(saved?saved.ep_aired:'');
+  var isNew=false;
+  if(ea){var dd=Math.floor((Date.now()-new Date(ea).getTime())/86400000);isNew=dd>=0&&dd<=30}
+  existing.is_new=isNew;
+  // If still missing metadata, async TMDB fetch + re-render
+  if(!existing.ep_title&&existing.tmdb_id){
+    var tk=(D.un||{}).tmdb_key||'';
+    if(tk){
+      var _tid=existing.tmdb_id,_sl=existing.slug;
+      fetch('https://api.themoviedb.org/3/tv/'+_tid+'/season/'+season+'/episode/'+episode+'?api_key='+tk)
+      .then(function(r){return r.json()}).then(function(d){
+        if(d.status_code)return;
+        var ck2=_epCacheKey(_tid,season,episode);
+        _epCache[ck2]={ep_title:d.name||'',ep_overview:(d.overview||'').substring(0,500),ep_still:d.still_path?'https://image.tmdb.org/t/p/w780'+d.still_path:'',ep_aired:d.air_date||'',ep_runtime:d.runtime||0};
+        var ud2=D.un||{};var sh2=(ud2.shows||[]).find(function(x){return x.slug===_sl});
+        if(sh2&&sh2.season==season&&sh2.episode==episode){
+          sh2.ep_title=_epCache[ck2].ep_title;sh2.ep_overview=_epCache[ck2].ep_overview;sh2.ep_still=_epCache[ck2].ep_still;sh2.ep_aired=_epCache[ck2].ep_aired;sh2.ep_runtime=_epCache[ck2].ep_runtime||sh2.ep_runtime;
+          if(sh2.ep_aired){var dd2=Math.floor((Date.now()-new Date(sh2.ep_aired).getTime())/86400000);sh2.is_new=dd2>=0&&dd2<=30}
+          if(document.getElementById('un-overlay').style.display!=='none')openUpNext();
+        }
+      }).catch(function(){});
+    }
+  }
+}
+function _traktRemoveWatch(slug,season,episode,fallbackId){
+  var cid=D._tc,tok=D._tt;if(!cid||!tok)return;
+  var hdr={'Content-Type':'application/json','trakt-api-version':'2','trakt-api-key':cid,'Authorization':'Bearer '+tok};
+  fetch('https://api.trakt.tv/shows/'+encodeURIComponent(slug)+'/seasons/'+season+'/episodes/'+episode,{headers:hdr})
+  .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json()})
+  .then(function(epData){
+    var tid=epData&&epData.ids?epData.ids.trakt:0;if(!tid)throw new Error('No Trakt ID');
+    return fetch('https://api.trakt.tv/users/jamesgoux/history/episodes/'+tid+'?limit=1',{headers:hdr});
+  })
+  .then(function(r){return r.json()})
+  .then(function(entries){
+    if(entries&&entries.length){return fetch('https://api.trakt.tv/sync/history/remove',{method:'POST',headers:hdr,body:JSON.stringify({ids:[entries[0].id]})})}
+    else if(fallbackId){return fetch('https://api.trakt.tv/sync/history/remove',{method:'POST',headers:hdr,body:JSON.stringify({ids:[fallbackId]})})}
+  })
+  .then(function(r){if(r)return r.json()}).then(function(d){if(d)console.log('Trakt watch removed:',d)})
+  .catch(function(e){console.error('Trakt remove failed:',e);
+    if(fallbackId){fetch('https://api.trakt.tv/sync/history/remove',{method:'POST',headers:hdr,body:JSON.stringify({ids:[fallbackId]})}).catch(function(){})}
+  });
+}
 // Apply _unWatched as advances to show data (not filters).
 // When user marks ep as watched via dashboard but pipeline hasn't caught up,
 // advance the show to the next episode instead of hiding it entirely.
@@ -3583,6 +3649,47 @@ function openUpNext(){
     requestAnimationFrame(function(){ov.scrollTop=_sp;ov.style.visibility='';ov.style.transition='transform .3s ease';requestAnimationFrame(function(){ov.style.transform=''})});
   }
   _lockBody();
+  // Background sync: detect external Trakt watches (e.g. from Trakt app)
+  _syncExternalWatches();
+}
+var _lastExternalSync=0;
+function _syncExternalWatches(){
+  var now=Date.now();if(now-_lastExternalSync<30000)return;// throttle to 30s
+  _lastExternalSync=now;
+  var cid=D._tc,tok=D._tt;if(!cid||!tok)return;
+  var hdr={'Content-Type':'application/json','trakt-api-version':'2','trakt-api-key':cid,'Authorization':'Bearer '+tok};
+  fetch('https://api.trakt.tv/users/jamesgoux/history/episodes?limit=50',{headers:hdr})
+  .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json()})
+  .then(function(entries){
+    var ud=D.un||{};var shows=ud.shows||[];var changed=false;
+    // Build set of externally watched episodes (not from our _unWatched)
+    var extWatched={};
+    entries.forEach(function(e){
+      var show=e.show||{};var ep=e.episode||{};
+      var slug=show.ids?show.ids.slug:'';if(!slug)return;
+      var key=slug+'|'+(ep.season||0)+'|'+(ep.number||0);
+      if(!_unWatched[key]){// Not a dashboard-initiated watch
+        extWatched[key]={slug:slug,season:ep.season||0,episode:ep.number||0,watched_at:e.watched_at||'',show:show.title||'',ep_title:ep.title||'',ep_id:e.id||0,ep_aired:(ep.first_aired||'').substring(0,10)};
+      }
+    });
+    // Check if any Up Next shows have their next episode watched externally
+    shows.forEach(function(s){
+      var key=s.slug+'|'+s.season+'|'+s.episode;
+      var ew=extWatched[key];
+      if(ew){
+        // Advance show past this externally-watched episode
+        s.episode++;s.completed=(s.completed||0)+1;
+        s.eps_left=Math.max(0,(s.eps_left||1)-1);
+        s.remaining_min=Math.max(0,(s.remaining_min||0)-(s.ep_runtime||0));
+        s.ep_title='';s.ep_overview='';s.ep_still='';s.ep_aired='';s.ep_trakt_id=0;s.is_new=false;
+        changed=true;
+        // Add to recent if not already there
+        var inRecent=(ud.recent||[]).some(function(r){return r.slug===ew.slug&&r.season===ew.season&&r.episode===ew.episode});
+        if(!inRecent){if(!ud.recent)ud.recent=[];ud.recent.unshift({show:ew.show,slug:ew.slug,season:ew.season,episode:ew.episode,ep_title:ew.ep_title,watched_at:ew.watched_at,ep_id:ew.ep_id,ep_aired:ew.ep_aired})}
+      }
+    });
+    if(changed){console.log('External watches detected, re-rendering Up Next');openUpNext()}
+  }).catch(function(e){console.error('External sync failed:',e)});
 }
 
 // Delegated click handler for Up Next cards (U1: reliable click targets)
@@ -3679,7 +3786,7 @@ function _unBuildPanel(show){
 function _unShowDatePicker(slug,season,episode,epTraktId){
   var existing=document.getElementById('un-date-prompt');
   if(existing){existing.remove();return}
-  var ct=document.querySelector('.un-detail');
+  var ct=document.querySelector('.un-carousel-panel:nth-child(2) .un-detail')||document.querySelector('.un-detail');
   if(!ct)return;
   var d=document.createElement('div');
   d.id='un-date-prompt';
@@ -4045,20 +4152,24 @@ function _removeEpDone(btn,row,slug,season,ep,ud){
         existing.season=season;existing.episode=ep;
         existing.completed=Math.max(0,(existing.completed||0)-1);
         existing.eps_left=(existing.eps_left||0)+1;
-        existing.ep_title='';existing.ep_overview='';existing.ep_still='';existing.ep_aired='';existing.ep_trakt_id=0;
-        existing.is_new=true;
+        existing.remaining_min=(existing.remaining_min||0)+(existing.ep_runtime||0);
+        // Restore metadata from undo stack / TMDB cache (not blank!)
+        _restoreMetadata(existing,slug,season,ep);
       }
     }else{
+      // Show not in Up Next data — create entry with saved metadata
       var showTitle=_crBase?_crBase.show:'';var poster=_crBase?_crBase.poster:'';
       var stream=_crBase?_crBase.stream||[]:[];var tmdbId=_crBase?_crBase.tmdb_id:'';
-      shows.unshift({slug:slug,show:showTitle,season:season,episode:ep,
-        ep_title:_crBase?_crBase.ep_title:'',ep_overview:_crBase?_crBase.ep_overview:'',
-        ep_still:_crBase?_crBase.ep_still:'',ep_aired:_crBase?_crBase.ep_aired:'',
+      var saved=_undoStack[slug+'|'+season+'|'+ep];
+      var newEntry={slug:slug,show:showTitle,season:season,episode:ep,
+        ep_title:'',ep_overview:'',ep_still:'',ep_aired:'',
         ep_runtime:_crBase?_crBase.ep_runtime:0,
-        ep_trakt_id:_crBase?_crBase.ep_trakt_id:0,tmdb_id:tmdbId,poster:poster,stream:stream,
+        ep_trakt_id:0,tmdb_id:tmdbId,poster:poster,stream:stream,
         aired_total:_crBase?_crBase.aired_total:0,completed:Math.max(0,(_crBase?_crBase.completed:1)-1),
         eps_left:(_crBase?_crBase.eps_left:0)+1,remaining_min:_crBase?_crBase.ep_runtime:0,
-        is_new:true,last_watched:''});
+        is_new:false,last_watched:''};
+      shows.unshift(newEntry);
+      _restoreMetadata(newEntry,slug,season,ep);
     }
     _unDismissDetail();
     setTimeout(function(){openUpNext()},350);
@@ -4088,12 +4199,14 @@ function markWatchedAt(slug,season,episode,epTraktId,when){
   _unWatched[key]=watchedAt;
   localStorage.setItem('iris_un_watched',JSON.stringify(_unWatched));
   _injectRecentWatch(slug,season,episode,watchedAt);
-  // Advance to next episode
+  // Save undo state BEFORE advancing
   var unData=D.un||{};var shows=unData.shows||[];
   for(var i=0;i<shows.length;i++){
     if(shows[i].slug===slug&&shows[i].season===season&&shows[i].episode===episode){
-      var s=shows[i];var hasMore=!s.aired_total||s.completed+1<s.aired_total;
-      if(hasMore){s.episode=episode+1;s.completed=(s.completed||0)+1;s.ep_title='';s.ep_overview='';s.ep_still='';s.ep_aired='';s.ep_trakt_id=0;s.is_new=false}
+      var s=shows[i];
+      _saveUndoState(s,season,episode);
+      var hasMore=!s.aired_total||s.completed+1<s.aired_total;
+      if(hasMore){s.episode=episode+1;s.completed=(s.completed||0)+1;s.eps_left=Math.max(0,(s.eps_left||1)-1);s.remaining_min=Math.max(0,(s.remaining_min||0)-(s.ep_runtime||0));s.ep_title='';s.ep_overview='';s.ep_still='';s.ep_aired='';s.ep_trakt_id=0;s.is_new=false}
       break;
     }
   }
@@ -4119,12 +4232,14 @@ function markWatched(slug,season,episode,epTraktId,btn){
     });
     var showTitle=card.querySelector('.un-show');
     var poster=card.querySelector('.un-poster');
-    var cardHtml='<div class="un-card" style="opacity:0;transition:opacity .3s">';
-    if(poster&&poster.src)cardHtml+='<img class="un-poster" src="'+poster.src+'" loading="lazy" onerror="this.style.display=\'none\'">';
+    var slug2=slug.replace(/'/g,"\\'");
+    var cardHtml='<div class="un-card un-card-tap" data-slug="'+slug+'" data-s="'+season+'" data-e="'+episode+'" data-eid="'+(epTraktId||0)+'" data-tmdb="'+(card.dataset.tmdb||'')+'" onclick="showEpDetail(this)" style="opacity:0;transition:opacity .3s">';
+    if(poster&&poster.src)cardHtml+='<img class="un-poster" src="'+poster.src+'" loading="lazy" onerror="this.style.display=\'none\'" alt="">';
     else cardHtml+='<div class="un-poster-ph">📺</div>';
     cardHtml+='<div class="un-info"><div class="un-show">'+(showTitle?showTitle.textContent:slug)+'</div>';
     cardHtml+='<div class="un-ep">S'+String(season).padStart(2,'0')+'E'+String(episode).padStart(2,'0')+' — just watched</div>';
     cardHtml+='<div class="un-meta"><span>'+watchedAt.substring(0,10)+'</span></div>';
+    cardHtml+='<button onclick="event.stopPropagation();removeRecent(0,this)" class="un-del-btn" title="Remove">✕</button>';
     cardHtml+='</div></div>';
     var ov=document.getElementById('un-overlay');
     var scrollBefore=ov.scrollTop;
@@ -4132,7 +4247,6 @@ function markWatched(slug,season,episode,epTraktId,btn){
       recentGrid.insertAdjacentHTML('beforeend',cardHtml);
       var added=recentGrid.lastElementChild;
       requestAnimationFrame(function(){
-        // Compensate scroll so the visible area doesn't shift
         var addedH=added?added.offsetHeight:0;
         ov.scrollTop=scrollBefore+addedH;
         if(added)added.style.opacity='1';
@@ -4150,17 +4264,20 @@ function markWatched(slug,season,episode,epTraktId,btn){
       });
     }
   })();
-  // Advance the show to the next episode in D.un.shows
+  // Save undo state BEFORE advancing
   var unData=D.un||{};var shows=unData.shows||[];
   var showObj=null;var hasMore=false;
   for(var i=0;i<shows.length;i++){
     if(shows[i].slug===slug&&shows[i].season===season&&shows[i].episode===episode){
-      showObj=shows[i];var nextEp=episode+1;
+      showObj=shows[i];
+      _saveUndoState(showObj,season,episode);
+      var nextEp=episode+1;
       hasMore=!showObj.aired_total||showObj.completed+1<showObj.aired_total;
       if(hasMore){
         showObj.episode=nextEp;showObj.completed=(showObj.completed||0)+1;
         showObj.ep_title='';showObj.ep_overview='';showObj.ep_still='';showObj.ep_aired='';showObj.ep_trakt_id=0;
         showObj.is_new=false;showObj.eps_left=Math.max(0,(showObj.eps_left||1)-1);
+        showObj.remaining_min=Math.max(0,(showObj.remaining_min||0)-(showObj.ep_runtime||0));
       }
       break;
     }
@@ -4233,68 +4350,39 @@ function removeRecent(epId,btn){
   if(ud.recent){ud.recent=ud.recent.filter(function(r){return !(r.slug===slug&&r.season==season&&r.episode==episode)})}
   // Clear history cache
   delete _epHistCache[slug+'|'+season+'|'+episode];
-  // Move episode back to Up Next queue
+  // Move episode back to Up Next queue with metadata restoration
   var shows=ud.shows||[];
   var existing=shows.find(function(x){return x.slug===slug});
-  // Find show info for metadata
-  var showTitle='';var poster='';var stream=[];var tmdbId='';var airedTotal=0;var completed=0;var epRuntime=0;
-  if(existing){showTitle=existing.show;poster=existing.poster;stream=existing.stream;tmdbId=existing.tmdb_id;airedTotal=existing.aired_total;completed=existing.completed;epRuntime=existing.ep_runtime}
-  else{var rm=(ud.recent||[]).find(function(r){return r.slug===slug});if(rm)showTitle=rm.show}
   if(existing){
-    // Regress to this episode if it's earlier
     if(season<existing.season||(season===existing.season&&episode<=existing.episode)){
       existing.season=season;existing.episode=episode;
       existing.completed=Math.max(0,(existing.completed||0)-1);
       existing.eps_left=(existing.eps_left||0)+1;
-      existing.ep_title='';existing.ep_overview='';existing.ep_still='';existing.ep_aired='';existing.ep_trakt_id=0;
-      existing.is_new=true;
+      existing.remaining_min=(existing.remaining_min||0)+(existing.ep_runtime||0);
+      _restoreMetadata(existing,slug,season,episode);
     }
   }else{
-    shows.unshift({slug:slug,show:showTitle,season:season,episode:episode,
-      ep_title:'',ep_overview:'',ep_still:'',ep_aired:'',ep_runtime:epRuntime,
+    // Show not in Up Next data — build from undo stack or _crBase
+    var saved=_undoStack[slug+'|'+season+'|'+episode];
+    var showTitle=(saved?saved.show:'') || (_crBase?_crBase.show:'');
+    var poster=(saved?saved.poster:'') || (_crBase?_crBase.poster:'');
+    var stream=(saved?saved.stream:[]) || (_crBase?_crBase.stream||[]:[]);
+    var tmdbId=(saved?saved.tmdb_id:'') || (_crBase?_crBase.tmdb_id:'');
+    var newEntry={slug:slug,show:showTitle,season:season,episode:episode,
+      ep_title:'',ep_overview:'',ep_still:'',ep_aired:'',
+      ep_runtime:saved?saved.ep_runtime:(_crBase?_crBase.ep_runtime:0),
       ep_trakt_id:0,tmdb_id:tmdbId,poster:poster,stream:stream,
-      aired_total:airedTotal,completed:Math.max(0,completed-1),
-      eps_left:1,remaining_min:epRuntime,is_new:true,last_watched:''});
+      aired_total:saved?saved.aired_total:(_crBase?_crBase.aired_total:0),
+      completed:Math.max(0,(saved?saved.completed:(_crBase?_crBase.completed:1))-1),
+      eps_left:1,remaining_min:saved?saved.ep_runtime:(_crBase?_crBase.ep_runtime:0),
+      is_new:false,last_watched:''};
+    shows.unshift(newEntry);
+    _restoreMetadata(newEntry,slug,season,episode);
   }
-  // Remove from Trakt via API
-  if(epId){
-    var cid=D._tc,tok=D._tt;
-    if(cid&&tok){
-      fetch('https://api.trakt.tv/sync/history/remove',{method:'POST',headers:{'Content-Type':'application/json','trakt-api-version':'2','trakt-api-key':cid,'Authorization':'Bearer '+tok},body:JSON.stringify({ids:[epId]})})
-      .then(function(r){return r.json()}).then(function(d){console.log('Trakt recent removed:',d)}).catch(function(e){console.error('Trakt remove failed:',e)});
-    }
-  }
-  // Inject card into New Episodes section in-place (no full re-render)
-  var showData=existing||shows.find(function(x){return x.slug===slug});
-  if(showData){
-    setTimeout(function(){
-      // Find the New Episodes grid in the DOM
-      var sections=document.querySelectorAll('#un-content .un-section');
-      var newGrid=null;
-      sections.forEach(function(sec){if(sec.id==='un-default-scroll')newGrid=sec.nextElementSibling});
-      if(!newGrid)return;
-      // Build the card HTML
-      var s=showData;var p=s.poster||poster;
-      var nc='<div class="un-card un-card-tap" data-slug="'+s.slug+'" data-s="'+s.season+'" data-e="'+s.episode+'" data-eid="'+(s.ep_trakt_id||0)+'" data-tmdb="'+(s.tmdb_id||'')+'" onclick="showEpDetail(this)" style="opacity:0;transition:opacity .4s">';
-      if(p)nc+='<img class="un-poster" src="'+p+'" loading="lazy" onerror="this.style.display=\'none\'" alt="">';
-      else nc+='<div class="un-poster-ph">📺</div>';
-      nc+='<div class="un-info"><div style="display:flex;align-items:center;gap:6px"><div class="un-show" style="flex:1;min-width:0">'+(s.show||slug)+'</div></div>';
-      nc+='<div class="un-ep">S'+String(s.season).padStart(2,'0')+'E'+String(s.episode).padStart(2,'0');
-      if(s.ep_title)nc+=' — '+s.ep_title;nc+='</div>';
-      nc+='<div class="un-meta"><span>'+(s.ep_runtime?_unFmtMin(s.ep_runtime):'')+'</span><span>'+(s.eps_left||1)+' eps</span></div>';
-      nc+='</div>';
-      nc+='<div class="un-new">New</div>';
-      nc+='<button onclick="event.stopPropagation();markWatched(\''+s.slug.replace(/'/g,"\\'")+'\','+s.season+','+s.episode+','+(s.ep_trakt_id||0)+',this)" class="un-watch-btn" title="Mark watched">✓</button>';
-      nc+='</div>';
-      // Insert at the top of New Episodes grid
-      newGrid.insertAdjacentHTML('afterbegin',nc);
-      var added=newGrid.firstElementChild;
-      // Update the section header count
-      var secHdr=newGrid.previousElementSibling;
-      if(secHdr){var m=secHdr.textContent.match(/\((\d+)\)/);if(m)secHdr.textContent=secHdr.textContent.replace('('+m[1]+')','('+(parseInt(m[1])+1)+')')}
-      requestAnimationFrame(function(){if(added)added.style.opacity='1'});
-    },500);
-  }
+  // Remove from Trakt — look up real history entry ID for reliable removal
+  _traktRemoveWatch(slug,season,episode,epId||0);
+  // Re-render Up Next from correct data state (no manual DOM injection)
+  setTimeout(function(){openUpNext()},500);
 }
 
 function closeUpNext(){
