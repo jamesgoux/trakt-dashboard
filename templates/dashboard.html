@@ -4622,14 +4622,11 @@ function removeRecent(epId,btn){
   setTimeout(function(){
     var el=document.getElementById('un-content');if(!el)return;
     if(_didUpdate){
-      // Flip existing queue card to show restored episode
+      // Subtle update: brief fade, progress bar slides back, episode text swaps (mirrors watch behavior)
       el.querySelectorAll('.un-card[data-slug="'+_slug+'"]').forEach(function(qc){
         if(qc.querySelector('.un-del-btn')&&!qc.querySelector('.un-watch-btn'))return;
-        qc.style.overflow='visible';
-        qc.style.transition='transform .2s ease-in';
-        qc.style.transform='perspective(600px) rotateY(90deg)';
+        qc.style.transition='opacity .2s';qc.style.opacity='0.2';
         setTimeout(function(){
-          // Swap content at midpoint
           var epEl=qc.querySelector('.un-ep');
           if(epEl)epEl.innerHTML='S'+String(_existing.season).padStart(2,'0')+'E'+String(_existing.episode).padStart(2,'0')+(_existing.ep_title?' \u2014 '+_existing.ep_title:'');
           var pct=_existing.aired_total?Math.round(_existing.completed/_existing.aired_total*100):0;
@@ -4638,14 +4635,7 @@ function removeRecent(epId,btn){
           qc.dataset.s=_existing.season;qc.dataset.e=_existing.episode;qc.dataset.eid=_existing.ep_trakt_id||0;
           var wb=qc.querySelector('.un-watch-btn');
           if(wb)wb.setAttribute('onclick',"event.stopPropagation();markWatched('"+_slug.replace(/'/g,"\\'")+"',"+_existing.season+","+_existing.episode+","+((_existing.ep_trakt_id||0))+",this)");
-          // Rotate back from other side
-          qc.style.transition='none';
-          qc.style.transform='perspective(600px) rotateY(-90deg)';
-          requestAnimationFrame(function(){
-            qc.style.transition='transform .2s ease-out';
-            qc.style.transform='';
-            setTimeout(function(){qc.style.overflow=''},250);
-          });
+          qc.style.opacity='1';
         },200);
       });
     }else if(_existing){
