@@ -3864,41 +3864,105 @@ function _unBuildPanel(show){
   return h;
 }
 
+// Trakt-style scroll wheel date picker — bottom sheet with snap columns
+var _dpSlug,_dpSeason,_dpEpisode,_dpEpTraktId;
 function _unShowDatePicker(slug,season,episode,epTraktId){
-  var existing=document.getElementById('un-date-prompt');
-  if(existing){existing.remove();_unRestoreWatchBtns();return}
-  var ct=document.querySelector('.un-carousel-panel:nth-child(2) .un-detail')||document.querySelector('.un-detail');
-  if(!ct)return;
-  var slug2=slug.replace(/'/g,"\\'");
-  // Hide the original 3 watch buttons, replace with date picker in same spot
-  var btnsRow=ct.lastElementChild;
-  if(btnsRow){btnsRow.style.display='none';btnsRow.id='un-watch-btns-orig'}
-  // Pre-fill with current local date and time
+  _dpSlug=slug;_dpSeason=season;_dpEpisode=episode;_dpEpTraktId=epTraktId;
+  var existing=document.getElementById('un-dp-sheet');
+  if(existing){existing.remove();return}
   var now=new Date();
-  var dVal=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
-  var tVal=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
-  var d=document.createElement('div');
-  d.id='un-date-prompt';
-  d.style.cssText='padding-bottom:120px;';
-  d.innerHTML='<div style="display:flex;gap:8px;margin-bottom:10px">'
-    +'<input type="date" id="un-pick-date" value="'+dVal+'" style="flex:1;padding:12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.15);border-radius:10px;color:var(--tx);font-size:14px;min-height:44px;text-align:center">'
-    +'<input type="time" id="un-pick-time" value="'+tVal+'" style="flex:1;padding:12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.15);border-radius:10px;color:var(--tx);font-size:14px;min-height:44px;text-align:center">'
-    +'</div>'
-    +'<div style="display:flex;gap:8px">'
-    +'<button onclick="document.getElementById(\'un-date-prompt\').remove();_unRestoreWatchBtns()" style="flex:1;padding:14px 8px;background:rgba(255,255,255,.06);color:var(--t2);border:1px solid rgba(255,255,255,.1);border-radius:10px;font-size:14px;cursor:pointer;min-height:48px">Cancel</button>'
-    +'<button onclick="_unLogCustomDate(\''+slug2+'\','+season+','+episode+','+epTraktId+')" style="flex:1;padding:14px 8px;background:var(--tv);color:#fff;border:none;border-radius:10px;font-size:14px;cursor:pointer;font-weight:600;min-height:48px">Log Watch</button>'
-    +'</div>';
-  ct.appendChild(d);
-  // Scroll the picker into view
-  d.scrollIntoView({behavior:'smooth',block:'nearest'});
+  var dn=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  var mn=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  // Build date items: 60 days back, today, 7 days forward
+  var dates=[];var todayStr=now.toDateString();
+  for(var i=-60;i<=7;i++){var d=new Date(now);d.setDate(d.getDate()+i);
+    var label=d.toDateString()===todayStr?'Today':dn[d.getDay()]+' '+mn[d.getMonth()]+' '+d.getDate();
+    dates.push({label:label,y:d.getFullYear(),m:d.getMonth()+1,d:d.getDate(),isToday:i===0})}
+  var todayIdx=60;// index of "today" in the dates array
+  // Hours 1-12
+  var hrs=[];for(var h=1;h<=12;h++)hrs.push(h);
+  var curH=now.getHours();var curH12=curH%12||12;var curAP=curH<12?0:1;
+  var curMin=now.getMinutes();
+  // Build the sheet
+  var sh=document.createElement('div');sh.id='un-dp-sheet';
+  sh.style.cssText='position:fixed;bottom:0;left:0;right:0;background:#1a1a2e;border-radius:16px 16px 0 0;z-index:9999;padding:0;box-shadow:0 -4px 30px rgba(0,0,0,.6);transform:translateY(100%);transition:transform .3s ease;border-top:1px solid rgba(255,255,255,.08)';
+  // Header: X | Today | ✓
+  var hdr='<div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid rgba(255,255,255,.06)">';
+  hdr+='<button onclick="document.getElementById(\'un-dp-sheet\').remove()" style="width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.08);border:none;color:var(--tx);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center">✕</button>';
+  hdr+='<button onclick="_dpScrollToday()" style="padding:10px 20px;background:rgba(255,255,255,.08);border:none;color:var(--tx);border-radius:20px;font-size:14px;cursor:pointer;font-weight:600">Today</button>';
+  hdr+='<button onclick="_dpConfirm()" style="width:44px;height:44px;border-radius:50%;background:var(--tv);border:none;color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center">✓</button>';
+  hdr+='</div>';
+  // Scroll columns — each 150px tall with 38px items, center selection
+  var ih=38;// item height
+  var pad=Math.floor(150/2-ih/2);// padding to center first/last item
+  function col(id,items,selIdx){
+    var c='<div id="'+id+'" style="flex:1;height:150px;overflow-y:auto;scroll-snap-type:y mandatory;-webkit-overflow-scrolling:touch;position:relative" data-sel="'+selIdx+'">';
+    c+='<div style="height:'+pad+'px"></div>';
+    items.forEach(function(it,i){
+      var isBold=i===selIdx;
+      c+='<div style="height:'+ih+'px;scroll-snap-align:center;display:flex;align-items:center;justify-content:center;font-size:'+(isBold?'16px':'14px')+';color:'+(isBold?'#fff':'rgba(255,255,255,.35)')+';white-space:nowrap;transition:color .15s" data-i="'+i+'">'+(typeof it==='object'?it.label:it)+'</div>';
+    });
+    c+='<div style="height:'+pad+'px"></div>';
+    c+='</div>';
+    return c;
+  }
+  var mins=[];for(var mi=0;mi<60;mi++)mins.push(String(mi).padStart(2,'0'));
+  var body='<div style="position:relative;padding:0 8px">';
+  // Selection highlight bar
+  body+='<div style="position:absolute;top:50%;left:8px;right:8px;height:'+ih+'px;transform:translateY(-50%);background:rgba(255,255,255,.06);border-radius:8px;pointer-events:none;z-index:0"></div>';
+  body+='<div style="display:flex;position:relative;z-index:1">';
+  body+=col('dp-date',dates,todayIdx);
+  body+=col('dp-hour',hrs,curH12-1);
+  body+=col('dp-min',mins,curMin);
+  body+=col('dp-ap',['AM','PM'],curAP);
+  body+='</div></div>';
+  sh.innerHTML=hdr+body;
+  document.body.appendChild(sh);
+  // Slide in
+  requestAnimationFrame(function(){requestAnimationFrame(function(){sh.style.transform='translateY(0)'})});
+  // Scroll each column to its selected item
+  setTimeout(function(){
+    ['dp-date','dp-hour','dp-min','dp-ap'].forEach(function(id){
+      var el=document.getElementById(id);if(!el)return;
+      var sel=parseInt(el.dataset.sel)||0;
+      el.scrollTop=sel*ih;
+      // Live highlight on scroll
+      el.addEventListener('scroll',function(){_dpHighlight(el,ih)},{passive:true});
+    });
+  },50);
 }
-function _unLogCustomDate(slug,season,episode,epTraktId){
-  var dv=document.getElementById('un-pick-date');var tv=document.getElementById('un-pick-time');
-  if(!dv||!dv.value)return;
-  var when=dv.value+'T'+(tv&&tv.value?tv.value:'12:00');
-  markWatchedAt(slug,season,episode,epTraktId,when);
+function _dpHighlight(col,ih){
+  var idx=Math.round(col.scrollTop/ih);
+  col.querySelectorAll('[data-i]').forEach(function(el){
+    var i=parseInt(el.dataset.i);
+    el.style.color=i===idx?'#fff':'rgba(255,255,255,.35)';
+    el.style.fontSize=i===idx?'16px':'14px';
+    el.style.fontWeight=i===idx?'600':'400';
+  });
 }
-function _unRestoreWatchBtns(){var b=document.getElementById('un-watch-btns-orig');if(b){b.style.display='';b.id=''}}
+function _dpScrollToday(){
+  var el=document.getElementById('dp-date');if(!el)return;
+  var ih=38;el.scrollTo({top:60*ih,behavior:'smooth'});
+  // Reset time to now
+  var now=new Date();var h12=now.getHours()%12||12;
+  var hEl=document.getElementById('dp-hour');if(hEl)hEl.scrollTo({top:(h12-1)*ih,behavior:'smooth'});
+  var mEl=document.getElementById('dp-min');if(mEl)mEl.scrollTo({top:now.getMinutes()*ih,behavior:'smooth'});
+  var aEl=document.getElementById('dp-ap');if(aEl)aEl.scrollTo({top:(now.getHours()<12?0:1)*ih,behavior:'smooth'});
+}
+function _dpConfirm(){
+  var ih=38;
+  var dEl=document.getElementById('dp-date');var hEl=document.getElementById('dp-hour');
+  var mEl=document.getElementById('dp-min');var aEl=document.getElementById('dp-ap');
+  if(!dEl)return;
+  var dIdx=Math.round(dEl.scrollTop/ih);var hIdx=Math.round(hEl.scrollTop/ih);
+  var mIdx=Math.round(mEl.scrollTop/ih);var aIdx=Math.round(aEl.scrollTop/ih);
+  // Reconstruct date
+  var now=new Date();var d=new Date(now);d.setDate(d.getDate()+(dIdx-60));
+  var hour=hIdx+1;if(hour===12)hour=aIdx?12:0;else if(aIdx)hour+=12;
+  var when=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')+'T'+String(hour).padStart(2,'0')+':'+String(mIdx).padStart(2,'0');
+  document.getElementById('un-dp-sheet').remove();
+  markWatchedAt(_dpSlug,_dpSeason,_dpEpisode,_dpEpTraktId,when);
+}
 
 var _crBase=null,_crEp=0,_crAll=null,_crIdx=0;
 
