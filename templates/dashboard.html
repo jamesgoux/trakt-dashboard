@@ -3869,16 +3869,21 @@ function _unShowDatePicker(slug,season,episode,epTraktId){
   if(existing){existing.remove();return}
   var ct=document.querySelector('.un-carousel-panel:nth-child(2) .un-detail')||document.querySelector('.un-detail');
   if(!ct)return;
+  var slug2=slug.replace(/'/g,"\\'");
   var d=document.createElement('div');
   d.id='un-date-prompt';
-  d.style.cssText='padding:12px 16px;margin-top:8px;';
-  d.innerHTML='<div style="display:flex;gap:8px;align-items:center"><input type="datetime-local" id="un-custom-date" style="flex:1;padding:12px;background:var(--sf);border:1px solid rgba(255,255,255,.15);border-radius:10px;color:var(--tx);font-size:13px;min-height:44px">'
-    +'<button onclick="document.getElementById(\'un-date-prompt\').remove()" style="padding:12px 16px;background:var(--sf);color:var(--t2);border:1px solid rgba(255,255,255,.1);border-radius:10px;font-size:13px;cursor:pointer;min-height:44px">Cancel</button>'
-    +'<button onclick="var v=document.getElementById(\'un-custom-date\').value;if(v){markWatchedAt(\''+slug.replace(/'/g,"\\'")+'\','+season+','+episode+','+epTraktId+',v)}" style="padding:12px 16px;background:var(--tv);color:#fff;border:none;border-radius:10px;font-size:13px;cursor:pointer;font-weight:600;min-height:44px">Log</button></div>';
-  // Insert after the buttons row
-  var btns=ct.querySelector('div:last-child');
-  if(btns&&btns.parentElement)btns.parentElement.insertBefore(d,btns.nextSibling);
-  else ct.appendChild(d);
+  d.style.cssText='padding:0 0 80px;margin-top:12px;';
+  d.innerHTML='<div style="margin-bottom:12px;font-size:13px;color:var(--t2);font-weight:600">Pick a date & time:</div>'
+    +'<input type="datetime-local" id="un-custom-date" style="width:100%;padding:14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.15);border-radius:10px;color:var(--tx);font-size:15px;min-height:48px;box-sizing:border-box;margin-bottom:12px">'
+    +'<div style="display:flex;gap:8px">'
+    +'<button onclick="document.getElementById(\'un-date-prompt\').remove()" style="flex:1;padding:14px 8px;background:rgba(255,255,255,.06);color:var(--t2);border:1px solid rgba(255,255,255,.1);border-radius:10px;font-size:14px;cursor:pointer;min-height:48px">Cancel</button>'
+    +'<button onclick="var v=document.getElementById(\'un-custom-date\').value;if(v){markWatchedAt(\''+slug2+'\','+season+','+episode+','+epTraktId+',v)}else{document.getElementById(\'un-custom-date\').focus()}" style="flex:1;padding:14px 8px;background:var(--tv);color:#fff;border:none;border-radius:10px;font-size:14px;cursor:pointer;font-weight:600;min-height:48px">Log Watch</button>'
+    +'</div>';
+  // Append at the very end of the detail panel (after the watch buttons row)
+  ct.appendChild(d);
+  // Auto-open the native date picker
+  var inp=document.getElementById('un-custom-date');
+  if(inp){try{inp.showPicker()}catch(e){inp.focus()}}
 }
 
 var _crBase=null,_crEp=0,_crAll=null,_crIdx=0;
