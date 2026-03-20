@@ -49,6 +49,14 @@ def main():
     workouts.sort(key=lambda w: w['date'], reverse=True)
     print(f'  Total: {len(workouts)} workouts')
 
+    # Safety: don't overwrite existing data with empty results (token expired, API down, etc.)
+    if not workouts:
+        existing_size = os.path.getsize(OUT) if os.path.exists(OUT) else 0
+        if existing_size > 2:  # more than just "[]"
+            print(f'WARNING: API returned 0 workouts but {OUT} has {existing_size:,} bytes — keeping existing data')
+            return
+        print('No workouts found (and no existing data to preserve)')
+
     with open(OUT, 'w') as f:
         json.dump(workouts, f, separators=(',', ':'))
     print(f'Saved to {OUT} ({os.path.getsize(OUT):,} bytes)')
