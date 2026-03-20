@@ -3527,10 +3527,8 @@ if(build!==lastBuild&&build!=='__BUILD_'+'TIME__'){
     if(wMs&&wMs<buildMs){delete _unWatched[key];pruned=true}
   });
   if(pruned)localStorage.setItem('iris_un_watched',JSON.stringify(_unWatched));
-  // Prune old removals: if entry not in recent anymore (pipeline caught up), clear it
-  var rmPruned=false;Object.keys(_unRemoved).forEach(function(k){
-    if(!rSet[k]){delete _unRemoved[k];rmPruned=true}
-  });if(rmPruned)localStorage.setItem('iris_un_removed',JSON.stringify(_unRemoved));
+  // Clear all removals on build change — pipeline has fresh data, stale removals cause ghost filtering
+  if(Object.keys(_unRemoved).length){Object.keys(_unRemoved).forEach(function(k){delete _unRemoved[k]});localStorage.setItem('iris_un_removed',JSON.stringify(_unRemoved));console.log('Cleared _unRemoved on build change')}
 }
 // Advance shows based on _unWatched entries
 shows.forEach(function(s){
