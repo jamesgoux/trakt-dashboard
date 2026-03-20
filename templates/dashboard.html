@@ -3980,7 +3980,7 @@ function _renderEpHistory(ct,entries){
     h+='<div style="flex:1;font-size:13px;color:var(--tx)">'+dateStr;
     if(!isEpoch)h+=' <span style="color:var(--t2);font-size:11px">'+timeStr+'</span>';
     h+='</div>';
-    h+='<button onclick="_removeEpWatch('+hid+',this)" style="background:rgba(239,68,68,.15);color:#ef4444;border:none;border-radius:6px;padding:6px 10px;font-size:11px;cursor:pointer;font-weight:600;min-height:32px">Remove</button>';
+    h+='<button onclick="_removeEpWatch('+hid+',this,event)" style="background:rgba(239,68,68,.15);color:#ef4444;border:none;border-radius:6px;padding:6px 10px;font-size:11px;cursor:pointer;font-weight:600;min-height:32px">Remove</button>';
     h+='</div>';
   });
   h+='</div>';
@@ -3992,18 +3992,10 @@ var _unRemoved=JSON.parse(localStorage.getItem('iris_un_removed')||'{}');
 function _isRemoved(slug,season,ep){return !!_unRemoved[slug+'|'+season+'|'+ep]}
 function _markRemoved(slug,season,ep){_unRemoved[slug+'|'+season+'|'+ep]=Date.now();localStorage.setItem('iris_un_removed',JSON.stringify(_unRemoved))}
 
-// Remove a single watch entry — two taps: first tap turns red "Confirm?", second tap executes
-function _removeEpWatch(historyId,btn){
+// Remove a single watch entry — executes immediately on tap
+function _removeEpWatch(historyId,btn,ev){
+  if(ev){ev.stopPropagation();ev.preventDefault()}
   if(!historyId)return;
-  // Two-tap confirmation (no confirm() dialog which breaks on iOS)
-  if(!btn._confirmReady){
-    btn._confirmReady=true;
-    btn.textContent='Confirm?';
-    btn.style.background='#ef4444';btn.style.color='#fff';
-    setTimeout(function(){if(btn._confirmReady){btn._confirmReady=false;btn.textContent='Remove';btn.style.background='rgba(239,68,68,.15)';btn.style.color='#ef4444'}},3000);
-    return;
-  }
-  btn._confirmReady=false;
   var row=btn.closest('.un-hist-row');
   if(row){row.style.opacity='0.3';row.style.pointerEvents='none'}
   var _rmSlug=_crBase?_crBase.slug:'';var _rmSeason=_crBase?_crBase.season:0;var _rmEp=_crEp;
