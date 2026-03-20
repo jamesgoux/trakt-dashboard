@@ -3746,12 +3746,15 @@ function _renderUpNext(){
   }
   el.innerHTML=h;
   var ov=document.getElementById('un-overlay');
+  // If overlay is already visible (internal re-render from markWatched, removeEpDone, etc.)
+  // just swap content and restore scroll — no animation
+  var alreadyOpen=ov.style.display!=='none'&&ov.style.visibility!=='hidden';
   ov.style.display='';
-  if(_unReturning){
-    // Returning from detail or internal re-render — restore exact scroll, no animation
+  if(_unReturning||alreadyOpen){
+    // Instant content swap, preserve scroll
     _unReturning=false;
     ov.style.transition='none';ov.style.transform='';ov.style.visibility='';
-    requestAnimationFrame(function(){ov.scrollTop=_unScrollPos});
+    var sp=_unScrollPos;requestAnimationFrame(function(){ov.scrollTop=sp});
   }else if(!_unEverOpened){
     // First open this session — scroll to New Episodes, slide in from right
     _unEverOpened=true;
@@ -4343,7 +4346,7 @@ function _removeEpDone(btn,row,slug,season,ep,ud){
       _restoreMetadata(newEntry,slug,season,ep);
     }
     _unDismissDetail();
-    setTimeout(function(){openUpNext(true)},350);
+    setTimeout(function(){_unScrollPos=document.getElementById('un-overlay').scrollTop;openUpNext(true)},350);
   }
 }
 
@@ -4381,6 +4384,7 @@ function markWatchedAt(slug,season,episode,epTraktId,when){
       break;
     }
   }
+  _unScrollPos=document.getElementById('un-overlay').scrollTop;
   openUpNext(true);
   if(epTraktId)_traktSync(epTraktId,watchedAt);
 }
