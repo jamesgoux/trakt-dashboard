@@ -4000,14 +4000,44 @@ function _removeEpWatch(historyId,btn){
     console.log('Watch removed:',d);
     if(row)row.remove();
     // Clear history cache so it re-fetches fresh
-    if(_crBase){delete _epHistCache[_crBase.slug+'|'+_crBase.season+'|'+_crEp]}
+    var _rmSlug=_crBase?_crBase.slug:'';var _rmSeason=_crBase?_crBase.season:0;var _rmEp=_crEp;
+    if(_crBase){delete _epHistCache[_rmSlug+'|'+_rmSeason+'|'+_rmEp]}
     // Update the watch count header
     var ct=btn.closest('.un-ep-hist');
+    var remaining=0;
     if(ct){
-      var remaining=ct.querySelectorAll('.un-hist-row').length;
+      remaining=ct.querySelectorAll('.un-hist-row').length;
       var hdr=ct.querySelector('div > div:first-child');
       if(remaining===0){ct.innerHTML='<div style="font-size:12px;color:var(--t2);padding:4px 0;opacity:.6">Not watched</div>'}
       else if(hdr){hdr.textContent='✅ Watched '+remaining+'×'}
+    }
+    // If last watch removed, this episode is now unwatched → add/update in Up Next queue
+    if(remaining===0&&_rmSlug){
+      var ud=D.un||{};var shows=ud.shows||[];
+      var existing=shows.find(function(x){return x.slug===_rmSlug});
+      if(existing){
+        // Show already in Up Next — regress to this episode if it's earlier
+        if(_rmSeason<existing.season||(_rmSeason===existing.season&&_rmEp<=existing.episode)){
+          existing.season=_rmSeason;existing.episode=_rmEp;
+          existing.completed=Math.max(0,(existing.completed||0)-1);
+          existing.eps_left=(existing.eps_left||0)+1;
+          existing.ep_title='';existing.ep_overview='';existing.ep_still='';existing.ep_aired='';existing.ep_trakt_id=0;
+        }
+      }else{
+        // Show was fully caught up → add it back to Up Next
+        var showTitle=_crBase?_crBase.show:'';var poster=_crBase?_crBase.poster:'';
+        var stream=_crBase?_crBase.stream:[];var tmdbId=_crBase?_crBase.tmdb_id:'';
+        shows.unshift({slug:_rmSlug,show:showTitle,season:_rmSeason,episode:_rmEp,
+          ep_title:'',ep_overview:'',ep_still:'',ep_aired:'',ep_runtime:_crBase?_crBase.ep_runtime:0,
+          ep_trakt_id:0,tmdb_id:tmdbId,poster:poster,stream:stream,
+          aired_total:_crBase?_crBase.aired_total:0,completed:Math.max(0,(_crBase?_crBase.completed:1)-1),
+          eps_left:(_crBase?_crBase.eps_left:0)+1,remaining_min:0,is_new:false,last_watched:''});
+      }
+      // Also remove from D.un.recent so it doesn't show in Recently Watched
+      if(ud.recent){ud.recent=ud.recent.filter(function(r){return !(r.slug===_rmSlug&&r.season===_rmSeason&&r.episode===_rmEp)})}
+      // Dismiss detail and refresh Up Next view
+      _unDismissDetail();
+      setTimeout(function(){openUpNext()},350);
     }
   })
   .catch(function(e){
