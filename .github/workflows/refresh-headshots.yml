@@ -72,6 +72,12 @@ jobs:
         run: python scripts/sync_letterboxd_to_trakt.py
         continue-on-error: true
 
+      - name: Refresh health data
+        env:
+          GH_HEALTH_TOKEN: ${{ secrets.GH_HEALTH_TOKEN }}
+        run: python scripts/refresh_health.py
+        continue-on-error: true
+
       - name: Rebuild dashboard (full refresh with cast+studios)
         env:
           TRAKT_CLIENT_ID: ${{ secrets.TRAKT_CLIENT_ID }}
