@@ -4366,6 +4366,43 @@ function _injectRecentWatch(slug,season,episode,watchedAt){
   unData.recent.unshift({show:title,slug:slug,season:season,episode:episode,ep_title:showData?showData.ep_title:'',watched_at:watchedAt,ep_id:showData?showData.ep_trakt_id:0,ep_aired:showData?showData.ep_aired:''});
 }
 
+// Shared: insert a recently watched card with slide-down + fade-in animation
+function _insertRecentCard(cardHtml){
+  var el=document.getElementById('un-content');if(!el)return null;
+  var sections=el.querySelectorAll('.un-section');
+  var recentGrid=null;var newEpsSec=null;
+  sections.forEach(function(sec){
+    if(sec.textContent.indexOf('Recently Watched')>=0)recentGrid=sec.nextElementSibling;
+    if(sec.id==='un-default-scroll')newEpsSec=sec;
+  });
+  var tmp=document.createElement('div');tmp.innerHTML=cardHtml;
+  var card=tmp.firstElementChild;
+  var wrap=document.createElement('div');
+  wrap.style.cssText='max-height:0;overflow:hidden;transition:max-height .25s ease-out';
+  card.style.cssText='opacity:0;transform:scale(0.95);transition:opacity .18s ease .13s,transform .18s ease .13s';
+  wrap.appendChild(card);
+  if(recentGrid){
+    recentGrid.appendChild(wrap);
+  }else if(newEpsSec){
+    var hdr=document.createElement('div');hdr.className='un-section';hdr.textContent='\ud83d\udd50 Recently Watched';
+    hdr.style.cssText='opacity:0;transition:opacity .18s';
+    var grid=document.createElement('div');grid.className='un-grid';
+    grid.appendChild(wrap);
+    newEpsSec.parentElement.insertBefore(grid,newEpsSec);
+    newEpsSec.parentElement.insertBefore(hdr,grid);
+    requestAnimationFrame(function(){hdr.style.opacity='1'});
+  }
+  requestAnimationFrame(function(){requestAnimationFrame(function(){
+    wrap.style.maxHeight='150px';
+    card.style.opacity='1';card.style.transform='scale(1)';
+    setTimeout(function(){
+      wrap.style.cssText='';card.style.cssText='';
+      if(wrap.parentNode){wrap.parentNode.insertBefore(card,wrap);wrap.remove()}
+    },450);
+  })});
+  return card;
+}
+
 function markWatchedAt(slug,season,episode,epTraktId,when){
   var key=slug+'|'+season+'|'+episode;
   var watchedAt=when==='now'?new Date().toISOString():when;
@@ -4404,52 +4441,16 @@ function markWatchedAt(slug,season,episode,epTraktId,when){
 // Targeted animated queue update: slides tiles down, reveals new card, updates show in-place
 function _animateQueueUpdate(a){
   var el=document.getElementById('un-content');if(!el)return;
-  // Build recently watched card
+  // Insert recently watched card with shared slide-down animation
   var cardHtml='<div class="un-card un-card-tap" data-slug="'+a.slug+'" data-s="'+a.s+'" data-e="'+a.e+'" data-eid="0" data-tmdb="'+a.tmdb+'" onclick="showEpDetail(this)">';
   if(a.poster)cardHtml+='<img class="un-poster" src="'+a.poster+'" loading="lazy" onerror="this.style.display=\'none\'" alt="">';
   else cardHtml+='<div class="un-poster-ph">📺</div>';
   cardHtml+='<div class="un-info"><div class="un-show">'+a.title+'</div>';
-  cardHtml+='<div class="un-ep">S'+String(a.s).padStart(2,'0')+'E'+String(a.e).padStart(2,'0')+' — just watched</div>';
+  cardHtml+='<div class="un-ep">S'+String(a.s).padStart(2,'0')+'E'+String(a.e).padStart(2,'0')+' \u2014 just watched</div>';
   cardHtml+='<div class="un-meta"><span>'+a.at.substring(0,10)+'</span></div>';
-  cardHtml+='<button onclick="event.stopPropagation();removeRecent(0,this)" class="un-del-btn" title="Remove">✕</button>';
+  cardHtml+='<button onclick="event.stopPropagation();removeRecent(0,this)" class="un-del-btn" title="Remove">\u2715</button>';
   cardHtml+='</div></div>';
-  // Find recently watched grid and New Episodes anchor
-  var sections=el.querySelectorAll('.un-section');
-  var recentGrid=null;var newEpsSec=null;
-  sections.forEach(function(sec){
-    if(sec.textContent.indexOf('Recently Watched')>=0)recentGrid=sec.nextElementSibling;
-    if(sec.id==='un-default-scroll')newEpsSec=sec;
-  });
-  // Create card element
-  var tmp=document.createElement('div');tmp.innerHTML=cardHtml;
-  var card=tmp.firstElementChild;
-  // Wrapper: expands from 0 height → pushes tiles below down
-  var wrap=document.createElement('div');
-  wrap.style.cssText='max-height:0;overflow:hidden;transition:max-height .25s ease-out';
-  card.style.cssText='opacity:0;transform:scale(0.95);transition:opacity .18s ease .13s,transform .18s ease .13s';
-  wrap.appendChild(card);
-  if(recentGrid){
-    recentGrid.appendChild(wrap);
-  }else if(newEpsSec){
-    var hdr=document.createElement('div');hdr.className='un-section';hdr.textContent='\ud83d\udd50 Recently Watched';
-    hdr.style.cssText='opacity:0;transition:opacity .18s';
-    var grid=document.createElement('div');grid.className='un-grid';
-    grid.appendChild(wrap);
-    newEpsSec.parentElement.insertBefore(grid,newEpsSec);
-    newEpsSec.parentElement.insertBefore(hdr,grid);
-    recentGrid=grid;
-    requestAnimationFrame(function(){hdr.style.opacity='1'});
-  }
-  // Animate: expand height (slide tiles down) → reveal card
-  requestAnimationFrame(function(){requestAnimationFrame(function(){
-    wrap.style.maxHeight='150px';
-    card.style.opacity='1';card.style.transform='scale(1)';
-    // Clean up wrapper after animation settles
-    setTimeout(function(){
-      wrap.style.cssText='';card.style.cssText='';
-      if(wrap.parentNode){wrap.parentNode.insertBefore(card,wrap);wrap.remove()}
-    },450);
-  })});
+  var card=_insertRecentCard(cardHtml);
   // Update show's queue card in-place (advance episode or fade out if caught up)
   if(a.show){
     var slug=a.slug;var showObj=a.show;
@@ -4493,47 +4494,19 @@ function markWatched(slug,season,episode,epTraktId,btn){
   _unWatched[key]=watchedAt;
   localStorage.setItem('iris_un_watched',JSON.stringify(_unWatched));
   _injectRecentWatch(slug,season,episode,watchedAt);
-  // Add to Recently Watched section in the DOM (at bottom, closest to New Episodes)
+  // Add to Recently Watched with slide-down + fade-in animation
   (function(){
-    var sections=document.querySelectorAll('#un-content .un-section');
-    var recentGrid=null;var newEpsSection=null;
-    sections.forEach(function(sec){
-      if(sec.textContent.indexOf('Recently Watched')>=0){recentGrid=sec.nextElementSibling}
-      if(sec.id==='un-default-scroll')newEpsSection=sec;
-    });
     var showTitle=card.querySelector('.un-show');
     var poster=card.querySelector('.un-poster');
-    var slug2=slug.replace(/'/g,"\\'");
-    var cardHtml='<div class="un-card un-card-tap" data-slug="'+slug+'" data-s="'+season+'" data-e="'+episode+'" data-eid="'+(epTraktId||0)+'" data-tmdb="'+(card.dataset.tmdb||'')+'" onclick="showEpDetail(this)" style="opacity:0;transition:opacity .3s">';
+    var cardHtml='<div class="un-card un-card-tap" data-slug="'+slug+'" data-s="'+season+'" data-e="'+episode+'" data-eid="'+(epTraktId||0)+'" data-tmdb="'+(card.dataset.tmdb||'')+'" onclick="showEpDetail(this)">';
     if(poster&&poster.src)cardHtml+='<img class="un-poster" src="'+poster.src+'" loading="lazy" onerror="this.style.display=\'none\'" alt="">';
     else cardHtml+='<div class="un-poster-ph">📺</div>';
     cardHtml+='<div class="un-info"><div class="un-show">'+(showTitle?showTitle.textContent:slug)+'</div>';
-    cardHtml+='<div class="un-ep">S'+String(season).padStart(2,'0')+'E'+String(episode).padStart(2,'0')+' — just watched</div>';
+    cardHtml+='<div class="un-ep">S'+String(season).padStart(2,'0')+'E'+String(episode).padStart(2,'0')+' \u2014 just watched</div>';
     cardHtml+='<div class="un-meta"><span>'+watchedAt.substring(0,10)+'</span></div>';
-    cardHtml+='<button onclick="event.stopPropagation();removeRecent(0,this)" class="un-del-btn" title="Remove">✕</button>';
+    cardHtml+='<button onclick="event.stopPropagation();removeRecent(0,this)" class="un-del-btn" title="Remove">\u2715</button>';
     cardHtml+='</div></div>';
-    var ov=document.getElementById('un-overlay');
-    var scrollBefore=ov.scrollTop;
-    if(recentGrid){
-      recentGrid.insertAdjacentHTML('beforeend',cardHtml);
-      var added=recentGrid.lastElementChild;
-      requestAnimationFrame(function(){
-        var addedH=added?added.offsetHeight:0;
-        ov.scrollTop=scrollBefore+addedH;
-        if(added)added.style.opacity='1';
-      });
-    }else if(newEpsSection){
-      var sec=document.createElement('div');sec.className='un-section';sec.textContent='🕐 Recently Watched';
-      var grid=document.createElement('div');grid.className='un-grid';grid.innerHTML=cardHtml;
-      newEpsSection.parentElement.insertBefore(grid,newEpsSection);
-      newEpsSection.parentElement.insertBefore(sec,grid);
-      var added2=grid.firstElementChild;
-      requestAnimationFrame(function(){
-        var addedH2=(sec.offsetHeight||0)+(added2?added2.offsetHeight:0);
-        ov.scrollTop=scrollBefore+addedH2;
-        if(added2)added2.style.opacity='1';
-      });
-    }
+    _insertRecentCard(cardHtml);
   })();
   // Save undo state BEFORE advancing
   var unData=D.un||{};var shows=unData.shows||[];
