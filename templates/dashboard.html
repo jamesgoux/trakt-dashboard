@@ -4580,9 +4580,15 @@ function removeRecent(epId,btn){
   var slug=card?card.dataset.slug:'';
   var season=card?parseInt(card.dataset.s):0;
   var episode=card?parseInt(card.dataset.e):0;
-  // Animate out
-  card.style.transition='all .3s';card.style.opacity='0';
-  setTimeout(function(){card.style.maxHeight='0';card.style.padding='0';card.style.margin='0';card.style.border='none';setTimeout(function(){card.remove()},300)},200);
+  var tmdb=card?card.dataset.tmdb||'':'';
+  // Phase 1: Fade card out, then smoothly collapse (wrapper absorbs height change)
+  var h=card.offsetHeight;
+  card.style.transition='opacity .2s';card.style.opacity='0';card.style.pointerEvents='none';
+  var wrap=document.createElement('div');
+  wrap.style.cssText='max-height:'+h+'px;overflow:hidden;transition:max-height .25s ease-in .15s';
+  card.parentNode.insertBefore(wrap,card);wrap.appendChild(card);
+  requestAnimationFrame(function(){requestAnimationFrame(function(){wrap.style.maxHeight='0'})});
+  setTimeout(function(){wrap.remove()},500);
   if(!slug)return;
   // Persist removal in localStorage
   _markRemoved(slug,season,episode);
@@ -4597,6 +4603,7 @@ function removeRecent(epId,btn){
   // Move episode back to Up Next queue with metadata restoration
   var shows=ud.shows||[];
   var existing=shows.find(function(x){return x.slug===slug});
+  var didUpdate=false;
   if(existing){
     if(season<existing.season||(season===existing.season&&episode<=existing.episode)){
       existing.season=season;existing.episode=episode;
@@ -4604,6 +4611,7 @@ function removeRecent(epId,btn){
       existing.eps_left=(existing.eps_left||0)+1;
       existing.remaining_min=(existing.remaining_min||0)+(existing.ep_runtime||0);
       _restoreMetadata(existing,slug,season,episode);
+      didUpdate=true;
     }
   }else{
     // Show not in Up Next data — build from undo stack or _crBase
@@ -4622,11 +4630,70 @@ function removeRecent(epId,btn){
       is_new:false,last_watched:''};
     shows.unshift(newEntry);
     _restoreMetadata(newEntry,slug,season,episode);
+    existing=newEntry;
   }
-  // Remove from Trakt — look up real history entry ID for reliable removal
+  // Phase 2: Animate queue card after collapse settles
+  var _slug=slug,_existing=existing,_didUpdate=didUpdate,_tmdb=tmdb;
+  setTimeout(function(){
+    var el=document.getElementById('un-content');if(!el)return;
+    if(_didUpdate){
+      // Flip existing queue card to show restored episode
+      el.querySelectorAll('.un-card[data-slug="'+_slug+'"]').forEach(function(qc){
+        if(qc.querySelector('.un-del-btn')&&!qc.querySelector('.un-watch-btn'))return;
+        qc.style.overflow='visible';
+        qc.style.transition='transform .2s ease-in';
+        qc.style.transform='perspective(600px) rotateY(90deg)';
+        setTimeout(function(){
+          // Swap content at midpoint
+          var epEl=qc.querySelector('.un-ep');
+          if(epEl)epEl.innerHTML='S'+String(_existing.season).padStart(2,'0')+'E'+String(_existing.episode).padStart(2,'0')+(_existing.ep_title?' \u2014 '+_existing.ep_title:'');
+          var pct=_existing.aired_total?Math.round(_existing.completed/_existing.aired_total*100):0;
+          var pb=qc.querySelector('.un-prog-bar');if(pb)pb.style.width=pct+'%';
+          var pt=qc.querySelector('.un-prog-text');if(pt){var sp=pt.querySelectorAll('span');if(sp[1])sp[1].textContent=(_existing.eps_left||0)+' eps'}
+          qc.dataset.s=_existing.season;qc.dataset.e=_existing.episode;qc.dataset.eid=_existing.ep_trakt_id||0;
+          var wb=qc.querySelector('.un-watch-btn');
+          if(wb)wb.setAttribute('onclick',"event.stopPropagation();markWatched('"+_slug.replace(/'/g,"\\'")+"',"+_existing.season+","+_existing.episode+","+((_existing.ep_trakt_id||0))+",this)");
+          // Rotate back from other side
+          qc.style.transition='none';
+          qc.style.transform='perspective(600px) rotateY(-90deg)';
+          requestAnimationFrame(function(){
+            qc.style.transition='transform .2s ease-out';
+            qc.style.transform='';
+            setTimeout(function(){qc.style.overflow=''},250);
+          });
+        },200);
+      });
+    }else if(_existing){
+      // New queue card — slide in with expand animation
+      var s=_existing;var pct=s.aired_total?Math.round(s.completed/s.aired_total*100):0;
+      var qh='<div class="un-card un-card-tap" data-slug="'+s.slug+'" data-s="'+s.season+'" data-e="'+s.episode+'" data-eid="'+(s.ep_trakt_id||0)+'" data-tmdb="'+(s.tmdb_id||'')+'" onclick="showEpDetail(this)">';
+      if(s.poster)qh+='<img class="un-poster" src="'+s.poster+'" loading="lazy" onerror="this.style.display=\'none\'" alt="">';
+      else qh+='<div class="un-poster-ph">\ud83d\udcfa</div>';
+      qh+='<div class="un-info"><div style="display:flex;align-items:center;gap:6px"><div class="un-show" style="flex:1;min-width:0">'+s.show+'</div></div>';
+      qh+='<div class="un-ep">S'+String(s.season).padStart(2,'0')+'E'+String(s.episode).padStart(2,'0')+(s.ep_title?' \u2014 '+s.ep_title:'')+'</div>';
+      qh+='<div class="un-prog-wrap"><div class="un-prog"><div class="un-prog-bar" style="width:'+pct+'%"></div>';
+      qh+='<div class="un-prog-text"><span>'+(s.ep_runtime?_unFmtMin(s.ep_runtime):'')+'</span><span>'+(s.eps_left||0)+' eps \u00b7 '+_unFmtMin(s.remaining_min)+'</span></div></div></div>';
+      qh+='<button onclick="event.stopPropagation();markWatched(\''+s.slug.replace(/'/g,"\\'")+'\','+s.season+','+s.episode+','+(s.ep_trakt_id||0)+',this)" class="un-watch-btn" title="Mark watched">\u2713</button>';
+      qh+='</div></div>';
+      // Find Continue Watching grid to insert into
+      var sections=el.querySelectorAll('.un-section');var cwGrid=null;
+      sections.forEach(function(sec){if(sec.textContent.indexOf('Continue Watching')>=0)cwGrid=sec.nextElementSibling});
+      if(!cwGrid){sections.forEach(function(sec){if(sec.textContent.indexOf('New Episodes')>=0)cwGrid=sec.nextElementSibling})}
+      if(cwGrid){
+        var tmp=document.createElement('div');tmp.innerHTML=qh;var qc=tmp.firstElementChild;
+        var w2=document.createElement('div');
+        w2.style.cssText='max-height:0;overflow:hidden;transition:max-height .25s ease-out';
+        qc.style.cssText='opacity:0;transform:scale(0.95);transition:opacity .18s ease .13s,transform .18s ease .13s';
+        w2.appendChild(qc);cwGrid.insertBefore(w2,cwGrid.firstChild);
+        requestAnimationFrame(function(){requestAnimationFrame(function(){
+          w2.style.maxHeight='150px';qc.style.opacity='1';qc.style.transform='scale(1)';
+          setTimeout(function(){w2.style.cssText='';qc.style.cssText='';if(w2.parentNode){w2.parentNode.insertBefore(qc,w2);w2.remove()}},450);
+        })});
+      }
+    }
+  },350);
+  // Remove from Trakt
   _traktRemoveWatch(slug,season,episode,epId||0);
-  // No full re-render — card already animated out, data updated in memory.
-  // Queue will reflect changes on next open.
 }
 
 function closeUpNext(){
