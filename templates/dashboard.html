@@ -4552,8 +4552,8 @@ function removeRecent(epId,btn){
   }
   // Remove from Trakt — look up real history entry ID for reliable removal
   _traktRemoveWatch(slug,season,episode,epId||0);
-  // Re-render Up Next from correct data state (no manual DOM injection)
-  setTimeout(function(){openUpNext(true)},500);
+  // No full re-render — card already animated out, data updated in memory.
+  // Queue will reflect changes on next open.
 }
 
 function closeUpNext(){
