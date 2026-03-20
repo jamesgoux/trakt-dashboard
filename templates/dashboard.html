@@ -3625,7 +3625,7 @@ function _unBuildPanel(show){
   h+='<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0">';
   h+='<button onclick="_unDismissDetail()" style="background:rgba(255,255,255,.08);border:none;color:var(--tx);border-radius:8px;padding:10px 16px;font-size:14px;cursor:pointer;min-height:44px">↑ Up Next</button>';
   h+='<div style="display:flex;gap:8px">';
-  if(show.episode>1)h+='<button onclick="_crNav(-1)" style="background:rgba(255,255,255,.08);border:none;color:var(--tx);border-radius:8px;padding:10px 16px;font-size:16px;cursor:pointer;min-width:48px">◀</button>';
+  if(show.episode>1||show.season>1)h+='<button onclick="_crNav(-1)" style="background:rgba(255,255,255,.08);border:none;color:var(--tx);border-radius:8px;padding:10px 16px;font-size:16px;cursor:pointer;min-width:48px">◀</button>';
   h+='<button onclick="_crNav(1)" style="background:rgba(255,255,255,.08);border:none;color:var(--tx);border-radius:8px;padding:10px 16px;font-size:16px;cursor:pointer;min-width:48px">▶</button>';
   h+='</div></div>';
   // Still image — edge to edge
@@ -3743,9 +3743,9 @@ function _unRenderDetail(allShows,idx){
       _tDir=Math.abs(dx)>=Math.abs(dy)?'h':'v';
     }
     if(_tDir==='h'){
-      // Clamp swipe: don't animate past boundaries (no prev when E1, always allow next)
       var pct=-33.333+(dx/w)*33.333;
-      if(_crEp<=1&&dx>0)pct=Math.max(pct,-33.333); // block left swipe on E1
+      // Block left swipe only on S1E1 (no previous season to go to)
+      if(_crEp<=1&&_crBase&&_crBase.season<=1&&dx>0)pct=Math.max(pct,-33.333);
       car.style.transform='translateX('+pct+'%)';
     }else if(_tDir==='v'){
       fg.style.transform='translateY('+dy+'px)';
@@ -3759,7 +3759,7 @@ function _unRenderDetail(allShows,idx){
     var dy=(ev.changedTouches?ev.changedTouches[0].clientY:0)-_tSy;
     if(_tDir==='h'){
       car.classList.add('animating');
-      if(dx>w*0.12&&_crEp>1){car.style.transform='translateX(0%)';setTimeout(function(){_crNav(-1)},320)}
+      if(dx>w*0.12&&(_crEp>1||(_crBase&&_crBase.season>1))){car.style.transform='translateX(0%)';setTimeout(function(){_crNav(-1)},320)}
       else if(dx<-w*0.12){car.style.transform='translateX(-66.666%)';setTimeout(function(){_crNav(1)},320)}
       else{car.style.transform='translateX(-33.333%)'}
     }else if(_tDir==='v'){
@@ -3833,13 +3833,57 @@ function _unDismissDetail(dir){
   },280);
 }
 
+// Season episode count cache: "tmdb|S" -> count
+var _seasonEpCache={};
 function _crNav(dir){
   var newEp=_crEp+dir;
-  if(newEp<1)return;
-  var k=_epCacheKey(_crBase.tmdb_id,_crBase.season,newEp);
+  var newSeason=_crBase.season;
+  // Cross-season: going before E1 → previous season's last episode
+  if(newEp<1){
+    if(newSeason<=1)return; // can't go before S1E1
+    var prevSeason=newSeason-1;
+    var sk=_crBase.tmdb_id+'|'+prevSeason;
+    if(_seasonEpCache[sk]){
+      // We know the episode count — navigate immediately
+      _crNavToSeason(prevSeason,_seasonEpCache[sk]);
+    }else{
+      // Fetch previous season info from TMDB
+      var tk=(D.un||{}).tmdb_key||'';
+      if(!tk)return;
+      fetch('https://api.themoviedb.org/3/tv/'+_crBase.tmdb_id+'/season/'+prevSeason+'?api_key='+tk)
+        .then(function(r){return r.json()})
+        .then(function(d){
+          if(d.status_code||!d.episodes)return;
+          var epCount=d.episodes.length;
+          _seasonEpCache[sk]=epCount;
+          // Cache all episode data from this season
+          d.episodes.forEach(function(ep){
+            var ek=_epCacheKey(_crBase.tmdb_id,prevSeason,ep.episode_number);
+            if(!_epCache[ek])_epCache[ek]={ep_title:ep.name||'',ep_overview:(ep.overview||'').substring(0,500),ep_still:ep.still_path?'https://image.tmdb.org/t/p/w780'+ep.still_path:'',ep_aired:ep.air_date||'',ep_runtime:ep.runtime||_crBase.ep_runtime};
+          });
+          _crNavToSeason(prevSeason,epCount);
+        }).catch(function(){});
+    }
+    return;
+  }
+  _crNavToEp(newSeason,newEp);
+}
+function _crNavToSeason(season,episode){
+  var ns=JSON.parse(JSON.stringify(_crBase));
+  ns.season=season;ns.episode=episode;
+  var k=_epCacheKey(ns.tmdb_id,season,episode);
+  var c=_epCache[k];
+  if(c){ns.ep_title=c.ep_title;ns.ep_overview=c.ep_overview;ns.ep_still=c.ep_still;ns.ep_aired=c.ep_aired;ns.ep_runtime=c.ep_runtime}
+  else{ns.ep_title='';ns.ep_overview='';ns.ep_still='';ns.ep_aired=''}
+  _crBase=ns;_crEp=episode;
+  var ts=_crAll.slice();ts[_crIdx]=ns;
+  _unRenderDetail(ts,_crIdx);
+}
+function _crNavToEp(season,newEp){
+  var k=_epCacheKey(_crBase.tmdb_id,season,newEp);
   var c=_epCache[k];
   var ns=JSON.parse(JSON.stringify(_crBase));
-  ns.episode=newEp;
+  ns.season=season;ns.episode=newEp;
   if(c){ns.ep_title=c.ep_title;ns.ep_overview=c.ep_overview;ns.ep_still=c.ep_still;ns.ep_aired=c.ep_aired;ns.ep_runtime=c.ep_runtime}
   else{ns.ep_title='';ns.ep_overview='';ns.ep_still='';ns.ep_aired=''}
   _crEp=newEp;
@@ -3848,7 +3892,7 @@ function _crNav(dir){
   if(!c){
     var tk=(D.un||{}).tmdb_key||'';
     if(tk){
-      fetch('https://api.themoviedb.org/3/tv/'+_crBase.tmdb_id+'/season/'+_crBase.season+'/episode/'+newEp+'?api_key='+tk)
+      fetch('https://api.themoviedb.org/3/tv/'+_crBase.tmdb_id+'/season/'+season+'/episode/'+newEp+'?api_key='+tk)
         .then(function(r){return r.json()})
         .then(function(d){
           if(d.status_code)return;
