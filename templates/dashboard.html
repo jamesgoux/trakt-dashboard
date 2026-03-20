@@ -3450,6 +3450,10 @@ if(build!==lastBuild&&build!=='__BUILD_'+'TIME__'){
     var wMs=new Date(_unWatched[key]).getTime()||0;
     if(wMs<buildMs){delete _unWatched[key];pruned=true}
   });if(pruned)localStorage.setItem('iris_un_watched',JSON.stringify(_unWatched));
+  // Prune old removals: if entry not in recent anymore (pipeline caught up), clear it
+  var rmPruned=false;Object.keys(_unRemoved).forEach(function(k){
+    if(!rSet[k]){delete _unRemoved[k];rmPruned=true}
+  });if(rmPruned)localStorage.setItem('iris_un_removed',JSON.stringify(_unRemoved));
 }
 // Advance shows based on _unWatched entries
 shows.forEach(function(s){
@@ -3532,9 +3536,11 @@ function openUpNext(){
   }
 
   // Recently watched — reversed so most recent is at bottom (closest to New Episodes)
-  if(recent.length){
+  // Filter out episodes that were removed via the watch history panel
+  var recentFiltered=recent.filter(function(s){return !_isRemoved(s.slug,s.season,s.episode)});
+  if(recentFiltered.length){
     h+='<div class="un-section">🕐 Recently Watched</div><div class="un-grid">';
-    recent.slice().reverse().forEach(function(s){h+=card(s,true)});
+    recentFiltered.slice().reverse().forEach(function(s){h+=card(s,true)});
     h+='</div>';
   }
   if(newItems.length){
@@ -3981,78 +3987,76 @@ function _renderEpHistory(ct,entries){
   ct.innerHTML=h;
 }
 
-// Remove a single watch entry by Trakt history ID
+// Persistent removed-watches tracker (survives page refresh)
+var _unRemoved=JSON.parse(localStorage.getItem('iris_un_removed')||'{}');
+function _isRemoved(slug,season,ep){return !!_unRemoved[slug+'|'+season+'|'+ep]}
+function _markRemoved(slug,season,ep){_unRemoved[slug+'|'+season+'|'+ep]=Date.now();localStorage.setItem('iris_un_removed',JSON.stringify(_unRemoved))}
+
+// Remove a single watch entry — two taps: first tap turns red "Confirm?", second tap executes
 function _removeEpWatch(historyId,btn){
   if(!historyId)return;
-  if(!confirm('Remove this watch?'))return;
+  // Two-tap confirmation (no confirm() dialog which breaks on iOS)
+  if(!btn._confirmReady){
+    btn._confirmReady=true;
+    btn.textContent='Confirm?';
+    btn.style.background='#ef4444';btn.style.color='#fff';
+    setTimeout(function(){if(btn._confirmReady){btn._confirmReady=false;btn.textContent='Remove';btn.style.background='rgba(239,68,68,.15)';btn.style.color='#ef4444'}},3000);
+    return;
+  }
+  btn._confirmReady=false;
   var row=btn.closest('.un-hist-row');
   if(row){row.style.opacity='0.3';row.style.pointerEvents='none'}
-  // Capture current episode context before async
   var _rmSlug=_crBase?_crBase.slug:'';var _rmSeason=_crBase?_crBase.season:0;var _rmEp=_crEp;
-  // Eagerly clear from ALL local caches (don't wait for API response)
-  // 1. _unWatched localStorage (client-side marks)
+  // Persist removal in localStorage (survives refresh, clears baked-in D.un.recent)
+  if(_rmSlug)_markRemoved(_rmSlug,_rmSeason,_rmEp);
+  // Also clear volatile caches
   if(_rmSlug){
     var lsKey=_rmSlug+'|'+_rmSeason+'|'+_rmEp;
     if(_unWatched[lsKey]){delete _unWatched[lsKey];localStorage.setItem('iris_un_watched',JSON.stringify(_unWatched))}
+    delete _epHistCache[_rmSlug+'|'+_rmSeason+'|'+_rmEp];
   }
-  // 2. D.un.recent (pipeline recently watched)
   var ud=D.un||{};
   if(ud.recent){ud.recent=ud.recent.filter(function(r){return !(r.slug===_rmSlug&&r.season==_rmSeason&&r.episode==_rmEp)})}
-  // 3. D.c.r (dashboard recently watched)
-  if(D.c&&D.c.r){D.c.r=D.c.r.filter(function(r){
-    if(r.type!=='episode')return true;
-    // Match by slug or show title pattern
-    var detail='S'+_rmSeason+'E'+_rmEp;
-    return !(r.detail===detail||r.detail===('S'+String(_rmSeason).padStart(2,'0')+'E'+String(_rmEp).padStart(2,'0')));
-  })}
-  // 4. History cache
-  if(_rmSlug){delete _epHistCache[_rmSlug+'|'+_rmSeason+'|'+_rmEp]}
+  // Call Trakt API to remove
   var cid=D._tc,tok=D._tt;
-  if(!cid||!tok){alert('Trakt credentials not available');return}
+  if(!cid||!tok){console.warn('No Trakt credentials');_removeEpDone(btn,row,_rmSlug,_rmSeason,_rmEp,ud);return}
   fetch('https://api.trakt.tv/sync/history/remove',{method:'POST',headers:{'Content-Type':'application/json','trakt-api-version':'2','trakt-api-key':cid,'Authorization':'Bearer '+tok},body:JSON.stringify({ids:[historyId]})})
   .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json()})
-  .then(function(d){
-    console.log('Watch removed:',d);
-    if(row)row.remove();
-    // Update the watch count header
-    var ct=btn.closest('.un-ep-hist');
-    var remaining=0;
-    if(ct){
-      remaining=ct.querySelectorAll('.un-hist-row').length;
-      var hdr=ct.querySelector('div > div:first-child');
-      if(remaining===0){ct.innerHTML='<div style="font-size:12px;color:var(--t2);padding:4px 0;opacity:.6">Not watched</div>'}
-      else if(hdr){hdr.textContent='✅ Watched '+remaining+'×'}
-    }
-    // If last watch removed, this episode is now unwatched → add/update in Up Next queue
-    if(remaining===0&&_rmSlug){
-      var shows=ud.shows||[];
-      var existing=shows.find(function(x){return x.slug===_rmSlug});
-      if(existing){
-        if(_rmSeason<existing.season||(_rmSeason===existing.season&&_rmEp<=existing.episode)){
-          existing.season=_rmSeason;existing.episode=_rmEp;
-          existing.completed=Math.max(0,(existing.completed||0)-1);
-          existing.eps_left=(existing.eps_left||0)+1;
-          existing.ep_title='';existing.ep_overview='';existing.ep_still='';existing.ep_aired='';existing.ep_trakt_id=0;
-        }
-      }else{
-        var showTitle=_crBase?_crBase.show:'';var poster=_crBase?_crBase.poster:'';
-        var stream=_crBase?_crBase.stream:[];var tmdbId=_crBase?_crBase.tmdb_id:'';
-        shows.unshift({slug:_rmSlug,show:showTitle,season:_rmSeason,episode:_rmEp,
-          ep_title:'',ep_overview:'',ep_still:'',ep_aired:'',ep_runtime:_crBase?_crBase.ep_runtime:0,
-          ep_trakt_id:0,tmdb_id:tmdbId,poster:poster,stream:stream,
-          aired_total:_crBase?_crBase.aired_total:0,completed:Math.max(0,(_crBase?_crBase.completed:1)-1),
-          eps_left:(_crBase?_crBase.eps_left:0)+1,remaining_min:0,is_new:false,last_watched:''});
+  .then(function(d){console.log('Trakt watch removed:',d);_removeEpDone(btn,row,_rmSlug,_rmSeason,_rmEp,ud)})
+  .catch(function(e){console.error('Trakt remove failed (local removal persists):',e);_removeEpDone(btn,row,_rmSlug,_rmSeason,_rmEp,ud)});
+}
+function _removeEpDone(btn,row,slug,season,ep,ud){
+  if(row)row.remove();
+  var ct=btn?btn.closest('.un-ep-hist'):null;
+  var remaining=0;
+  if(ct){
+    remaining=ct.querySelectorAll('.un-hist-row').length;
+    var hdr=ct.querySelector('div > div:first-child');
+    if(remaining===0){ct.innerHTML='<div style="font-size:12px;color:var(--t2);padding:4px 0;opacity:.6">Not watched</div>'}
+    else if(hdr){hdr.textContent='✅ Watched '+remaining+'×'}
+  }
+  if(remaining===0&&slug){
+    var shows=ud.shows||[];
+    var existing=shows.find(function(x){return x.slug===slug});
+    if(existing){
+      if(season<existing.season||(season===existing.season&&ep<=existing.episode)){
+        existing.season=season;existing.episode=ep;
+        existing.completed=Math.max(0,(existing.completed||0)-1);
+        existing.eps_left=(existing.eps_left||0)+1;
+        existing.ep_title='';existing.ep_overview='';existing.ep_still='';existing.ep_aired='';existing.ep_trakt_id=0;
       }
-      // Dismiss detail and refresh Up Next view
-      _unDismissDetail();
-      setTimeout(function(){openUpNext()},350);
+    }else{
+      var showTitle=_crBase?_crBase.show:'';var poster=_crBase?_crBase.poster:'';
+      var stream=_crBase?_crBase.stream:[];var tmdbId=_crBase?_crBase.tmdb_id:'';
+      shows.unshift({slug:slug,show:showTitle,season:season,episode:ep,
+        ep_title:'',ep_overview:'',ep_still:'',ep_aired:'',ep_runtime:_crBase?_crBase.ep_runtime:0,
+        ep_trakt_id:0,tmdb_id:tmdbId,poster:poster,stream:stream,
+        aired_total:_crBase?_crBase.aired_total:0,completed:Math.max(0,(_crBase?_crBase.completed:1)-1),
+        eps_left:(_crBase?_crBase.eps_left:0)+1,remaining_min:0,is_new:false,last_watched:''});
     }
-  })
-  .catch(function(e){
-    console.error('Remove failed:',e);
-    alert('Failed to remove watch: '+e.message);
-    if(row){row.style.opacity='1';row.style.pointerEvents='auto'}
-  });
+    _unDismissDetail();
+    setTimeout(function(){openUpNext()},350);
+  }
 }
 
 // Inject a watched episode into D.c.r so it shows in recently watched immediately
