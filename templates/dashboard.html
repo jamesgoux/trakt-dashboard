@@ -3679,7 +3679,7 @@ function _unBuildPanel(show){
 function _unShowDatePicker(slug,season,episode,epTraktId){
   var existing=document.getElementById('un-date-prompt');
   if(existing){existing.remove();return}
-  var ct=document.getElementById('un-detail-ct');
+  var ct=document.querySelector('.un-detail');
   if(!ct)return;
   var d=document.createElement('div');
   d.id='un-date-prompt';
