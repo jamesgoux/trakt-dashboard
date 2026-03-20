@@ -74,7 +74,7 @@ jobs:
 
       - name: Refresh health data
         env:
-          GH_HEALTH_TOKEN: ${{ secrets.GH_HEALTH_TOKEN }}
+          GH_HEALTH_TOKEN: ${{ secrets.GH_SPORTS_PAT }}
         run: python scripts/refresh_health.py
         continue-on-error: true
 
