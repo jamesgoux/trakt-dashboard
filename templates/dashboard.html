@@ -3866,25 +3866,26 @@ function _unBuildPanel(show){
 
 function _unShowDatePicker(slug,season,episode,epTraktId){
   var existing=document.getElementById('un-date-prompt');
-  if(existing){existing.remove();return}
+  if(existing){existing.remove();_unRestoreWatchBtns();return}
   var ct=document.querySelector('.un-carousel-panel:nth-child(2) .un-detail')||document.querySelector('.un-detail');
   if(!ct)return;
   var slug2=slug.replace(/'/g,"\\'");
+  // Hide the original 3 watch buttons, replace with date picker in same spot
+  var btnsRow=ct.lastElementChild;
+  if(btnsRow){btnsRow.style.display='none';btnsRow.id='un-watch-btns-orig'}
   var d=document.createElement('div');
   d.id='un-date-prompt';
-  d.style.cssText='padding:0 0 80px;margin-top:12px;';
-  d.innerHTML='<div style="margin-bottom:12px;font-size:13px;color:var(--t2);font-weight:600">Pick a date & time:</div>'
-    +'<input type="datetime-local" id="un-custom-date" style="width:100%;padding:14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.15);border-radius:10px;color:var(--tx);font-size:15px;min-height:48px;box-sizing:border-box;margin-bottom:12px">'
+  d.style.cssText='padding-bottom:120px;';
+  d.innerHTML='<input type="datetime-local" id="un-custom-date" style="width:100%;padding:14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.15);border-radius:10px;color:var(--tx);font-size:15px;min-height:48px;box-sizing:border-box;margin-bottom:10px">'
     +'<div style="display:flex;gap:8px">'
-    +'<button onclick="document.getElementById(\'un-date-prompt\').remove()" style="flex:1;padding:14px 8px;background:rgba(255,255,255,.06);color:var(--t2);border:1px solid rgba(255,255,255,.1);border-radius:10px;font-size:14px;cursor:pointer;min-height:48px">Cancel</button>'
-    +'<button onclick="var v=document.getElementById(\'un-custom-date\').value;if(v){markWatchedAt(\''+slug2+'\','+season+','+episode+','+epTraktId+',v)}else{document.getElementById(\'un-custom-date\').focus()}" style="flex:1;padding:14px 8px;background:var(--tv);color:#fff;border:none;border-radius:10px;font-size:14px;cursor:pointer;font-weight:600;min-height:48px">Log Watch</button>'
+    +'<button onclick="document.getElementById(\'un-date-prompt\').remove();_unRestoreWatchBtns()" style="flex:1;padding:14px 8px;background:rgba(255,255,255,.06);color:var(--t2);border:1px solid rgba(255,255,255,.1);border-radius:10px;font-size:14px;cursor:pointer;min-height:48px">Cancel</button>'
+    +'<button onclick="var v=document.getElementById(\'un-custom-date\').value;if(v){markWatchedAt(\''+slug2+'\','+season+','+episode+','+epTraktId+',v)}else{document.getElementById(\'un-custom-date\').click()}" style="flex:1;padding:14px 8px;background:var(--tv);color:#fff;border:none;border-radius:10px;font-size:14px;cursor:pointer;font-weight:600;min-height:48px">Log Watch</button>'
     +'</div>';
-  // Append at the very end of the detail panel (after the watch buttons row)
   ct.appendChild(d);
-  // Auto-open the native date picker
-  var inp=document.getElementById('un-custom-date');
-  if(inp){try{inp.showPicker()}catch(e){inp.focus()}}
+  // Trigger native date picker — click() works on iOS within user gesture chain
+  setTimeout(function(){var inp=document.getElementById('un-custom-date');if(inp)inp.click()},50);
 }
+function _unRestoreWatchBtns(){var b=document.getElementById('un-watch-btns-orig');if(b){b.style.display='';b.id=''}}
 
 var _crBase=null,_crEp=0,_crAll=null,_crIdx=0;
 
