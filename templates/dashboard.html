@@ -3438,18 +3438,28 @@ var _unWatched=JSON.parse(localStorage.getItem('iris_un_watched')||'{}');
 // Also reconstruct recent entries from _unWatched so they appear in Recently Watched.
 (function(){
 var shows=(D.un||{}).shows||[];var recent=(D.un||{}).recent||[];
-// Prune on new builds: remove entries older than build where pipeline has caught up
-var build='__BUILD_TIME__';var lastBuild=localStorage.getItem('iris_un_build')||'';
+// Prune stale _unWatched entries on EVERY page load
+var build='__BUILD_TIME__';
+var rSet={};recent.forEach(function(r){rSet[r.slug+'|'+r.season+'|'+r.episode]=true});
+var knownSlugs={};shows.forEach(function(s){knownSlugs[s.slug]=true});
+recent.forEach(function(r){knownSlugs[r.slug]=true});
+var pruned=false;
+Object.keys(_unWatched).forEach(function(key){
+  var slug=key.split('|')[0]||'';
+  // Prune: pipeline has it in recent (caught up), or slug not in Up Next data at all (ghost)
+  if(rSet[key]||!knownSlugs[slug]){delete _unWatched[key];pruned=true}
+});
+if(pruned){localStorage.setItem('iris_un_watched',JSON.stringify(_unWatched));console.log('Pruned '+Object.keys(_unWatched).length+' _unWatched entries')}
+// Build-change prune: also clear old entries older than build time
+var lastBuild=localStorage.getItem('iris_un_build')||'';
 if(build!==lastBuild&&build!=='__BUILD_'+'TIME__'){
   localStorage.setItem('iris_un_build',build);
   var buildMs=new Date(build.replace(' UTC','')+' UTC').getTime()||0;
-  var rSet={};recent.forEach(function(r){rSet[r.slug+'|'+r.season+'|'+r.episode]=true});
-  var pruned=false;shows.forEach(function(s){
-    var key=s.slug+'|'+s.season+'|'+s.episode;
-    if(!_unWatched[key]||rSet[key])return;
+  Object.keys(_unWatched).forEach(function(key){
     var wMs=new Date(_unWatched[key]).getTime()||0;
-    if(wMs<buildMs){delete _unWatched[key];pruned=true}
-  });if(pruned)localStorage.setItem('iris_un_watched',JSON.stringify(_unWatched));
+    if(wMs&&wMs<buildMs){delete _unWatched[key];pruned=true}
+  });
+  if(pruned)localStorage.setItem('iris_un_watched',JSON.stringify(_unWatched));
   // Prune old removals: if entry not in recent anymore (pipeline caught up), clear it
   var rmPruned=false;Object.keys(_unRemoved).forEach(function(k){
     if(!rSet[k]){delete _unRemoved[k];rmPruned=true}
@@ -4253,6 +4263,37 @@ function removeRecent(epId,btn){
       fetch('https://api.trakt.tv/sync/history/remove',{method:'POST',headers:{'Content-Type':'application/json','trakt-api-version':'2','trakt-api-key':cid,'Authorization':'Bearer '+tok},body:JSON.stringify({ids:[epId]})})
       .then(function(r){return r.json()}).then(function(d){console.log('Trakt recent removed:',d)}).catch(function(e){console.error('Trakt remove failed:',e)});
     }
+  }
+  // Inject card into New Episodes section in-place (no full re-render)
+  var showData=existing||shows.find(function(x){return x.slug===slug});
+  if(showData){
+    setTimeout(function(){
+      // Find the New Episodes grid in the DOM
+      var sections=document.querySelectorAll('#un-content .un-section');
+      var newGrid=null;
+      sections.forEach(function(sec){if(sec.id==='un-default-scroll')newGrid=sec.nextElementSibling});
+      if(!newGrid)return;
+      // Build the card HTML
+      var s=showData;var p=s.poster||poster;
+      var nc='<div class="un-card un-card-tap" data-slug="'+s.slug+'" data-s="'+s.season+'" data-e="'+s.episode+'" data-eid="'+(s.ep_trakt_id||0)+'" data-tmdb="'+(s.tmdb_id||'')+'" onclick="showEpDetail(this)" style="opacity:0;transition:opacity .4s">';
+      if(p)nc+='<img class="un-poster" src="'+p+'" loading="lazy" onerror="this.style.display=\'none\'" alt="">';
+      else nc+='<div class="un-poster-ph">📺</div>';
+      nc+='<div class="un-info"><div style="display:flex;align-items:center;gap:6px"><div class="un-show" style="flex:1;min-width:0">'+(s.show||slug)+'</div></div>';
+      nc+='<div class="un-ep">S'+String(s.season).padStart(2,'0')+'E'+String(s.episode).padStart(2,'0');
+      if(s.ep_title)nc+=' — '+s.ep_title;nc+='</div>';
+      nc+='<div class="un-meta"><span>'+(s.ep_runtime?_unFmtMin(s.ep_runtime):'')+'</span><span>'+(s.eps_left||1)+' eps</span></div>';
+      nc+='</div>';
+      nc+='<div class="un-new">New</div>';
+      nc+='<button onclick="event.stopPropagation();markWatched(\''+s.slug.replace(/'/g,"\\'")+'\','+s.season+','+s.episode+','+(s.ep_trakt_id||0)+',this)" class="un-watch-btn" title="Mark watched">✓</button>';
+      nc+='</div>';
+      // Insert at the top of New Episodes grid
+      newGrid.insertAdjacentHTML('afterbegin',nc);
+      var added=newGrid.firstElementChild;
+      // Update the section header count
+      var secHdr=newGrid.previousElementSibling;
+      if(secHdr){var m=secHdr.textContent.match(/\((\d+)\)/);if(m)secHdr.textContent=secHdr.textContent.replace('('+m[1]+')','('+(parseInt(m[1])+1)+')')}
+      requestAnimationFrame(function(){if(added)added.style.opacity='1'});
+    },500);
   }
 }
 
