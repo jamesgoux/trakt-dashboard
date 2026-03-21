@@ -231,7 +231,7 @@ body{overflow-x:hidden}
 <div id="sec-meta" class="cd s-g"><h3 id="gnh"><span class="i">🎯</span>Genres</h3><div id="gnc" style="height:360px"></div></div>
 </div>
 <div class="g2 med-s" data-med="all movietv movie show" id="gt-wrap">
-<div class="cd fw s-g"><h3><span class="i">📈</span>Genre Trends</h3><div id="gtc" style="height:350px"></div></div>
+<div class="cd fw s-g"><h3><span class="i">📈</span>Genre Trends</h3><div id="gtc" style="height:520px"></div></div>
 </div>
 <div class="g2 med-s" data-med="all movietv show">
 <div class="cd s-n"><h3><span class="i">📡</span>Top Networks</h3><div id="netc" style="height:360px"></div></div>
@@ -1166,39 +1166,55 @@ function baseCharts(){
     gtWrap.style.display='';
     var gt=D.c.gt;
     var gtColors=gt.genres.map(function(g){return GC[g.toLowerCase()]||'#666'});
-    var gtColors=gt.genres.map(function(g){return GC[g.toLowerCase()]||'#666'});
     var cgt=echarts.init(document.getElementById('gtc'));
 
-    var xLabels,rawData,zeroLabel;
+    var xLabels,rawData,zeroLabel,allTotals;
     if(cy!=='all'&&gt.monthly&&gt.monthly[cy]){
       // Monthly view for filtered year
       var md=gt.monthly[cy];
       xLabels=md.months.map(function(m){return m.substring(5)});  // just MM
       rawData=md.data;
       zeroLabel=null;
+      allTotals=md.totals||null;
       document.querySelector('#gt-wrap h3').innerHTML='<span class="i">📈</span>Genre Trends — '+cy+' Monthly';
     }else{
       // Yearly view
       xLabels=gt.years.slice();
       rawData=gt.data;
       zeroLabel=null;
+      allTotals=gt.totals||null;
       document.querySelector('#gt-wrap h3').innerHTML='<span class="i">📈</span>Genre Trends';
     }
 
-    var gtTotals=xLabels.map(function(l,i){
+    // Sum of shown genres per period (fallback denominator)
+    var gtShown=xLabels.map(function(l,i){
       if(l===zeroLabel)return 0;
       var t=0;gt.genres.forEach(function(g){t+=(rawData[g]||[])[i]||0});return t});
+    // Use all-genre totals if available, else fall back to shown-only
+    var gtDenom=allTotals||gtShown;
     var gtSeries=gt.genres.map(function(g,i){return{name:(GE[g.toLowerCase()]||'')+' '+g,type:'line',stack:'pct',areaStyle:{opacity:0.7},emphasis:{focus:'series'},
-      data:xLabels.map(function(l,j){if(l===zeroLabel)return 0;var v=(rawData[g]||[])[j]||0;return gtTotals[j]>0?Math.round(v/gtTotals[j]*1000)/10:0}),
+      data:xLabels.map(function(l,j){if(l===zeroLabel)return 0;var v=(rawData[g]||[])[j]||0;return gtDenom[j]>0?Math.round(v/gtDenom[j]*1000)/10:0}),
       smooth:true,lineStyle:{width:0},itemStyle:{color:gtColors[i%gtColors.length]}}});
+    // "Other" series: roll up non-top-12 genres so stack reaches 100%
+    if(allTotals){
+      var otherData=xLabels.map(function(l,j){
+        if(l===zeroLabel)return 0;
+        var shown=0;gt.genres.forEach(function(g){shown+=(rawData[g]||[])[j]||0});
+        var ov=allTotals[j]-shown;if(ov<0)ov=0;
+        return allTotals[j]>0?Math.round(ov/allTotals[j]*1000)/10:0});
+      gtSeries.unshift({name:'🔘 other',type:'line',stack:'pct',areaStyle:{opacity:0.35},emphasis:{focus:'series'},
+        data:otherData,smooth:true,lineStyle:{width:0},itemStyle:{color:'#555'}});
+    }
+    var gtLegendData=gt.genres.map(function(g){return(GE[g.toLowerCase()]||'')+' '+g});
+    if(allTotals)gtLegendData.unshift('🔘 other');
     cgt.setOption({tooltip:{trigger:'axis',axisPointer:{type:'cross'},...tt,formatter:function(params){
       var h='<b>'+params[0].axisValue+'</b>';
       if(params[0].axisValue===zeroLabel){return h+'<br/>Zeroed (outlier)'}
       h+='<br/>';
-      params.forEach(function(p){h+=p.marker+' '+p.seriesName+': '+p.value+'%<br/>'});
+      params.forEach(function(p){if(p.value>0)h+=p.marker+' '+p.seriesName+': '+p.value+'%<br/>'});
       return h}},
-      legend:{data:gt.genres.map(function(g){return(GE[g.toLowerCase()]||'')+' '+g}),top:0,textStyle:{color:'#999',fontSize:10},type:'plain'},
-      grid:{left:50,right:20,top:60,bottom:30},
+      legend:{data:gtLegendData,top:0,textStyle:{color:'#999',fontSize:10},type:'plain'},
+      grid:{left:50,right:20,top:150,bottom:30},
       xAxis:{type:'category',data:xLabels,axisLabel:{color:'#666'},axisLine:{lineStyle:{color:'#333'}},boundaryGap:false},
       yAxis:{type:'value',axisLabel:{color:'#666',formatter:function(v){return v+'%'}},splitLine:{lineStyle:{color:'#222'}},max:100,min:0},
       series:gtSeries});
