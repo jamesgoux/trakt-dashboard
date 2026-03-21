@@ -4546,13 +4546,15 @@ function markWatchedAt(slug,season,episode,epTraktId,when){
   var tmdbId=_crBase?_crBase.tmdb_id||'':'';
   // Save undo state BEFORE advancing
   var unData=D.un||{};var shows=unData.shows||[];
-  var showObj=null;var hasMore=true;
+  var showObj=null;var hasMore=false;
   // Primary: exact match; fallback: slug-only (handles stale data or live-check advancement)
   for(var i=0;i<shows.length;i++){if(shows[i].slug===slug&&shows[i].season===season&&shows[i].episode===episode){showObj=shows[i];break}}
   if(!showObj){for(var i=0;i<shows.length;i++){if(shows[i].slug===slug){showObj=shows[i];break}}}
   if(showObj){
     _saveUndoState(showObj,season,episode);
-    showObj.episode=episode+1;showObj.completed=(showObj.completed||0)+1;showObj.eps_left=Math.max(0,(showObj.eps_left||1)-1);showObj.remaining_min=Math.max(0,(showObj.remaining_min||0)-(showObj.ep_runtime||0));showObj.ep_title='';showObj.ep_overview='';showObj.ep_still='';showObj.ep_aired='';showObj.ep_trakt_id=0;showObj.is_new=false;
+    hasMore=!showObj.aired_total||showObj.completed+1<showObj.aired_total;
+    if(hasMore){showObj.episode=episode+1;showObj.completed=(showObj.completed||0)+1;showObj.eps_left=Math.max(0,(showObj.eps_left||1)-1);showObj.remaining_min=Math.max(0,(showObj.remaining_min||0)-(showObj.ep_runtime||0));showObj.ep_title='';showObj.ep_overview='';showObj.ep_still='';showObj.ep_aired='';showObj.ep_trakt_id=0;showObj.is_new=false}
+    else{showObj.completed=(showObj.completed||0)+1;showObj.eps_left=Math.max(0,(showObj.eps_left||1)-1)}
   }
   // Slide episode detail away, then animate queue update (no full re-render)
   if(document.getElementById('un-detail-fg')){
@@ -4585,7 +4587,14 @@ function _animateQueueUpdate(a){
     el.querySelectorAll('.un-card[data-slug="'+slug+'"]').forEach(function(c){
       if(c===card)return;
       if(c.querySelector('.un-del-btn')&&!c.querySelector('.un-watch-btn'))return;
-      // Update queue card in-place (always advance — pipeline handles caught-up)
+      if(!a.more){
+        // Caught up — smooth collapse (no unaired episodes)
+        c.style.transition='opacity .2s';c.style.opacity='0';c.style.pointerEvents='none';
+        var cw=document.createElement('div');cw.style.cssText='max-height:'+c.offsetHeight+'px;overflow:hidden;transition:max-height .25s ease-in .15s';
+        c.parentNode.insertBefore(cw,c);cw.appendChild(c);
+        requestAnimationFrame(function(){requestAnimationFrame(function(){cw.style.maxHeight='0'})});
+        setTimeout(function(){cw.remove()},500);return;
+      }
       var epEl=c.querySelector('.un-ep');
       if(epEl)epEl.innerHTML='S'+String(showObj.season).padStart(2,'0')+'E'+String(showObj.episode).padStart(2,'0');
       var pct=showObj.aired_total?Math.round(showObj.completed/showObj.aired_total*100):0;
@@ -4631,18 +4640,32 @@ function markWatched(slug,season,episode,epTraktId,btn){
   })();
   // Save undo state BEFORE advancing
   var unData=D.un||{};var shows=unData.shows||[];
-  var showObj=null;var hasMore=true;
+  var showObj=null;var hasMore=false;
   // Primary: exact match; fallback: slug-only (handles stale data or live-check advancement)
   for(var i=0;i<shows.length;i++){if(shows[i].slug===slug&&shows[i].season===season&&shows[i].episode===episode){showObj=shows[i];break}}
   if(!showObj){for(var i=0;i<shows.length;i++){if(shows[i].slug===slug){showObj=shows[i];break}}}
   if(showObj){
     _saveUndoState(showObj,season,episode);
-    showObj.episode=episode+1;showObj.completed=(showObj.completed||0)+1;
-    showObj.ep_title='';showObj.ep_overview='';showObj.ep_still='';showObj.ep_aired='';showObj.ep_trakt_id=0;
-    showObj.is_new=false;showObj.eps_left=Math.max(0,(showObj.eps_left||1)-1);
-    showObj.remaining_min=Math.max(0,(showObj.remaining_min||0)-(showObj.ep_runtime||0));
+    hasMore=!showObj.aired_total||showObj.completed+1<showObj.aired_total;
+    if(hasMore){
+      showObj.episode=episode+1;showObj.completed=(showObj.completed||0)+1;
+      showObj.ep_title='';showObj.ep_overview='';showObj.ep_still='';showObj.ep_aired='';showObj.ep_trakt_id=0;
+      showObj.is_new=false;showObj.eps_left=Math.max(0,(showObj.eps_left||1)-1);
+      showObj.remaining_min=Math.max(0,(showObj.remaining_min||0)-(showObj.ep_runtime||0));
+    }else{
+      showObj.completed=(showObj.completed||0)+1;showObj.eps_left=Math.max(0,(showObj.eps_left||1)-1);
+    }
   }
-  // Smooth in-place transition: fade out → update card → fade in
+  // Smooth in-place transition or collapse
+  if(!hasMore&&showObj){
+    // Caught up — smooth collapse (no unaired episodes to show)
+    card.style.transition='opacity .2s';card.style.opacity='0';card.style.pointerEvents='none';
+    var cw=document.createElement('div');cw.style.cssText='max-height:'+card.offsetHeight+'px;overflow:hidden;transition:max-height .25s ease-in .15s';
+    card.parentNode.insertBefore(cw,card);cw.appendChild(card);
+    requestAnimationFrame(function(){requestAnimationFrame(function(){cw.style.maxHeight='0'})});
+    setTimeout(function(){cw.remove()},500);
+    if(epTraktId)_traktSync(epTraktId,watchedAt);return;
+  }
   card.style.transition='opacity .2s';card.style.opacity='0.2';
   setTimeout(function(){
     if(showObj){
