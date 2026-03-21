@@ -708,7 +708,7 @@ var rec=_tlw[t.t]||0;var isGrn=rec>0&&(_now-rec)<_7d;
 // For shows: verify person appeared in episodes from the watch year
 if(isGrn&&t.type!=='movie'&&p.eps&&t.sl&&p.eps[t.sl]){var wy=new Date(rec).getFullYear().toString();if(!(p.eps[t.sl].y||{})[wy])isGrn=false}
 if(!rec&&t.eby){var mk=Object.keys(t.eby).sort().pop();if(mk){rec=mk.length===4?new Date(mk+'-12-31').getTime():mk.length===7?new Date(mk+'-15').getTime():new Date(mk).getTime();if(isNaN(rec))rec=0}}
-var epLabel='';if(t.type==='show'&&p.eps&&t.sl&&p.eps[t.sl]){var epCount=p.eps[t.sl].t||0;if(epCount)epLabel='<span style="color:var(--t2);font-weight:400"> ('+epCount+' ep'+(epCount>1?'s':'')+')</span>'}else if(t.type==='movie'&&ct2>1){epLabel='<span style="color:var(--t2)"> '+ct2+'x</span>'}
+var epLabel='';if(t.type==='show'&&p.eps&&t.sl&&p.eps[t.sl]){var epCount=cy==='all'?(p.eps[t.sl].t||0):((p.eps[t.sl].y||{})[cy]||0);if(epCount)epLabel='<span style="color:var(--t2);font-weight:400"> ('+epCount+' ep'+(epCount>1?'s':'')+')</span>'}else if(t.type==='movie'&&ct2>1){epLabel='<span style="color:var(--t2)"> '+ct2+'x</span>'}
 _tItems.push({t:t,ep:epLabel,rec:rec,grn:isGrn})});
 _tItems.sort(function(a,b){return b.rec-a.rec});
 var dr=document.createElement('tr');dr.className='dr';var h='<td colspan="5"><table>';
