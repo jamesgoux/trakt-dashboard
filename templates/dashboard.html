@@ -3527,17 +3527,17 @@ if(build!==lastBuild&&build!=='__BUILD_'+'TIME__'){
     if(wMs&&wMs<buildMs){delete _unWatched[key];pruned=true}
   });
   if(pruned)localStorage.setItem('iris_un_watched',JSON.stringify(_unWatched));
-  // Clear all removals on build change — pipeline has fresh data, stale removals cause ghost filtering
-  if(Object.keys(_unRemoved).length){Object.keys(_unRemoved).forEach(function(k){delete _unRemoved[k]});localStorage.setItem('iris_un_removed',JSON.stringify(_unRemoved));console.log('Cleared _unRemoved on build change')}
+  // Prune only stale removals (>24hr) — keep recent removals to prevent ghost reappearance
+  if(Object.keys(_unRemoved).length){var rmCut=Date.now()-86400000,rmP=false;Object.keys(_unRemoved).forEach(function(k){if(_unRemoved[k]<rmCut){delete _unRemoved[k];rmP=true}});if(rmP)localStorage.setItem('iris_un_removed',JSON.stringify(_unRemoved))}
 }
-// Advance shows based on _unWatched entries
+// Advance shows based on _unWatched entries (skip if later removed)
 shows.forEach(function(s){
   var key=s.slug+'|'+s.season+'|'+s.episode;
   while(_unWatched[key]){
-    // Inject into recent if not already there
+    // If this watch was later removed, stop advancing and clean up
+    if(_isRemoved(s.slug,s.season,s.episode,_unWatched[key])){delete _unWatched[key];pruned=true;break}
     var inRecent=recent.some(function(r){return r.slug===s.slug&&r.season===s.season&&r.episode===s.episode});
     if(!inRecent)recent.unshift({show:s.show,slug:s.slug,season:s.season,episode:s.episode,ep_title:s.ep_title||'',watched_at:_unWatched[key],ep_id:0,ep_aired:s.ep_aired||''});
-    // Advance to next episode
     s.episode++;s.completed=(s.completed||0)+1;
     s.eps_left=Math.max(0,(s.eps_left||1)-1);
     s.remaining_min=Math.max(0,(s.remaining_min||0)-(s.ep_runtime||0));
@@ -3545,6 +3545,7 @@ shows.forEach(function(s){
     key=s.slug+'|'+s.season+'|'+s.episode;
   }
 });
+if(pruned)localStorage.setItem('iris_un_watched',JSON.stringify(_unWatched));
 })();
 var _scrollY=0;
 function _lockBody(){_scrollY=window.scrollY;document.body.style.position='fixed';document.body.style.top='-'+_scrollY+'px';document.body.style.width='100%';document.body.style.overflow='hidden'}
