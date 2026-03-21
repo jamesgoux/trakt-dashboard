@@ -3704,22 +3704,26 @@ function _setupRWVirtualScroll(ov){
       if(fv.getBoundingClientRect().top>-100){
         _rwBusy=true;
         var batch=Math.min(10,firstVisIdx);
+        // Freeze scroll momentum, reveal, compensate, resume
+        ov.style.overflowY='hidden';
         var topBefore=fv.offsetTop;
         for(var k=firstVisIdx-batch;k<firstVisIdx;k++)_rwCards[k].style.display='';
         var topAfter=fv.offsetTop;
         ov.scrollTop+=(topAfter-topBefore);
         _rwShown+=batch;
+        ov.style.overflowY='auto';
         _rwBusy=false;
       }
     },{passive:true});
   }
-  // Header tap → scroll to queue (New Episodes or Continue Watching)
-  var hdr=ov.querySelector('h2');
-  if(hdr&&!hdr._unTap){
-    hdr._unTap=true;hdr.style.cursor='pointer';
-    hdr.onclick=function(){
+  // Header bar tap → scroll to queue (anywhere except back button)
+  var hdrBar=ov.firstElementChild;
+  if(hdrBar&&!hdrBar._unTap){
+    hdrBar._unTap=true;hdrBar.style.cursor='pointer';
+    hdrBar.onclick=function(e){
+      if(e.target.closest('button'))return;// Don't hijack back button
       var anchor=document.getElementById('un-default-scroll');
-      if(anchor){var hh=ov.firstElementChild?ov.firstElementChild.offsetHeight:70;ov.scrollTo({top:Math.max(0,anchor.offsetTop-hh),behavior:'smooth'})}
+      if(anchor){var hh=hdrBar.offsetHeight||70;ov.scrollTo({top:Math.max(0,anchor.offsetTop-hh),behavior:'smooth'})}
     };
   }
 }
@@ -3792,7 +3796,7 @@ function _renderUpNext(){
     h+='</div>';_needAnchor=false;
   }
   if(stale.length){
-    h+='<div class="un-section">'+(_needAnchor?'<span id="un-default-scroll"></span>':'')+'\ud83d\udce6 On Hold \u2014 120+ days ('+stale.length+')</div><div class="un-grid">';
+    h+='<div class="un-section">'+(_needAnchor?'<span id="un-default-scroll"></span>':'')+'\ud83d\udce6 On Hold ('+stale.length+')</div><div class="un-grid">';
     stale.forEach(function(s){h+=card(s,false)});
     h+='</div>';
   }
