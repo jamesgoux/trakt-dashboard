@@ -3682,6 +3682,47 @@ function _applyExternalWatches(entries){
     }
   });
 }
+// Recently Watched virtual scroll: show 10, reveal 10 more on scroll up
+var _rwCards=null,_rwShown=0,_rwTotal=0,_rwBusy=false;
+function _setupRWVirtualScroll(ov){
+  var grid=document.getElementById('un-rw-grid');
+  if(!grid){_rwCards=null;return}
+  _rwCards=Array.from(grid.children);
+  _rwTotal=_rwCards.length;
+  _rwShown=Math.min(10,_rwTotal);
+  if(_rwShown>=_rwTotal)return;
+  for(var i=0;i<_rwTotal-_rwShown;i++)_rwCards[i].style.display='none';
+  // Set up scroll listener once
+  if(!ov._rwListener){
+    ov._rwListener=true;
+    ov.addEventListener('scroll',function(){
+      if(_rwBusy||!_rwCards||_rwShown>=_rwTotal)return;
+      var firstVisIdx=-1;
+      for(var j=0;j<_rwTotal;j++){if(_rwCards[j].style.display!=='none'){firstVisIdx=j;break}}
+      if(firstVisIdx<=0)return;
+      var fv=_rwCards[firstVisIdx];
+      if(fv.getBoundingClientRect().top>-100){
+        _rwBusy=true;
+        var batch=Math.min(10,firstVisIdx);
+        var topBefore=fv.offsetTop;
+        for(var k=firstVisIdx-batch;k<firstVisIdx;k++)_rwCards[k].style.display='';
+        var topAfter=fv.offsetTop;
+        ov.scrollTop+=(topAfter-topBefore);
+        _rwShown+=batch;
+        _rwBusy=false;
+      }
+    },{passive:true});
+  }
+  // Header tap → scroll to queue (New Episodes or Continue Watching)
+  var hdr=ov.querySelector('h2');
+  if(hdr&&!hdr._unTap){
+    hdr._unTap=true;hdr.style.cursor='pointer';
+    hdr.onclick=function(){
+      var anchor=document.getElementById('un-default-scroll');
+      if(anchor){var hh=ov.firstElementChild?ov.firstElementChild.offsetHeight:70;ov.scrollTo({top:Math.max(0,anchor.offsetTop-hh),behavior:'smooth'})}
+    };
+  }
+}
 function _renderUpNext(){
   var ud=_unData();
   var recent=ud.recent||[];
@@ -3731,21 +3772,32 @@ function _renderUpNext(){
 
   var recentFiltered=recent.filter(function(s){return !_isRemoved(s.slug,s.season,s.episode,s.watched_at)});
   if(recentFiltered.length){
-    h+='<div class="un-section">🕐 Recently Watched</div><div class="un-grid">';
+    h+='<div class="un-section">\ud83d\udd50 Recently Watched</div><div class="un-grid" id="un-rw-grid">';
     recentFiltered.slice().reverse().forEach(function(s){h+=card(s,true)});
     h+='</div>';
   }
+  // Split Continue Watching into active vs stale (>120 days since last watched)
+  var _now=Date.now(),_staleMs=120*86400000;
+  var active=rest.filter(function(s){return s.last_watched&&(_now-new Date(s.last_watched).getTime())<_staleMs});
+  var stale=rest.filter(function(s){return !s.last_watched||(_now-new Date(s.last_watched).getTime())>=_staleMs});
+  var _needAnchor=true;
   if(newItems.length){
-    h+='<div class="un-section" id="un-default-scroll">🔴 New Episodes ('+newItems.length+')</div><div class="un-grid">';
+    h+='<div class="un-section" id="un-default-scroll">\ud83d\udd34 New Episodes ('+newItems.length+')</div><div class="un-grid">';
     newItems.forEach(function(s){h+=card(s,false)});
-    h+='</div>';
+    h+='</div>';_needAnchor=false;
   }
-  if(rest.length){
-    h+='<div class="un-section">'+(newItems.length?'':'<span id="un-default-scroll"></span>')+'📋 Continue Watching ('+rest.length+')</div><div class="un-grid">';
-    rest.forEach(function(s){h+=card(s,false)});
+  if(active.length){
+    h+='<div class="un-section">'+(_needAnchor?'<span id="un-default-scroll"></span>':'')+'\ud83d\udccb Continue Watching ('+active.length+')</div><div class="un-grid">';
+    active.forEach(function(s){h+=card(s,false)});
+    h+='</div>';_needAnchor=false;
+  }
+  if(stale.length){
+    h+='<div class="un-section">'+(_needAnchor?'<span id="un-default-scroll"></span>':'')+'\ud83d\udce6 On Hold \u2014 120+ days ('+stale.length+')</div><div class="un-grid">';
+    stale.forEach(function(s){h+=card(s,false)});
     h+='</div>';
   }
   el.innerHTML=h;
+  _setupRWVirtualScroll(ov);
   var ov=document.getElementById('un-overlay');
   // If overlay is already visible (internal re-render from markWatched, removeEpDone, etc.)
   // just swap content and restore scroll — no animation
