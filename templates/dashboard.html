@@ -4321,17 +4321,17 @@ function _removeEpDone(btn,row,slug,season,ep,ud){
   if(remaining===0&&slug){
     var shows=ud.shows||[];
     var existing=shows.find(function(x){return x.slug===slug});
+    var didUpdate=false;
     if(existing){
       if(season<existing.season||(season===existing.season&&ep<=existing.episode)){
         existing.season=season;existing.episode=ep;
         existing.completed=Math.max(0,(existing.completed||0)-1);
         existing.eps_left=(existing.eps_left||0)+1;
         existing.remaining_min=(existing.remaining_min||0)+(existing.ep_runtime||0);
-        // Restore metadata from undo stack / TMDB cache (not blank!)
         _restoreMetadata(existing,slug,season,ep);
+        didUpdate=true;
       }
     }else{
-      // Show not in Up Next data — create entry with saved metadata
       var showTitle=_crBase?_crBase.show:'';var poster=_crBase?_crBase.poster:'';
       var stream=_crBase?_crBase.stream||[]:[];var tmdbId=_crBase?_crBase.tmdb_id:'';
       var saved=_undoStack[slug+'|'+season+'|'+ep];
@@ -4344,9 +4344,70 @@ function _removeEpDone(btn,row,slug,season,ep,ud){
         is_new:false,last_watched:''};
       shows.unshift(newEntry);
       _restoreMetadata(newEntry,slug,season,ep);
+      existing=newEntry;
     }
+    // Animated update: dismiss detail → collapse recently watched card → update queue card
+    var _ex=existing,_du=didUpdate,_sl=slug,_se=season,_ep2=ep;
     _unDismissDetail();
-    setTimeout(function(){_unScrollPos=document.getElementById('un-overlay').scrollTop;openUpNext(true)},350);
+    setTimeout(function(){
+      var el=document.getElementById('un-content');if(!el)return;
+      // Collapse recently watched card for this episode (if exists)
+      el.querySelectorAll('.un-card[data-slug="'+_sl+'"]').forEach(function(c){
+        if(!(c.querySelector('.un-del-btn')&&!c.querySelector('.un-watch-btn')))return;
+        if(parseInt(c.dataset.s)!==_se||parseInt(c.dataset.e)!==_ep2)return;
+        var ch=c.offsetHeight;
+        c.style.transition='opacity .2s';c.style.opacity='0';c.style.pointerEvents='none';
+        var cw=document.createElement('div');
+        cw.style.cssText='max-height:'+ch+'px;overflow:hidden;transition:max-height .25s ease-in .15s';
+        c.parentNode.insertBefore(cw,c);cw.appendChild(c);
+        requestAnimationFrame(function(){requestAnimationFrame(function(){cw.style.maxHeight='0'})});
+        setTimeout(function(){cw.remove()},500);
+      });
+      // Update queue card (subtle fade + progress bar slide, matching watch/unwatch style)
+      if(_du&&_ex){
+        el.querySelectorAll('.un-card[data-slug="'+_sl+'"]').forEach(function(qc){
+          if(qc.querySelector('.un-del-btn')&&!qc.querySelector('.un-watch-btn'))return;
+          qc.style.transition='opacity .2s';qc.style.opacity='0.2';
+          setTimeout(function(){
+            var epEl=qc.querySelector('.un-ep');
+            if(epEl)epEl.innerHTML='S'+String(_ex.season).padStart(2,'0')+'E'+String(_ex.episode).padStart(2,'0')+(_ex.ep_title?' \u2014 '+_ex.ep_title:'');
+            var pct=_ex.aired_total?Math.round(_ex.completed/_ex.aired_total*100):0;
+            var pb=qc.querySelector('.un-prog-bar');if(pb)pb.style.width=pct+'%';
+            var pt=qc.querySelector('.un-prog-text');if(pt){var sp=pt.querySelectorAll('span');if(sp[1])sp[1].textContent=(_ex.eps_left||0)+' eps'}
+            qc.dataset.s=_ex.season;qc.dataset.e=_ex.episode;qc.dataset.eid=_ex.ep_trakt_id||0;
+            var wb=qc.querySelector('.un-watch-btn');
+            if(wb)wb.setAttribute('onclick',"event.stopPropagation();markWatched('"+_sl.replace(/'/g,"\\'")+"',"+_ex.season+","+_ex.episode+","+((_ex.ep_trakt_id||0))+",this)");
+            qc.style.opacity='1';
+          },200);
+        });
+      }else if(_ex){
+        // New queue card — slide-in animation
+        var s=_ex;var pct=s.aired_total?Math.round(s.completed/s.aired_total*100):0;
+        var qh='<div class="un-card un-card-tap" data-slug="'+s.slug+'" data-s="'+s.season+'" data-e="'+s.episode+'" data-eid="'+(s.ep_trakt_id||0)+'" data-tmdb="'+(s.tmdb_id||'')+'" onclick="showEpDetail(this)">';
+        if(s.poster)qh+='<img class="un-poster" src="'+s.poster+'" loading="lazy" onerror="this.style.display=\'none\'" alt="">';
+        else qh+='<div class="un-poster-ph">\ud83d\udcfa</div>';
+        qh+='<div class="un-info"><div style="display:flex;align-items:center;gap:6px"><div class="un-show" style="flex:1;min-width:0">'+s.show+'</div></div>';
+        qh+='<div class="un-ep">S'+String(s.season).padStart(2,'0')+'E'+String(s.episode).padStart(2,'0')+(s.ep_title?' \u2014 '+s.ep_title:'')+'</div>';
+        qh+='<div class="un-prog-wrap"><div class="un-prog"><div class="un-prog-bar" style="width:'+pct+'%"></div>';
+        qh+='<div class="un-prog-text"><span>'+(s.ep_runtime?_unFmtMin(s.ep_runtime):'')+'</span><span>'+(s.eps_left||0)+' eps \u00b7 '+_unFmtMin(s.remaining_min)+'</span></div></div></div>';
+        qh+='<button onclick="event.stopPropagation();markWatched(\''+s.slug.replace(/'/g,"\\'")+'\','+s.season+','+s.episode+','+(s.ep_trakt_id||0)+',this)" class="un-watch-btn" title="Mark watched">\u2713</button>';
+        qh+='</div></div>';
+        var sections=el.querySelectorAll('.un-section');var cwGrid=null;
+        sections.forEach(function(sec){if(sec.textContent.indexOf('Continue Watching')>=0)cwGrid=sec.nextElementSibling});
+        if(!cwGrid){sections.forEach(function(sec){if(sec.textContent.indexOf('New Episodes')>=0)cwGrid=sec.nextElementSibling})}
+        if(cwGrid){
+          var tmp=document.createElement('div');tmp.innerHTML=qh;var qc=tmp.firstElementChild;
+          var w2=document.createElement('div');
+          w2.style.cssText='max-height:0;overflow:hidden;transition:max-height .25s ease-out';
+          qc.style.cssText='opacity:0;transform:scale(0.95);transition:opacity .18s ease .13s,transform .18s ease .13s';
+          w2.appendChild(qc);cwGrid.insertBefore(w2,cwGrid.firstChild);
+          requestAnimationFrame(function(){requestAnimationFrame(function(){
+            w2.style.maxHeight='150px';qc.style.opacity='1';qc.style.transform='scale(1)';
+            setTimeout(function(){w2.style.cssText='';qc.style.cssText='';if(w2.parentNode){w2.parentNode.insertBefore(qc,w2);w2.remove()}},450);
+          })});
+        }
+      }
+    },350);
   }
 }
 
