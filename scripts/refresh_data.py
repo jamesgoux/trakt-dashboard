@@ -1045,6 +1045,8 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
             series[g] = []
             for y in all_years:
                 series[g].append(gm_y[y].get(g, 0) + gs_y[y].get(g, 0))
+        # Totals across ALL genres per year (for "Other" roll-up in dashboard)
+        yearly_totals = [sum((gm_y[y] + gs_y[y]).values()) for y in all_years]
         # Monthly breakdowns per year for filtered view
         monthly = {}
         for y in all_years:
@@ -1053,8 +1055,9 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
             mseries = {}
             for g in top_genres:
                 mseries[g] = [genre_monthly[m].get(g, 0) for m in months]
-            monthly[y] = {"months": months, "data": mseries}
-        return {"years": all_years, "genres": top_genres, "data": series, "monthly": monthly}
+            mtotals = [sum(genre_monthly[m].values()) for m in months]
+            monthly[y] = {"months": months, "data": mseries, "totals": mtotals}
+        return {"years": all_years, "genres": top_genres, "data": series, "monthly": monthly, "totals": yearly_totals}
 
     dir_list = build_crew(directors_raw)
     wr_list = build_crew(writers_raw)
