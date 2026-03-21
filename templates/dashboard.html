@@ -686,8 +686,11 @@ var items=[];pp.forEach(function(p){var m=p.m,s=p.s;if(cy!=='all'&&p.ti){m=0;s=0
 var sortVal=m+s;
 if(ct==='movie'){if(m===0)return;sortVal=m}
 if(ct==='show'){if(s===0)return;sortVal=s}
-// Compute gain from D.c.r (client-side, always fresh — not stale pipeline g+)
-var cg=0;if(p.ti)p.ti.forEach(function(i){var t=TL[i];if(!t)return;var lw=_tlw[t.t];if(lw&&(_now-lw)<_7d)cg++});
+// Compute gain from D.c.r (client-side, always fresh)
+// For shows: also verify person appeared in episodes from the watch year (via p.eps)
+var cg=0;if(p.ti)p.ti.forEach(function(i){var t=TL[i];if(!t)return;var lw=_tlw[t.t];if(!lw||(_now-lw)>=_7d)return;
+if(t.type!=='movie'&&p.eps&&t.sl&&p.eps[t.sl]){var wy=new Date(lw).getFullYear().toString();if(!(p.eps[t.sl].y||{})[wy])return}
+cg++});
 items.push({p:p,m:m,s:s,tot:m+s,sv:sortVal,cg:cg})});
 items.sort(function(a,b){return b.sv-a.sv});
 items.forEach(function(item,i){item.rk=i+1});
@@ -700,6 +703,8 @@ var gain=item.cg;
 var tr=document.createElement('tr');tr.className='pr';if(gain)tr.style.background='rgba(74,222,128,.06)';tr.innerHTML='<td style="color:var(--t2);font-size:10px;width:24px">'+rk+'</td><td><div class="pn">'+img+'<span>'+p.n+'</span></div></td><td class="nm" style="color:var(--mv)">'+m+'</td><td class="nm" style="color:var(--tv)">'+s+'</td><td class="nm" style="color:'+(gain?'#4ade80':'#999')+'">'+tot+(gain?'<span style="font-size:9px"> \u2191'+gain+'</span>':'')+'</td>';tr.onclick=function(){var nx=tr.nextElementSibling;if(nx&&nx.classList.contains('dr')){nx.remove();return}document.querySelectorAll('.dr').forEach(function(r){r.remove()});if(!p.ti)return;
 var _tItems=[];p.ti.forEach(function(i){var t=TL[i];if(!t)return;var eb=cy==='all'?t.eby:fby(t.eby);var ct2=sm(eb);if(ct2===0&&cy!=='all')return;
 var rec=_tlw[t.t]||0;var isGrn=rec>0&&(_now-rec)<_7d;
+// For shows: verify person appeared in episodes from the watch year
+if(isGrn&&t.type!=='movie'&&p.eps&&t.sl&&p.eps[t.sl]){var wy=new Date(rec).getFullYear().toString();if(!(p.eps[t.sl].y||{})[wy])isGrn=false}
 if(!rec&&t.eby){var mk=Object.keys(t.eby).sort().pop();if(mk){rec=mk.length===4?new Date(mk+'-12-31').getTime():mk.length===7?new Date(mk+'-15').getTime():new Date(mk).getTime();if(isNaN(rec))rec=0}}
 var epLabel='';if(t.type==='show'&&p.eps&&t.sl&&p.eps[t.sl]){var epCount=p.eps[t.sl].t||0;if(epCount)epLabel='<span style="color:var(--t2);font-weight:400"> ('+epCount+' ep'+(epCount>1?'s':'')+')</span>'}else if(t.type==='movie'&&ct2>1){epLabel='<span style="color:var(--t2)"> '+ct2+'x</span>'}
 _tItems.push({t:t,ep:epLabel,rec:rec,grn:isGrn})});
