@@ -231,7 +231,7 @@ body{overflow-x:hidden}
 <div id="sec-meta" class="cd s-g"><h3 id="gnh"><span class="i">🎯</span>Genres</h3><div id="gnc" style="height:360px"></div></div>
 </div>
 <div class="g2 med-s" data-med="all movietv movie show" id="gt-wrap">
-<div class="cd fw s-g"><h3><span class="i">📈</span>Genre Trends</h3><div id="gtc" style="height:520px"></div></div>
+<div class="cd fw s-g"><h3><span class="i">📈</span>Genre Trends</h3><div id="gtc" style="height:620px"></div></div>
 </div>
 <div class="g2 med-s" data-med="all movietv show">
 <div class="cd s-n"><h3><span class="i">📡</span>Top Networks</h3><div id="netc" style="height:360px"></div></div>
@@ -1192,9 +1192,12 @@ function baseCharts(){
       var t=0;gt.genres.forEach(function(g){t+=(rawData[g]||[])[i]||0});return t});
     // Use all-genre totals if available, else fall back to shown-only
     var gtDenom=allTotals||gtShown;
-    var gtSeries=gt.genres.map(function(g,i){return{name:(GE[g.toLowerCase()]||'')+' '+g,type:'line',stack:'pct',areaStyle:{opacity:0.7},emphasis:{focus:'series'},
+    // Sort genres by total value descending (largest at bottom of stack)
+    var sortedGenres=gt.genres.slice().sort(function(a,b){var ta=0,tb=0;(rawData[a]||[]).forEach(function(v){ta+=v});(rawData[b]||[]).forEach(function(v){tb+=v});return tb-ta});
+    var sortedColors=sortedGenres.map(function(g){return GC[g.toLowerCase()]||'#666'});
+    var gtSeries=sortedGenres.map(function(g,i){return{name:(GE[g.toLowerCase()]||'')+' '+g,type:'line',stack:'pct',areaStyle:{opacity:0.7},emphasis:{focus:'series'},
       data:xLabels.map(function(l,j){if(l===zeroLabel)return 0;var v=(rawData[g]||[])[j]||0;return gtDenom[j]>0?Math.round(v/gtDenom[j]*1000)/10:0}),
-      smooth:true,lineStyle:{width:0},itemStyle:{color:gtColors[i%gtColors.length]}}});
+      smooth:true,lineStyle:{width:0},itemStyle:{color:sortedColors[i]}}});
     // "Other" series: roll up non-top-12 genres so stack reaches 100%
     if(allTotals){
       var otherData=xLabels.map(function(l,j){
@@ -1202,11 +1205,11 @@ function baseCharts(){
         var shown=0;gt.genres.forEach(function(g){shown+=(rawData[g]||[])[j]||0});
         var ov=allTotals[j]-shown;if(ov<0)ov=0;
         return allTotals[j]>0?Math.round(ov/allTotals[j]*1000)/10:0});
-      gtSeries.unshift({name:'🔘 other',type:'line',stack:'pct',areaStyle:{opacity:0.35},emphasis:{focus:'series'},
+      gtSeries.push({name:'🔘 other',type:'line',stack:'pct',areaStyle:{opacity:0.35},emphasis:{focus:'series'},
         data:otherData,smooth:true,lineStyle:{width:0},itemStyle:{color:'#555'}});
     }
-    var gtLegendData=gt.genres.map(function(g){return(GE[g.toLowerCase()]||'')+' '+g});
-    if(allTotals)gtLegendData.unshift('🔘 other');
+    var gtLegendData=sortedGenres.map(function(g){return(GE[g.toLowerCase()]||'')+' '+g});
+    if(allTotals)gtLegendData.push('🔘 other');
     cgt.setOption({tooltip:{trigger:'axis',axisPointer:{type:'cross'},...tt,formatter:function(params){
       var h='<b>'+params[0].axisValue+'</b>';
       if(params[0].axisValue===zeroLabel){return h+'<br/>Zeroed (outlier)'}
