@@ -3797,8 +3797,8 @@ function _renderUpNext(){
     h+='</div>';
   }
   el.innerHTML=h;
-  _setupRWVirtualScroll(ov);
   var ov=document.getElementById('un-overlay');
+  _setupRWVirtualScroll(ov);
   // If overlay is already visible (internal re-render from markWatched, removeEpDone, etc.)
   // just swap content and restore scroll — no animation
   var alreadyOpen=ov.style.display!=='none'&&ov.style.visibility!=='hidden';
