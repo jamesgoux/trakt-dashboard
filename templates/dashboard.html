@@ -169,6 +169,21 @@ tr:hover td{background:rgba(255,255,255,.02)}
 .un-movie-watch-btn{width:100%;padding:16px;background:var(--tv);color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer;transition:opacity .15s}
 .un-movie-watch-btn:active{opacity:.7}
 .un-movie-watch-btn:disabled{opacity:.5;cursor:default}
+/* Streaming services */
+.un-stream-section{padding:0 16px;max-width:600px;margin:0 auto 16px}
+.un-stream-row{display:flex;gap:10px;align-items:center;padding:10px 12px;background:var(--sf);border-radius:10px;border:1px solid rgba(255,255,255,.06);margin-bottom:6px}
+.un-stream-icon{width:36px;height:36px;border-radius:8px;flex-shrink:0}
+.un-stream-name{font-size:14px;font-weight:600;flex:1;min-width:0}
+.un-stream-type{font-size:11px;color:var(--t2);padding:3px 8px;border-radius:4px;background:rgba(255,255,255,.06)}
+/* Cast section */
+.un-cast-section{padding:0 16px;max-width:600px;margin:0 auto 16px}
+.un-cast-scroll{display:flex;gap:10px;overflow-x:auto;padding:4px 0 8px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.un-cast-scroll::-webkit-scrollbar{display:none}
+.un-cast-card{flex-shrink:0;width:80px;text-align:center}
+.un-cast-photo{width:64px;height:64px;border-radius:50%;object-fit:cover;background:#222;margin:0 auto 6px;display:block}
+.un-cast-photo-ph{width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#1a1a2e,#0f3460);margin:0 auto 6px;display:flex;align-items:center;justify-content:center;font-size:20px;color:var(--t2)}
+.un-cast-name{font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.un-cast-role{font-size:10px;color:var(--t2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* Loading spinner */
 .un-loading{text-align:center;padding:40px;color:var(--t2);font-size:14px}
 .un-empty{text-align:center;padding:40px;color:var(--t2);font-size:14px}
@@ -4012,6 +4027,8 @@ function _unBuildPanel(show){
   if(show.ep_runtime)h+='<div style="font-size:12px;color:var(--t2);margin-bottom:10px">⏱ '+_unFmtMin(show.ep_runtime)+'</div>';
   // Synopsis — more text allowed
   if(show.ep_overview)h+='<p style="font-size:13px;color:var(--t2);line-height:1.6;margin:0 0 16px">'+show.ep_overview+'</p>';
+  // Cast for this episode
+  h+='<div id="un-ep-cast-'+show.season+'-'+show.episode+'" style="margin-bottom:12px"></div>';
   // Watch history container (populated async from _unRenderDetail, not here)
   h+='<div id="un-ep-history-'+show.season+'-'+show.episode+'" class="un-ep-hist" style="margin-bottom:16px"></div>';
   // Spacer pushes buttons to bottom
@@ -4241,6 +4258,8 @@ function _unRenderDetail(allShows,idx){
   _epHistVer=((_epHistVer||0)+1);
   var _hv=_epHistVer;
   _fetchEpHistory(show.slug,show.season,show.episode,_hv);
+  // Fetch cast for this episode
+  if(show.tmdb_id)_unFetchCast(show.tmdb_id,'episode',show.season,show.episode,'un-ep-cast-'+show.season+'-'+show.episode,10);
 }
 var _epHistVer=0;
 
@@ -4961,7 +4980,8 @@ function _unOpenSearchBar(){
   var input=document.getElementById('un-search');
   input.value='';
   document.getElementById('un-search-clear').style.display='none';
-  setTimeout(function(){input.focus()},50);
+  // Must focus synchronously (same user-gesture call stack) for iOS Safari
+  input.focus();
 }
 function _unCloseSearchBar(){
   document.getElementById('un-hdr-search').style.display='none';
@@ -5076,6 +5096,97 @@ function _unShowSearchResults(query,results){
 function _unSearchTap(type,slug,tmdbId){
   if(type==='movie')_unOpenMovie(slug,tmdbId);
   else _unOpenShow(slug,tmdbId);
+}
+
+// ─── JustWatch Streaming ─────────────────────────────────────────
+var _jwCache={};
+function _unFetchJW(type,slug,containerId){
+  var ck=type+'|'+slug;
+  if(_jwCache[ck]!==undefined){_unRenderJW(_jwCache[ck],containerId);return}
+  var jwPath=type==='movie'?'/us/movie/'+slug:'/us/tv-show/'+slug;
+  var jwQuery='query($path:String!){urlV2(fullPath:$path){node{...on MovieOrShow{offers(country:US platform:WEB){monetizationType retailPrice(country:US) currency package{clearName shortName icon(profile:S100 format:PNG)}}}}}}';
+  fetch('https://apis.justwatch.com/graphql',{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({query:jwQuery,variables:{path:jwPath}})
+  })
+  .then(function(r){return r.json()})
+  .then(function(d){
+    var offers=(d.data||{}).urlV2;
+    if(!offers||!offers.node){_jwCache[ck]=[];return}
+    var raw=offers.node.offers||[];
+    // Deduplicate: keep best offer per service (prefer FLATRATE > ADS > RENT > BUY)
+    var order={FLATRATE:0,FLATRATE_AND_BUY:1,ADS:2,FREE:3,RENT:4,BUY:5};
+    var seen={};var results=[];
+    raw.sort(function(a,b){return(order[a.monetizationType]||9)-(order[b.monetizationType]||9)});
+    raw.forEach(function(o){
+      var sn=o.package.shortName;
+      if(seen[sn])return;
+      seen[sn]=true;
+      results.push({name:o.package.clearName,short:sn,icon:'https://images.justwatch.com'+o.package.icon,type:o.monetizationType,price:o.retailPrice,currency:o.currency||'USD'});
+    });
+    _jwCache[ck]=results;
+    _unRenderJW(results,containerId);
+  })
+  .catch(function(){_jwCache[ck]=[]});
+}
+function _unRenderJW(offers,containerId){
+  var ct=document.getElementById(containerId);if(!ct)return;
+  if(!offers||!offers.length){ct.innerHTML='';return}
+  var typeLabels={FLATRATE:'Stream',FLATRATE_AND_BUY:'Stream',ADS:'Free w/ Ads',FREE:'Free',RENT:'Rent',BUY:'Buy'};
+  var h='<div class="un-section" style="margin-bottom:4px">Where to Watch</div>';
+  h+='<div class="un-stream-section" style="padding:0">';
+  offers.slice(0,6).forEach(function(o){
+    h+='<div class="un-stream-row">';
+    h+='<img class="un-stream-icon" src="'+o.icon+'" alt="" loading="lazy">';
+    h+='<div class="un-stream-name">'+o.name+'</div>';
+    var label=typeLabels[o.type]||o.type;
+    if(o.price&&(o.type==='RENT'||o.type==='BUY'))label+=' $'+o.price.toFixed(2);
+    h+='<div class="un-stream-type">'+label+'</div>';
+    h+='</div>';
+  });
+  h+='</div>';
+  ct.innerHTML=h;
+}
+
+// ─── Cast (TMDB) ────────────────────────────────────────────────
+var _castCache={};
+function _unFetchCast(tmdbId,type,season,episode,containerId,limit){
+  // type: 'show','season','episode','movie'
+  if(!tmdbId)return;
+  var ck=type+'|'+tmdbId+'|'+(season||0)+'|'+(episode||0);
+  if(_castCache[ck]!==undefined){_unRenderCast(_castCache[ck],containerId,limit);return}
+  var tk=(D.un||{}).tmdb_key||'';if(!tk)return;
+  var path='';
+  if(type==='movie')path='/3/movie/'+tmdbId+'/credits';
+  else if(type==='episode'&&season&&episode)path='/3/tv/'+tmdbId+'/season/'+season+'/episode/'+episode+'/credits';
+  else if(type==='season'&&season)path='/3/tv/'+tmdbId+'/season/'+season+'/credits';
+  else path='/3/tv/'+tmdbId+'/credits';
+  fetch('https://api.themoviedb.org'+path+'?api_key='+tk)
+  .then(function(r){return r.json()})
+  .then(function(d){
+    var cast=(d.cast||[]).slice(0,20).map(function(p){
+      return{name:p.name||'',character:p.character||p.roles?((p.roles||[{}])[0].character||p.character||''):'',photo:p.profile_path?'https://image.tmdb.org/t/p/w185'+p.profile_path:''};
+    });
+    _castCache[ck]=cast;
+    _unRenderCast(cast,containerId,limit);
+  })
+  .catch(function(){_castCache[ck]=[]});
+}
+function _unRenderCast(cast,containerId,limit){
+  var ct=document.getElementById(containerId);if(!ct)return;
+  if(!cast||!cast.length){ct.innerHTML='';return}
+  var h='<div class="un-section" style="margin-bottom:4px">Cast</div>';
+  h+='<div class="un-cast-scroll">';
+  cast.slice(0,limit||15).forEach(function(p){
+    h+='<div class="un-cast-card">';
+    if(p.photo)h+='<img class="un-cast-photo" src="'+p.photo+'" alt="" loading="lazy" onerror="this.outerHTML=\'<div class=un-cast-photo-ph>👤</div>\'">';
+    else h+='<div class="un-cast-photo-ph">👤</div>';
+    h+='<div class="un-cast-name">'+p.name+'</div>';
+    if(p.character)h+='<div class="un-cast-role">'+p.character+'</div>';
+    h+='</div>';
+  });
+  h+='</div>';
+  ct.innerHTML=h;
 }
 
 // ─── Navigation Management ───────────────────────────────────────
@@ -5207,6 +5318,10 @@ function _unOpenMovie(slug,tmdbId){
       h+='</div>';
     }
     if(movie.overview)h+='<div class="un-movie-overview">'+movie.overview+'</div>';
+    // JustWatch streaming
+    h+='<div id="un-mv-jw"></div>';
+    // Cast
+    h+='<div id="un-mv-cast"></div>';
     if(movie.trailer){
       var ytId='';var tm=movie.trailer.match(/[?&]v=([^&]+)/);if(tm)ytId=tm[1];
       if(ytId)h+='<div style="margin-bottom:16px;text-align:center"><a href="'+movie.trailer+'" target="_blank" style="color:var(--tv);font-size:13px;text-decoration:none">▶ Watch Trailer</a></div>';
@@ -5218,6 +5333,10 @@ function _unOpenMovie(slug,tmdbId){
     h+='</div>';
     h+='</div>';
     el.innerHTML=h;
+    // Load JustWatch + cast
+    _unFetchJW('movie',slug,'un-mv-jw');
+    var _mvTid=tmdbId||(movie.ids||{}).tmdb;
+    if(_mvTid)_unFetchCast(_mvTid,'movie',0,0,'un-mv-cast',15);
     // Load poster from TMDB
     var tid=tmdbId||(movie.ids||{}).tmdb;
     if(tid){
@@ -5364,6 +5483,10 @@ function _unRenderShowPage(slug,show,seasons,progress,tmdbId){
     h+='<div style="height:100%;width:'+pct+'%;background:var(--tv);border-radius:3px;transition:width .3s"></div>';
     h+='</div></div>';
   }
+  // JustWatch streaming
+  h+='<div id="un-sh-jw"></div>';
+  // Cast
+  h+='<div id="un-sh-cast"></div>';
   // Seasons list
   h+='<div class="un-section">Seasons</div>';
   h+='<div style="padding:0 16px;max-width:600px;margin:0 auto">';
@@ -5426,6 +5549,9 @@ function _unRenderShowPage(slug,show,seasons,progress,tmdbId){
       }).catch(function(){});
     }
   }
+  // Load JustWatch + cast
+  _unFetchJW('show',slug,'un-sh-jw');
+  if(tid)_unFetchCast(tid,'show',0,0,'un-sh-cast',15);
 }
 
 // ─── Season Page ─────────────────────────────────────────────────
@@ -5472,6 +5598,8 @@ function _unRenderSeasonPage(slug,seasonNum,episodes,progress,tmdbId){
   h+='<div style="font-size:14px;color:var(--t2);margin-top:4px">'+(seasonNum===0?'Specials':'Season '+seasonNum)+' · '+totalEps+' episodes';
   if(watchedCount>0)h+=' · '+watchedCount+' watched';
   h+='</div></div>';
+  // Cast for this season
+  h+='<div id="un-sn-cast"></div>';
   episodes.forEach(function(ep,i){
     var isWatched=!!watchedSet[ep.number];
     var epTraktId=(ep.ids||{}).trakt||0;
@@ -5520,6 +5648,8 @@ function _unRenderSeasonPage(slug,seasonNum,episodes,progress,tmdbId){
       }).catch(function(){});
     }
   }
+  // Load cast for this season
+  if(tid)_unFetchCast(tid,'season',seasonNum,0,'un-sn-cast',15);
 }
 
 // Tap an episode row on season page → open episode detail carousel
