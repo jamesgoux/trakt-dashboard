@@ -3682,6 +3682,17 @@ function openUpNext(skipSync){
     var c=echarts.getInstanceByDom(el);if(c)c.dispatchAction({type:'hideTip'})
   })}
   var llOv=document.getElementById('ll-feed-overlay');if(llOv)llOv.style.display='none';
+  // Reset search/browse state when opening fresh (not internal re-render)
+  if(!skipSync){
+    _unCurrentView='home';_unNavStack=[];
+    _unUpdateHeader();
+    document.getElementById('un-hdr-normal').style.display='flex';
+    document.getElementById('un-hdr-search').style.display='none';
+    var si=document.getElementById('un-search');if(si){si.value='';si.blur()}
+    document.getElementById('un-search-clear').style.display='none';
+    // Remove any lingering episode detail foreground
+    var fg=document.getElementById('un-detail-fg');if(fg){fg.remove()}
+  }
   // If sync needed (user-initiated open, not internal re-render):
   // 1) Fetch recent history (catches external watches)
   // 2) Live-check progress for top shows (catches stale next_episode)
@@ -5837,7 +5848,15 @@ function closeUpNext(){
     if(!tracking&&!moved)return;tracking=false;
     var dx=parseInt(ov.style.transform.replace(/[^0-9.-]/g,''))||0;
     ov.style.transition='transform .3s ease';
-    if(dx>window.innerWidth*0.35){_unScrollPos=ov.scrollTop;ov.style.transform='translateX(100%)';setTimeout(function(){ov.style.display='none';ov.style.transform='';_unlockBody()},320)}
+    if(dx>window.innerWidth*0.35){
+      // If on a sub-page, navigate back instead of closing
+      if(_unCurrentView!=='home'){
+        ov.style.transform='';
+        _unNavBack();
+      }else{
+        closeUpNext();
+      }
+    }
     else{ov.style.transform=''}
     moved=false;
   },{passive:true});
