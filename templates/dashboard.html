@@ -481,15 +481,15 @@ Drop GameTrack games.csv or <span style="color:#6366f1;text-decoration:underline
 <!-- Up Next Overlay -->
 <div id="un-overlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg);z-index:9000;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;transition:transform .3s ease;will-change:transform;scroll-padding-top:70px">
 <div id="un-hdr" style="position:sticky;top:0;z-index:9001;background:rgba(15,15,15,.97);backdrop-filter:blur(8px);padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.06)">
-<!-- Normal header: ← | Title (centered) | 🔍 -->
+<!-- Normal header: Home | Title (centered) | 🔍 -->
 <div id="un-hdr-normal" style="display:flex;align-items:center">
-<button onclick="_unNavBack()" class="un-back" id="un-back-btn" style="flex-shrink:0">←</button>
+<button onclick="_unHomeBtn()" class="un-back" id="un-back-btn" style="flex-shrink:0">←</button>
 <h2 id="un-header-title" style="font-size:18px;font-weight:700;margin:0;flex:1;text-align:center"><span class="i">📺</span> Up Next</h2>
 <button onclick="_unOpenSearchBar()" class="un-back" id="un-search-btn" style="flex-shrink:0;font-size:16px">🔍</button>
 </div>
 <!-- Search header: ← | input | ✕ -->
 <div id="un-hdr-search" style="display:none;align-items:center;gap:8px">
-<button onclick="_unCloseSearchBar()" class="un-back" style="flex-shrink:0">←</button>
+<button onclick="_unHomeBtn()" class="un-back" style="flex-shrink:0">←</button>
 <div style="flex:1;position:relative">
 <input type="text" id="un-search" class="un-search-input" placeholder="Search movies & shows…" autocomplete="off" autocorrect="off" spellcheck="false" style="padding-left:14px">
 </div>
@@ -4211,15 +4211,19 @@ function _unRenderDetail(allShows,idx){
   var wrap=car.parentElement;
   var w=wrap.offsetWidth;
   // Unified touch: first 10px decides horizontal (carousel) or vertical (dismiss)
-  var _tSx=0,_tCx=0,_tSy=0,_tDir=null,_tActive=false;
+  // If touch starts inside a horizontal scroll container (cast, streaming), let it scroll natively
+  var _tSx=0,_tCx=0,_tSy=0,_tDir=null,_tActive=false,_tInScroll=false;
   car.ontouchstart=function(ev){
     _tSx=ev.touches[0].clientX;_tCx=_tSx;_tSy=ev.touches[0].clientY;
     _tDir=null;_tActive=true;
+    // Check if touch is inside a horizontally scrollable element
+    _tInScroll=!!ev.target.closest('.un-cast-scroll');
+    if(_tInScroll)return;// Let native scroll handle it
     car.classList.remove('animating');fg.style.transition='none';
     ev.stopPropagation();
   };
   car.ontouchmove=function(ev){
-    if(!_tActive)return;
+    if(!_tActive||_tInScroll)return;
     _tCx=ev.touches[0].clientX;
     var dx=_tCx-_tSx,dy=ev.touches[0].clientY-_tSy;
     if(!_tDir&&(Math.abs(dx)>10||Math.abs(dy)>10)){
@@ -4236,7 +4240,7 @@ function _unRenderDetail(allShows,idx){
     ev.stopPropagation();
   };
   car.ontouchend=function(ev){
-    if(!_tActive){if(ev)ev.stopPropagation();return}
+    if(!_tActive||_tInScroll){_tActive=false;_tInScroll=false;return}
     _tActive=false;
     var dx=_tCx-_tSx;
     var dy=(ev.changedTouches?ev.changedTouches[0].clientY:0)-_tSy;
@@ -4990,6 +4994,18 @@ function _traktGet(path,needsAuth){
 }
 
 // Search bar open/close
+// Home/close button: on home view → close overlay, on sub-pages → go straight home
+function _unHomeBtn(){
+  // If episode detail is open, dismiss it
+  var fg=document.getElementById('un-detail-fg');
+  if(fg){fg.remove();document.getElementById('un-overlay').style.overflowY='auto';_crBase=null;_crAll=null}
+  if(_unCurrentView==='home'){
+    closeUpNext();
+  }else{
+    _unGoHome();
+  }
+}
+
 function _unOpenSearchBar(){
   document.getElementById('un-hdr-normal').style.display='none';
   document.getElementById('un-hdr-search').style.display='flex';
@@ -5191,7 +5207,11 @@ function _unFetchCast(tmdbId,type,season,episode,containerId,limit){
   // type: 'show','season','episode','movie'
   if(!tmdbId)return;
   var ck=type+'|'+tmdbId+'|'+(season||0)+'|'+(episode||0);
-  if(_castCache[ck]!==undefined){_unRenderCast(_castCache[ck],containerId,limit);return}
+  if(_castCache[ck]!==undefined){
+    if(type==='episode'&&_castCache[ck]._ep){_unRenderEpCast(_castCache[ck],containerId)}
+    else{_unRenderCast(_castCache[ck],containerId,limit)}
+    return;
+  }
   var tk=(D.un||{}).tmdb_key||'';if(!tk)return;
   var path='';
   if(type==='movie')path='/3/movie/'+tmdbId+'/credits';
@@ -5201,11 +5221,19 @@ function _unFetchCast(tmdbId,type,season,episode,containerId,limit){
   fetch('https://api.themoviedb.org'+path+'?api_key='+tk)
   .then(function(r){return r.json()})
   .then(function(d){
-    var cast=(d.cast||[]).slice(0,20).map(function(p){
-      return{name:p.name||'',character:p.character||p.roles?((p.roles||[{}])[0].character||p.character||''):'',photo:p.profile_path?'https://image.tmdb.org/t/p/w185'+p.profile_path:''};
-    });
-    _castCache[ck]=cast;
-    _unRenderCast(cast,containerId,limit);
+    function _mapPerson(p){return{name:p.name||'',character:p.character||((p.roles||[{}])[0]||{}).character||'',photo:p.profile_path?'https://image.tmdb.org/t/p/w185'+p.profile_path:''}}
+    if(type==='episode'){
+      // Episodes: separate guest stars and regulars
+      var guests=(d.guest_stars||[]).slice(0,20).map(_mapPerson);
+      var regulars=(d.cast||[]).slice(0,20).map(_mapPerson);
+      var epData={_ep:true,guests:guests,regulars:regulars};
+      _castCache[ck]=epData;
+      _unRenderEpCast(epData,containerId);
+    }else{
+      var cast=(d.cast||[]).slice(0,20).map(_mapPerson);
+      _castCache[ck]=cast;
+      _unRenderCast(cast,containerId,limit);
+    }
   })
   .catch(function(){_castCache[ck]=[]});
 }
@@ -5223,6 +5251,33 @@ function _unRenderCast(cast,containerId,limit){
     h+='</div>';
   });
   h+='</div>';
+  ct.innerHTML=h;
+}
+function _unCastRow(people,limit){
+  var h='<div class="un-cast-scroll">';
+  people.slice(0,limit||15).forEach(function(p){
+    h+='<div class="un-cast-card">';
+    if(p.photo)h+='<img class="un-cast-photo" src="'+p.photo+'" alt="" loading="lazy" onerror="this.outerHTML=\'<div class=un-cast-photo-ph>👤</div>\'">';
+    else h+='<div class="un-cast-photo-ph">👤</div>';
+    h+='<div class="un-cast-name">'+p.name+'</div>';
+    if(p.character)h+='<div class="un-cast-role">'+p.character+'</div>';
+    h+='</div>';
+  });
+  h+='</div>';
+  return h;
+}
+function _unRenderEpCast(data,containerId){
+  var ct=document.getElementById(containerId);if(!ct)return;
+  if(!data.guests.length&&!data.regulars.length){ct.innerHTML='';return}
+  var h='';
+  if(data.guests.length){
+    h+='<div class="un-section" style="margin-bottom:4px">Guest Stars</div>';
+    h+=_unCastRow(data.guests,20);
+  }
+  if(data.regulars.length){
+    h+='<div class="un-section" style="margin-bottom:4px;'+(data.guests.length?'margin-top:12px':'')+'">Cast</div>';
+    h+=_unCastRow(data.regulars,20);
+  }
   ct.innerHTML=h;
 }
 
@@ -5833,30 +5888,40 @@ function closeUpNext(){
 // R2: Slide-to-dismiss Up Next — reveals content beneath as you drag right
 (function(){
   var ov=document.getElementById('un-overlay');if(!ov)return;
-  var sx=0,sy=0,tracking=false,moved=false;
+  var sx=0,sy=0,tracking=false,moved=false,_swipeOnSub=false;
   ov.addEventListener('touchstart',function(e){
     sx=e.touches[0].clientX;sy=e.touches[0].clientY;tracking=true;moved=false;
-    ov.style.transition='none';
+    _swipeOnSub=(_unCurrentView!=='home');
+    if(!_swipeOnSub)ov.style.transition='none';
   },{passive:true});
   ov.addEventListener('touchmove',function(e){
     if(!tracking)return;
     var dx=e.touches[0].clientX-sx,dy=Math.abs(e.touches[0].clientY-sy);
     if(!moved&&dy>20){tracking=false;return}
-    if(dx>10){moved=true;ov.style.transform='translateX('+dx+'px)'}
+    if(dx>10){
+      moved=true;
+      // Only slide the overlay on home view — sub-pages just track the gesture
+      if(!_swipeOnSub)ov.style.transform='translateX('+dx+'px)';
+    }
   },{passive:true});
   ov.addEventListener('touchend',function(){
-    if(!tracking&&!moved)return;tracking=false;
-    var dx=parseInt(ov.style.transform.replace(/[^0-9.-]/g,''))||0;
-    ov.style.transition='transform .3s ease';
-    if(dx>window.innerWidth*0.35){
-      // If on a sub-page, navigate back instead of closing
-      if(_unCurrentView!=='home'){
-        ov.style.transform='';
-        _unNavBack();
-      }else{
-        closeUpNext();
-      }
+    if(!tracking&&!moved)return;
+    var finalDx=0;
+    if(_swipeOnSub){
+      // Sub-page: measure raw swipe distance
+      finalDx=moved?100:0;// If moved at all, check threshold below
+    }else{
+      finalDx=parseInt(ov.style.transform.replace(/[^0-9.-]/g,''))||0;
     }
+    tracking=false;
+    if(_swipeOnSub){
+      // On sub-pages, navigate back without moving overlay
+      if(moved){_unNavBack()}
+      moved=false;return;
+    }
+    // Home view: slide-to-dismiss as before
+    ov.style.transition='transform .3s ease';
+    if(finalDx>window.innerWidth*0.35){closeUpNext()}
     else{ov.style.transform=''}
     moved=false;
   },{passive:true});
