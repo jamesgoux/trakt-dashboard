@@ -5046,9 +5046,10 @@ function _unHideSearchOverlay(){
   var uc=document.getElementById('un-content');
   if(sr){sr.style.display='none';sr.innerHTML=''}
   if(uc)uc.style.display='';
-  // Restore scroll
+  // Restore scroll — double rAF ensures DOM has settled after display change
   var ov=document.getElementById('un-overlay');
-  if(ov&&_unSearchSavedScroll)requestAnimationFrame(function(){ov.scrollTop=_unSearchSavedScroll});
+  var saved=_unSearchSavedScroll;
+  if(ov&&saved){requestAnimationFrame(function(){requestAnimationFrame(function(){ov.scrollTop=saved})})}
 }
 
 var _unSearchSavedScroll=0;
@@ -6133,7 +6134,7 @@ function renderStatus(){
   var hs_count=Object.keys(D.hs||{}).length;
   var ps_count=Object.keys(D.ps||{}).length;
   var el=document.getElementById('status');
-  el.innerHTML='<span>Actors: '+total_people+'</span><span>Headshots: '+hs_count+'</span><span>Posters: '+ps_count+'</span><span>Updated: __BUILD_TIME__</span><span>iris-search v22</span>';
+  el.innerHTML='<span>Actors: '+total_people+'</span><span>Headshots: '+hs_count+'</span><span>Posters: '+ps_count+'</span><span>Updated: __BUILD_TIME__</span><span>v23</span>';
 }
 
 function render(){
