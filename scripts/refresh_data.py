@@ -1372,60 +1372,113 @@ if os.path.exists("data/letterboxd.json"):
 
 print(f"  Total: {len(entries)} entries (after merge)")
 
-# Resolve missing Trakt slugs (from Letterboxd backfill entries)
-missing_slugs = set()
+# Resolve missing Trakt slugs via TMDB IDs (not title matching)
+# Strategy: LB entry → TMDB ID → Trakt slug (ID-based, no title collisions)
+missing_slugs = []
 for e in entries:
     if e["type"] == "movie" and not e["trakt_slug"] and e["title"]:
-        missing_slugs.add((e["title"], str(e.get("year", ""))))
+        missing_slugs.append(e)
 
 if missing_slugs:
-    print(f"  Resolving {len(missing_slugs)} missing Trakt slugs...")
-    slug_cache_path = "data/lb_slug_cache.json"
-    slug_cache = {}
-    if os.path.exists(slug_cache_path):
-        with open(slug_cache_path) as f:
-            slug_cache = json.load(f)
-    
-    resolved = 0
-    for i, (title, year) in enumerate(missing_slugs):
+    # Deduplicate by title+year
+    _seen = set()
+    unique_missing = []
+    for e in missing_slugs:
+        key = (e["title"], str(e.get("year", "")))
+        if key not in _seen:
+            _seen.add(key)
+            unique_missing.append(key)
+    print(f"  Resolving {len(unique_missing)} missing Trakt slugs via TMDB IDs...")
+
+    # 1) Build tmdb_id → trakt_slug map from existing entries
+    tmdb_to_slug = {}
+    for e2 in entries:
+        if e2.get("tmdb_id") and e2.get("trakt_slug"):
+            tmdb_to_slug[str(e2["tmdb_id"])] = e2["trakt_slug"]
+
+    # 2) Load TMDB ID cache (title|year → tmdb_id)
+    tmdb_cache_path = "data/lb_tmdb_cache.json"
+    tmdb_cache = {}
+    if os.path.exists(tmdb_cache_path):
+        with open(tmdb_cache_path) as f:
+            tmdb_cache = json.load(f)
+    # Migrate old slug cache entries that had TMDB IDs as values (backward compat)
+    old_cache_path = "data/lb_slug_cache.json"
+    if os.path.exists(old_cache_path) and not tmdb_cache:
+        print("  (migrating from old lb_slug_cache.json)")
+
+    # 3) Build title+year → tmdb_id from letterboxd.json (entries keyed by tmdb:ID)
+    lb_tmdb_lookup = {}
+    if os.path.exists("data/letterboxd.json"):
+        with open("data/letterboxd.json") as f:
+            _lb = json.load(f)
+        for lk, lv in _lb.items():
+            tid = lv.get("tmdb_id")
+            if tid:
+                lb_tmdb_lookup[(lv.get("title", ""), str(lv.get("year", "")))] = str(tid)
+
+    resolved = 0; searched = 0
+    for i, (title, year) in enumerate(unique_missing):
         cache_key = f"{title}|{year}"
-        if cache_key in slug_cache:
-            slug = slug_cache[cache_key]
-        else:
-            # Search Trakt by title
+        tmdb_id = None
+        slug = ""
+
+        # Step A: Check TMDB cache
+        if cache_key in tmdb_cache:
+            tmdb_id = tmdb_cache[cache_key]
+        # Step B: Check letterboxd.json's own TMDB IDs
+        elif (title, year) in lb_tmdb_lookup:
+            tmdb_id = lb_tmdb_lookup[(title, year)]
+            tmdb_cache[cache_key] = tmdb_id
+        # Step C: Search TMDB API by title+year
+        elif TMDB_API_KEY:
             try:
-                params = {"query": title, "years": year} if year else {"query": title}
-                r = retry_request("get", f"{BASE_URL}/search/movie",
-                                  params=params, headers=HEADERS, timeout=10)
-                slug = ""
+                params = {"api_key": TMDB_API_KEY, "query": title}
+                if year: params["year"] = year
+                r = retry_request("get", f"{TMDB_BASE}/search/movie", params=params, timeout=10)
                 if r and r.status_code == 200:
-                    results = r.json()
-                    for res in results[:5]:
-                        m = res.get("movie", {})
-                        m_title = m.get("title", "").lower()
-                        m_year = str(m.get("year", ""))
-                        # Require exact title match AND year match (or close year)
-                        if m_title == title.lower() and (m_year == year or abs(int(m_year or 0) - int(year or 0)) <= 1):
-                            slug = m.get("ids", {}).get("slug", "")
+                    for res in r.json().get("results", [])[:5]:
+                        r_title = res.get("title", "").lower()
+                        r_year = str(res.get("release_date", ""))[:4]
+                        if r_title == title.lower() and (r_year == year or abs(int(r_year or 0) - int(year or 0)) <= 1):
+                            tmdb_id = str(res["id"])
                             break
-                    # NO fallback to first result — wrong matches cause data corruption
-                slug_cache[cache_key] = slug
-                time.sleep(0.15)
+                tmdb_cache[cache_key] = tmdb_id or ""
+                searched += 1
+                time.sleep(0.05)
             except Exception:
-                slug_cache[cache_key] = ""
-        
+                tmdb_cache[cache_key] = ""
+
+        # Step D: Look up Trakt slug via TMDB ID
+        if tmdb_id:
+            slug = tmdb_to_slug.get(str(tmdb_id), "")
+            # If not in our map, try Trakt lookup by TMDB ID (one API call)
+            if not slug:
+                try:
+                    r = retry_request("get", f"{BASE_URL}/search/tmdb/{tmdb_id}",
+                                      params={"type": "movie"}, headers=HEADERS, timeout=10)
+                    if r and r.status_code == 200:
+                        results = r.json()
+                        if results:
+                            slug = results[0].get("movie", {}).get("ids", {}).get("slug", "")
+                            if slug: tmdb_to_slug[str(tmdb_id)] = slug
+                    time.sleep(0.15)
+                except Exception:
+                    pass
+
         if slug:
             for e in entries:
                 if e["type"] == "movie" and e["title"] == title and str(e.get("year", "")) == year and not e["trakt_slug"]:
                     e["trakt_slug"] = slug
+                    if tmdb_id and not e.get("tmdb_id"): e["tmdb_id"] = tmdb_id
             resolved += 1
-        
+
         if (i + 1) % 50 == 0:
-            print(f"    {i+1}/{len(missing_slugs)} searched, {resolved} resolved")
-    
-    with open(slug_cache_path, "w") as f:
-        json.dump(slug_cache, f, separators=(",", ":"))
-    print(f"  Resolved {resolved}/{len(missing_slugs)} slugs")
+            print(f"    {i+1}/{len(unique_missing)} processed, {resolved} resolved, {searched} TMDB searches")
+
+    with open(tmdb_cache_path, "w") as f:
+        json.dump(tmdb_cache, f, separators=(",", ":"))
+    print(f"  Resolved {resolved}/{len(unique_missing)} slugs ({searched} TMDB searches, {len(tmdb_cache)} cached)")
 
 # Enrich Letterboxd entries with language/country from Trakt
 meta_cache_path = "data/slug_meta_cache.json"
