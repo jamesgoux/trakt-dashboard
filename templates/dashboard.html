@@ -483,13 +483,13 @@ Drop GameTrack games.csv or <span style="color:#6366f1;text-decoration:underline
 <div id="un-hdr" style="position:sticky;top:0;z-index:9001;background:rgba(15,15,15,.97);backdrop-filter:blur(8px);padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.06)">
 <!-- Normal header: Home | Title (centered) | 🔍 -->
 <div id="un-hdr-normal" style="display:flex;align-items:center">
-<button onclick="_unHomeBtn()" class="un-back" id="un-back-btn" style="flex-shrink:0">✕</button>
+<button onclick="_unHomeBtn()" class="un-back" id="un-back-btn" style="flex-shrink:0">←</button>
 <h2 id="un-header-title" style="font-size:18px;font-weight:700;margin:0;flex:1;text-align:center"><span class="i">📺</span> Up Next</h2>
 <button onclick="_unOpenSearchBar()" class="un-back" id="un-search-btn" style="flex-shrink:0;font-size:16px">🔍</button>
 </div>
 <!-- Search header: ← | input | ✕ -->
 <div id="un-hdr-search" style="display:none;align-items:center;gap:8px">
-<button onclick="_unHomeBtn()" class="un-back" style="flex-shrink:0">✕</button>
+<button onclick="_unHomeBtn()" class="un-back" style="flex-shrink:0">←</button>
 <div style="flex:1;position:relative">
 <input type="text" id="un-search" class="un-search-input" placeholder="Search movies & shows…" autocomplete="off" autocorrect="off" spellcheck="false" style="padding-left:14px">
 </div>
@@ -5298,26 +5298,21 @@ function _unSetView(view,data){
 function _unUpdateHeader(){
   var title=document.getElementById('un-header-title');
   var searchBtn=document.getElementById('un-search-btn');
-  var homeBtn=document.getElementById('un-back-btn');
   if(_unCurrentView==='home'){
     title.innerHTML='<span class="i">📺</span> Up Next';
     if(searchBtn)searchBtn.style.display='';
-    if(homeBtn)homeBtn.textContent='✕';
   }else if(_unCurrentView==='search'){
     title.innerHTML='<span class="i">🔍</span> Search';
     if(searchBtn)searchBtn.style.display='none';
   }else if(_unCurrentView==='show'){
     title.innerHTML='<span class="i">📺</span> Show';
     if(searchBtn)searchBtn.style.display='none';
-    if(homeBtn)homeBtn.textContent='✕';
   }else if(_unCurrentView==='season'){
     title.innerHTML='<span class="i">📺</span> Season';
     if(searchBtn)searchBtn.style.display='none';
-    if(homeBtn)homeBtn.textContent='✕';
   }else if(_unCurrentView==='movie'){
     title.innerHTML='<span class="i">🎞️</span> Movie';
     if(searchBtn)searchBtn.style.display='none';
-    if(homeBtn)homeBtn.textContent='✕';
   }
   // Ensure normal header is shown (not search bar) for non-search views
   if(_unCurrentView!=='search'){
