@@ -5065,21 +5065,23 @@ function _unHideSearchOverlay(){
 }
 
 var _unSearchSavedScroll=0;
+var _unClosingSearch=false;
 function _unCloseSearchBar(){
-  // Blur input FIRST to dismiss keyboard before we restore scroll
+  _unClosingSearch=true;// Prevent input handler from interfering
   var input=document.getElementById('un-search');
   input.blur();
   input.value='';
   document.getElementById('un-search-clear').style.display='none';
   document.getElementById('un-hdr-search').style.display='none';
   document.getElementById('un-hdr-normal').style.display='flex';
-  // Small delay to let keyboard dismiss, then restore queue + scroll
+  // Delay: let keyboard fully dismiss (~300ms), then restore queue + scroll
   setTimeout(function(){
+    _unClosingSearch=false;
     _unHideSearchOverlay();
     _unCurrentView='home';
     _unNavStack=[];
     _unUpdateHeader();
-  },100);
+  },350);
 }
 
 // Search input setup
@@ -5089,6 +5091,7 @@ function _unCloseSearchBar(){
   if(!input)return;
   // Typing = filter Up Next queue locally (renders into search overlay)
   input.addEventListener('input',function(){
+    if(_unClosingSearch)return;// Don't interfere with programmatic close
     var q=input.value.trim();
     clearBtn.style.display=q?'block':'none';
     if(_searchTimer)clearTimeout(_searchTimer);
@@ -6149,7 +6152,7 @@ function renderStatus(){
   var hs_count=Object.keys(D.hs||{}).length;
   var ps_count=Object.keys(D.ps||{}).length;
   var el=document.getElementById('status');
-  el.innerHTML='<span>Actors: '+total_people+'</span><span>Headshots: '+hs_count+'</span><span>Posters: '+ps_count+'</span><span>Updated: __BUILD_TIME__</span><span>v32</span>';
+  el.innerHTML='<span>Actors: '+total_people+'</span><span>Headshots: '+hs_count+'</span><span>Posters: '+ps_count+'</span><span>Updated: __BUILD_TIME__</span><span>v33</span>';
 }
 
 function render(){
