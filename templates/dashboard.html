@@ -5047,7 +5047,7 @@ function _unShowSearchResults(query,results){
     var title=item.title||'';
     var year=item.year||'';
     var slug=(item.ids||{}).slug||'';
-    var tmdbId=(item.ids||{}).tmdb||'';
+    var tmdbId=(item.ids||{}).tmdb||0;
     var genres=(item.genres||[]).slice(0,3).join(', ');
     var rating=item.rating?item.rating.toFixed(1):'';
     var runtime=isMovie?(item.runtime?item.runtime+'m':''):(item.status||'');
@@ -5098,51 +5098,52 @@ function _unSearchTap(type,slug,tmdbId){
   else _unOpenShow(slug,tmdbId);
 }
 
-// ─── JustWatch Streaming ─────────────────────────────────────────
-var _jwCache={};
-function _unFetchJW(type,slug,containerId){
-  var ck=type+'|'+slug;
-  if(_jwCache[ck]!==undefined){_unRenderJW(_jwCache[ck],containerId);return}
-  var jwPath=type==='movie'?'/us/movie/'+slug:'/us/tv-show/'+slug;
-  var jwQuery='query($path:String!){urlV2(fullPath:$path){node{...on MovieOrShow{offers(country:US platform:WEB){monetizationType retailPrice(country:US) currency package{clearName shortName icon(profile:S100 format:PNG)}}}}}}';
-  fetch('https://apis.justwatch.com/graphql',{
-    method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({query:jwQuery,variables:{path:jwPath}})
-  })
+// ─── Where to Watch (TMDB Watch Providers) ──────────────────────
+// Uses TMDB instead of JustWatch — CORS-friendly from browser
+function _unFetchJW(type,slug,containerId,tmdbId){
+  if(!tmdbId){
+    // Try to resolve tmdbId from Trakt
+    _traktGet('/'+(type==='movie'?'movies':'shows')+'/'+encodeURIComponent(slug)+'?extended=full')
+    .then(function(d){var tid=(d.ids||{}).tmdb;if(tid)_unFetchWatchProviders(type,tid,containerId)})
+    .catch(function(){});
+    return;
+  }
+  _unFetchWatchProviders(type,tmdbId,containerId);
+}
+function _unFetchWatchProviders(type,tmdbId,containerId){
+  var tk=(D.un||{}).tmdb_key||'';if(!tk)return;
+  var path=type==='movie'?'/3/movie/'+tmdbId+'/watch/providers':'/3/tv/'+tmdbId+'/watch/providers';
+  fetch('https://api.themoviedb.org'+path+'?api_key='+tk)
   .then(function(r){return r.json()})
   .then(function(d){
-    var offers=(d.data||{}).urlV2;
-    if(!offers||!offers.node){_jwCache[ck]=[];return}
-    var raw=offers.node.offers||[];
-    // Deduplicate: keep best offer per service (prefer FLATRATE > ADS > RENT > BUY)
-    var order={FLATRATE:0,FLATRATE_AND_BUY:1,ADS:2,FREE:3,RENT:4,BUY:5};
-    var seen={};var results=[];
-    raw.sort(function(a,b){return(order[a.monetizationType]||9)-(order[b.monetizationType]||9)});
-    raw.forEach(function(o){
-      var sn=o.package.shortName;
-      if(seen[sn])return;
-      seen[sn]=true;
-      results.push({name:o.package.clearName,short:sn,icon:'https://images.justwatch.com'+o.package.icon,type:o.monetizationType,price:o.retailPrice,currency:o.currency||'USD'});
-    });
-    _jwCache[ck]=results;
-    _unRenderJW(results,containerId);
+    var us=(d.results||{}).US;
+    if(!us){var ct=document.getElementById(containerId);if(ct)ct.innerHTML='';return}
+    var sections=[];
+    if(us.flatrate&&us.flatrate.length)sections.push({label:'Stream',items:us.flatrate});
+    if(us.ads&&us.ads.length)sections.push({label:'Free w/ Ads',items:us.ads});
+    if(us.free&&us.free.length)sections.push({label:'Free',items:us.free});
+    if(us.rent&&us.rent.length)sections.push({label:'Rent',items:us.rent});
+    if(us.buy&&us.buy.length)sections.push({label:'Buy',items:us.buy});
+    if(!sections.length){var ct2=document.getElementById(containerId);if(ct2)ct2.innerHTML='';return}
+    _unRenderWP(sections,containerId);
   })
-  .catch(function(){_jwCache[ck]=[]});
+  .catch(function(){});
 }
-function _unRenderJW(offers,containerId){
+function _unRenderWP(sections,containerId){
   var ct=document.getElementById(containerId);if(!ct)return;
-  if(!offers||!offers.length){ct.innerHTML='';return}
-  var typeLabels={FLATRATE:'Stream',FLATRATE_AND_BUY:'Stream',ADS:'Free w/ Ads',FREE:'Free',RENT:'Rent',BUY:'Buy'};
   var h='<div class="un-section" style="margin-bottom:4px">Where to Watch</div>';
   h+='<div class="un-stream-section" style="padding:0">';
-  offers.slice(0,6).forEach(function(o){
-    h+='<div class="un-stream-row">';
-    h+='<img class="un-stream-icon" src="'+o.icon+'" alt="" loading="lazy">';
-    h+='<div class="un-stream-name">'+o.name+'</div>';
-    var label=typeLabels[o.type]||o.type;
-    if(o.price&&(o.type==='RENT'||o.type==='BUY'))label+=' $'+o.price.toFixed(2);
-    h+='<div class="un-stream-type">'+label+'</div>';
-    h+='</div>';
+  var seen={};
+  sections.forEach(function(sec){
+    sec.items.forEach(function(p){
+      if(seen[p.provider_id])return;
+      seen[p.provider_id]=true;
+      h+='<div class="un-stream-row">';
+      h+='<img class="un-stream-icon" src="https://image.tmdb.org/t/p/w92'+p.logo_path+'" alt="" loading="lazy">';
+      h+='<div class="un-stream-name">'+p.provider_name+'</div>';
+      h+='<div class="un-stream-type">'+sec.label+'</div>';
+      h+='</div>';
+    });
   });
   h+='</div>';
   ct.innerHTML=h;
@@ -5333,12 +5334,11 @@ function _unOpenMovie(slug,tmdbId){
     h+='</div>';
     h+='</div>';
     el.innerHTML=h;
-    // Load JustWatch + cast
-    _unFetchJW('movie',slug,'un-mv-jw');
-    var _mvTid=tmdbId||(movie.ids||{}).tmdb;
-    if(_mvTid)_unFetchCast(_mvTid,'movie',0,0,'un-mv-cast',15);
-    // Load poster from TMDB
+    // Load streaming + cast
     var tid=tmdbId||(movie.ids||{}).tmdb;
+    _unFetchJW('movie',slug,'un-mv-jw',tid);
+    if(tid)_unFetchCast(tid,'movie',0,0,'un-mv-cast',15);
+    // Load poster from TMDB
     if(tid){
       var tk=(D.un||{}).tmdb_key||'';
       if(tk){
@@ -5549,8 +5549,8 @@ function _unRenderShowPage(slug,show,seasons,progress,tmdbId){
       }).catch(function(){});
     }
   }
-  // Load JustWatch + cast
-  _unFetchJW('show',slug,'un-sh-jw');
+  // Load streaming + cast
+  _unFetchJW('show',slug,'un-sh-jw',tid);
   if(tid)_unFetchCast(tid,'show',0,0,'un-sh-cast',15);
 }
 
