@@ -4211,15 +4211,19 @@ function _unRenderDetail(allShows,idx){
   var wrap=car.parentElement;
   var w=wrap.offsetWidth;
   // Unified touch: first 10px decides horizontal (carousel) or vertical (dismiss)
-  var _tSx=0,_tCx=0,_tSy=0,_tDir=null,_tActive=false;
+  // If touch starts inside a horizontal scroll container (cast, streaming), let it scroll natively
+  var _tSx=0,_tCx=0,_tSy=0,_tDir=null,_tActive=false,_tInScroll=false;
   car.ontouchstart=function(ev){
     _tSx=ev.touches[0].clientX;_tCx=_tSx;_tSy=ev.touches[0].clientY;
     _tDir=null;_tActive=true;
+    // Check if touch is inside a horizontally scrollable element
+    _tInScroll=!!ev.target.closest('.un-cast-scroll');
+    if(_tInScroll)return;// Let native scroll handle it
     car.classList.remove('animating');fg.style.transition='none';
     ev.stopPropagation();
   };
   car.ontouchmove=function(ev){
-    if(!_tActive)return;
+    if(!_tActive||_tInScroll)return;
     _tCx=ev.touches[0].clientX;
     var dx=_tCx-_tSx,dy=ev.touches[0].clientY-_tSy;
     if(!_tDir&&(Math.abs(dx)>10||Math.abs(dy)>10)){
@@ -4236,7 +4240,7 @@ function _unRenderDetail(allShows,idx){
     ev.stopPropagation();
   };
   car.ontouchend=function(ev){
-    if(!_tActive){if(ev)ev.stopPropagation();return}
+    if(!_tActive||_tInScroll){_tActive=false;_tInScroll=false;return}
     _tActive=false;
     var dx=_tCx-_tSx;
     var dy=(ev.changedTouches?ev.changedTouches[0].clientY:0)-_tSy;
