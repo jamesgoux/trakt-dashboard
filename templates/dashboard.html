@@ -497,7 +497,7 @@ Drop GameTrack games.csv or <span style="color:#6366f1;text-decoration:underline
 </div>
 </div>
 <div id="un-content"></div>
-<div id="un-search-results" style="display:none"></div>
+<div id="un-search-results" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:var(--bg);z-index:9002;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-top:70px"></div>
 </div>
 <script>
 var D=__DASHBOARD_DATA__;
@@ -3698,6 +3698,8 @@ function openUpNext(skipSync){
   // 1) Fetch recent history (catches external watches)
   // 2) Live-check progress for top shows (catches stale next_episode)
   // Both run in parallel, then render once.
+  // Render immediately with cached data (instant), then sync in background
+  _renderUpNext();
   var needsSync=!skipSync&&D._tc&&D._tt&&(Date.now()-_lastExternalSync>30000);
   if(needsSync){
     _lastExternalSync=Date.now();
@@ -3707,11 +3709,10 @@ function openUpNext(skipSync){
     var progP=_liveCheckProgress(hdr);
     Promise.all([histP,progP]).then(function(res){
       _applyExternalWatches(res[0]);
-      // Progress corrections already applied by _liveCheckProgress (authoritative)
+      _unScrollPos=document.getElementById('un-overlay').scrollTop;
+      _unReturning=true;
       _renderUpNext();
-    }).catch(function(e){console.error('Sync failed:',e);_renderUpNext()});
-  }else{
-    _renderUpNext();
+    }).catch(function(e){console.error('Sync failed:',e)});
   }
 }
 // Live-check Trakt progress for top shows (new episodes + top 15 recently active).
@@ -5030,26 +5031,28 @@ function _unOpenSearchBar(){
   document.getElementById('un-search-clear').style.display='none';
   // Must focus synchronously (same user-gesture call stack) for iOS Safari
   input.focus();
-  // Prevent iOS from scrolling to the input — restore scroll position
+  // Aggressively prevent iOS keyboard scroll adjustment
   var saved=_unSearchSavedScroll;
-  requestAnimationFrame(function(){ov.scrollTop=saved});
+  ov.scrollTop=saved;
+  requestAnimationFrame(function(){ov.scrollTop=saved;
+    requestAnimationFrame(function(){ov.scrollTop=saved})});
+  // Also catch delayed iOS scroll adjustments (keyboard animation)
+  var _fixCount=0;
+  var _fixId=setInterval(function(){ov.scrollTop=saved;if(++_fixCount>8)clearInterval(_fixId)},50);
 }
 // Show/hide search overlay on top of queue (queue stays loaded underneath)
 function _unShowSearchOverlay(){
   var sr=document.getElementById('un-search-results');
-  var uc=document.getElementById('un-content');
   if(sr)sr.style.display='';
-  if(uc)uc.style.display='none';
+  // un-content stays visible underneath — scroll position untouched
 }
 function _unHideSearchOverlay(){
   var sr=document.getElementById('un-search-results');
-  var uc=document.getElementById('un-content');
   if(sr){sr.style.display='none';sr.innerHTML=''}
-  if(uc)uc.style.display='';
-  // Restore scroll — double rAF ensures DOM has settled after display change
+  // Restore scroll — queue was never hidden so just set it
   var ov=document.getElementById('un-overlay');
   var saved=_unSearchSavedScroll;
-  if(ov&&saved){requestAnimationFrame(function(){requestAnimationFrame(function(){ov.scrollTop=saved})})}
+  if(ov&&saved!==undefined)ov.scrollTop=saved;
 }
 
 var _unSearchSavedScroll=0;
