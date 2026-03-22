@@ -5036,18 +5036,80 @@ function _unCloseSearchBar(){
   var input=document.getElementById('un-search');
   var clearBtn=document.getElementById('un-search-clear');
   if(!input)return;
+  // Typing = filter Up Next queue locally
   input.addEventListener('input',function(){
     var q=input.value.trim();
     clearBtn.style.display=q?'block':'none';
     if(_searchTimer)clearTimeout(_searchTimer);
     if(!q){
-      if(_unCurrentView==='search')_unGoHome();
+      // Clear filter — restore full queue
+      if(_unCurrentView==='search'||_unCurrentView==='home')_unFilterQueue('');
       return;
     }
-    _searchTimer=setTimeout(function(){_unDoSearch(q)},350);
+    _searchTimer=setTimeout(function(){_unFilterQueue(q)},150);
   });
+  // Enter = search Trakt (wider search)
   input.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();if(_searchTimer)clearTimeout(_searchTimer);var q=input.value.trim();if(q)_unDoSearch(q)}});
 })();
+
+// Filter the Up Next queue by text match (local, instant)
+function _unFilterQueue(query){
+  if(!query){
+    // Restore full queue
+    _unCurrentView='home';
+    _unUpdateHeader();
+    document.getElementById('un-hdr-normal').style.display='none';
+    document.getElementById('un-hdr-search').style.display='flex';
+    _renderUpNext();
+    return;
+  }
+  var ud=_unData();var q=query.toLowerCase();
+  var el=document.getElementById('un-content');
+  // Filter shows
+  var allShows=(ud.shows||[]).filter(function(s){
+    return (s.show||'').toLowerCase().indexOf(q)>=0||(s.slug||'').toLowerCase().indexOf(q)>=0||(s.ep_title||'').toLowerCase().indexOf(q)>=0;
+  });
+  var recent=(ud.recent||[]).filter(function(s){
+    return (s.show||'').toLowerCase().indexOf(q)>=0||(s.slug||'').toLowerCase().indexOf(q)>=0;
+  });
+  if(!allShows.length&&!recent.length){
+    el.innerHTML='<div class="un-empty" style="padding:30px"><div style="margin-bottom:8px">No matches in your queue for "'+query+'"</div><div style="font-size:12px;color:var(--t2)">Press Enter to search all of Trakt</div></div>';
+    return;
+  }
+  // Render filtered results using the same card format
+  var h='';
+  if(allShows.length){
+    h+='<div class="un-section">🔍 Matching Shows ('+allShows.length+')</div><div class="un-grid">';
+    allShows.forEach(function(s){
+      var pct=s.aired_total?Math.round(s.completed/s.aired_total*100):0;
+      h+='<div class="un-card un-card-tap" data-slug="'+s.slug+'" data-s="'+s.season+'" data-e="'+s.episode+'" data-eid="'+(s.ep_trakt_id||0)+'" data-tmdb="'+(s.tmdb_id||'')+'" onclick="showEpDetail(this)">';
+      if(s.poster)h+='<img class="un-poster" src="'+s.poster+'" loading="lazy" onerror="this.style.display=\'none\'" alt="">';
+      else h+='<div class="un-poster-ph">📺</div>';
+      h+='<div class="un-info"><div class="un-show">'+s.show+'</div>';
+      h+='<div class="un-ep">S'+String(s.season).padStart(2,'0')+'E'+String(s.episode).padStart(2,'0');
+      if(s.ep_title)h+=' — '+s.ep_title;
+      h+='</div>';
+      h+='<div class="un-prog-wrap"><div class="un-prog"><div class="un-prog-bar" style="width:'+pct+'%"></div>';
+      h+='<div class="un-prog-text"><span>'+(s.ep_runtime?_unFmtMin(s.ep_runtime):'')+'</span><span>'+(s.eps_left||0)+' eps</span></div></div></div>';
+      h+='</div></div>';
+    });
+    h+='</div>';
+  }
+  if(recent.length){
+    h+='<div class="un-section">🕐 Recent Matches ('+recent.length+')</div><div class="un-grid">';
+    recent.forEach(function(s){
+      h+='<div class="un-card un-card-tap" data-slug="'+s.slug+'" data-s="'+s.season+'" data-e="'+s.episode+'" data-eid="0" data-tmdb="" onclick="showEpDetail(this)">';
+      h+='<div class="un-poster-ph">📺</div>';
+      h+='<div class="un-info"><div class="un-show">'+(s.show||s.slug)+'</div>';
+      h+='<div class="un-ep">S'+String(s.season).padStart(2,'0')+'E'+String(s.episode).padStart(2,'0')+'</div>';
+      h+='<div class="un-meta"><span>'+(s.watched_at||'').substring(0,10)+'</span></div>';
+      h+='</div></div>';
+    });
+    h+='</div>';
+  }
+  h+='<div style="text-align:center;padding:16px;color:var(--t2);font-size:12px">Press Enter to search all of Trakt</div>';
+  el.innerHTML=h;
+}
 
 function _unSearchClear(){
   var input=document.getElementById('un-search');
@@ -5294,7 +5356,7 @@ function _unSetView(view,data){
     if(_unCurrentView!=='home'||view!=='search'){
       _unNavStack.push({view:_unCurrentView,data:data||null,scroll:document.getElementById('un-overlay').scrollTop});
     }else if(_unCurrentView==='home'&&view==='search'){
-      _unNavStack=[{view:'home',data:null,scroll:_unScrollPos}];
+      _unNavStack=[{view:'home',data:null,scroll:document.getElementById('un-overlay').scrollTop||_unScrollPos}];
     }
   }
   _unCurrentView=view;
@@ -5346,7 +5408,7 @@ function _unNavBack(){
     _unCurrentView=prev.view;
     _unUpdateHeader();
     if(prev.view==='home'){
-      _unGoHome();
+      _unGoHome(prev.scroll||0);
       _unNavStack=[];
     }else if(prev.view==='search'){
       // Return to search results — show search bar with query
@@ -5385,7 +5447,7 @@ function _unNavBack(){
   }
 }
 
-function _unGoHome(){
+function _unGoHome(restoreScroll){
   _unCurrentView='home';
   _unNavStack=[];
   _unUpdateHeader();
@@ -5395,8 +5457,8 @@ function _unGoHome(){
   var input=document.getElementById('un-search');
   if(input){input.value='';input.blur()}
   document.getElementById('un-search-clear').style.display='none';
-  _unScrollPos=0;
-  _unReturning=false;
+  _unScrollPos=restoreScroll||0;
+  _unReturning=!!restoreScroll;
   _renderUpNext();
 }
 
