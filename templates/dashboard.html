@@ -5054,28 +5054,32 @@ function _unHideSearchOverlay(){
   var uc=document.getElementById('un-content');
   if(sr){sr.style.display='none';sr.innerHTML=''}
   if(uc)uc.style.display='';
-  // Aggressively restore scroll after display:none→block transition
+  // Aggressively restore scroll — fights both display:none→block layout
+  // AND iOS keyboard dismiss scroll adjustment (takes ~300ms)
   var ov=document.getElementById('un-overlay');
   var saved=_unSearchSavedScroll;
   if(ov&&saved!==undefined){
     ov.scrollTop=saved;
-    var n=0;var id=setInterval(function(){ov.scrollTop=saved;if(++n>10)clearInterval(id)},30);
+    var n=0;var id=setInterval(function(){ov.scrollTop=saved;if(++n>20)clearInterval(id)},30);
   }
 }
 
 var _unSearchSavedScroll=0;
 function _unCloseSearchBar(){
+  // Blur input FIRST to dismiss keyboard before we restore scroll
+  var input=document.getElementById('un-search');
+  input.blur();
+  input.value='';
+  document.getElementById('un-search-clear').style.display='none';
   document.getElementById('un-hdr-search').style.display='none';
   document.getElementById('un-hdr-normal').style.display='flex';
-  var input=document.getElementById('un-search');
-  input.value='';
-  input.blur();
-  document.getElementById('un-search-clear').style.display='none';
-  // Just hide search overlay — queue is still loaded underneath (instant)
-  _unHideSearchOverlay();
-  _unCurrentView='home';
-  _unNavStack=[];
-  _unUpdateHeader();
+  // Small delay to let keyboard dismiss, then restore queue + scroll
+  setTimeout(function(){
+    _unHideSearchOverlay();
+    _unCurrentView='home';
+    _unNavStack=[];
+    _unUpdateHeader();
+  },100);
 }
 
 // Search input setup
@@ -6145,7 +6149,7 @@ function renderStatus(){
   var hs_count=Object.keys(D.hs||{}).length;
   var ps_count=Object.keys(D.ps||{}).length;
   var el=document.getElementById('status');
-  el.innerHTML='<span>Actors: '+total_people+'</span><span>Headshots: '+hs_count+'</span><span>Posters: '+ps_count+'</span><span>Updated: __BUILD_TIME__</span><span>v31</span>';
+  el.innerHTML='<span>Actors: '+total_people+'</span><span>Headshots: '+hs_count+'</span><span>Posters: '+ps_count+'</span><span>Updated: __BUILD_TIME__</span><span>v32</span>';
 }
 
 function render(){
