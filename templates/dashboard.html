@@ -4004,10 +4004,15 @@ function _unBuildPanel(show){
   var h='<div class="un-detail" style="display:flex;flex-direction:column;min-height:100%;padding:0 16px;background:var(--sf);border-radius:12px 12px 0 0">';
   // Nav bar
   h+='<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0">';
-  h+='<button onclick="_unDismissDetail()" style="background:rgba(255,255,255,.08);border:none;color:var(--tx);border-radius:8px;padding:10px 16px;font-size:14px;cursor:pointer;min-height:44px">↑ Up Next</button>';
+  h+='<button onclick="_unDismissDetail()" style="background:rgba(255,255,255,.08);border:none;color:var(--tx);border-radius:8px;padding:10px 16px;font-size:14px;cursor:pointer;min-height:44px">↑ Back</button>';
   h+='<div style="display:flex;gap:8px">';
-  if(show.episode>1||show.season>1)h+='<button onclick="_crNav(-1)" style="background:rgba(255,255,255,.08);border:none;color:var(--tx);border-radius:8px;padding:10px 16px;font-size:16px;cursor:pointer;min-width:48px">◀</button>';
-  h+='<button onclick="_crNav(1)" style="background:rgba(255,255,255,.08);border:none;color:var(--tx);border-radius:8px;padding:10px 16px;font-size:16px;cursor:pointer;min-width:48px">▶</button>';
+  // Show page + Season page links
+  if(show.slug&&show.tmdb_id){
+    h+='<button onclick="_unEpNavShow(\''+slug2+'\','+(show.tmdb_id||0)+')" style="background:rgba(255,255,255,.08);border:none;color:var(--tv);border-radius:8px;padding:10px 12px;font-size:12px;cursor:pointer;min-height:44px;font-weight:600">Show</button>';
+    h+='<button onclick="_unEpNavSeason(\''+slug2+'\','+show.season+','+(show.tmdb_id||0)+')" style="background:rgba(255,255,255,.08);border:none;color:var(--tv);border-radius:8px;padding:10px 12px;font-size:12px;cursor:pointer;min-height:44px;font-weight:600">S'+String(show.season).padStart(2,'0')+'</button>';
+  }
+  if(show.episode>1||show.season>1)h+='<button onclick="_crNav(-1)" style="background:rgba(255,255,255,.08);border:none;color:var(--tx);border-radius:8px;padding:10px 16px;font-size:16px;cursor:pointer;min-width:44px">◀</button>';
+  h+='<button onclick="_crNav(1)" style="background:rgba(255,255,255,.08);border:none;color:var(--tx);border-radius:8px;padding:10px 16px;font-size:16px;cursor:pointer;min-width:44px">▶</button>';
   h+='</div></div>';
   // Still image — edge to edge
   if(show.ep_still)h+='<img src="'+show.ep_still+'" alt="" style="width:100%;margin-bottom:16px;max-height:300px;object-fit:cover;border-radius:10px">';
@@ -5157,12 +5162,12 @@ function _unFetchWPTmdb(type,tmdbId,containerId){
 function _unRenderWP(results,containerId){
   var ct=document.getElementById(containerId);if(!ct||!results.length)return;
   var h='<div class="un-section" style="margin-bottom:4px">Where to Watch</div>';
-  h+='<div class="un-stream-section" style="padding:0">';
-  results.slice(0,8).forEach(function(o){
-    h+='<div class="un-stream-row">';
-    h+='<img class="un-stream-icon" src="'+o.icon+'" alt="" loading="lazy" onerror="this.style.display=\'none\'">';
-    h+='<div class="un-stream-name">'+o.name+'</div>';
-    h+='<div class="un-stream-type">'+o.label+'</div>';
+  h+='<div class="un-cast-scroll">';
+  results.slice(0,10).forEach(function(o){
+    h+='<div style="flex-shrink:0;width:80px;text-align:center">';
+    h+='<img src="'+o.icon+'" alt="" loading="lazy" onerror="this.style.display=\'none\'" style="width:52px;height:52px;border-radius:12px;object-fit:cover;margin:0 auto 6px;display:block;background:#222">';
+    h+='<div style="font-size:10px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+o.name+'</div>';
+    h+='<div style="font-size:10px;color:var(--t2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+o.label+'</div>';
     h+='</div>';
   });
   h+='</div>';
@@ -5338,8 +5343,15 @@ function _unOpenMovie(slug,tmdbId){
       });
       h+='</div>';
     }
+    // Watch buttons — above synopsis
+    var _mvReleaseDate=movie.released||'';
+    h+='<div style="display:flex;gap:8px;margin-bottom:16px">';
+    h+='<button onclick="_unShowMovieDatePicker(\''+slug.replace(/'/g,"\\'")+'\','+(movie.ids.trakt||0)+')" style="flex:1;padding:14px 8px;background:#0e7490;color:#fff;border:none;border-radius:10px;font-size:13px;cursor:pointer;font-weight:600;min-height:48px">Other Date</button>';
+    if(_mvReleaseDate)h+='<button onclick="_unMarkMovieWatchedAt(\''+slug.replace(/'/g,"\\'")+'\','+(movie.ids.trakt||0)+',\''+_mvReleaseDate+'\',this)" style="flex:1;padding:14px 8px;background:#0e7490;color:#fff;border:none;border-radius:10px;font-size:13px;cursor:pointer;font-weight:600;min-height:48px">Release Date</button>';
+    h+='<button id="un-mv-watch" onclick="_unMarkMovieWatched(\''+slug.replace(/'/g,"\\'")+'\','+(movie.ids.trakt||0)+',this)" style="flex:1;padding:14px 8px;background:var(--tv);color:#fff;border:none;border-radius:10px;font-size:13px;cursor:pointer;font-weight:600;min-height:48px">Just Now</button>';
+    h+='</div>';
     if(movie.overview)h+='<div class="un-movie-overview">'+movie.overview+'</div>';
-    // JustWatch streaming
+    // Where to Watch
     h+='<div id="un-mv-jw"></div>';
     // Cast
     h+='<div id="un-mv-cast"></div>';
@@ -5347,11 +5359,6 @@ function _unOpenMovie(slug,tmdbId){
       var ytId='';var tm=movie.trailer.match(/[?&]v=([^&]+)/);if(tm)ytId=tm[1];
       if(ytId)h+='<div style="margin-bottom:16px;text-align:center"><a href="'+movie.trailer+'" target="_blank" style="color:var(--tv);font-size:13px;text-decoration:none">▶ Watch Trailer</a></div>';
     }
-    // Watch buttons
-    h+='<div style="display:flex;gap:8px;margin-bottom:12px">';
-    h+='<button onclick="_unShowMovieDatePicker(\''+slug.replace(/'/g,"\\'")+'\','+(movie.ids.trakt||0)+')" style="flex:1;padding:14px;background:#0e7490;color:#fff;border:none;border-radius:10px;font-size:14px;cursor:pointer;font-weight:600">Other Date</button>';
-    h+='<button id="un-mv-watch" onclick="_unMarkMovieWatched(\''+slug.replace(/'/g,"\\'")+'\','+(movie.ids.trakt||0)+',this)" class="un-movie-watch-btn" style="flex:2">✓ Mark as Watched</button>';
-    h+='</div>';
     h+='</div>';
     el.innerHTML=h;
     // Load streaming + cast
@@ -5399,6 +5406,25 @@ function _unMarkMovieWatched(slug,traktId,btn){
     alert('Failed to sync: '+e.message);
     if(btn){btn.disabled=false;btn.textContent='✓ Mark as Watched'}
   });
+}
+
+// Mark movie watched at a specific date (e.g. release date)
+function _unMarkMovieWatchedAt(slug,traktId,dateStr,btn){
+  if(btn){btn.disabled=true;btn.textContent='Syncing…'}
+  var watchedAt=dateStr+'T12:00:00.000Z';
+  var cid=D._tc,tok=D._tt;
+  if(!cid||!tok){alert('Trakt credentials not available');if(btn){btn.disabled=false;btn.textContent='Release Date'}return}
+  var body=JSON.stringify({movies:[{ids:{trakt:traktId},watched_at:watchedAt}]});
+  fetch('https://api.trakt.tv/sync/history',{method:'POST',headers:{'Content-Type':'application/json','trakt-api-version':'2','trakt-api-key':cid,'Authorization':'Bearer '+tok},body:body})
+  .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json()})
+  .then(function(d){
+    console.log('Movie synced at release:',d);
+    if(btn){btn.textContent='✓ Watched!';btn.style.background='#059669'}
+    // Disable all watch buttons
+    var mvWatch=document.getElementById('un-mv-watch');if(mvWatch){mvWatch.textContent='✓ Watched!';mvWatch.style.background='#059669';mvWatch.disabled=true}
+    D.c.r.unshift({type:'movie',title:slug,detail:'',watched_at:dateStr,yr:dateStr.substring(0,4)});
+  })
+  .catch(function(e){alert('Failed: '+e.message);if(btn){btn.disabled=false;btn.textContent='Release Date'}});
 }
 
 // Movie date picker (reuses scroll-wheel pattern)
@@ -5670,6 +5696,20 @@ function _unRenderSeasonPage(slug,seasonNum,episodes,progress,tmdbId){
   }
   // Load cast for this season
   if(tid)_unFetchCast(tid,'season',seasonNum,0,'un-sn-cast',15);
+}
+
+// Navigate from episode detail to show or season page
+function _unEpNavShow(slug,tmdbId){
+  var fg=document.getElementById('un-detail-fg');
+  if(fg){fg.remove();document.getElementById('un-overlay').style.overflowY='auto'}
+  _crBase=null;_crAll=null;
+  _unOpenShow(slug,tmdbId);
+}
+function _unEpNavSeason(slug,season,tmdbId){
+  var fg=document.getElementById('un-detail-fg');
+  if(fg){fg.remove();document.getElementById('un-overlay').style.overflowY='auto'}
+  _crBase=null;_crAll=null;
+  _unOpenSeason(slug,season,tmdbId);
 }
 
 // Tap an episode row on season page → open episode detail carousel
