@@ -677,8 +677,9 @@ function _ptblToggleNew(id,pp,btn){
 }
 function ptbl(id,pp){var tb=document.getElementById(id);tb.innerHTML='';
 // Build recency map from D.c.r once (shared by row gain + detail green)
-var _now=Date.now(),_7d=7*86400000,_tlw={};
-(D.c.r||[]).forEach(function(r){if(!r.watched_at)return;var wa=new Date(r.watched_at).getTime();var k=r.title;if(!_tlw[k]||wa>_tlw[k])_tlw[k]=wa});
+var _now=Date.now(),_7d=7*86400000,_tlw={},_tld={};
+(D.c.r||[]).forEach(function(r){if(!r.watched_at)return;var wa=new Date(r.watched_at).getTime();var k=r.title;var d=r.watched_at.substring(0,10);if(!_tlw[k]||wa>_tlw[k]){_tlw[k]=wa;_tld[k]=d}});
+var _cutoff7d=new Date(_now-_7d).toISOString().substring(0,10);
 // Pre-compute filtered counts and sort
 var items=[];pp.forEach(function(p){var m=p.m,s=p.s;if(cy!=='all'&&p.ti){m=0;s=0;p.ti.forEach(function(i){var t=TL[i];if(!t)return;if(t.type==='movie'){if(sm(fby(t.eby))>0)m++}else{
   if(p.eps&&t.sl&&p.eps[t.sl]){if(p.eps[t.sl].y&&p.eps[t.sl].y[cy])s++}
@@ -702,7 +703,7 @@ var tr=document.createElement('tr');tr.className='pr';if(gain)tr.style.backgroun
 var _tItems=[];p.ti.forEach(function(i){var t=TL[i];if(!t)return;var eb=cy==='all'?t.eby:fby(t.eby);var ct2=sm(eb);if(ct2===0&&cy!=='all')return;
 // For shows with per-episode data: exclude if person wasn't in episodes this year
 if(cy!=='all'&&t.type!=='movie'&&p.eps&&t.sl&&p.eps[t.sl]&&!(p.eps[t.sl].y||{})[cy])return;
-var rec=_tlw[t.t]||0;var isGrn=rec>0&&(_now-rec)<_7d;
+var rec=_tlw[t.t]||0;var isGrn=_tld[t.t]&&_tld[t.t]>=_cutoff7d;
 // For shows: verify person appeared in episodes from the watch year
 if(isGrn&&t.type!=='movie'&&p.eps&&t.sl&&p.eps[t.sl]){var wy=new Date(rec).getFullYear().toString();if(!(p.eps[t.sl].y||{})[wy])isGrn=false}
 if(!rec&&t.eby){var mk=Object.keys(t.eby).sort().pop();if(mk){rec=mk.length===4?new Date(mk+'-12-31').getTime():mk.length===7?new Date(mk+'-15').getTime():new Date(mk).getTime();if(isNaN(rec))rec=0}}
