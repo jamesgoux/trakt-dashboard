@@ -73,6 +73,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
 .chart-detail .cd-item{padding:3px 0;border-bottom:1px solid rgba(255,255,255,.04);display:flex;justify-content:space-between}
 .chart-detail .cd-item:last-child{border:none}
 .chart-detail .cd-close{float:right;cursor:pointer;color:var(--t2);font-size:14px}
+.chart-detail.ll-detail .cd-item{justify-content:flex-start;gap:6px}
 .status{text-align:center;padding:20px;color:var(--t2);font-size:11px;border-top:1px solid rgba(255,255,255,.04);margin-top:20px}
 .status span{margin:0 10px}
 .ll-day{margin-bottom:24px}.ll-day-hdr{font-size:13px;font-weight:700;color:var(--t2);padding:8px 0 8px 54px;border-bottom:1px solid rgba(255,255,255,.06);margin-bottom:0;position:sticky;top:56px;background:var(--bg);z-index:2}
@@ -811,7 +812,7 @@ function renderLifeline(){
     var idx=p.dataIndex;var day=days[idx];if(!day||!ll[day])return;
     var ld=ll[day];var evts=ld.e||[];
     var ex=llEl.parentElement.querySelector('.chart-detail');if(ex){ex.remove();if(ex.dataset.val===day)return}
-    var div=document.createElement('div');div.className='chart-detail';div.dataset.val=day;
+    var div=document.createElement('div');div.className='chart-detail ll-detail';div.dataset.val=day;
     var h='<span class="cd-close" onclick="this.parentElement.remove()">✕</span><b>'+day+'</b>';
     if(evts.length){
       evts.forEach(function(e){
