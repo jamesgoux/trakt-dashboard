@@ -5051,10 +5051,15 @@ function _unHideSearchOverlay(){
   var uc=document.getElementById('un-content');
   if(sr){sr.style.display='none';sr.innerHTML=''}
   if(uc)uc.style.display='';
-  // Restore scroll — double rAF ensures DOM has settled after display change
+  // Aggressively restore scroll — content was hidden so layout needs to settle
   var ov=document.getElementById('un-overlay');
   var saved=_unSearchSavedScroll;
-  if(ov&&saved){requestAnimationFrame(function(){requestAnimationFrame(function(){ov.scrollTop=saved})})}
+  if(ov&&saved!==undefined){
+    ov.scrollTop=saved;
+    requestAnimationFrame(function(){ov.scrollTop=saved;
+      requestAnimationFrame(function(){ov.scrollTop=saved})});
+    var _fc=0;var _fi=setInterval(function(){ov.scrollTop=saved;if(++_fc>6)clearInterval(_fi)},50);
+  }
 }
 
 var _unSearchSavedScroll=0;
