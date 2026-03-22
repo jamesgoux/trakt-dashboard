@@ -5030,9 +5030,14 @@ function _unOpenSearchBar(){
   document.getElementById('un-search-clear').style.display='none';
   // Must focus synchronously (same user-gesture call stack) for iOS Safari
   input.focus();
-  // Prevent iOS from scrolling to the input — restore scroll position
+  // Aggressively prevent iOS keyboard scroll adjustment
   var saved=_unSearchSavedScroll;
-  requestAnimationFrame(function(){ov.scrollTop=saved});
+  ov.scrollTop=saved;
+  requestAnimationFrame(function(){ov.scrollTop=saved;
+    requestAnimationFrame(function(){ov.scrollTop=saved})});
+  // Also catch delayed iOS scroll adjustments (keyboard animation)
+  var _fixCount=0;
+  var _fixId=setInterval(function(){ov.scrollTop=saved;if(++_fixCount>8)clearInterval(_fixId)},50);
 }
 // Show/hide search overlay on top of queue (queue stays loaded underneath)
 function _unShowSearchOverlay(){
