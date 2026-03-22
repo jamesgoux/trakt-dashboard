@@ -497,8 +497,8 @@ Drop GameTrack games.csv or <span style="color:#6366f1;text-decoration:underline
 </div>
 </div>
 <div id="un-content"></div>
+<div id="un-search-results" style="display:none;min-height:calc(100vh - 70px);background:var(--bg);position:relative;z-index:1"></div>
 </div>
-<div id="un-search-results" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:var(--bg);z-index:9500;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-top:70px"></div>
 <script>
 var D=__DASHBOARD_DATA__;
 var HS=D.hs||{},TL=D.tl||[],SYD=D.syd||[],MYD=D.myd||[],SM=D.sm||{},LO=D.lg||{};
@@ -5040,34 +5040,48 @@ function _unOpenSearchBar(){
   var _fixCount=0;
   var _fixId=setInterval(function(){ov.scrollTop=saved;if(++_fixCount>8)clearInterval(_fixId)},50);
 }
-// Show/hide search overlay on top of queue (queue stays loaded underneath)
+// Show/hide search overlay — hides queue content, restores on dismiss
 function _unShowSearchOverlay(){
   var sr=document.getElementById('un-search-results');
+  var uc=document.getElementById('un-content');
   if(sr)sr.style.display='';
-  // un-content stays visible underneath — scroll position untouched
+  if(uc)uc.style.display='none';
+  var ov=document.getElementById('un-overlay');
+  if(ov)ov.scrollTop=0;
 }
 function _unHideSearchOverlay(){
   var sr=document.getElementById('un-search-results');
+  var uc=document.getElementById('un-content');
   if(sr){sr.style.display='none';sr.innerHTML=''}
-  // Restore scroll — queue was never hidden so just set it
+  if(uc)uc.style.display='';
+  // Aggressively restore scroll — fights both display:none→block layout
+  // AND iOS keyboard dismiss scroll adjustment (takes ~300ms)
   var ov=document.getElementById('un-overlay');
   var saved=_unSearchSavedScroll;
-  if(ov&&saved!==undefined)ov.scrollTop=saved;
+  if(ov&&saved!==undefined){
+    ov.scrollTop=saved;
+    var n=0;var id=setInterval(function(){ov.scrollTop=saved;if(++n>20)clearInterval(id)},30);
+  }
 }
 
 var _unSearchSavedScroll=0;
+var _unClosingSearch=false;
 function _unCloseSearchBar(){
+  _unClosingSearch=true;// Prevent input handler from interfering
+  var input=document.getElementById('un-search');
+  input.blur();
+  input.value='';
+  document.getElementById('un-search-clear').style.display='none';
   document.getElementById('un-hdr-search').style.display='none';
   document.getElementById('un-hdr-normal').style.display='flex';
-  var input=document.getElementById('un-search');
-  input.value='';
-  input.blur();
-  document.getElementById('un-search-clear').style.display='none';
-  // Just hide search overlay — queue is still loaded underneath (instant)
-  _unHideSearchOverlay();
-  _unCurrentView='home';
-  _unNavStack=[];
-  _unUpdateHeader();
+  // Delay: let keyboard fully dismiss (~300ms), then restore queue + scroll
+  setTimeout(function(){
+    _unClosingSearch=false;
+    _unHideSearchOverlay();
+    _unCurrentView='home';
+    _unNavStack=[];
+    _unUpdateHeader();
+  },350);
 }
 
 // Search input setup
@@ -5077,6 +5091,7 @@ function _unCloseSearchBar(){
   if(!input)return;
   // Typing = filter Up Next queue locally (renders into search overlay)
   input.addEventListener('input',function(){
+    if(_unClosingSearch)return;// Don't interfere with programmatic close
     var q=input.value.trim();
     clearBtn.style.display=q?'block':'none';
     if(_searchTimer)clearTimeout(_searchTimer);
@@ -6137,7 +6152,7 @@ function renderStatus(){
   var hs_count=Object.keys(D.hs||{}).length;
   var ps_count=Object.keys(D.ps||{}).length;
   var el=document.getElementById('status');
-  el.innerHTML='<span>Actors: '+total_people+'</span><span>Headshots: '+hs_count+'</span><span>Posters: '+ps_count+'</span><span>Updated: __BUILD_TIME__</span><span>v23</span>';
+  el.innerHTML='<span>Actors: '+total_people+'</span><span>Headshots: '+hs_count+'</span><span>Posters: '+ps_count+'</span><span>Updated: __BUILD_TIME__</span><span>v33</span>';
 }
 
 function render(){
