@@ -497,8 +497,8 @@ Drop GameTrack games.csv or <span style="color:#6366f1;text-decoration:underline
 </div>
 </div>
 <div id="un-content"></div>
+<div id="un-search-results" style="display:none;min-height:calc(100vh - 70px);background:var(--bg);position:relative;z-index:1"></div>
 </div>
-<div id="un-search-results" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:var(--bg);z-index:9500;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-top:70px"></div>
 <script>
 var D=__DASHBOARD_DATA__;
 var HS=D.hs||{},TL=D.tl||[],SYD=D.syd||[],MYD=D.myd||[],SM=D.sm||{},LO=D.lg||{};
@@ -5044,7 +5044,9 @@ function _unOpenSearchBar(){
 function _unShowSearchOverlay(){
   var sr=document.getElementById('un-search-results');
   if(sr)sr.style.display='';
-  // un-content stays visible underneath — scroll position untouched
+  // Scroll overlay to top so search results are visible under the header
+  var ov=document.getElementById('un-overlay');
+  if(ov)ov.scrollTop=0;
 }
 function _unHideSearchOverlay(){
   var sr=document.getElementById('un-search-results');
@@ -6137,7 +6139,7 @@ function renderStatus(){
   var hs_count=Object.keys(D.hs||{}).length;
   var ps_count=Object.keys(D.ps||{}).length;
   var el=document.getElementById('status');
-  el.innerHTML='<span>Actors: '+total_people+'</span><span>Headshots: '+hs_count+'</span><span>Posters: '+ps_count+'</span><span>Updated: __BUILD_TIME__</span><span>v29</span>';
+  el.innerHTML='<span>Actors: '+total_people+'</span><span>Headshots: '+hs_count+'</span><span>Posters: '+ps_count+'</span><span>Updated: __BUILD_TIME__</span><span>v30</span>';
 }
 
 function render(){
