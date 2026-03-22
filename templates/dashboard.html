@@ -496,8 +496,8 @@ Drop GameTrack games.csv or <span style="color:#6366f1;text-decoration:underline
 <button id="un-search-clear" class="un-search-clear" onclick="_unSearchClear()" style="position:static;transform:none;display:none;flex-shrink:0;padding:8px;color:var(--t2);background:none;border:none;font-size:18px;cursor:pointer">✕</button>
 </div>
 </div>
-<div id="un-content"></div>
-<div id="un-search-results" style="display:none;min-height:calc(100vh - 70px);background:var(--bg);position:relative;z-index:1"></div>
+<div style="position:relative" id="un-wrap"><div id="un-content"></div>
+<div id="un-search-results" style="display:none;position:absolute;top:0;left:0;right:0;min-height:100vh;background:var(--bg);z-index:2"></div></div>
 </div>
 <script>
 var D=__DASHBOARD_DATA__;
@@ -3853,7 +3853,7 @@ function _setupRWVirtualScroll(ov){
     hdrBar.onclick=function(e){
       if(e.target.closest('button'))return;// Don't hijack back button
       var anchor=document.getElementById('un-default-scroll');
-      if(anchor){var hh=hdrBar.offsetHeight||70;ov.scrollTo({top:Math.max(0,anchor.offsetTop-hh),behavior:'smooth'})}
+      if(anchor){var hh=hdrBar.offsetHeight||70;var at=anchor.getBoundingClientRect().top-ov.getBoundingClientRect().top+ov.scrollTop;ov.scrollTo({top:Math.max(0,at-hh),behavior:'smooth'})}
     };
   }
 }
@@ -3949,7 +3949,7 @@ function _renderUpNext(){
     requestAnimationFrame(function(){
       // Scroll to New Episodes anchor, accounting for sticky header height
       var anchor=document.getElementById('un-default-scroll');
-      if(anchor){var hdr=ov.firstElementChild;var hdrH=hdr?hdr.offsetHeight:70;ov.scrollTop=Math.max(0,anchor.offsetTop-hdrH)}
+      if(anchor){var hdrH=ov.firstElementChild?ov.firstElementChild.offsetHeight:70;var anchorTop=anchor.getBoundingClientRect().top-ov.getBoundingClientRect().top+ov.scrollTop;ov.scrollTop=Math.max(0,anchorTop-hdrH)}
       else ov.scrollTop=0;
       ov.style.visibility='';ov.style.transition='transform .3s ease';
       requestAnimationFrame(function(){ov.style.transform=''});
@@ -5021,7 +5021,6 @@ function _unHomeBtn(){
 }
 
 function _unOpenSearchBar(){
-  // Save scroll position before switching headers
   var ov=document.getElementById('un-overlay');
   _unSearchSavedScroll=ov.scrollTop;
   document.getElementById('un-hdr-normal').style.display='none';
@@ -5029,59 +5028,39 @@ function _unOpenSearchBar(){
   var input=document.getElementById('un-search');
   input.value='';
   document.getElementById('un-search-clear').style.display='none';
-  // Must focus synchronously (same user-gesture call stack) for iOS Safari
   input.focus();
-  // Aggressively prevent iOS keyboard scroll adjustment
-  var saved=_unSearchSavedScroll;
-  ov.scrollTop=saved;
-  requestAnimationFrame(function(){ov.scrollTop=saved;
-    requestAnimationFrame(function(){ov.scrollTop=saved})});
-  // Also catch delayed iOS scroll adjustments (keyboard animation)
-  var _fixCount=0;
-  var _fixId=setInterval(function(){ov.scrollTop=saved;if(++_fixCount>8)clearInterval(_fixId)},50);
 }
-// Show/hide search overlay — hides queue content, restores on dismiss
+// Show/hide search overlay — un-content is NEVER touched, scroll never changes
 function _unShowSearchOverlay(){
   var sr=document.getElementById('un-search-results');
-  var uc=document.getElementById('un-content');
   if(sr)sr.style.display='';
-  if(uc)uc.style.display='none';
+  // Scroll to top of overlay so search results are visible
   var ov=document.getElementById('un-overlay');
   if(ov)ov.scrollTop=0;
 }
 function _unHideSearchOverlay(){
   var sr=document.getElementById('un-search-results');
-  var uc=document.getElementById('un-content');
   if(sr){sr.style.display='none';sr.innerHTML=''}
-  if(uc)uc.style.display='';
-  // Aggressively restore scroll — fights both display:none→block layout
-  // AND iOS keyboard dismiss scroll adjustment (takes ~300ms)
+  // Scroll back to saved position — un-content was never hidden so just set it
   var ov=document.getElementById('un-overlay');
-  var saved=_unSearchSavedScroll;
-  if(ov&&saved!==undefined){
-    ov.scrollTop=saved;
-    var n=0;var id=setInterval(function(){ov.scrollTop=saved;if(++n>20)clearInterval(id)},30);
-  }
+  if(ov)ov.scrollTop=_unSearchSavedScroll||0;
 }
 
 var _unSearchSavedScroll=0;
 var _unClosingSearch=false;
 function _unCloseSearchBar(){
-  _unClosingSearch=true;// Prevent input handler from interfering
+  _unClosingSearch=true;
   var input=document.getElementById('un-search');
   input.blur();
   input.value='';
   document.getElementById('un-search-clear').style.display='none';
   document.getElementById('un-hdr-search').style.display='none';
   document.getElementById('un-hdr-normal').style.display='flex';
-  // Delay: let keyboard fully dismiss (~300ms), then restore queue + scroll
-  setTimeout(function(){
-    _unClosingSearch=false;
-    _unHideSearchOverlay();
-    _unCurrentView='home';
-    _unNavStack=[];
-    _unUpdateHeader();
-  },350);
+  _unHideSearchOverlay();
+  _unCurrentView='home';
+  _unNavStack=[];
+  _unUpdateHeader();
+  _unClosingSearch=false;
 }
 
 // Search input setup
@@ -6152,7 +6131,7 @@ function renderStatus(){
   var hs_count=Object.keys(D.hs||{}).length;
   var ps_count=Object.keys(D.ps||{}).length;
   var el=document.getElementById('status');
-  el.innerHTML='<span>Actors: '+total_people+'</span><span>Headshots: '+hs_count+'</span><span>Posters: '+ps_count+'</span><span>Updated: __BUILD_TIME__</span><span>v33</span>';
+  el.innerHTML='<span>Actors: '+total_people+'</span><span>Headshots: '+hs_count+'</span><span>Posters: '+ps_count+'</span><span>Updated: __BUILD_TIME__</span><span>v34</span>';
 }
 
 function render(){
