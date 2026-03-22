@@ -687,11 +687,8 @@ var items=[];pp.forEach(function(p){var m=p.m,s=p.s;if(cy!=='all'&&p.ti){m=0;s=0
 var sortVal=m+s;
 if(ct==='movie'){if(m===0)return;sortVal=m}
 if(ct==='show'){if(s===0)return;sortVal=s}
-// Compute gain from D.c.r (client-side, always fresh)
-// For shows: also verify person appeared in episodes from the watch year (via p.eps)
-var cg=0;if(p.ti)p.ti.forEach(function(i){var t=TL[i];if(!t)return;var lw=_tlw[t.t];if(!lw||(_now-lw)>=_7d)return;
-if(t.type!=='movie'&&p.eps&&t.sl&&p.eps[t.sl]){var wy=new Date(lw).getFullYear().toString();if(!(p.eps[t.sl].y||{})[wy])return}
-cg++});
+// Use pipeline-computed green highlights (per-episode accuracy)
+var cg=_personGain(p);
 items.push({p:p,m:m,s:s,tot:m+s,sv:sortVal,cg:cg})});
 items.sort(function(a,b){return b.sv-a.sv});
 items.forEach(function(item,i){item.rk=i+1});
