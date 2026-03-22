@@ -5058,10 +5058,11 @@ function _unSearchClear(){
 }
 
 function _unDoSearch(query){
+  // Always set view first so nav stack is correct (even for cached results)
+  if(_unCurrentView!=='search')_unSetView('search',{query:query});
   if(_searchCache[query]){_unShowSearchResults(query,_searchCache[query]);return}
   var el=document.getElementById('un-content');
   el.innerHTML='<div class="un-loading">Searching…</div>';
-  _unSetView('search',{query:query});
   _traktGet('/search/movie,show?query='+encodeURIComponent(query)+'&extended=full&limit=25')
   .then(function(results){
     _searchCache[query]=results;
