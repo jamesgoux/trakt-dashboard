@@ -5040,21 +5040,27 @@ function _unOpenSearchBar(){
   var _fixCount=0;
   var _fixId=setInterval(function(){ov.scrollTop=saved;if(++_fixCount>8)clearInterval(_fixId)},50);
 }
-// Show/hide search overlay on top of queue (queue stays loaded underneath)
+// Show/hide search overlay — hides queue content, restores on dismiss
 function _unShowSearchOverlay(){
   var sr=document.getElementById('un-search-results');
+  var uc=document.getElementById('un-content');
   if(sr)sr.style.display='';
-  // Scroll overlay to top so search results are visible under the header
+  if(uc)uc.style.display='none';
   var ov=document.getElementById('un-overlay');
   if(ov)ov.scrollTop=0;
 }
 function _unHideSearchOverlay(){
   var sr=document.getElementById('un-search-results');
+  var uc=document.getElementById('un-content');
   if(sr){sr.style.display='none';sr.innerHTML=''}
-  // Restore scroll — queue was never hidden so just set it
+  if(uc)uc.style.display='';
+  // Aggressively restore scroll after display:none→block transition
   var ov=document.getElementById('un-overlay');
   var saved=_unSearchSavedScroll;
-  if(ov&&saved!==undefined)ov.scrollTop=saved;
+  if(ov&&saved!==undefined){
+    ov.scrollTop=saved;
+    var n=0;var id=setInterval(function(){ov.scrollTop=saved;if(++n>10)clearInterval(id)},30);
+  }
 }
 
 var _unSearchSavedScroll=0;
@@ -6139,7 +6145,7 @@ function renderStatus(){
   var hs_count=Object.keys(D.hs||{}).length;
   var ps_count=Object.keys(D.ps||{}).length;
   var el=document.getElementById('status');
-  el.innerHTML='<span>Actors: '+total_people+'</span><span>Headshots: '+hs_count+'</span><span>Posters: '+ps_count+'</span><span>Updated: __BUILD_TIME__</span><span>v30</span>';
+  el.innerHTML='<span>Actors: '+total_people+'</span><span>Headshots: '+hs_count+'</span><span>Posters: '+ps_count+'</span><span>Updated: __BUILD_TIME__</span><span>v31</span>';
 }
 
 function render(){
