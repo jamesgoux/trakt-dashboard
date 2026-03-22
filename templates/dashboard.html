@@ -4041,20 +4041,18 @@ function _unBuildPanel(show){
   h+='</div>';
   // Runtime
   if(show.ep_runtime)h+='<div style="font-size:12px;color:var(--t2);margin-bottom:10px">⏱ '+_unFmtMin(show.ep_runtime)+'</div>';
-  // Synopsis — more text allowed
-  if(show.ep_overview)h+='<p style="font-size:13px;color:var(--t2);line-height:1.6;margin:0 0 16px">'+show.ep_overview+'</p>';
-  // Cast for this episode
-  h+='<div id="un-ep-cast-'+show.season+'-'+show.episode+'" style="margin-bottom:12px"></div>';
-  // Watch history container (populated async from _unRenderDetail, not here)
-  h+='<div id="un-ep-history-'+show.season+'-'+show.episode+'" class="un-ep-hist" style="margin-bottom:16px"></div>';
-  // Spacer pushes buttons to bottom
-  h+='<div style="flex:1;min-height:16px"></div>';
-  // Watch buttons — pinned at bottom
-  h+='<div style="display:flex;gap:8px;padding-bottom:120px">';
+  // Watch buttons — above synopsis
+  h+='<div style="display:flex;gap:8px;margin-bottom:16px">';
   h+='<button onclick="_unShowDatePicker(\''+slug2+'\','+show.season+','+show.episode+','+(show.ep_trakt_id||0)+')" style="flex:1;padding:14px 8px;background:#0e7490;color:#fff;border:none;border-radius:10px;font-size:13px;cursor:pointer;font-weight:600;min-height:48px">Other Date</button>';
   if(show.ep_aired)h+='<button onclick="markWatchedAt(\''+slug2+'\','+show.season+','+show.episode+','+(show.ep_trakt_id||0)+',\''+show.ep_aired+'\')" style="flex:1;padding:14px 8px;background:#0e7490;color:#fff;border:none;border-radius:10px;font-size:13px;cursor:pointer;font-weight:600;min-height:48px">Air Date</button>';
   h+='<button onclick="markWatchedAt(\''+slug2+'\','+show.season+','+show.episode+','+(show.ep_trakt_id||0)+',\'now\')" style="flex:1;padding:14px 8px;background:var(--tv);color:#fff;border:none;border-radius:10px;font-size:13px;cursor:pointer;font-weight:600;min-height:48px">Just Now</button>';
   h+='</div>';
+  // Synopsis
+  if(show.ep_overview)h+='<p style="font-size:13px;color:var(--t2);line-height:1.6;margin:0 0 16px">'+show.ep_overview+'</p>';
+  // Cast for this episode
+  h+='<div id="un-ep-cast-'+show.season+'-'+show.episode+'" style="margin-bottom:12px"></div>';
+  // Watch history container
+  h+='<div id="un-ep-history-'+show.season+'-'+show.episode+'" class="un-ep-hist" style="margin-bottom:16px;padding-bottom:60px"></div>';
   h+='</div>';
   return h;
 }
@@ -4212,13 +4210,15 @@ function _unRenderDetail(allShows,idx){
   var w=wrap.offsetWidth;
   // Unified touch: first 10px decides horizontal (carousel) or vertical (dismiss)
   // If touch starts inside a horizontal scroll container (cast, streaming), let it scroll natively
-  var _tSx=0,_tCx=0,_tSy=0,_tDir=null,_tActive=false,_tInScroll=false;
+  var _tSx=0,_tCx=0,_tSy=0,_tDir=null,_tActive=false,_tInScroll=false,_tAtBottom=false;
   car.ontouchstart=function(ev){
     _tSx=ev.touches[0].clientX;_tCx=_tSx;_tSy=ev.touches[0].clientY;
     _tDir=null;_tActive=true;
     // Check if touch is inside a horizontally scrollable element
     _tInScroll=!!ev.target.closest('.un-cast-scroll');
     if(_tInScroll)return;// Let native scroll handle it
+    // Check if scrolled to bottom (for dismiss gesture)
+    _tAtBottom=fg.scrollHeight-fg.scrollTop-fg.clientHeight<5;
     car.classList.remove('animating');fg.style.transition='none';
     ev.stopPropagation();
   };
@@ -4227,21 +4227,27 @@ function _unRenderDetail(allShows,idx){
     _tCx=ev.touches[0].clientX;
     var dx=_tCx-_tSx,dy=ev.touches[0].clientY-_tSy;
     if(!_tDir&&(Math.abs(dx)>10||Math.abs(dy)>10)){
-      _tDir=Math.abs(dx)>=Math.abs(dy)?'h':'v';
+      // Only allow vertical dismiss if at scroll boundary
+      // Swipe up (dy<0): only at bottom. Swipe down (dy>0): only at top.
+      if(Math.abs(dy)>Math.abs(dx)){
+        var atTop=fg.scrollTop<5;
+        if((dy>0&&atTop)||(dy<0&&_tAtBottom)){_tDir='v'}
+        else{_tDir='scroll';return}// Let content scroll normally
+      }else{_tDir='h'}
     }
     if(_tDir==='h'){
       var pct=-33.333+(dx/w)*33.333;
-      // Block left swipe only on S1E1 (no previous season to go to)
       if(_crEp<=1&&_crBase&&_crBase.season<=1&&dx>0)pct=Math.max(pct,-33.333);
       car.style.transform='translateX('+pct+'%)';
     }else if(_tDir==='v'){
       fg.style.transform='translateY('+dy+'px)';
     }
-    ev.stopPropagation();
+    if(_tDir!=='scroll')ev.stopPropagation();
   };
   car.ontouchend=function(ev){
     if(!_tActive||_tInScroll){_tActive=false;_tInScroll=false;return}
     _tActive=false;
+    if(_tDir==='scroll'){_tDir=null;return}// Was normal scrolling
     var dx=_tCx-_tSx;
     var dy=(ev.changedTouches?ev.changedTouches[0].clientY:0)-_tSy;
     if(_tDir==='h'){
