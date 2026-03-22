@@ -5850,30 +5850,40 @@ function closeUpNext(){
 // R2: Slide-to-dismiss Up Next — reveals content beneath as you drag right
 (function(){
   var ov=document.getElementById('un-overlay');if(!ov)return;
-  var sx=0,sy=0,tracking=false,moved=false;
+  var sx=0,sy=0,tracking=false,moved=false,_swipeOnSub=false;
   ov.addEventListener('touchstart',function(e){
     sx=e.touches[0].clientX;sy=e.touches[0].clientY;tracking=true;moved=false;
-    ov.style.transition='none';
+    _swipeOnSub=(_unCurrentView!=='home');
+    if(!_swipeOnSub)ov.style.transition='none';
   },{passive:true});
   ov.addEventListener('touchmove',function(e){
     if(!tracking)return;
     var dx=e.touches[0].clientX-sx,dy=Math.abs(e.touches[0].clientY-sy);
     if(!moved&&dy>20){tracking=false;return}
-    if(dx>10){moved=true;ov.style.transform='translateX('+dx+'px)'}
+    if(dx>10){
+      moved=true;
+      // Only slide the overlay on home view — sub-pages just track the gesture
+      if(!_swipeOnSub)ov.style.transform='translateX('+dx+'px)';
+    }
   },{passive:true});
   ov.addEventListener('touchend',function(){
-    if(!tracking&&!moved)return;tracking=false;
-    var dx=parseInt(ov.style.transform.replace(/[^0-9.-]/g,''))||0;
-    ov.style.transition='transform .3s ease';
-    if(dx>window.innerWidth*0.35){
-      // If on a sub-page, navigate back instead of closing
-      if(_unCurrentView!=='home'){
-        ov.style.transform='';
-        _unNavBack();
-      }else{
-        closeUpNext();
-      }
+    if(!tracking&&!moved)return;
+    var finalDx=0;
+    if(_swipeOnSub){
+      // Sub-page: measure raw swipe distance
+      finalDx=moved?100:0;// If moved at all, check threshold below
+    }else{
+      finalDx=parseInt(ov.style.transform.replace(/[^0-9.-]/g,''))||0;
     }
+    tracking=false;
+    if(_swipeOnSub){
+      // On sub-pages, navigate back without moving overlay
+      if(moved){_unNavBack()}
+      moved=false;return;
+    }
+    // Home view: slide-to-dismiss as before
+    ov.style.transition='transform .3s ease';
+    if(finalDx>window.innerWidth*0.35){closeUpNext()}
     else{ov.style.transform=''}
     moved=false;
   },{passive:true});
