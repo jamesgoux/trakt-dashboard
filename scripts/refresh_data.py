@@ -2348,7 +2348,7 @@ if concerts:
         if c.get("date"):
             d = c["date"]
             ll_counts[d]["co"] += 1
-            ll_events[d].append({"t": "20:00", "n": "🎸 " + c["artist"] + " @ " + c.get("venue",""), "ty": "co"})
+            ll_events[d].append({"t": "20:00", "n": c["artist"] + " @ " + c.get("venue",""), "ty": "co"})
 
 # Theater
 if theater:
@@ -2356,7 +2356,7 @@ if theater:
         if t.get("date"):
             d = t["date"][:10]
             ll_counts[d]["th"] += 1
-            ll_events[d].append({"t": "19:30", "n": "🎭 " + t["show"], "ty": "th"})
+            ll_events[d].append({"t": "19:30", "n": t["show"], "ty": "th"})
 
 # Podcasts — include episodes with real dates (poll or export), min 5 min listened
 if os.path.exists("data/pocketcasts_history.json"):
@@ -2381,7 +2381,7 @@ if os.path.exists("data/pocketcasts_history.json"):
         except Exception:
             pass
         ll_counts[d]["pc"] += 1
-        ll_events[d].append({"t": "12:00", "n": "🎙️ " + ev.get("p", "") + " — " + ev.get("t", ""), "ty": "pc"})
+        ll_events[d].append({"t": "12:00", "n": ev.get("p", "") + " — " + ev.get("t", ""), "ty": "pc"})
         pc_ll_count += 1
     if pc_ll_count:
         print(f"  Podcasts in lifeline: {pc_ll_count} episodes (poll+export, >5min)")
