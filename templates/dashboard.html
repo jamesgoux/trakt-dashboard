@@ -5935,45 +5935,79 @@ function closeUpNext(){
   ov.style.transform='translateX(100%)';
   setTimeout(function(){ov.style.display='none';ov.style.transform='';_unlockBody()},320);
 }
-// R2: Slide-to-dismiss Up Next — reveals content beneath as you drag right
+// R2: Slide-to-dismiss Up Next — horizontal on home, vertical+horizontal on sub-pages
 (function(){
   var ov=document.getElementById('un-overlay');if(!ov)return;
-  var sx=0,sy=0,tracking=false,moved=false,_swipeOnSub=false;
+  var sx=0,sy=0,tracking=false,_dir=null,_onSub=false,_atTop=false,_atBot=false;
+  var cnt=document.getElementById('un-content');
   ov.addEventListener('touchstart',function(e){
-    sx=e.touches[0].clientX;sy=e.touches[0].clientY;tracking=true;moved=false;
-    _swipeOnSub=(_unCurrentView!=='home');
-    if(!_swipeOnSub)ov.style.transition='none';
+    sx=e.touches[0].clientX;sy=e.touches[0].clientY;
+    tracking=true;_dir=null;
+    _onSub=(_unCurrentView!=='home');
+    _atTop=ov.scrollTop<5;
+    _atBot=ov.scrollHeight-ov.scrollTop-ov.clientHeight<5;
+    if(!_onSub)ov.style.transition='none';
+    if(_onSub&&cnt){cnt.style.transition='none'}
   },{passive:true});
   ov.addEventListener('touchmove',function(e){
     if(!tracking)return;
-    var dx=e.touches[0].clientX-sx,dy=Math.abs(e.touches[0].clientY-sy);
-    if(!moved&&dy>20){tracking=false;return}
-    if(dx>10){
-      moved=true;
-      // Only slide the overlay on home view — sub-pages just track the gesture
-      if(!_swipeOnSub)ov.style.transform='translateX('+dx+'px)';
+    var dx=e.touches[0].clientX-sx,dy=e.touches[0].clientY-sy;
+    var adx=Math.abs(dx),ady=Math.abs(dy);
+    if(!_dir&&(adx>10||ady>10)){
+      if(_onSub){
+        // Sub-page: detect horizontal (right) or vertical (down at top, up at bottom)
+        if(adx>ady&&dx>0){_dir='h'}
+        else if(ady>adx&&dy>0&&_atTop){_dir='v'}
+        else if(ady>adx&&dy<0&&_atBot){_dir='v'}
+        else{_dir='none';tracking=false;return}// Let scroll happen
+      }else{
+        // Home: only horizontal right
+        if(dx>10&&adx>ady){_dir='h'}
+        else{_dir='none';tracking=false;return}
+      }
+    }
+    if(_dir==='h'){
+      if(_onSub&&cnt){cnt.style.transform='translateX('+dx+'px)';cnt.style.opacity=Math.max(0,1-adx/300)}
+      else{ov.style.transform='translateX('+dx+'px)'}
+    }else if(_dir==='v'&&_onSub&&cnt){
+      cnt.style.transform='translateY('+dy+'px)';cnt.style.opacity=Math.max(0,1-ady/300);
     }
   },{passive:true});
-  ov.addEventListener('touchend',function(){
-    if(!tracking&&!moved)return;
-    var finalDx=0;
-    if(_swipeOnSub){
-      // Sub-page: measure raw swipe distance
-      finalDx=moved?100:0;// If moved at all, check threshold below
-    }else{
-      finalDx=parseInt(ov.style.transform.replace(/[^0-9.-]/g,''))||0;
-    }
+  ov.addEventListener('touchend',function(e){
+    if(!tracking||_dir==='none'||!_dir){tracking=false;return}
     tracking=false;
-    if(_swipeOnSub){
-      // On sub-pages, navigate back without moving overlay
-      if(moved){_unNavBack()}
-      moved=false;return;
+    var dx=e.changedTouches[0].clientX-sx,dy=e.changedTouches[0].clientY-sy;
+    var threshold=80;
+    if(_dir==='h'&&!_onSub){
+      // Home: slide-to-dismiss overlay
+      var ovDx=parseInt(ov.style.transform.replace(/[^0-9.-]/g,''))||0;
+      ov.style.transition='transform .3s ease';
+      if(ovDx>window.innerWidth*0.35){closeUpNext()}
+      else{ov.style.transform=''}
+    }else if(_dir==='h'&&_onSub&&cnt){
+      // Sub-page horizontal: animate out right then nav back
+      if(dx>threshold){
+        cnt.style.transition='transform .2s ease,opacity .2s ease';
+        cnt.style.transform='translateX(100%)';cnt.style.opacity='0';
+        setTimeout(function(){cnt.style.transition='none';cnt.style.transform='';cnt.style.opacity='1';_unNavBack()},220);
+      }else{
+        cnt.style.transition='transform .2s ease,opacity .2s ease';
+        cnt.style.transform='';cnt.style.opacity='1';
+        setTimeout(function(){cnt.style.transition=''},220);
+      }
+    }else if(_dir==='v'&&_onSub&&cnt){
+      // Sub-page vertical: animate out up/down then nav back
+      if(Math.abs(dy)>threshold){
+        var dir=dy>0?'100%':'-100%';
+        cnt.style.transition='transform .2s ease,opacity .2s ease';
+        cnt.style.transform='translateY('+dir+')';cnt.style.opacity='0';
+        setTimeout(function(){cnt.style.transition='none';cnt.style.transform='';cnt.style.opacity='1';_unNavBack()},220);
+      }else{
+        cnt.style.transition='transform .2s ease,opacity .2s ease';
+        cnt.style.transform='';cnt.style.opacity='1';
+        setTimeout(function(){cnt.style.transition=''},220);
+      }
     }
-    // Home view: slide-to-dismiss as before
-    ov.style.transition='transform .3s ease';
-    if(finalDx>window.innerWidth*0.35){closeUpNext()}
-    else{ov.style.transform=''}
-    moved=false;
   },{passive:true});
 })();
 
