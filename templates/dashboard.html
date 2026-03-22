@@ -5203,7 +5203,11 @@ function _unFetchCast(tmdbId,type,season,episode,containerId,limit){
   // type: 'show','season','episode','movie'
   if(!tmdbId)return;
   var ck=type+'|'+tmdbId+'|'+(season||0)+'|'+(episode||0);
-  if(_castCache[ck]!==undefined){_unRenderCast(_castCache[ck],containerId,limit);return}
+  if(_castCache[ck]!==undefined){
+    if(type==='episode'&&_castCache[ck]._ep){_unRenderEpCast(_castCache[ck],containerId)}
+    else{_unRenderCast(_castCache[ck],containerId,limit)}
+    return;
+  }
   var tk=(D.un||{}).tmdb_key||'';if(!tk)return;
   var path='';
   if(type==='movie')path='/3/movie/'+tmdbId+'/credits';
@@ -5213,11 +5217,19 @@ function _unFetchCast(tmdbId,type,season,episode,containerId,limit){
   fetch('https://api.themoviedb.org'+path+'?api_key='+tk)
   .then(function(r){return r.json()})
   .then(function(d){
-    var cast=(d.cast||[]).slice(0,20).map(function(p){
-      return{name:p.name||'',character:p.character||p.roles?((p.roles||[{}])[0].character||p.character||''):'',photo:p.profile_path?'https://image.tmdb.org/t/p/w185'+p.profile_path:''};
-    });
-    _castCache[ck]=cast;
-    _unRenderCast(cast,containerId,limit);
+    function _mapPerson(p){return{name:p.name||'',character:p.character||((p.roles||[{}])[0]||{}).character||'',photo:p.profile_path?'https://image.tmdb.org/t/p/w185'+p.profile_path:''}}
+    if(type==='episode'){
+      // Episodes: separate guest stars and regulars
+      var guests=(d.guest_stars||[]).slice(0,20).map(_mapPerson);
+      var regulars=(d.cast||[]).slice(0,20).map(_mapPerson);
+      var epData={_ep:true,guests:guests,regulars:regulars};
+      _castCache[ck]=epData;
+      _unRenderEpCast(epData,containerId);
+    }else{
+      var cast=(d.cast||[]).slice(0,20).map(_mapPerson);
+      _castCache[ck]=cast;
+      _unRenderCast(cast,containerId,limit);
+    }
   })
   .catch(function(){_castCache[ck]=[]});
 }
@@ -5235,6 +5247,33 @@ function _unRenderCast(cast,containerId,limit){
     h+='</div>';
   });
   h+='</div>';
+  ct.innerHTML=h;
+}
+function _unCastRow(people,limit){
+  var h='<div class="un-cast-scroll">';
+  people.slice(0,limit||15).forEach(function(p){
+    h+='<div class="un-cast-card">';
+    if(p.photo)h+='<img class="un-cast-photo" src="'+p.photo+'" alt="" loading="lazy" onerror="this.outerHTML=\'<div class=un-cast-photo-ph>👤</div>\'">';
+    else h+='<div class="un-cast-photo-ph">👤</div>';
+    h+='<div class="un-cast-name">'+p.name+'</div>';
+    if(p.character)h+='<div class="un-cast-role">'+p.character+'</div>';
+    h+='</div>';
+  });
+  h+='</div>';
+  return h;
+}
+function _unRenderEpCast(data,containerId){
+  var ct=document.getElementById(containerId);if(!ct)return;
+  if(!data.guests.length&&!data.regulars.length){ct.innerHTML='';return}
+  var h='';
+  if(data.guests.length){
+    h+='<div class="un-section" style="margin-bottom:4px">Guest Stars</div>';
+    h+=_unCastRow(data.guests,20);
+  }
+  if(data.regulars.length){
+    h+='<div class="un-section" style="margin-bottom:4px;'+(data.guests.length?'margin-top:12px':'')+'">Cast</div>';
+    h+=_unCastRow(data.regulars,20);
+  }
   ct.innerHTML=h;
 }
 
