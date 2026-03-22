@@ -118,12 +118,9 @@ tr:hover td{background:rgba(255,255,255,.02)}
 .un-carousel-panel{width:33.333%;flex-shrink:0;padding:0 12px;box-sizing:border-box}
 .un-detail img{width:100%;border-radius:8px;margin-bottom:12px;max-height:280px;object-fit:cover}
 /* Search feature styles */
-.un-search-wrap{padding:12px 16px 4px;max-width:600px;margin:0 auto}
-.un-search-input{width:100%;padding:12px 16px 12px 40px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:10px;color:var(--tx);font-size:15px;outline:none;box-sizing:border-box;-webkit-appearance:none}
+.un-search-input{width:100%;padding:10px 14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:10px;color:var(--tx);font-size:15px;outline:none;box-sizing:border-box;-webkit-appearance:none}
 .un-search-input:focus{border-color:var(--tv);background:rgba(255,255,255,.08)}
 .un-search-input::placeholder{color:var(--t2)}
-.un-search-icon{position:absolute;left:28px;top:50%;transform:translateY(-50%);color:var(--t2);font-size:16px;pointer-events:none}
-.un-search-clear{position:absolute;right:28px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--t2);font-size:18px;cursor:pointer;padding:4px 8px;display:none}
 .un-sr{padding:8px 16px;max-width:600px;margin:0 auto}
 .un-sr-item{display:flex;gap:12px;padding:12px;background:var(--sf);border-radius:10px;border:1px solid rgba(255,255,255,.06);margin-bottom:8px;cursor:pointer;transition:background .15s;align-items:center}
 .un-sr-item:active{background:#1e1e3a}
@@ -468,14 +465,21 @@ Drop GameTrack games.csv or <span style="color:#6366f1;text-decoration:underline
 </div>
 <!-- Up Next Overlay -->
 <div id="un-overlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg);z-index:9000;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;transition:transform .3s ease;will-change:transform;scroll-padding-top:70px">
-<div style="position:sticky;top:0;z-index:9001;background:rgba(15,15,15,.97);backdrop-filter:blur(8px);padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:space-between">
-<button onclick="_unNavBack()" class="un-back" id="un-back-btn">←</button>
-<h2 id="un-header-title" style="font-size:18px;font-weight:700;margin:0"><span class="i">📺</span> Up Next</h2>
+<div id="un-hdr" style="position:sticky;top:0;z-index:9001;background:rgba(15,15,15,.97);backdrop-filter:blur(8px);padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.06)">
+<!-- Normal header: ← | Title (centered) | 🔍 -->
+<div id="un-hdr-normal" style="display:flex;align-items:center">
+<button onclick="_unNavBack()" class="un-back" id="un-back-btn" style="flex-shrink:0">←</button>
+<h2 id="un-header-title" style="font-size:18px;font-weight:700;margin:0;flex:1;text-align:center"><span class="i">📺</span> Up Next</h2>
+<button onclick="_unOpenSearchBar()" class="un-back" id="un-search-btn" style="flex-shrink:0;font-size:16px">🔍</button>
 </div>
-<div class="un-search-wrap" style="position:relative">
-<span class="un-search-icon">🔍</span>
-<input type="text" id="un-search" class="un-search-input" placeholder="Search movies & shows on Trakt…" autocomplete="off" autocorrect="off" spellcheck="false">
-<button id="un-search-clear" class="un-search-clear" onclick="_unSearchClear()">✕</button>
+<!-- Search header: ← | input | ✕ -->
+<div id="un-hdr-search" style="display:none;align-items:center;gap:8px">
+<button onclick="_unCloseSearchBar()" class="un-back" style="flex-shrink:0">←</button>
+<div style="flex:1;position:relative">
+<input type="text" id="un-search" class="un-search-input" placeholder="Search movies & shows…" autocomplete="off" autocorrect="off" spellcheck="false" style="padding-left:14px">
+</div>
+<button id="un-search-clear" class="un-search-clear" onclick="_unSearchClear()" style="position:static;transform:none;display:none;flex-shrink:0;padding:8px;color:var(--t2);background:none;border:none;font-size:18px;cursor:pointer">✕</button>
+</div>
 </div>
 <div id="un-content"></div>
 </div>
@@ -4950,6 +4954,25 @@ function _traktGet(path,needsAuth){
   return fetch('https://api.trakt.tv'+path,{headers:hdr}).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json()});
 }
 
+// Search bar open/close
+function _unOpenSearchBar(){
+  document.getElementById('un-hdr-normal').style.display='none';
+  document.getElementById('un-hdr-search').style.display='flex';
+  var input=document.getElementById('un-search');
+  input.value='';
+  document.getElementById('un-search-clear').style.display='none';
+  setTimeout(function(){input.focus()},50);
+}
+function _unCloseSearchBar(){
+  document.getElementById('un-hdr-search').style.display='none';
+  document.getElementById('un-hdr-normal').style.display='flex';
+  var input=document.getElementById('un-search');
+  input.value='';
+  input.blur();
+  document.getElementById('un-search-clear').style.display='none';
+  if(_unCurrentView==='search')_unGoHome();
+}
+
 // Search input setup
 (function(){
   var input=document.getElementById('un-search');
@@ -4973,7 +4996,7 @@ function _unSearchClear(){
   input.value='';
   document.getElementById('un-search-clear').style.display='none';
   if(_unCurrentView!=='home')_unGoHome();
-  input.blur();
+  input.focus();
 }
 
 function _unDoSearch(query){
@@ -5059,33 +5082,43 @@ function _unSearchTap(type,slug,tmdbId){
 function _unSetView(view,data){
   if(_unCurrentView!==view||view==='show'||view==='season'||view==='movie'){
     if(_unCurrentView!=='home'||view!=='search'){
-      _unNavStack.push({view:_unCurrentView,data:null,scroll:document.getElementById('un-overlay').scrollTop});
+      _unNavStack.push({view:_unCurrentView,data:data||null,scroll:document.getElementById('un-overlay').scrollTop});
     }else if(_unCurrentView==='home'&&view==='search'){
       _unNavStack=[{view:'home',data:null,scroll:_unScrollPos}];
     }
   }
   _unCurrentView=view;
   _unUpdateHeader();
+  // When entering search view, show the search header
+  if(view==='search'){
+    document.getElementById('un-hdr-normal').style.display='none';
+    document.getElementById('un-hdr-search').style.display='flex';
+  }
 }
 
 function _unUpdateHeader(){
   var title=document.getElementById('un-header-title');
-  var searchWrap=document.querySelector('.un-search-wrap');
+  var searchBtn=document.getElementById('un-search-btn');
   if(_unCurrentView==='home'){
     title.innerHTML='<span class="i">📺</span> Up Next';
-    if(searchWrap)searchWrap.style.display='';
+    if(searchBtn)searchBtn.style.display='';
   }else if(_unCurrentView==='search'){
     title.innerHTML='<span class="i">🔍</span> Search';
-    if(searchWrap)searchWrap.style.display='';
+    if(searchBtn)searchBtn.style.display='none';
   }else if(_unCurrentView==='show'){
     title.innerHTML='<span class="i">📺</span> Show';
-    if(searchWrap)searchWrap.style.display='none';
+    if(searchBtn)searchBtn.style.display='none';
   }else if(_unCurrentView==='season'){
     title.innerHTML='<span class="i">📺</span> Season';
-    if(searchWrap)searchWrap.style.display='none';
+    if(searchBtn)searchBtn.style.display='none';
   }else if(_unCurrentView==='movie'){
     title.innerHTML='<span class="i">🎞️</span> Movie';
-    if(searchWrap)searchWrap.style.display='none';
+    if(searchBtn)searchBtn.style.display='none';
+  }
+  // Ensure normal header is shown (not search bar) for non-search views
+  if(_unCurrentView!=='search'){
+    document.getElementById('un-hdr-normal').style.display='flex';
+    document.getElementById('un-hdr-search').style.display='none';
   }
 }
 
@@ -5093,6 +5126,11 @@ function _unNavBack(){
   // If episode detail is open, dismiss it first
   var fg=document.getElementById('un-detail-fg');
   if(fg){_unDismissDetail();return}
+  // If search bar is open but no search done, just close the search bar
+  if(document.getElementById('un-hdr-search').style.display==='flex'&&_unCurrentView==='home'){
+    _unCloseSearchBar();
+    return;
+  }
   if(_unNavStack.length){
     var prev=_unNavStack.pop();
     _unCurrentView=prev.view;
@@ -5101,13 +5139,21 @@ function _unNavBack(){
       _unGoHome();
       _unNavStack=[];
     }else if(prev.view==='search'){
+      // Return to search results — show search bar with query
+      document.getElementById('un-hdr-normal').style.display='none';
+      document.getElementById('un-hdr-search').style.display='flex';
       var input=document.getElementById('un-search');
       var q=input?input.value.trim():'';
       if(q&&_searchCache[q])_unShowSearchResults(q,_searchCache[q]);
       else _unGoHome();
     }else if(prev.view==='show'){
-      // re-render show page from cache - not implemented, go home
-      _unGoHome();
+      // Re-render show page from cache
+      var cached=prev.data&&_showDataCache[prev.data.slug];
+      if(cached&&cached.show){
+        _unCurrentView='show';
+        _unUpdateHeader();
+        _unRenderShowPage(prev.data.slug,cached.show,cached.seasons,cached.progress,cached.tmdbId);
+      }else _unGoHome();
     }
     if(prev.scroll){
       var ov=document.getElementById('un-overlay');
@@ -5122,8 +5168,11 @@ function _unGoHome(){
   _unCurrentView='home';
   _unNavStack=[];
   _unUpdateHeader();
+  // Reset search bar to icon mode
+  document.getElementById('un-hdr-normal').style.display='flex';
+  document.getElementById('un-hdr-search').style.display='none';
   var input=document.getElementById('un-search');
-  if(input)input.value='';
+  if(input){input.value='';input.blur()}
   document.getElementById('un-search-clear').style.display='none';
   _unScrollPos=0;
   _unReturning=false;
@@ -5569,7 +5618,9 @@ function closeUpNext(){
   _unCurrentView='home';
   _unNavStack=[];
   _unUpdateHeader();
-  var searchWrap=document.querySelector('.un-search-wrap');if(searchWrap)searchWrap.style.display='';
+  // Reset search bar
+  document.getElementById('un-hdr-normal').style.display='flex';
+  document.getElementById('un-hdr-search').style.display='none';
   var input=document.getElementById('un-search');if(input)input.value='';
   document.getElementById('un-search-clear').style.display='none';
   var ov=document.getElementById('un-overlay');
