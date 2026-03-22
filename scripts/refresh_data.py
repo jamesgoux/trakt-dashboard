@@ -147,6 +147,8 @@ def fetch_cast_and_studios(entries):
         for k, v in raw.items():
             slug_studios[k] = v if isinstance(v, list) else [v]
     total = len(show_slugs) + len(movie_slugs); done = 0; skipped = 0; tmdb_ok = 0; trakt_fallback = 0
+    trakt_calls = 0; trakt_budget = int(os.environ.get("TRAKT_CAST_BUDGET", "200"))
+    trakt_budget_hit = False
     # Track which slugs have been fully fetched from TMDB credits
     tmdb_credits_done = set()
     if os.path.exists("data/tmdb_credits_done.json"):
@@ -154,92 +156,110 @@ def fetch_cast_and_studios(entries):
             tmdb_credits_done = set(json.load(f))
         print(f"  Loaded {len(tmdb_credits_done)} TMDB credits-done slugs")
     all_slugs = [(s, "shows") for s in show_slugs] + [(s, "movies") for s in movie_slugs]
+    # Sort by recency: recently watched titles first so new content gets processed before budget runs out
+    slug_recency = {}
+    for e in entries:
+        wa = e.get("watched_at", "")
+        if wa and e.get("trakt_slug"):
+            slug_recency[e["trakt_slug"]] = max(slug_recency.get(e["trakt_slug"], ""), wa[:10])
+    all_slugs.sort(key=lambda x: slug_recency.get(x[0], ""), reverse=True)
     for slug, kind in all_slugs:
         # Only skip if TMDB credits were already successfully fetched AND we have studios
         if slug in tmdb_credits_done and slug in slug_studios:
             done += 1; skipped += 1; continue
+        needs_cast = slug not in tmdb_credits_done
+        needs_studios = slug not in slug_studios
         fetched = False
         # Try TMDB first (richer cast data: 30-50+ vs Trakt's 5-10)
-        tmdb_info = slug_tmdb.get(slug)
-        if TMDB_API_KEY and tmdb_info:
-            tmdb_id, is_show = tmdb_info
-            tmdb_type = "tv" if is_show else "movie"
-            try:
-                tr = retry_request("get", f"{TMDB_BASE}/{tmdb_type}/{tmdb_id}/credits?api_key={TMDB_API_KEY}", timeout=10)
-                if tr and tr.status_code == 200:
-                    data = tr.json()
-                    # Cast (limit to top 40 billed)
-                    for c in sorted(data.get("cast", []), key=lambda x: x.get("order", 999))[:40]:
-                        name = c.get("name", "")
-                        if not name: continue
-                        pid = _slugify(name)
-                        if not pid: continue
-                        people[pid]["name"] = name
-                        # TMDB gender: 1=female, 2=male, 0/3=other
-                        g = c.get("gender", 0)
-                        if g in (1, 2): people[pid]["gender"] = g
-                        people[pid]["titles"].add(slug)
-                    # Crew: directors + writers
-                    for c in data.get("crew", []):
-                        name = c.get("name", "")
-                        if not name: continue
-                        pid = _slugify(name)
-                        if not pid: continue
-                        job = c.get("job", "")
-                        dept = c.get("department", "")
-                        if dept == "Directing" and job in ("Director", "Co-Director"):
-                            directors[pid]["name"] = name
-                            directors[pid]["titles"].add(slug)
-                        elif dept == "Writing" and job in ("Writer", "Screenplay", "Author", "Original Story", "Story", "Novel"):
-                            writers[pid]["name"] = name
-                            writers[pid]["titles"].add(slug)
-                    fetched = True; tmdb_ok += 1; tmdb_credits_done.add(slug)
-            except Exception as e:
-                pass
-            time.sleep(0.05)  # TMDB rate limit: ~40/sec
-        # Fallback to Trakt if TMDB didn't work
-        if not fetched:
-            try:
-                r = retry_request("get", f"{BASE_URL}/{kind}/{slug}/people?extended=full", headers=HEADERS, timeout=10)
-                if r and r.status_code == 200:
-                    for c in r.json().get("cast", []):
-                        p = c.get("person", {}); pid = p.get("ids", {}).get("slug", "")
-                        if pid:
-                            people[pid]["name"] = p.get("name", "")
-                            if p.get("gender") is not None: people[pid]["gender"] = p.get("gender")
+        if needs_cast:
+            tmdb_info = slug_tmdb.get(slug)
+            if TMDB_API_KEY and tmdb_info:
+                tmdb_id, is_show = tmdb_info
+                tmdb_type = "tv" if is_show else "movie"
+                try:
+                    tr = retry_request("get", f"{TMDB_BASE}/{tmdb_type}/{tmdb_id}/credits?api_key={TMDB_API_KEY}", timeout=10)
+                    if tr and tr.status_code == 200:
+                        data = tr.json()
+                        # Cast (limit to top 40 billed)
+                        for c in sorted(data.get("cast", []), key=lambda x: x.get("order", 999))[:40]:
+                            name = c.get("name", "")
+                            if not name: continue
+                            pid = _slugify(name)
+                            if not pid: continue
+                            people[pid]["name"] = name
+                            # TMDB gender: 1=female, 2=male, 0/3=other
+                            g = c.get("gender", 0)
+                            if g in (1, 2): people[pid]["gender"] = g
                             people[pid]["titles"].add(slug)
-                    crew = r.json().get("crew", {})
-                    for cp in crew.get("directing", []):
-                        if set(cp.get("jobs", [])) & {"Director", "Co-Director"}:
-                            pid2 = cp.get("person", {}).get("ids", {}).get("slug", "")
-                            if pid2: directors[pid2]["name"] = cp["person"].get("name", ""); directors[pid2]["titles"].add(slug)
-                    for cp in crew.get("writing", []):
-                        if set(cp.get("jobs", [])) & {"Writer", "Screenplay", "Author", "Original Story", "Story"}:
-                            pid2 = cp.get("person", {}).get("ids", {}).get("slug", "")
-                            if pid2: writers[pid2]["name"] = cp["person"].get("name", ""); writers[pid2]["titles"].add(slug)
-                    trakt_fallback += 1
-            except Exception: pass
+                        # Crew: directors + writers
+                        for c in data.get("crew", []):
+                            name = c.get("name", "")
+                            if not name: continue
+                            pid = _slugify(name)
+                            if not pid: continue
+                            job = c.get("job", "")
+                            dept = c.get("department", "")
+                            if dept == "Directing" and job in ("Director", "Co-Director"):
+                                directors[pid]["name"] = name
+                                directors[pid]["titles"].add(slug)
+                            elif dept == "Writing" and job in ("Writer", "Screenplay", "Author", "Original Story", "Story", "Novel"):
+                                writers[pid]["name"] = name
+                                writers[pid]["titles"].add(slug)
+                        fetched = True; tmdb_ok += 1; tmdb_credits_done.add(slug)
+                except Exception as e:
+                    pass
+                time.sleep(0.05)  # TMDB rate limit: ~40/sec
+            # Fallback to Trakt for cast only if TMDB didn't work AND budget allows
+            if not fetched and not trakt_budget_hit:
+                try:
+                    r = retry_request("get", f"{BASE_URL}/{kind}/{slug}/people?extended=full", headers=HEADERS, timeout=10)
+                    trakt_calls += 1
+                    if r and r.status_code == 200:
+                        for c in r.json().get("cast", []):
+                            p = c.get("person", {}); pid = p.get("ids", {}).get("slug", "")
+                            if pid:
+                                people[pid]["name"] = p.get("name", "")
+                                if p.get("gender") is not None: people[pid]["gender"] = p.get("gender")
+                                people[pid]["titles"].add(slug)
+                        crew = r.json().get("crew", {})
+                        for cp in crew.get("directing", []):
+                            if set(cp.get("jobs", [])) & {"Director", "Co-Director"}:
+                                pid2 = cp.get("person", {}).get("ids", {}).get("slug", "")
+                                if pid2: directors[pid2]["name"] = cp["person"].get("name", ""); directors[pid2]["titles"].add(slug)
+                        for cp in crew.get("writing", []):
+                            if set(cp.get("jobs", [])) & {"Writer", "Screenplay", "Author", "Original Story", "Story"}:
+                                pid2 = cp.get("person", {}).get("ids", {}).get("slug", "")
+                                if pid2: writers[pid2]["name"] = cp["person"].get("name", ""); writers[pid2]["titles"].add(slug)
+                        trakt_fallback += 1
+                except Exception: pass
+                time.sleep(1.0)  # respect Trakt rate limits
         # Fetch studios from Trakt (TMDB doesn't have good studio data)
-        try:
-            r2 = retry_request("get", f"{BASE_URL}/{kind}/{slug}/studios", headers=HEADERS, timeout=5)
-            if r2 and r2.status_code == 200:
-                st = r2.json()
-                if st:
-                    names = [s["name"] for s in st]
-                    existing_st = set(slug_studios.get(slug, []))
-                    existing_st.update(names)
-                    slug_studios[slug] = list(existing_st)
-        except Exception: pass
+        if needs_studios and not trakt_budget_hit:
+            try:
+                r2 = retry_request("get", f"{BASE_URL}/{kind}/{slug}/studios", headers=HEADERS, timeout=5)
+                trakt_calls += 1
+                if r2 and r2.status_code == 200:
+                    st = r2.json()
+                    if st:
+                        names = [s["name"] for s in st]
+                        existing_st = set(slug_studios.get(slug, []))
+                        existing_st.update(names)
+                        slug_studios[slug] = list(existing_st)
+            except Exception: pass
+            time.sleep(1.0)  # respect Trakt rate limits
         done += 1
-        if done % 100 == 0:
-            print(f"  cast+studios: {done}/{total} (skipped {skipped}, TMDB: {tmdb_ok}, Trakt: {trakt_fallback})")
+        # Check Trakt budget
+        if trakt_calls >= trakt_budget and not trakt_budget_hit:
+            trakt_budget_hit = True
+            print(f"  ⚠️ Trakt budget reached ({trakt_calls} calls) — skipping remaining Trakt calls, TMDB continues")
+        if done % 50 == 0:
+            print(f"  cast+studios: {done}/{total} (skipped {skipped}, TMDB: {tmdb_ok}, Trakt: {trakt_fallback}, Trakt calls: {trakt_calls}/{trakt_budget})")
             _p = {pid: {"name": i["name"], "gender": i["gender"], "titles": list(i["titles"])} for pid, i in people.items()}
             with open("data/people.json", "w") as f: json.dump(_p, f, separators=(',', ':'))
             with open("data/studios.json", "w") as f: json.dump(slug_studios, f, separators=(',', ':'))
             with open("data/tmdb_credits_done.json", "w") as f: json.dump(sorted(tmdb_credits_done), f, separators=(',', ':'))
-            time.sleep(0.8)  # respect Trakt rate limits (0.3 caused frequent 429s)
     print(f"  people: {len(people)}, studios: {len(slug_studios)}, directors: {len(directors)}, writers: {len(writers)}")
-    print(f"  Sources: TMDB={tmdb_ok}, Trakt fallback={trakt_fallback}, Skipped={skipped}")
+    print(f"  Sources: TMDB={tmdb_ok}, Trakt fallback={trakt_fallback}, Skipped={skipped}, Trakt API calls={trakt_calls}/{trakt_budget}")
     # Save TMDB credits tracking
     with open("data/tmdb_credits_done.json", "w") as f:
         json.dump(sorted(tmdb_credits_done), f, separators=(',', ':'))
