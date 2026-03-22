@@ -481,15 +481,15 @@ Drop GameTrack games.csv or <span style="color:#6366f1;text-decoration:underline
 <!-- Up Next Overlay -->
 <div id="un-overlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg);z-index:9000;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;transition:transform .3s ease;will-change:transform;scroll-padding-top:70px">
 <div id="un-hdr" style="position:sticky;top:0;z-index:9001;background:rgba(15,15,15,.97);backdrop-filter:blur(8px);padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.06)">
-<!-- Normal header: ← | Title (centered) | 🔍 -->
+<!-- Normal header: Home | Title (centered) | 🔍 -->
 <div id="un-hdr-normal" style="display:flex;align-items:center">
-<button onclick="_unNavBack()" class="un-back" id="un-back-btn" style="flex-shrink:0">←</button>
+<button onclick="_unHomeBtn()" class="un-back" id="un-back-btn" style="flex-shrink:0">←</button>
 <h2 id="un-header-title" style="font-size:18px;font-weight:700;margin:0;flex:1;text-align:center"><span class="i">📺</span> Up Next</h2>
 <button onclick="_unOpenSearchBar()" class="un-back" id="un-search-btn" style="flex-shrink:0;font-size:16px">🔍</button>
 </div>
 <!-- Search header: ← | input | ✕ -->
 <div id="un-hdr-search" style="display:none;align-items:center;gap:8px">
-<button onclick="_unCloseSearchBar()" class="un-back" style="flex-shrink:0">←</button>
+<button onclick="_unHomeBtn()" class="un-back" style="flex-shrink:0">←</button>
 <div style="flex:1;position:relative">
 <input type="text" id="un-search" class="un-search-input" placeholder="Search movies & shows…" autocomplete="off" autocorrect="off" spellcheck="false" style="padding-left:14px">
 </div>
@@ -497,6 +497,7 @@ Drop GameTrack games.csv or <span style="color:#6366f1;text-decoration:underline
 </div>
 </div>
 <div id="un-content"></div>
+<div id="un-search-results" style="display:none"></div>
 </div>
 <script>
 var D=__DASHBOARD_DATA__;
@@ -4041,20 +4042,18 @@ function _unBuildPanel(show){
   h+='</div>';
   // Runtime
   if(show.ep_runtime)h+='<div style="font-size:12px;color:var(--t2);margin-bottom:10px">⏱ '+_unFmtMin(show.ep_runtime)+'</div>';
-  // Synopsis — more text allowed
-  if(show.ep_overview)h+='<p style="font-size:13px;color:var(--t2);line-height:1.6;margin:0 0 16px">'+show.ep_overview+'</p>';
-  // Cast for this episode
-  h+='<div id="un-ep-cast-'+show.season+'-'+show.episode+'" style="margin-bottom:12px"></div>';
-  // Watch history container (populated async from _unRenderDetail, not here)
-  h+='<div id="un-ep-history-'+show.season+'-'+show.episode+'" class="un-ep-hist" style="margin-bottom:16px"></div>';
-  // Spacer pushes buttons to bottom
-  h+='<div style="flex:1;min-height:16px"></div>';
-  // Watch buttons — pinned at bottom
-  h+='<div style="display:flex;gap:8px;padding-bottom:120px">';
+  // Watch buttons — above synopsis
+  h+='<div style="display:flex;gap:8px;margin-bottom:16px">';
   h+='<button onclick="_unShowDatePicker(\''+slug2+'\','+show.season+','+show.episode+','+(show.ep_trakt_id||0)+')" style="flex:1;padding:14px 8px;background:#0e7490;color:#fff;border:none;border-radius:10px;font-size:13px;cursor:pointer;font-weight:600;min-height:48px">Other Date</button>';
   if(show.ep_aired)h+='<button onclick="markWatchedAt(\''+slug2+'\','+show.season+','+show.episode+','+(show.ep_trakt_id||0)+',\''+show.ep_aired+'\')" style="flex:1;padding:14px 8px;background:#0e7490;color:#fff;border:none;border-radius:10px;font-size:13px;cursor:pointer;font-weight:600;min-height:48px">Air Date</button>';
   h+='<button onclick="markWatchedAt(\''+slug2+'\','+show.season+','+show.episode+','+(show.ep_trakt_id||0)+',\'now\')" style="flex:1;padding:14px 8px;background:var(--tv);color:#fff;border:none;border-radius:10px;font-size:13px;cursor:pointer;font-weight:600;min-height:48px">Just Now</button>';
   h+='</div>';
+  // Synopsis
+  if(show.ep_overview)h+='<p style="font-size:13px;color:var(--t2);line-height:1.6;margin:0 0 16px">'+show.ep_overview+'</p>';
+  // Cast for this episode
+  h+='<div id="un-ep-cast-'+show.season+'-'+show.episode+'" style="margin-bottom:12px"></div>';
+  // Watch history container
+  h+='<div id="un-ep-history-'+show.season+'-'+show.episode+'" class="un-ep-hist" style="margin-bottom:16px;padding-bottom:60px"></div>';
   h+='</div>';
   return h;
 }
@@ -4211,33 +4210,45 @@ function _unRenderDetail(allShows,idx){
   var wrap=car.parentElement;
   var w=wrap.offsetWidth;
   // Unified touch: first 10px decides horizontal (carousel) or vertical (dismiss)
-  var _tSx=0,_tCx=0,_tSy=0,_tDir=null,_tActive=false;
+  // If touch starts inside a horizontal scroll container (cast, streaming), let it scroll natively
+  var _tSx=0,_tCx=0,_tSy=0,_tDir=null,_tActive=false,_tInScroll=false,_tAtBottom=false;
   car.ontouchstart=function(ev){
     _tSx=ev.touches[0].clientX;_tCx=_tSx;_tSy=ev.touches[0].clientY;
     _tDir=null;_tActive=true;
+    // Check if touch is inside a horizontally scrollable element
+    _tInScroll=!!ev.target.closest('.un-cast-scroll');
+    if(_tInScroll)return;// Let native scroll handle it
+    // Check if scrolled to bottom (for dismiss gesture)
+    _tAtBottom=fg.scrollHeight-fg.scrollTop-fg.clientHeight<5;
     car.classList.remove('animating');fg.style.transition='none';
     ev.stopPropagation();
   };
   car.ontouchmove=function(ev){
-    if(!_tActive)return;
+    if(!_tActive||_tInScroll)return;
     _tCx=ev.touches[0].clientX;
     var dx=_tCx-_tSx,dy=ev.touches[0].clientY-_tSy;
     if(!_tDir&&(Math.abs(dx)>10||Math.abs(dy)>10)){
-      _tDir=Math.abs(dx)>=Math.abs(dy)?'h':'v';
+      // Only allow vertical dismiss if at scroll boundary
+      // Swipe up (dy<0): only at bottom. Swipe down (dy>0): only at top.
+      if(Math.abs(dy)>Math.abs(dx)){
+        var atTop=fg.scrollTop<5;
+        if((dy>0&&atTop)||(dy<0&&_tAtBottom)){_tDir='v'}
+        else{_tDir='scroll';return}// Let content scroll normally
+      }else{_tDir='h'}
     }
     if(_tDir==='h'){
       var pct=-33.333+(dx/w)*33.333;
-      // Block left swipe only on S1E1 (no previous season to go to)
       if(_crEp<=1&&_crBase&&_crBase.season<=1&&dx>0)pct=Math.max(pct,-33.333);
       car.style.transform='translateX('+pct+'%)';
     }else if(_tDir==='v'){
       fg.style.transform='translateY('+dy+'px)';
     }
-    ev.stopPropagation();
+    if(_tDir!=='scroll')ev.stopPropagation();
   };
   car.ontouchend=function(ev){
-    if(!_tActive){if(ev)ev.stopPropagation();return}
+    if(!_tActive||_tInScroll){_tActive=false;_tInScroll=false;return}
     _tActive=false;
+    if(_tDir==='scroll'){_tDir=null;return}// Was normal scrolling
     var dx=_tCx-_tSx;
     var dy=(ev.changedTouches?ev.changedTouches[0].clientY:0)-_tSy;
     if(_tDir==='h'){
@@ -4990,7 +5001,28 @@ function _traktGet(path,needsAuth){
 }
 
 // Search bar open/close
+// Home/close button: search active → close search; sub-page → go home; home → close overlay
+function _unHomeBtn(){
+  // If episode detail is open, dismiss it
+  var fg=document.getElementById('un-detail-fg');
+  if(fg){fg.remove();document.getElementById('un-overlay').style.overflowY='auto';_crBase=null;_crAll=null}
+  // If search bar is open, close it and return to queue
+  var searchHdr=document.getElementById('un-hdr-search');
+  if(searchHdr&&searchHdr.style.display==='flex'){
+    _unCloseSearchBar();
+    return;
+  }
+  if(_unCurrentView==='home'){
+    closeUpNext();
+  }else{
+    _unGoHome();
+  }
+}
+
 function _unOpenSearchBar(){
+  // Save scroll position before switching headers
+  var ov=document.getElementById('un-overlay');
+  _unSearchSavedScroll=ov.scrollTop;
   document.getElementById('un-hdr-normal').style.display='none';
   document.getElementById('un-hdr-search').style.display='flex';
   var input=document.getElementById('un-search');
@@ -4998,7 +5030,28 @@ function _unOpenSearchBar(){
   document.getElementById('un-search-clear').style.display='none';
   // Must focus synchronously (same user-gesture call stack) for iOS Safari
   input.focus();
+  // Prevent iOS from scrolling to the input — restore scroll position
+  var saved=_unSearchSavedScroll;
+  requestAnimationFrame(function(){ov.scrollTop=saved});
 }
+// Show/hide search overlay on top of queue (queue stays loaded underneath)
+function _unShowSearchOverlay(){
+  var sr=document.getElementById('un-search-results');
+  var uc=document.getElementById('un-content');
+  if(sr)sr.style.display='';
+  if(uc)uc.style.display='none';
+}
+function _unHideSearchOverlay(){
+  var sr=document.getElementById('un-search-results');
+  var uc=document.getElementById('un-content');
+  if(sr){sr.style.display='none';sr.innerHTML=''}
+  if(uc)uc.style.display='';
+  // Restore scroll
+  var ov=document.getElementById('un-overlay');
+  if(ov&&_unSearchSavedScroll)requestAnimationFrame(function(){ov.scrollTop=_unSearchSavedScroll});
+}
+
+var _unSearchSavedScroll=0;
 function _unCloseSearchBar(){
   document.getElementById('un-hdr-search').style.display='none';
   document.getElementById('un-hdr-normal').style.display='flex';
@@ -5006,7 +5059,11 @@ function _unCloseSearchBar(){
   input.value='';
   input.blur();
   document.getElementById('un-search-clear').style.display='none';
-  if(_unCurrentView==='search')_unGoHome();
+  // Just hide search overlay — queue is still loaded underneath (instant)
+  _unHideSearchOverlay();
+  _unCurrentView='home';
+  _unNavStack=[];
+  _unUpdateHeader();
 }
 
 // Search input setup
@@ -5014,18 +5071,69 @@ function _unCloseSearchBar(){
   var input=document.getElementById('un-search');
   var clearBtn=document.getElementById('un-search-clear');
   if(!input)return;
+  // Typing = filter Up Next queue locally (renders into search overlay)
   input.addEventListener('input',function(){
     var q=input.value.trim();
     clearBtn.style.display=q?'block':'none';
     if(_searchTimer)clearTimeout(_searchTimer);
-    if(!q){
-      if(_unCurrentView==='search')_unGoHome();
-      return;
-    }
-    _searchTimer=setTimeout(function(){_unDoSearch(q)},350);
+    if(!q){_unHideSearchOverlay();return}
+    _searchTimer=setTimeout(function(){_unFilterQueue(q)},150);
   });
+  // Enter = search Trakt (wider search)
   input.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();if(_searchTimer)clearTimeout(_searchTimer);var q=input.value.trim();if(q)_unDoSearch(q)}});
 })();
+
+// Filter the Up Next queue by text match (local, instant)
+function _unFilterQueue(query){
+  if(!query){_unHideSearchOverlay();return}
+  _unShowSearchOverlay();
+  var ud=_unData();var q=query.toLowerCase();
+  var el=document.getElementById('un-search-results');
+  // Filter shows
+  var allShows=(ud.shows||[]).filter(function(s){
+    return (s.show||'').toLowerCase().indexOf(q)>=0||(s.slug||'').toLowerCase().indexOf(q)>=0||(s.ep_title||'').toLowerCase().indexOf(q)>=0;
+  });
+  var recent=(ud.recent||[]).filter(function(s){
+    return (s.show||'').toLowerCase().indexOf(q)>=0||(s.slug||'').toLowerCase().indexOf(q)>=0;
+  });
+  if(!allShows.length&&!recent.length){
+    el.innerHTML='<div class="un-empty" style="padding:30px"><div style="margin-bottom:8px">No matches in your queue for "'+query+'"</div><div style="font-size:12px;color:var(--t2)">Press Enter to search all of Trakt</div></div>';
+    return;
+  }
+  // Render filtered results using the same card format
+  var h='';
+  if(allShows.length){
+    h+='<div class="un-section">🔍 Matching Shows ('+allShows.length+')</div><div class="un-grid">';
+    allShows.forEach(function(s){
+      var pct=s.aired_total?Math.round(s.completed/s.aired_total*100):0;
+      h+='<div class="un-card un-card-tap" data-slug="'+s.slug+'" data-s="'+s.season+'" data-e="'+s.episode+'" data-eid="'+(s.ep_trakt_id||0)+'" data-tmdb="'+(s.tmdb_id||'')+'" onclick="showEpDetail(this)">';
+      if(s.poster)h+='<img class="un-poster" src="'+s.poster+'" loading="lazy" onerror="this.style.display=\'none\'" alt="">';
+      else h+='<div class="un-poster-ph">📺</div>';
+      h+='<div class="un-info"><div class="un-show">'+s.show+'</div>';
+      h+='<div class="un-ep">S'+String(s.season).padStart(2,'0')+'E'+String(s.episode).padStart(2,'0');
+      if(s.ep_title)h+=' — '+s.ep_title;
+      h+='</div>';
+      h+='<div class="un-prog-wrap"><div class="un-prog"><div class="un-prog-bar" style="width:'+pct+'%"></div>';
+      h+='<div class="un-prog-text"><span>'+(s.ep_runtime?_unFmtMin(s.ep_runtime):'')+'</span><span>'+(s.eps_left||0)+' eps</span></div></div></div>';
+      h+='</div></div>';
+    });
+    h+='</div>';
+  }
+  if(recent.length){
+    h+='<div class="un-section">🕐 Recent Matches ('+recent.length+')</div><div class="un-grid">';
+    recent.forEach(function(s){
+      h+='<div class="un-card un-card-tap" data-slug="'+s.slug+'" data-s="'+s.season+'" data-e="'+s.episode+'" data-eid="0" data-tmdb="" onclick="showEpDetail(this)">';
+      h+='<div class="un-poster-ph">📺</div>';
+      h+='<div class="un-info"><div class="un-show">'+(s.show||s.slug)+'</div>';
+      h+='<div class="un-ep">S'+String(s.season).padStart(2,'0')+'E'+String(s.episode).padStart(2,'0')+'</div>';
+      h+='<div class="un-meta"><span>'+(s.watched_at||'').substring(0,10)+'</span></div>';
+      h+='</div></div>';
+    });
+    h+='</div>';
+  }
+  h+='<div style="text-align:center;padding:16px;color:var(--t2);font-size:12px">Press Enter to search all of Trakt</div>';
+  el.innerHTML=h;
+}
 
 function _unSearchClear(){
   var input=document.getElementById('un-search');
@@ -5036,10 +5144,12 @@ function _unSearchClear(){
 }
 
 function _unDoSearch(query){
+  // Always set view first so nav stack is correct (even for cached results)
+  if(_unCurrentView!=='search')_unSetView('search',{query:query});
+  _unShowSearchOverlay();
   if(_searchCache[query]){_unShowSearchResults(query,_searchCache[query]);return}
-  var el=document.getElementById('un-content');
-  el.innerHTML='<div class="un-loading">Searching…</div>';
-  _unSetView('search',{query:query});
+  var el=document.getElementById('un-search-results');
+  el.innerHTML='<div class="un-loading">Searching Trakt…</div>';
   _traktGet('/search/movie,show?query='+encodeURIComponent(query)+'&extended=full&limit=25')
   .then(function(results){
     _searchCache[query]=results;
@@ -5052,11 +5162,20 @@ function _unDoSearch(query){
   });
 }
 
+var _srFilter='all';// 'all','movie','show'
 function _unShowSearchResults(query,results){
-  var el=document.getElementById('un-content');
+  _unShowSearchOverlay();
+  var el=document.getElementById('un-search-results');
   if(!results.length){el.innerHTML='<div class="un-empty">No results for "'+query+'"</div>';return}
-  var h='<div class="un-sr">';
-  results.forEach(function(r,i){
+  var filtered=_srFilter==='all'?results:results.filter(function(r){return r.type===_srFilter});
+  // Filter buttons
+  var h='<div style="display:flex;gap:6px;padding:10px 16px;max-width:600px;margin:0 auto">';
+  h+='<button onclick="_srSetFilter(\'all\')" style="padding:6px 14px;border-radius:8px;border:1px solid '+(_srFilter==='all'?'var(--tv)':'rgba(255,255,255,.1)')+';background:'+(_srFilter==='all'?'rgba(20,184,166,.15)':'none')+';color:'+(_srFilter==='all'?'var(--tv)':'var(--t2)')+';font-size:12px;font-weight:600;cursor:pointer">All</button>';
+  h+='<button onclick="_srSetFilter(\'show\')" style="padding:6px 14px;border-radius:8px;border:1px solid '+(_srFilter==='show'?'var(--tv)':'rgba(255,255,255,.1)')+';background:'+(_srFilter==='show'?'rgba(20,184,166,.15)':'none')+';color:'+(_srFilter==='show'?'var(--tv)':'var(--t2)')+';font-size:12px;font-weight:600;cursor:pointer">📺 TV</button>';
+  h+='<button onclick="_srSetFilter(\'movie\')" style="padding:6px 14px;border-radius:8px;border:1px solid '+(_srFilter==='movie'?'var(--tv)':'rgba(255,255,255,.1)')+';background:'+(_srFilter==='movie'?'rgba(20,184,166,.15)':'none')+';color:'+(_srFilter==='movie'?'var(--tv)':'var(--t2)')+';font-size:12px;font-weight:600;cursor:pointer">🎞️ Movies</button>';
+  h+='</div>';
+  h+='<div class="un-sr">';
+  filtered.forEach(function(r,i){
     var isMovie=r.type==='movie';
     var item=isMovie?r.movie:r.show;
     if(!item)return;
@@ -5109,6 +5228,12 @@ function _unShowSearchResults(query,results){
   el.innerHTML=h;
 }
 
+function _srSetFilter(f){
+  _srFilter=f;
+  var input=document.getElementById('un-search');
+  var q=input?input.value.trim():'';
+  if(q&&_searchCache[q])_unShowSearchResults(q,_searchCache[q]);
+}
 function _unSearchTap(type,slug,tmdbId){
   if(type==='movie')_unOpenMovie(slug,tmdbId);
   else _unOpenShow(slug,tmdbId);
@@ -5191,7 +5316,11 @@ function _unFetchCast(tmdbId,type,season,episode,containerId,limit){
   // type: 'show','season','episode','movie'
   if(!tmdbId)return;
   var ck=type+'|'+tmdbId+'|'+(season||0)+'|'+(episode||0);
-  if(_castCache[ck]!==undefined){_unRenderCast(_castCache[ck],containerId,limit);return}
+  if(_castCache[ck]!==undefined){
+    if(type==='episode'&&_castCache[ck]._ep){_unRenderEpCast(_castCache[ck],containerId)}
+    else{_unRenderCast(_castCache[ck],containerId,limit)}
+    return;
+  }
   var tk=(D.un||{}).tmdb_key||'';if(!tk)return;
   var path='';
   if(type==='movie')path='/3/movie/'+tmdbId+'/credits';
@@ -5201,11 +5330,19 @@ function _unFetchCast(tmdbId,type,season,episode,containerId,limit){
   fetch('https://api.themoviedb.org'+path+'?api_key='+tk)
   .then(function(r){return r.json()})
   .then(function(d){
-    var cast=(d.cast||[]).slice(0,20).map(function(p){
-      return{name:p.name||'',character:p.character||p.roles?((p.roles||[{}])[0].character||p.character||''):'',photo:p.profile_path?'https://image.tmdb.org/t/p/w185'+p.profile_path:''};
-    });
-    _castCache[ck]=cast;
-    _unRenderCast(cast,containerId,limit);
+    function _mapPerson(p){return{name:p.name||'',character:p.character||((p.roles||[{}])[0]||{}).character||'',photo:p.profile_path?'https://image.tmdb.org/t/p/w185'+p.profile_path:''}}
+    if(type==='episode'){
+      // Episodes: separate guest stars and regulars
+      var guests=(d.guest_stars||[]).slice(0,20).map(_mapPerson);
+      var regulars=(d.cast||[]).slice(0,20).map(_mapPerson);
+      var epData={_ep:true,guests:guests,regulars:regulars};
+      _castCache[ck]=epData;
+      _unRenderEpCast(epData,containerId);
+    }else{
+      var cast=(d.cast||[]).slice(0,20).map(_mapPerson);
+      _castCache[ck]=cast;
+      _unRenderCast(cast,containerId,limit);
+    }
   })
   .catch(function(){_castCache[ck]=[]});
 }
@@ -5225,6 +5362,33 @@ function _unRenderCast(cast,containerId,limit){
   h+='</div>';
   ct.innerHTML=h;
 }
+function _unCastRow(people,limit){
+  var h='<div class="un-cast-scroll">';
+  people.slice(0,limit||15).forEach(function(p){
+    h+='<div class="un-cast-card">';
+    if(p.photo)h+='<img class="un-cast-photo" src="'+p.photo+'" alt="" loading="lazy" onerror="this.outerHTML=\'<div class=un-cast-photo-ph>👤</div>\'">';
+    else h+='<div class="un-cast-photo-ph">👤</div>';
+    h+='<div class="un-cast-name">'+p.name+'</div>';
+    if(p.character)h+='<div class="un-cast-role">'+p.character+'</div>';
+    h+='</div>';
+  });
+  h+='</div>';
+  return h;
+}
+function _unRenderEpCast(data,containerId){
+  var ct=document.getElementById(containerId);if(!ct)return;
+  if(!data.guests.length&&!data.regulars.length){ct.innerHTML='';return}
+  var h='';
+  if(data.guests.length){
+    h+='<div class="un-section" style="margin-bottom:4px">Guest Stars</div>';
+    h+=_unCastRow(data.guests,20);
+  }
+  if(data.regulars.length){
+    h+='<div class="un-section" style="margin-bottom:4px;'+(data.guests.length?'margin-top:12px':'')+'">Cast</div>';
+    h+=_unCastRow(data.regulars,20);
+  }
+  ct.innerHTML=h;
+}
 
 // ─── Navigation Management ───────────────────────────────────────
 function _unSetView(view,data){
@@ -5232,7 +5396,7 @@ function _unSetView(view,data){
     if(_unCurrentView!=='home'||view!=='search'){
       _unNavStack.push({view:_unCurrentView,data:data||null,scroll:document.getElementById('un-overlay').scrollTop});
     }else if(_unCurrentView==='home'&&view==='search'){
-      _unNavStack=[{view:'home',data:null,scroll:_unScrollPos}];
+      _unNavStack=[{view:'home',data:null,scroll:document.getElementById('un-overlay').scrollTop||_unScrollPos}];
     }
   }
   _unCurrentView=view;
@@ -5284,7 +5448,7 @@ function _unNavBack(){
     _unCurrentView=prev.view;
     _unUpdateHeader();
     if(prev.view==='home'){
-      _unGoHome();
+      _unGoHome(prev.scroll||0);
       _unNavStack=[];
     }else if(prev.view==='search'){
       // Return to search results — show search bar with query
@@ -5296,12 +5460,23 @@ function _unNavBack(){
       else _unGoHome();
     }else if(prev.view==='show'){
       // Re-render show page from cache
-      var cached=prev.data&&_showDataCache[prev.data.slug];
-      if(cached&&cached.show){
+      var cached2=prev.data&&_showDataCache[prev.data.slug];
+      if(cached2&&cached2.show){
         _unCurrentView='show';
         _unUpdateHeader();
-        _unRenderShowPage(prev.data.slug,cached.show,cached.seasons,cached.progress,cached.tmdbId);
+        _unRenderShowPage(prev.data.slug,cached2.show,cached2.seasons,cached2.progress,cached2.tmdbId);
       }else _unGoHome();
+    }else if(prev.view==='episode'){
+      // Restore episode detail view
+      var ep=prev.data;
+      if(ep&&ep.slug){
+        _unCurrentView='home';
+        _unUpdateHeader();
+        _renderUpNext();
+        // Re-open episode detail after render
+        setTimeout(function(){_unTapEpisode(ep.slug,ep.season,ep.episode,ep.tmdbId)},100);
+      }else _unGoHome();
+      return;// skip scroll restore — episode detail handles its own
     }
     if(prev.scroll){
       var ov=document.getElementById('un-overlay');
@@ -5312,7 +5487,7 @@ function _unNavBack(){
   }
 }
 
-function _unGoHome(){
+function _unGoHome(restoreScroll){
   _unCurrentView='home';
   _unNavStack=[];
   _unUpdateHeader();
@@ -5322,14 +5497,15 @@ function _unGoHome(){
   var input=document.getElementById('un-search');
   if(input){input.value='';input.blur()}
   document.getElementById('un-search-clear').style.display='none';
-  _unScrollPos=0;
-  _unReturning=false;
+  _unScrollPos=restoreScroll||0;
+  _unReturning=!!restoreScroll;
   _renderUpNext();
 }
 
 // ─── Movie Detail ────────────────────────────────────────────────
 function _unOpenMovie(slug,tmdbId){
-  var el=document.getElementById('un-content');
+  _unShowSearchOverlay();
+  var el=document.getElementById('un-search-results');
   el.innerHTML='<div class="un-loading">Loading movie…</div>';
   _unSetView('movie',{slug:slug,tmdbId:tmdbId});
   var ov=document.getElementById('un-overlay');ov.scrollTop=0;
@@ -5485,7 +5661,8 @@ function _mvDpConfirm(){
 
 // ─── Show Page ───────────────────────────────────────────────────
 function _unOpenShow(slug,tmdbId){
-  var el=document.getElementById('un-content');
+  _unShowSearchOverlay();
+  var el=document.getElementById('un-search-results');
   el.innerHTML='<div class="un-loading">Loading show…</div>';
   _unSetView('show',{slug:slug,tmdbId:tmdbId});
   var ov=document.getElementById('un-overlay');ov.scrollTop=0;
@@ -5504,7 +5681,7 @@ function _unOpenShow(slug,tmdbId){
 }
 
 function _unRenderShowPage(slug,show,seasons,progress,tmdbId){
-  var el=document.getElementById('un-content');
+  var el=document.getElementById('un-search-results');
   var h='<div class="un-show-header">';
   h+='<div id="un-sh-poster-wrap"><div class="un-sr-poster-ph" style="width:160px;height:240px;margin:0 auto;border-radius:10px;font-size:40px">📺</div></div>';
   h+='<div class="un-show-title">'+show.title+'</div>';
@@ -5613,7 +5790,8 @@ function _unRenderShowPage(slug,show,seasons,progress,tmdbId){
 
 // ─── Season Page ─────────────────────────────────────────────────
 function _unOpenSeason(slug,seasonNum,tmdbId){
-  var el=document.getElementById('un-content');
+  _unShowSearchOverlay();
+  var el=document.getElementById('un-search-results');
   el.innerHTML='<div class="un-loading">Loading episodes…</div>';
   _unSetView('season',{slug:slug,season:seasonNum,tmdbId:tmdbId});
   var ov=document.getElementById('un-overlay');ov.scrollTop=0;
@@ -5635,7 +5813,7 @@ function _unOpenSeason(slug,seasonNum,tmdbId){
 }
 
 function _unRenderSeasonPage(slug,seasonNum,episodes,progress,tmdbId){
-  var el=document.getElementById('un-content');
+  var el=document.getElementById('un-search-results');
   // Build watched set from progress
   var watchedSet={};
   if(progress&&progress.seasons){
@@ -5710,17 +5888,50 @@ function _unRenderSeasonPage(slug,seasonNum,episodes,progress,tmdbId){
 }
 
 // Navigate from episode detail to show or season page
+// Saves episode context so swipe-back can restore it
 function _unEpNavShow(slug,tmdbId){
+  // Save episode context before destroying it
+  var epData=_crBase?{slug:_crBase.slug,season:_crBase.season,episode:_crEp,tmdbId:_crBase.tmdb_id||tmdbId,show:_crBase.show||'',poster:_crBase.poster||''}:null;
   var fg=document.getElementById('un-detail-fg');
   if(fg){fg.remove();document.getElementById('un-overlay').style.overflowY='auto'}
   _crBase=null;_crAll=null;
-  _unOpenShow(slug,tmdbId);
+  // Push episode as a nav entry so back returns to it
+  _unNavStack.push({view:'episode',data:epData,scroll:0});
+  _unCurrentView='show';
+  _unUpdateHeader();
+  // Render show page directly (skip _unSetView to avoid double-push)
+  var el=document.getElementById('un-search-results');
+  el.innerHTML='<div class="un-loading">Loading show…</div>';
+  var ov=document.getElementById('un-overlay');ov.scrollTop=0;
+  var showP=_traktGet('/shows/'+encodeURIComponent(slug)+'?extended=full');
+  var seasonsP=_traktGet('/shows/'+encodeURIComponent(slug)+'/seasons?extended=full');
+  var progP=(D._tt)?_traktGet('/shows/'+encodeURIComponent(slug)+'/progress/watched',true).catch(function(){return null}):Promise.resolve(null);
+  Promise.all([showP,seasonsP,progP]).then(function(res){
+    if(_unCurrentView!=='show')return;
+    _showDataCache[slug]={show:res[0],seasons:res[1],progress:res[2],tmdbId:tmdbId};
+    _unRenderShowPage(slug,res[0],res[1],res[2],tmdbId);
+  }).catch(function(e){el.innerHTML='<div class="un-empty">Failed: '+e.message+'</div>'});
 }
 function _unEpNavSeason(slug,season,tmdbId){
+  var epData=_crBase?{slug:_crBase.slug,season:_crBase.season,episode:_crEp,tmdbId:_crBase.tmdb_id||tmdbId,show:_crBase.show||'',poster:_crBase.poster||''}:null;
   var fg=document.getElementById('un-detail-fg');
   if(fg){fg.remove();document.getElementById('un-overlay').style.overflowY='auto'}
   _crBase=null;_crAll=null;
-  _unOpenSeason(slug,season,tmdbId);
+  _unNavStack.push({view:'episode',data:epData,scroll:0});
+  _unCurrentView='season';
+  _unUpdateHeader();
+  var el=document.getElementById('un-search-results');
+  el.innerHTML='<div class="un-loading">Loading episodes…</div>';
+  var ov=document.getElementById('un-overlay');ov.scrollTop=0;
+  var epsP=_traktGet('/shows/'+encodeURIComponent(slug)+'/seasons/'+season+'/episodes?extended=full');
+  var cached=_showDataCache[slug];
+  var progP=cached&&cached.progress?Promise.resolve(cached.progress):(D._tt?_traktGet('/shows/'+encodeURIComponent(slug)+'/progress/watched',true).catch(function(){return null}):Promise.resolve(null));
+  Promise.all([epsP,progP]).then(function(res){
+    if(_unCurrentView!=='season')return;
+    var ck=slug+'|'+season;_seasonEpDataCache[ck]=res[0];
+    if(cached)cached.progress=res[1];
+    _unRenderSeasonPage(slug,season,res[0],res[1],tmdbId);
+  }).catch(function(e){el.innerHTML='<div class="un-empty">Failed: '+e.message+'</div>'});
 }
 
 // Tap an episode row on season page → open episode detail carousel
@@ -5830,35 +6041,90 @@ function closeUpNext(){
   ov.style.transform='translateX(100%)';
   setTimeout(function(){ov.style.display='none';ov.style.transform='';_unlockBody()},320);
 }
-// R2: Slide-to-dismiss Up Next — reveals content beneath as you drag right
+// R2: Slide-to-dismiss Up Next — horizontal on home, vertical+horizontal on sub-pages
 (function(){
   var ov=document.getElementById('un-overlay');if(!ov)return;
-  var sx=0,sy=0,tracking=false,moved=false;
+  var sx=0,sy=0,tracking=false,_dir=null,_onSub=false,_atTop=false,_atBot=false;
+  var cnt=document.getElementById('un-search-results');
   ov.addEventListener('touchstart',function(e){
-    sx=e.touches[0].clientX;sy=e.touches[0].clientY;tracking=true;moved=false;
-    ov.style.transition='none';
+    sx=e.touches[0].clientX;sy=e.touches[0].clientY;
+    tracking=true;_dir=null;
+    // Treat search bar open as a sub-page (don't slide overlay away)
+    var _searchOpen=document.getElementById('un-hdr-search').style.display==='flex';
+    _onSub=(_unCurrentView!=='home')||_searchOpen;
+    _atTop=ov.scrollTop<5;
+    _atBot=ov.scrollHeight-ov.scrollTop-ov.clientHeight<5;
+    if(!_onSub)ov.style.transition='none';
+    if(_onSub&&cnt){cnt.style.transition='none'}
   },{passive:true});
   ov.addEventListener('touchmove',function(e){
     if(!tracking)return;
-    var dx=e.touches[0].clientX-sx,dy=Math.abs(e.touches[0].clientY-sy);
-    if(!moved&&dy>20){tracking=false;return}
-    if(dx>10){moved=true;ov.style.transform='translateX('+dx+'px)'}
-  },{passive:true});
-  ov.addEventListener('touchend',function(){
-    if(!tracking&&!moved)return;tracking=false;
-    var dx=parseInt(ov.style.transform.replace(/[^0-9.-]/g,''))||0;
-    ov.style.transition='transform .3s ease';
-    if(dx>window.innerWidth*0.35){
-      // If on a sub-page, navigate back instead of closing
-      if(_unCurrentView!=='home'){
-        ov.style.transform='';
-        _unNavBack();
+    var dx=e.touches[0].clientX-sx,dy=e.touches[0].clientY-sy;
+    var adx=Math.abs(dx),ady=Math.abs(dy);
+    if(!_dir&&(adx>10||ady>10)){
+      if(_onSub){
+        // Sub-page: detect horizontal (right) or vertical (down at top, up at bottom)
+        if(adx>ady&&dx>0){_dir='h'}
+        else if(ady>adx&&dy>0&&_atTop){_dir='v'}
+        else if(ady>adx&&dy<0&&_atBot){_dir='v'}
+        else{_dir='none';tracking=false;return}// Let scroll happen
       }else{
-        closeUpNext();
+        // Home: only horizontal right
+        if(dx>10&&adx>ady){_dir='h'}
+        else{_dir='none';tracking=false;return}
       }
     }
-    else{ov.style.transform=''}
-    moved=false;
+    if(_dir==='h'){
+      if(_onSub&&cnt){cnt.style.transform='translateX('+dx+'px)';cnt.style.opacity=Math.max(0,1-adx/300)}
+      else{ov.style.transform='translateX('+dx+'px)'}
+    }else if(_dir==='v'&&_onSub&&cnt){
+      cnt.style.transform='translateY('+dy+'px)';cnt.style.opacity=Math.max(0,1-ady/300);
+    }
+  },{passive:true});
+  ov.addEventListener('touchend',function(e){
+    if(!tracking||_dir==='none'||!_dir){tracking=false;return}
+    tracking=false;
+    var dx=e.changedTouches[0].clientX-sx,dy=e.changedTouches[0].clientY-sy;
+    var threshold=80;
+    if(_dir==='h'&&!_onSub){
+      // Home: slide-to-dismiss overlay
+      var ovDx=parseInt(ov.style.transform.replace(/[^0-9.-]/g,''))||0;
+      ov.style.transition='transform .3s ease';
+      if(ovDx>window.innerWidth*0.35){closeUpNext()}
+      else{ov.style.transform=''}
+    }else if(_dir==='h'&&_onSub&&cnt){
+      // Sub-page horizontal: animate out right then nav back
+      if(dx>threshold){
+        cnt.style.transition='transform .2s ease,opacity .2s ease';
+        cnt.style.transform='translateX(100%)';cnt.style.opacity='0';
+        setTimeout(function(){
+          cnt.style.transition='none';cnt.style.transform='';cnt.style.opacity='1';
+          // If search bar is open, close it (return to queue)
+          if(document.getElementById('un-hdr-search').style.display==='flex'&&_unCurrentView==='home'){_unCloseSearchBar()}
+          else{_unNavBack()}
+        },220);
+      }else{
+        cnt.style.transition='transform .2s ease,opacity .2s ease';
+        cnt.style.transform='';cnt.style.opacity='1';
+        setTimeout(function(){cnt.style.transition=''},220);
+      }
+    }else if(_dir==='v'&&_onSub&&cnt){
+      // Sub-page vertical: animate out up/down then nav back
+      if(Math.abs(dy)>threshold){
+        var _searchOpenV=document.getElementById('un-hdr-search').style.display==='flex'&&_unCurrentView==='home';
+        var dir=dy>0?'100%':'-100%';
+        cnt.style.transition='transform .2s ease,opacity .2s ease';
+        cnt.style.transform='translateY('+dir+')';cnt.style.opacity='0';
+        setTimeout(function(){
+          cnt.style.transition='none';cnt.style.transform='';cnt.style.opacity='1';
+          if(_searchOpenV){_unCloseSearchBar()}else{_unNavBack()}
+        },220);
+      }else{
+        cnt.style.transition='transform .2s ease,opacity .2s ease';
+        cnt.style.transform='';cnt.style.opacity='1';
+        setTimeout(function(){cnt.style.transition=''},220);
+      }
+    }
   },{passive:true});
 })();
 
@@ -5867,7 +6133,7 @@ function renderStatus(){
   var hs_count=Object.keys(D.hs||{}).length;
   var ps_count=Object.keys(D.ps||{}).length;
   var el=document.getElementById('status');
-  el.innerHTML='<span>Actors: '+total_people+'</span><span>Headshots: '+hs_count+'</span><span>Posters: '+ps_count+'</span><span>Updated: __BUILD_TIME__</span>';
+  el.innerHTML='<span>Actors: '+total_people+'</span><span>Headshots: '+hs_count+'</span><span>Posters: '+ps_count+'</span><span>Updated: __BUILD_TIME__</span><span>iris-search v22</span>';
 }
 
 function render(){
