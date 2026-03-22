@@ -5000,11 +5000,17 @@ function _traktGet(path,needsAuth){
 }
 
 // Search bar open/close
-// Home/close button: on home view → close overlay, on sub-pages → go straight home
+// Home/close button: search active → close search; sub-page → go home; home → close overlay
 function _unHomeBtn(){
   // If episode detail is open, dismiss it
   var fg=document.getElementById('un-detail-fg');
   if(fg){fg.remove();document.getElementById('un-overlay').style.overflowY='auto';_crBase=null;_crAll=null}
+  // If search bar is open, close it and return to queue
+  var searchHdr=document.getElementById('un-hdr-search');
+  if(searchHdr&&searchHdr.style.display==='flex'){
+    _unCloseSearchBar();
+    return;
+  }
   if(_unCurrentView==='home'){
     closeUpNext();
   }else{
@@ -5013,6 +5019,8 @@ function _unHomeBtn(){
 }
 
 function _unOpenSearchBar(){
+  // Save scroll position before switching headers
+  _unSearchSavedScroll=document.getElementById('un-overlay').scrollTop;
   document.getElementById('un-hdr-normal').style.display='none';
   document.getElementById('un-hdr-search').style.display='flex';
   var input=document.getElementById('un-search');
@@ -5021,6 +5029,7 @@ function _unOpenSearchBar(){
   // Must focus synchronously (same user-gesture call stack) for iOS Safari
   input.focus();
 }
+var _unSearchSavedScroll=0;
 function _unCloseSearchBar(){
   document.getElementById('un-hdr-search').style.display='none';
   document.getElementById('un-hdr-normal').style.display='flex';
@@ -5028,7 +5037,16 @@ function _unCloseSearchBar(){
   input.value='';
   input.blur();
   document.getElementById('un-search-clear').style.display='none';
-  if(_unCurrentView==='search')_unGoHome();
+  // Restore queue and scroll position
+  if(_unCurrentView==='search'){
+    _unGoHome(_unSearchSavedScroll);
+  }else{
+    // Was filtering locally — restore full queue with saved scroll
+    _unCurrentView='home';
+    _unReturning=true;
+    _unScrollPos=_unSearchSavedScroll;
+    _renderUpNext();
+  }
 }
 
 // Search input setup
@@ -6006,7 +6024,9 @@ function closeUpNext(){
   ov.addEventListener('touchstart',function(e){
     sx=e.touches[0].clientX;sy=e.touches[0].clientY;
     tracking=true;_dir=null;
-    _onSub=(_unCurrentView!=='home');
+    // Treat search bar open as a sub-page (don't slide overlay away)
+    var _searchOpen=document.getElementById('un-hdr-search').style.display==='flex';
+    _onSub=(_unCurrentView!=='home')||_searchOpen;
     _atTop=ov.scrollTop<5;
     _atBot=ov.scrollHeight-ov.scrollTop-ov.clientHeight<5;
     if(!_onSub)ov.style.transition='none';
@@ -6052,7 +6072,12 @@ function closeUpNext(){
       if(dx>threshold){
         cnt.style.transition='transform .2s ease,opacity .2s ease';
         cnt.style.transform='translateX(100%)';cnt.style.opacity='0';
-        setTimeout(function(){cnt.style.transition='none';cnt.style.transform='';cnt.style.opacity='1';_unNavBack()},220);
+        setTimeout(function(){
+          cnt.style.transition='none';cnt.style.transform='';cnt.style.opacity='1';
+          // If search bar is open, close it (return to queue)
+          if(document.getElementById('un-hdr-search').style.display==='flex'&&_unCurrentView==='home'){_unCloseSearchBar()}
+          else{_unNavBack()}
+        },220);
       }else{
         cnt.style.transition='transform .2s ease,opacity .2s ease';
         cnt.style.transform='';cnt.style.opacity='1';
@@ -6061,10 +6086,14 @@ function closeUpNext(){
     }else if(_dir==='v'&&_onSub&&cnt){
       // Sub-page vertical: animate out up/down then nav back
       if(Math.abs(dy)>threshold){
+        var _searchOpenV=document.getElementById('un-hdr-search').style.display==='flex'&&_unCurrentView==='home';
         var dir=dy>0?'100%':'-100%';
         cnt.style.transition='transform .2s ease,opacity .2s ease';
         cnt.style.transform='translateY('+dir+')';cnt.style.opacity='0';
-        setTimeout(function(){cnt.style.transition='none';cnt.style.transform='';cnt.style.opacity='1';_unNavBack()},220);
+        setTimeout(function(){
+          cnt.style.transition='none';cnt.style.transform='';cnt.style.opacity='1';
+          if(_searchOpenV){_unCloseSearchBar()}else{_unNavBack()}
+        },220);
       }else{
         cnt.style.transition='transform .2s ease,opacity .2s ease';
         cnt.style.transform='';cnt.style.opacity='1';
