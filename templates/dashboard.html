@@ -4267,6 +4267,10 @@ function _unDismissDetail(dir){
   var ov=document.getElementById('un-overlay');
   var fg=document.getElementById('un-detail-fg');
   if(!fg){return}
+  // Capture episode info before clearing state (for season page sync)
+  var _dismissSlug=_crBase?_crBase.slug:'';
+  var _dismissSeason=_crBase?_crBase.season:0;
+  var _dismissEp=_crEp;
   // Clear state so prefetch callbacks don't re-create the detail
   _crBase=null;_crAll=null;
   fg.style.transition='transform .25s ease';
@@ -4276,7 +4280,23 @@ function _unDismissDetail(dir){
     fg.remove();
     ov.style.overflowY='auto';
     ov.scrollTop=_restoreScroll;
+    // If we're on a season page, sync watched indicators with _unWatched state
+    if(_unCurrentView==='season'&&_dismissSlug){
+      _unSyncSeasonWatched(_dismissSlug,_dismissSeason);
+    }
   },280);
+}
+// Sync season page watched indicators with current _unWatched state
+function _unSyncSeasonWatched(slug,season){
+  // Find all episode watch buttons on the current season page
+  document.querySelectorAll('.un-ep-watch').forEach(function(btn){
+    var row=btn.closest('.un-ep-item');if(!row)return;
+    var epNum=parseInt(row.id.replace('un-epi-',''));if(!epNum)return;
+    var key=slug+'|'+season+'|'+epNum;
+    if(_unWatched[key]&&!btn.classList.contains('watched')){
+      btn.classList.add('watched');
+    }
+  });
 }
 
 // Season episode count cache: "tmdb|S" -> count
@@ -5408,7 +5428,7 @@ function _unRenderSeasonPage(slug,seasonNum,episodes,progress,tmdbId){
     var epTraktId=(ep.ids||{}).trakt||0;
     var aired=ep.first_aired?(ep.first_aired.substring(0,10)):'';
     var runtime=ep.runtime?ep.runtime+'m':'';
-    h+='<div class="un-ep-item" id="un-epi-'+ep.number+'">';
+    h+='<div class="un-ep-item" id="un-epi-'+ep.number+'" onclick="_unTapEpisode(\''+slug.replace(/'/g,"\\'")+'\','+seasonNum+','+ep.number+','+(tmdbId||0)+')" style="cursor:pointer">';
     h+='<div class="un-ep-num">'+ep.number+'</div>';
     // Episode still from TMDB (loaded async)
     h+='<div class="un-ep-still-ph" id="un-eps-'+seasonNum+'-'+ep.number+'"></div>';
@@ -5419,7 +5439,7 @@ function _unRenderSeasonPage(slug,seasonNum,episodes,progress,tmdbId){
     if(runtime)h+=(aired?' · ':'')+runtime;
     h+='</div>';
     h+='</div>';
-    h+='<button class="un-ep-watch'+(isWatched?' watched':'')+'" id="un-epw-'+ep.number+'" onclick="_unToggleEpWatched(event,\''+slug.replace(/'/g,"\\'")+'\','+seasonNum+','+ep.number+','+epTraktId+',this)" title="'+(isWatched?'Watched':'Mark watched')+'">✓</button>';
+    h+='<button class="un-ep-watch'+(isWatched?' watched':'')+'" id="un-epw-'+ep.number+'" onclick="event.stopPropagation();_unToggleEpWatched(event,\''+slug.replace(/'/g,"\\'")+'\','+seasonNum+','+ep.number+','+epTraktId+',this)" title="'+(isWatched?'Watched':'Mark watched')+'">✓</button>';
     h+='</div>';
   });
   h+='</div>';
@@ -5451,6 +5471,31 @@ function _unRenderSeasonPage(slug,seasonNum,episodes,progress,tmdbId){
       }).catch(function(){});
     }
   }
+}
+
+// Tap an episode row on season page → open episode detail carousel
+function _unTapEpisode(slug,season,episode,tmdbId){
+  // Build a synthetic show object for the episode detail view
+  var showTitle=slug;
+  var poster='';var stream=[];
+  if(_showDataCache[slug]){
+    var sd=_showDataCache[slug];
+    if(sd.show){showTitle=sd.show.title||slug;poster=sd.show.poster||''}
+    tmdbId=sd.tmdbId||tmdbId;
+  }
+  // Check Up Next data for poster
+  var unData=D.un||{};var unShows=unData.shows||[];
+  var match=unShows.find(function(x){return x.slug===slug});
+  if(match){poster=match.poster||poster;stream=match.stream||[];showTitle=match.show||showTitle;tmdbId=match.tmdb_id||tmdbId}
+  var synth={slug:slug,show:showTitle,season:season,episode:episode,
+    ep_title:'',ep_overview:'',ep_still:'',ep_aired:'',ep_runtime:0,
+    ep_trakt_id:0,tmdb_id:tmdbId,poster:poster,stream:stream,
+    aired_total:0,completed:0,eps_left:0,is_new:false};
+  // Populate from episode cache if available
+  var ek=_epCacheKey(tmdbId,season,episode);
+  var cached=_epCache[ek];
+  if(cached){synth.ep_title=cached.ep_title;synth.ep_overview=cached.ep_overview;synth.ep_still=cached.ep_still;synth.ep_aired=cached.ep_aired;synth.ep_runtime=cached.ep_runtime}
+  _unRenderDetail([synth],0);
 }
 
 function _unToggleEpWatched(ev,slug,season,episode,epTraktId,btn){
