@@ -497,6 +497,7 @@ Drop GameTrack games.csv or <span style="color:#6366f1;text-decoration:underline
 </div>
 </div>
 <div id="un-content"></div>
+<div id="un-search-results" style="display:none"></div>
 </div>
 <script>
 var D=__DASHBOARD_DATA__;
@@ -5020,7 +5021,8 @@ function _unHomeBtn(){
 
 function _unOpenSearchBar(){
   // Save scroll position before switching headers
-  _unSearchSavedScroll=document.getElementById('un-overlay').scrollTop;
+  var ov=document.getElementById('un-overlay');
+  _unSearchSavedScroll=ov.scrollTop;
   document.getElementById('un-hdr-normal').style.display='none';
   document.getElementById('un-hdr-search').style.display='flex';
   var input=document.getElementById('un-search');
@@ -5028,7 +5030,27 @@ function _unOpenSearchBar(){
   document.getElementById('un-search-clear').style.display='none';
   // Must focus synchronously (same user-gesture call stack) for iOS Safari
   input.focus();
+  // Prevent iOS from scrolling to the input — restore scroll position
+  var saved=_unSearchSavedScroll;
+  requestAnimationFrame(function(){ov.scrollTop=saved});
 }
+// Show/hide search overlay on top of queue (queue stays loaded underneath)
+function _unShowSearchOverlay(){
+  var sr=document.getElementById('un-search-results');
+  var uc=document.getElementById('un-content');
+  if(sr)sr.style.display='';
+  if(uc)uc.style.display='none';
+}
+function _unHideSearchOverlay(){
+  var sr=document.getElementById('un-search-results');
+  var uc=document.getElementById('un-content');
+  if(sr){sr.style.display='none';sr.innerHTML=''}
+  if(uc)uc.style.display='';
+  // Restore scroll
+  var ov=document.getElementById('un-overlay');
+  if(ov&&_unSearchSavedScroll)requestAnimationFrame(function(){ov.scrollTop=_unSearchSavedScroll});
+}
+
 var _unSearchSavedScroll=0;
 function _unCloseSearchBar(){
   document.getElementById('un-hdr-search').style.display='none';
@@ -5037,16 +5059,11 @@ function _unCloseSearchBar(){
   input.value='';
   input.blur();
   document.getElementById('un-search-clear').style.display='none';
-  // Restore queue and scroll position
-  if(_unCurrentView==='search'){
-    _unGoHome(_unSearchSavedScroll);
-  }else{
-    // Was filtering locally — restore full queue with saved scroll
-    _unCurrentView='home';
-    _unReturning=true;
-    _unScrollPos=_unSearchSavedScroll;
-    _renderUpNext();
-  }
+  // Just hide search overlay — queue is still loaded underneath (instant)
+  _unHideSearchOverlay();
+  _unCurrentView='home';
+  _unNavStack=[];
+  _unUpdateHeader();
 }
 
 // Search input setup
@@ -5054,16 +5071,12 @@ function _unCloseSearchBar(){
   var input=document.getElementById('un-search');
   var clearBtn=document.getElementById('un-search-clear');
   if(!input)return;
-  // Typing = filter Up Next queue locally
+  // Typing = filter Up Next queue locally (renders into search overlay)
   input.addEventListener('input',function(){
     var q=input.value.trim();
     clearBtn.style.display=q?'block':'none';
     if(_searchTimer)clearTimeout(_searchTimer);
-    if(!q){
-      // Clear filter — restore full queue
-      if(_unCurrentView==='search'||_unCurrentView==='home')_unFilterQueue('');
-      return;
-    }
+    if(!q){_unHideSearchOverlay();return}
     _searchTimer=setTimeout(function(){_unFilterQueue(q)},150);
   });
   // Enter = search Trakt (wider search)
@@ -5072,17 +5085,10 @@ function _unCloseSearchBar(){
 
 // Filter the Up Next queue by text match (local, instant)
 function _unFilterQueue(query){
-  if(!query){
-    // Restore full queue
-    _unCurrentView='home';
-    _unUpdateHeader();
-    document.getElementById('un-hdr-normal').style.display='none';
-    document.getElementById('un-hdr-search').style.display='flex';
-    _renderUpNext();
-    return;
-  }
+  if(!query){_unHideSearchOverlay();return}
+  _unShowSearchOverlay();
   var ud=_unData();var q=query.toLowerCase();
-  var el=document.getElementById('un-content');
+  var el=document.getElementById('un-search-results');
   // Filter shows
   var allShows=(ud.shows||[]).filter(function(s){
     return (s.show||'').toLowerCase().indexOf(q)>=0||(s.slug||'').toLowerCase().indexOf(q)>=0||(s.ep_title||'').toLowerCase().indexOf(q)>=0;
@@ -5140,9 +5146,10 @@ function _unSearchClear(){
 function _unDoSearch(query){
   // Always set view first so nav stack is correct (even for cached results)
   if(_unCurrentView!=='search')_unSetView('search',{query:query});
+  _unShowSearchOverlay();
   if(_searchCache[query]){_unShowSearchResults(query,_searchCache[query]);return}
-  var el=document.getElementById('un-content');
-  el.innerHTML='<div class="un-loading">Searching…</div>';
+  var el=document.getElementById('un-search-results');
+  el.innerHTML='<div class="un-loading">Searching Trakt…</div>';
   _traktGet('/search/movie,show?query='+encodeURIComponent(query)+'&extended=full&limit=25')
   .then(function(results){
     _searchCache[query]=results;
@@ -5155,11 +5162,20 @@ function _unDoSearch(query){
   });
 }
 
+var _srFilter='all';// 'all','movie','show'
 function _unShowSearchResults(query,results){
-  var el=document.getElementById('un-content');
+  _unShowSearchOverlay();
+  var el=document.getElementById('un-search-results');
   if(!results.length){el.innerHTML='<div class="un-empty">No results for "'+query+'"</div>';return}
-  var h='<div class="un-sr">';
-  results.forEach(function(r,i){
+  var filtered=_srFilter==='all'?results:results.filter(function(r){return r.type===_srFilter});
+  // Filter buttons
+  var h='<div style="display:flex;gap:6px;padding:10px 16px;max-width:600px;margin:0 auto">';
+  h+='<button onclick="_srSetFilter(\'all\')" style="padding:6px 14px;border-radius:8px;border:1px solid '+(_srFilter==='all'?'var(--tv)':'rgba(255,255,255,.1)')+';background:'+(_srFilter==='all'?'rgba(20,184,166,.15)':'none')+';color:'+(_srFilter==='all'?'var(--tv)':'var(--t2)')+';font-size:12px;font-weight:600;cursor:pointer">All</button>';
+  h+='<button onclick="_srSetFilter(\'show\')" style="padding:6px 14px;border-radius:8px;border:1px solid '+(_srFilter==='show'?'var(--tv)':'rgba(255,255,255,.1)')+';background:'+(_srFilter==='show'?'rgba(20,184,166,.15)':'none')+';color:'+(_srFilter==='show'?'var(--tv)':'var(--t2)')+';font-size:12px;font-weight:600;cursor:pointer">📺 TV</button>';
+  h+='<button onclick="_srSetFilter(\'movie\')" style="padding:6px 14px;border-radius:8px;border:1px solid '+(_srFilter==='movie'?'var(--tv)':'rgba(255,255,255,.1)')+';background:'+(_srFilter==='movie'?'rgba(20,184,166,.15)':'none')+';color:'+(_srFilter==='movie'?'var(--tv)':'var(--t2)')+';font-size:12px;font-weight:600;cursor:pointer">🎞️ Movies</button>';
+  h+='</div>';
+  h+='<div class="un-sr">';
+  filtered.forEach(function(r,i){
     var isMovie=r.type==='movie';
     var item=isMovie?r.movie:r.show;
     if(!item)return;
@@ -5212,6 +5228,12 @@ function _unShowSearchResults(query,results){
   el.innerHTML=h;
 }
 
+function _srSetFilter(f){
+  _srFilter=f;
+  var input=document.getElementById('un-search');
+  var q=input?input.value.trim():'';
+  if(q&&_searchCache[q])_unShowSearchResults(q,_searchCache[q]);
+}
 function _unSearchTap(type,slug,tmdbId){
   if(type==='movie')_unOpenMovie(slug,tmdbId);
   else _unOpenShow(slug,tmdbId);
@@ -5482,7 +5504,8 @@ function _unGoHome(restoreScroll){
 
 // ─── Movie Detail ────────────────────────────────────────────────
 function _unOpenMovie(slug,tmdbId){
-  var el=document.getElementById('un-content');
+  _unShowSearchOverlay();
+  var el=document.getElementById('un-search-results');
   el.innerHTML='<div class="un-loading">Loading movie…</div>';
   _unSetView('movie',{slug:slug,tmdbId:tmdbId});
   var ov=document.getElementById('un-overlay');ov.scrollTop=0;
@@ -5638,7 +5661,8 @@ function _mvDpConfirm(){
 
 // ─── Show Page ───────────────────────────────────────────────────
 function _unOpenShow(slug,tmdbId){
-  var el=document.getElementById('un-content');
+  _unShowSearchOverlay();
+  var el=document.getElementById('un-search-results');
   el.innerHTML='<div class="un-loading">Loading show…</div>';
   _unSetView('show',{slug:slug,tmdbId:tmdbId});
   var ov=document.getElementById('un-overlay');ov.scrollTop=0;
@@ -5657,7 +5681,7 @@ function _unOpenShow(slug,tmdbId){
 }
 
 function _unRenderShowPage(slug,show,seasons,progress,tmdbId){
-  var el=document.getElementById('un-content');
+  var el=document.getElementById('un-search-results');
   var h='<div class="un-show-header">';
   h+='<div id="un-sh-poster-wrap"><div class="un-sr-poster-ph" style="width:160px;height:240px;margin:0 auto;border-radius:10px;font-size:40px">📺</div></div>';
   h+='<div class="un-show-title">'+show.title+'</div>';
@@ -5766,7 +5790,8 @@ function _unRenderShowPage(slug,show,seasons,progress,tmdbId){
 
 // ─── Season Page ─────────────────────────────────────────────────
 function _unOpenSeason(slug,seasonNum,tmdbId){
-  var el=document.getElementById('un-content');
+  _unShowSearchOverlay();
+  var el=document.getElementById('un-search-results');
   el.innerHTML='<div class="un-loading">Loading episodes…</div>';
   _unSetView('season',{slug:slug,season:seasonNum,tmdbId:tmdbId});
   var ov=document.getElementById('un-overlay');ov.scrollTop=0;
@@ -5788,7 +5813,7 @@ function _unOpenSeason(slug,seasonNum,tmdbId){
 }
 
 function _unRenderSeasonPage(slug,seasonNum,episodes,progress,tmdbId){
-  var el=document.getElementById('un-content');
+  var el=document.getElementById('un-search-results');
   // Build watched set from progress
   var watchedSet={};
   if(progress&&progress.seasons){
@@ -5875,7 +5900,7 @@ function _unEpNavShow(slug,tmdbId){
   _unCurrentView='show';
   _unUpdateHeader();
   // Render show page directly (skip _unSetView to avoid double-push)
-  var el=document.getElementById('un-content');
+  var el=document.getElementById('un-search-results');
   el.innerHTML='<div class="un-loading">Loading show…</div>';
   var ov=document.getElementById('un-overlay');ov.scrollTop=0;
   var showP=_traktGet('/shows/'+encodeURIComponent(slug)+'?extended=full');
@@ -5895,7 +5920,7 @@ function _unEpNavSeason(slug,season,tmdbId){
   _unNavStack.push({view:'episode',data:epData,scroll:0});
   _unCurrentView='season';
   _unUpdateHeader();
-  var el=document.getElementById('un-content');
+  var el=document.getElementById('un-search-results');
   el.innerHTML='<div class="un-loading">Loading episodes…</div>';
   var ov=document.getElementById('un-overlay');ov.scrollTop=0;
   var epsP=_traktGet('/shows/'+encodeURIComponent(slug)+'/seasons/'+season+'/episodes?extended=full');
@@ -6020,7 +6045,7 @@ function closeUpNext(){
 (function(){
   var ov=document.getElementById('un-overlay');if(!ov)return;
   var sx=0,sy=0,tracking=false,_dir=null,_onSub=false,_atTop=false,_atBot=false;
-  var cnt=document.getElementById('un-content');
+  var cnt=document.getElementById('un-search-results');
   ov.addEventListener('touchstart',function(e){
     sx=e.touches[0].clientX;sy=e.touches[0].clientY;
     tracking=true;_dir=null;
@@ -6108,7 +6133,7 @@ function renderStatus(){
   var hs_count=Object.keys(D.hs||{}).length;
   var ps_count=Object.keys(D.ps||{}).length;
   var el=document.getElementById('status');
-  el.innerHTML='<span>Actors: '+total_people+'</span><span>Headshots: '+hs_count+'</span><span>Posters: '+ps_count+'</span><span>Updated: __BUILD_TIME__</span>';
+  el.innerHTML='<span>Actors: '+total_people+'</span><span>Headshots: '+hs_count+'</span><span>Posters: '+ps_count+'</span><span>Updated: __BUILD_TIME__</span><span>iris-search v22</span>';
 }
 
 function render(){
