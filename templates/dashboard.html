@@ -5351,12 +5351,23 @@ function _unNavBack(){
       else _unGoHome();
     }else if(prev.view==='show'){
       // Re-render show page from cache
-      var cached=prev.data&&_showDataCache[prev.data.slug];
-      if(cached&&cached.show){
+      var cached2=prev.data&&_showDataCache[prev.data.slug];
+      if(cached2&&cached2.show){
         _unCurrentView='show';
         _unUpdateHeader();
-        _unRenderShowPage(prev.data.slug,cached.show,cached.seasons,cached.progress,cached.tmdbId);
+        _unRenderShowPage(prev.data.slug,cached2.show,cached2.seasons,cached2.progress,cached2.tmdbId);
       }else _unGoHome();
+    }else if(prev.view==='episode'){
+      // Restore episode detail view
+      var ep=prev.data;
+      if(ep&&ep.slug){
+        _unCurrentView='home';
+        _unUpdateHeader();
+        _renderUpNext();
+        // Re-open episode detail after render
+        setTimeout(function(){_unTapEpisode(ep.slug,ep.season,ep.episode,ep.tmdbId)},100);
+      }else _unGoHome();
+      return;// skip scroll restore — episode detail handles its own
     }
     if(prev.scroll){
       var ov=document.getElementById('un-overlay');
@@ -5765,17 +5776,50 @@ function _unRenderSeasonPage(slug,seasonNum,episodes,progress,tmdbId){
 }
 
 // Navigate from episode detail to show or season page
+// Saves episode context so swipe-back can restore it
 function _unEpNavShow(slug,tmdbId){
+  // Save episode context before destroying it
+  var epData=_crBase?{slug:_crBase.slug,season:_crBase.season,episode:_crEp,tmdbId:_crBase.tmdb_id||tmdbId,show:_crBase.show||'',poster:_crBase.poster||''}:null;
   var fg=document.getElementById('un-detail-fg');
   if(fg){fg.remove();document.getElementById('un-overlay').style.overflowY='auto'}
   _crBase=null;_crAll=null;
-  _unOpenShow(slug,tmdbId);
+  // Push episode as a nav entry so back returns to it
+  _unNavStack.push({view:'episode',data:epData,scroll:0});
+  _unCurrentView='show';
+  _unUpdateHeader();
+  // Render show page directly (skip _unSetView to avoid double-push)
+  var el=document.getElementById('un-content');
+  el.innerHTML='<div class="un-loading">Loading show…</div>';
+  var ov=document.getElementById('un-overlay');ov.scrollTop=0;
+  var showP=_traktGet('/shows/'+encodeURIComponent(slug)+'?extended=full');
+  var seasonsP=_traktGet('/shows/'+encodeURIComponent(slug)+'/seasons?extended=full');
+  var progP=(D._tt)?_traktGet('/shows/'+encodeURIComponent(slug)+'/progress/watched',true).catch(function(){return null}):Promise.resolve(null);
+  Promise.all([showP,seasonsP,progP]).then(function(res){
+    if(_unCurrentView!=='show')return;
+    _showDataCache[slug]={show:res[0],seasons:res[1],progress:res[2],tmdbId:tmdbId};
+    _unRenderShowPage(slug,res[0],res[1],res[2],tmdbId);
+  }).catch(function(e){el.innerHTML='<div class="un-empty">Failed: '+e.message+'</div>'});
 }
 function _unEpNavSeason(slug,season,tmdbId){
+  var epData=_crBase?{slug:_crBase.slug,season:_crBase.season,episode:_crEp,tmdbId:_crBase.tmdb_id||tmdbId,show:_crBase.show||'',poster:_crBase.poster||''}:null;
   var fg=document.getElementById('un-detail-fg');
   if(fg){fg.remove();document.getElementById('un-overlay').style.overflowY='auto'}
   _crBase=null;_crAll=null;
-  _unOpenSeason(slug,season,tmdbId);
+  _unNavStack.push({view:'episode',data:epData,scroll:0});
+  _unCurrentView='season';
+  _unUpdateHeader();
+  var el=document.getElementById('un-content');
+  el.innerHTML='<div class="un-loading">Loading episodes…</div>';
+  var ov=document.getElementById('un-overlay');ov.scrollTop=0;
+  var epsP=_traktGet('/shows/'+encodeURIComponent(slug)+'/seasons/'+season+'/episodes?extended=full');
+  var cached=_showDataCache[slug];
+  var progP=cached&&cached.progress?Promise.resolve(cached.progress):(D._tt?_traktGet('/shows/'+encodeURIComponent(slug)+'/progress/watched',true).catch(function(){return null}):Promise.resolve(null));
+  Promise.all([epsP,progP]).then(function(res){
+    if(_unCurrentView!=='season')return;
+    var ck=slug+'|'+season;_seasonEpDataCache[ck]=res[0];
+    if(cached)cached.progress=res[1];
+    _unRenderSeasonPage(slug,season,res[0],res[1],tmdbId);
+  }).catch(function(e){el.innerHTML='<div class="un-empty">Failed: '+e.message+'</div>'});
 }
 
 // Tap an episode row on season page → open episode detail carousel
