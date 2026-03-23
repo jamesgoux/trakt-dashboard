@@ -545,11 +545,29 @@ def run():
 
     final_shows.sort(key=lambda x: x.get("added_at") or "", reverse=True)
 
+    # 6. Read custom order from Trakt personal list (if exists)
+    custom_order = {}
+    if CLIENT_ID:
+        try:
+            r = retry_request("get", f"{BASE}/users/{USERNAME}/lists", headers=HEADERS, timeout=10)
+            if r and r.status_code == 200:
+                for lst in r.json():
+                    if lst.get("name") == "Iris Custom Order":
+                        desc = lst.get("description", "")
+                        if desc:
+                            custom_order = json.loads(desc)
+                            print(f"  Custom order: {len(custom_order.get('movies',[]))} movies, {len(custom_order.get('shows',[]))} shows")
+                        break
+        except Exception as e:
+            print(f"  Custom order read failed: {e}")
+
     output = {
         "movies": final_movies,
         "shows": final_shows,
         "updated": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
     }
+    if custom_order:
+        output["custom_order"] = custom_order
 
     os.makedirs("data", exist_ok=True)
     with open("data/watchlist.json", "w") as f:
