@@ -1,0 +1,72 @@
+name: External Sources
+
+on:
+  schedule:
+    - cron: '*/20 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sources
+  cancel-in-progress: false
+
+jobs:
+  sources:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Refresh Letterboxd
+        run: python scripts/refresh_letterboxd.py
+        continue-on-error: true
+
+      - name: Refresh Goodreads
+        env:
+          GOODREADS_USER_ID: ${{ secrets.GOODREADS_USER_ID }}
+        run: python scripts/refresh_goodreads.py
+        continue-on-error: true
+
+      - name: Refresh Concerts
+        env:
+          SETLIST_FM_API_KEY: ${{ secrets.SETLIST_FM_API_KEY }}
+        run: python scripts/refresh_setlist.py
+        continue-on-error: true
+
+      - name: Refresh Podcasts
+        env:
+          POCKETCASTS_EMAIL: ${{ secrets.POCKETCASTS_EMAIL }}
+          POCKETCASTS_PASSWORD: ${{ secrets.POCKETCASTS_PASSWORD }}
+        run: python scripts/refresh_pocketcasts.py
+        continue-on-error: true
+
+      - name: Refresh Serializd
+        env:
+          SERIALIZD_EMAIL: ${{ secrets.SERIALIZD_EMAIL }}
+          SERIALIZD_PASSWORD: ${{ secrets.SERIALIZD_PASSWORD }}
+        run: python scripts/refresh_serializd.py
+        continue-on-error: true
+
+      - name: Refresh Last.fm
+        env:
+          LASTFM_API_KEY: ${{ secrets.LASTFM_API_KEY }}
+          LASTFM_USER: ${{ secrets.LASTFM_USER }}
+        run: python scripts/refresh_lastfm.py
+        timeout-minutes: 5
+        continue-on-error: true
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --quiet --staged || git commit -m "Sources refresh $(date -u +'%H:%M UTC')"
+          git pull --no-rebase -X ours origin main || true
+          git push
