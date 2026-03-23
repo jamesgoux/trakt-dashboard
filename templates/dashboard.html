@@ -6790,18 +6790,19 @@ function closeUpNext(){
 (function(){
   var ov=document.getElementById('un-overlay');if(!ov)return;
   var sx=0,sy=0,tracking=false,_dir=null,_onSub=false,_atTop=false,_atBot=false;
-  var _swCnt=null;
+  var _swCnt=null,_swIsOvSlide=false;
   ov.addEventListener('touchstart',function(e){
     sx=e.touches[0].clientX;sy=e.touches[0].clientY;
     tracking=true;_dir=null;
     var _searchOpen=document.getElementById('un-search-ov').style.display!=='none';
     _onSub=(_unCurrentView!=='home')||_searchOpen;
-    // Calendar + watchlist render in #un-content; search sub-pages in #un-search-results
-    _swCnt=(_unCurrentView==='calendar'||_unCurrentView==='watchlist')?document.getElementById('un-content'):document.getElementById('un-search-results');
-    var _isScrollView=(_unCurrentView==='calendar'||_unCurrentView==='watchlist');
+    // Calendar + watchlist: slide whole overlay (like home) then swap content
+    _swIsOvSlide=(_unCurrentView==='calendar'||_unCurrentView==='watchlist');
+    _swCnt=_swIsOvSlide?null:(_searchOpen?document.getElementById('un-search-results'):null);
+    var _isScrollView=_swIsOvSlide;
     _atTop=ov.scrollTop<5;
     _atBot=ov.scrollHeight-ov.scrollTop-ov.clientHeight<5;
-    if(!_onSub)ov.style.transition='none';
+    if(!_onSub||_swIsOvSlide)ov.style.transition='none';
     if(_onSub&&_swCnt){_swCnt.style.transition='none'}
   },{passive:true});
   ov.addEventListener('touchmove',function(e){
@@ -6823,8 +6824,8 @@ function closeUpNext(){
       }
     }
     if(_dir==='h'){
-      if(_onSub&&_swCnt){_swCnt.style.transform='translateX('+Math.max(0,dx)+'px)'}
-      else if(!_onSub){ov.style.transform='translateX('+Math.max(0,dx)+'px)'}
+      if(_swIsOvSlide||!_onSub){ov.style.transform='translateX('+Math.max(0,dx)+'px)'}
+      else if(_onSub&&_swCnt){_swCnt.style.transform='translateX('+Math.max(0,dx)+'px)'}
     }else if(_dir==='v'&&_onSub&&_swCnt){
       _swCnt.style.transform='translateY('+dy+'px)';_swCnt.style.opacity=Math.max(0,1-ady/300);
     }
@@ -6834,12 +6835,25 @@ function closeUpNext(){
     tracking=false;
     var dx=e.changedTouches[0].clientX-sx,dy=e.changedTouches[0].clientY-sy;
     var threshold=80;
-    if(_dir==='h'&&!_onSub){
-      // Home: slide whole overlay to dismiss (reveals dashboard behind)
+    if(_dir==='h'&&(_swIsOvSlide||!_onSub)){
+      // Home / calendar / watchlist: slide overlay
       var ovDx=parseInt(ov.style.transform.replace(/[^0-9.-]/g,''))||0;
       ov.style.transition='transform .3s ease';
-      if(ovDx>window.innerWidth*0.35){closeUpNext()}
-      else{ov.style.transform=''}
+      if(ovDx>window.innerWidth*0.35){
+        if(_swIsOvSlide){
+          // Slide off, swap to queue, slide back in
+          ov.style.transform='translateX(100%)';
+          setTimeout(function(){
+            ov.style.transition='none';
+            _unNavBack();
+            ov.style.transform='translateX(100%)';
+            requestAnimationFrame(function(){requestAnimationFrame(function(){
+              ov.style.transition='transform .25s ease';
+              ov.style.transform='';
+            })});
+          },300);
+        }else{closeUpNext()}
+      }else{ov.style.transform=''}
     }else if(_dir==='h'&&_onSub&&_swCnt){
       // Sub-page / calendar / watchlist: slide content out, reveal Up Next queue
       if(dx>threshold){
@@ -6913,7 +6927,7 @@ function renderStatus(){
   var hs_count=Object.keys(D.hs||{}).length;
   var ps_count=Object.keys(D.ps||{}).length;
   var el=document.getElementById('status');
-  el.innerHTML='<span>Actors: '+total_people+'</span><span>Headshots: '+hs_count+'</span><span>Posters: '+ps_count+'</span><span>Updated: __BUILD_TIME__</span><span>v53</span>';
+  el.innerHTML='<span>Actors: '+total_people+'</span><span>Headshots: '+hs_count+'</span><span>Posters: '+ps_count+'</span><span>Updated: __BUILD_TIME__</span><span>v54</span>';
 }
 
 function render(){
