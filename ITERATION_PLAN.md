@@ -43,6 +43,10 @@
 
 ## Priority 4: Genericize Project (Multi-User)
 
+> **This section has been superseded by [`MULTI_USER_PLAN.md`](MULTI_USER_PLAN.md)** — a comprehensive plan covering all 18 integrations, Supabase architecture, staging strategy, database schema, and 54 granular tasks across 7 phases with dependency/concurrency mapping.
+
+The original requirements below are preserved for reference, but the implementation plan in `MULTI_USER_PLAN.md` is the source of truth.
+
 Turn Iris from a single-user GitHub Pages site into a multi-user web application where anyone can sign up, connect their own media services, and get their own dashboard.
 
 ### Requirements
