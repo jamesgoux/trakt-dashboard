@@ -6031,11 +6031,14 @@ function _calAppendBatch(futureDays){
   el.insertAdjacentHTML('beforeend',h);
   _calRenderedDays=end;
 
-  // Show load-more indicator if more days
+  // Show load-more indicator or end-of-list
   var existing=document.getElementById('un-cal-more');
   if(existing)existing.remove();
   if(end<futureDays.length){
     el.insertAdjacentHTML('beforeend','<div id="un-cal-more" class="un-cal-loading">Scroll for more…</div>');
+  }else{
+    var calData=D.cal||{};
+    el.insertAdjacentHTML('beforeend','<div id="un-cal-more" class="un-cal-loading" style="padding:30px 20px;opacity:.5">📅 '+futureDays.length+' days with episodes in the next '+(calData.days_ahead||90)+' days</div>');
   }
 }
 
@@ -6617,6 +6620,8 @@ function closeUpNext(){
     // Treat search bar open as a sub-page (don't slide overlay away)
     var _searchOpen=document.getElementById('un-search-ov').style.display!=='none';
     _onSub=(_unCurrentView!=='home')||_searchOpen;
+    // Calendar + watchlist are scrollable views, not swipe-back detail pages
+    var _isScrollView=(_unCurrentView==='calendar'||_unCurrentView==='watchlist');
     _atTop=ov.scrollTop<5;
     _atBot=ov.scrollHeight-ov.scrollTop-ov.clientHeight<5;
     if(!_onSub)ov.style.transition='none';
@@ -6629,9 +6634,10 @@ function closeUpNext(){
     if(!_dir&&(adx>10||ady>10)){
       if(_onSub){
         // Sub-page: detect horizontal (right) or vertical (down at top, up at bottom)
+        // Calendar + watchlist: only horizontal swipe-back (they scroll vertically)
         if(adx>ady&&dx>0){_dir='h'}
-        else if(ady>adx&&dy>0&&_atTop){_dir='v'}
-        else if(ady>adx&&dy<0&&_atBot){_dir='v'}
+        else if(!_isScrollView&&ady>adx&&dy>0&&_atTop){_dir='v'}
+        else if(!_isScrollView&&ady>adx&&dy<0&&_atBot){_dir='v'}
         else{_dir='none';tracking=false;return}// Let scroll happen
       }else{
         // Home: only horizontal right
