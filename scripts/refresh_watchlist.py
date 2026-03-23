@@ -4,7 +4,7 @@ Fetch watchlist data from Letterboxd (RSS) and Trakt (API).
 Enrich with TMDB runtimes/posters and JustWatch streaming + rental + purchase prices.
 Saves to data/watchlist.json for dashboard.
 """
-import os, sys, json, time, urllib.request
+import os, sys, json, time, urllib.request, requests
 import xml.etree.ElementTree as ET
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -35,9 +35,11 @@ def fetch_letterboxd_watchlist():
     url = f"https://letterboxd.com/{LB_USERNAME}/watchlist/rss/"
     print(f"Fetching Letterboxd watchlist RSS ({LB_USERNAME})...")
     try:
-        r = retry_request("get", url, headers={"User-Agent": "Mozilla/5.0"}, timeout=15)
-        if not r or r.status_code != 200:
-            print(f"  RSS fetch failed: {r.status_code if r else 'no response'}")
+        # Use requests.get() directly (not retry_request) — matches refresh_letterboxd.py
+        # Letterboxd Cloudflare needs proper User-Agent
+        r = requests.get(url, timeout=15, headers={"User-Agent": "Mozilla/5.0"})
+        if r.status_code != 200:
+            print(f"  RSS fetch failed: {r.status_code}")
             return []
     except Exception as e:
         print(f"  RSS fetch error: {e}")
@@ -174,7 +176,36 @@ def fetch_tmdb_show(tmdb_id):
         return {}
 
 
-def fetch_justwatch(slug, media_type="movie"):
+def fetch_tmdb_watch_providers(tmdb_id, media_type="movie"):
+    """Fallback: fetch streaming info from TMDB Watch Providers (no prices but reliable matching)."""
+    if not TMDB_API_KEY or not tmdb_id:
+        return {}
+    try:
+        mtype = "movie" if media_type == "movie" else "tv"
+        url = f"https://api.themoviedb.org/3/{mtype}/{tmdb_id}/watch/providers?api_key={TMDB_API_KEY}"
+        req = urllib.request.Request(url, headers={"Accept": "application/json"})
+        resp = urllib.request.urlopen(req, timeout=5)
+        d = json.loads(resp.read())
+        us = d.get("results", {}).get("US", {})
+        result = {}
+        if us.get("flatrate"):
+            result["s"] = [{"n": p["provider_name"], "s": str(p["provider_id"]),
+                           "i": f"https://image.tmdb.org/t/p/w92{p['logo_path']}" if p.get("logo_path") else ""}
+                          for p in us["flatrate"][:5]]
+        if us.get("rent"):
+            result["r"] = [{"n": p["provider_name"], "s": str(p["provider_id"]),
+                           "i": f"https://image.tmdb.org/t/p/w92{p['logo_path']}" if p.get("logo_path") else ""}
+                          for p in us["rent"][:3]]
+        if us.get("buy"):
+            result["b"] = [{"n": p["provider_name"], "s": str(p["provider_id"]),
+                           "i": f"https://image.tmdb.org/t/p/w92{p['logo_path']}" if p.get("logo_path") else ""}
+                          for p in us["buy"][:3]]
+        return result
+    except Exception:
+        return {}
+
+
+def fetch_justwatch(slug, media_type="movie", tmdb_id=None):
     """Fetch streaming + rental + purchase prices from JustWatch GraphQL API."""
     jw_type = "movie" if media_type == "movie" else "tv-show"
     path = f"/us/{jw_type}/{slug}"
@@ -184,7 +215,11 @@ def fetch_justwatch(slug, media_type="movie"):
                                      data=body, headers={"Content-Type": "application/json"})
         resp = urllib.request.urlopen(req, timeout=5)
         d = json.loads(resp.read())
-        offers = d.get("data", {}).get("urlV2", {}).get("node", {}).get("offers", [])
+        node = d.get("data", {}).get("urlV2", {}).get("node")
+        if not node:
+            print(f"    JW miss for {slug} ({jw_type}), trying TMDB providers...")
+            return fetch_tmdb_watch_providers(tmdb_id, media_type)
+        offers = node.get("offers", [])
 
         stream = []  # FLATRATE
         rent = []    # RENT
@@ -228,8 +263,9 @@ def fetch_justwatch(slug, media_type="movie"):
             buy.sort(key=lambda x: float(str(x.get("p", "999")).replace("$", "").replace(",", "")))
             result["b"] = buy[:3]
         return result
-    except Exception:
-        return {}
+    except Exception as e:
+        print(f"    JW error for {slug}: {e}, trying TMDB providers...")
+        return fetch_tmdb_watch_providers(tmdb_id, media_type)
 
 
 def slugify_for_jw(title, year=None):
@@ -373,7 +409,7 @@ def run():
             continue
 
         media_type = "show" if "aired_episodes" in item else "movie"
-        jw_data = fetch_justwatch(slug, media_type)
+        jw_data = fetch_justwatch(slug, media_type, tmdb_id=item.get("tmdb_id"))
         item["jw"] = jw_data
         jw_cache[slug] = jw_data
         jw_fetched += 1
