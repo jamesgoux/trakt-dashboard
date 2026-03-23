@@ -1,8 +1,6 @@
-name: External Sources
+name: External Sources (standalone)
 
 on:
-  schedule:
-    - cron: '*/20 * * * *'
   workflow_dispatch:
 
 permissions:
