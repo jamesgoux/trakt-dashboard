@@ -2563,6 +2563,14 @@ if os.path.exists("data/health.json"):
         data["_hwAll"] = health_deduped
         print(f"  Health: {len(health_deduped)} workouts, {len(by_type)} types, {round(total_dur/3600,1)}h total")
 
+# Watchlist — load pre-computed watchlist with JustWatch prices
+if os.path.exists("data/watchlist.json"):
+    with open("data/watchlist.json") as f:
+        wlst_raw = json.load(f)
+    if wlst_raw:
+        data["wlst"] = wlst_raw
+        print(f"  Watchlist: {len(wlst_raw.get('movies',[]))} movies, {len(wlst_raw.get('shows',[]))} shows")
+
 # Inject Trakt credentials for client-side mark-as-watched
 _trakt_token = get_trakt_access_token()
 if _trakt_token and CLIENT_ID:
