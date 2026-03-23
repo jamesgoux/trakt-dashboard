@@ -5325,7 +5325,18 @@ function _unSearchTap(type,slug,tmdbId){
 // ─── Where to Watch ──────────────────────────────────────────────
 // Primary: JustWatch GraphQL (has prices). Fallback: TMDB Watch Providers.
 function _unFetchJW(type,slug,containerId,tmdbId){
-  // JustWatch blocks CORS — go straight to TMDB Watch Providers
+  // Check watchlist cache for JustWatch prices first
+  var wl=D.wlst||D.wl||{};
+  var items=type==='movie'?(wl.movies||[]):(wl.shows||[]);
+  var cached=items.find(function(m){return m.slug===slug});
+  if(cached&&cached.jw&&(cached.jw.s||cached.jw.r||cached.jw.b)){
+    var results=[];
+    (cached.jw.s||[]).forEach(function(o){results.push({name:o.n,icon:o.i,label:'Stream'})});
+    (cached.jw.r||[]).forEach(function(o){results.push({name:o.n,icon:o.i,label:'Rent'+(o.p?' ('+o.p+')':'')})});
+    (cached.jw.b||[]).forEach(function(o){results.push({name:o.n,icon:o.i,label:'Buy'+(o.p?' ('+o.p+')':'')})});
+    if(results.length){_unRenderWP(results,containerId);return}
+  }
+  // Fallback to TMDB Watch Providers (no prices but CORS-friendly)
   if(tmdbId)_unFetchWPTmdb(type,tmdbId,containerId);
 }
 function _unFetchWPTmdb(type,tmdbId,containerId){
@@ -6796,20 +6807,33 @@ function closeUpNext(){
     }
   },{passive:true});
 })();
-// Swipe-to-dismiss search overlay
+// Swipe-to-dismiss search overlay (with slide animation)
 (function(){
   var sov=document.getElementById('un-search-ov');if(!sov)return;
-  var sx=0,sy=0,dir=null;
-  sov.addEventListener('touchstart',function(e){sx=e.touches[0].clientX;sy=e.touches[0].clientY;dir=null},{passive:true});
+  var sx=0,sy=0,dir=null,moved=false;
+  sov.addEventListener('touchstart',function(e){
+    sx=e.touches[0].clientX;sy=e.touches[0].clientY;dir=null;moved=false;
+    sov.style.transition='none';
+  },{passive:true});
   sov.addEventListener('touchmove',function(e){
-    if(dir)return;
     var dx=e.touches[0].clientX-sx,dy=e.touches[0].clientY-sy;
-    if(Math.abs(dx)>15||Math.abs(dy)>15)dir=Math.abs(dx)>Math.abs(dy)?'h':'v';
+    if(!dir&&(Math.abs(dx)>12||Math.abs(dy)>12)){
+      dir=Math.abs(dx)>Math.abs(dy)?'h':'v';
+    }
+    if(dir==='h'&&dx>0){moved=true;sov.style.transform='translateX('+dx+'px)';sov.style.opacity=Math.max(0,1-dx/400)}
   },{passive:true});
   sov.addEventListener('touchend',function(e){
     var dx=e.changedTouches[0].clientX-sx;
-    if(dir==='h'&&dx>80)_unCloseSearchOverlay();
-    dir=null;
+    if(dir==='h'&&dx>80){
+      sov.style.transition='transform .2s ease,opacity .2s ease';
+      sov.style.transform='translateX(100%)';sov.style.opacity='0';
+      setTimeout(function(){sov.style.transition='';sov.style.transform='';sov.style.opacity='';_unCloseSearchOverlay()},220);
+    }else if(moved){
+      sov.style.transition='transform .2s ease,opacity .2s ease';
+      sov.style.transform='';sov.style.opacity='';
+      setTimeout(function(){sov.style.transition=''},220);
+    }
+    dir=null;moved=false;
   },{passive:true});
 })();
 
@@ -6818,7 +6842,7 @@ function renderStatus(){
   var hs_count=Object.keys(D.hs||{}).length;
   var ps_count=Object.keys(D.ps||{}).length;
   var el=document.getElementById('status');
-  el.innerHTML='<span>Actors: '+total_people+'</span><span>Headshots: '+hs_count+'</span><span>Posters: '+ps_count+'</span><span>Updated: __BUILD_TIME__</span><span>v39</span>';
+  el.innerHTML='<span>Actors: '+total_people+'</span><span>Headshots: '+hs_count+'</span><span>Posters: '+ps_count+'</span><span>Updated: __BUILD_TIME__</span><span>v40</span>';
 }
 
 function render(){
