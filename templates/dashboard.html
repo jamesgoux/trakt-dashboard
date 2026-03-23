@@ -5258,36 +5258,8 @@ function _unSearchTap(type,slug,tmdbId){
 // ─── Where to Watch ──────────────────────────────────────────────
 // Primary: JustWatch GraphQL (has prices). Fallback: TMDB Watch Providers.
 function _unFetchJW(type,slug,containerId,tmdbId){
-  // Try JustWatch first (has pricing like Rent $3.99, Buy $14.99)
-  var jwPath=type==='movie'?'/us/movie/'+slug:'/us/tv-show/'+slug;
-  var jwQuery='query($path:String!){urlV2(fullPath:$path){node{...on MovieOrShow{offers(country:US platform:WEB){monetizationType retailPrice(country:US) currency package{clearName shortName icon(profile:S100 format:PNG)}}}}}}';
-  fetch('https://apis.justwatch.com/graphql',{
-    method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({query:jwQuery,variables:{path:jwPath}})
-  })
-  .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json()})
-  .then(function(d){
-    var node=(d.data||{}).urlV2;
-    if(!node||!node.node||!(node.node.offers||[]).length)throw new Error('empty');
-    var raw=node.node.offers;
-    // Deduplicate per service, keep best offer type (FLATRATE > ADS > FREE > RENT > BUY)
-    var order={FLATRATE:0,FLATRATE_AND_BUY:1,ADS:2,FREE:3,RENT:4,BUY:5};
-    raw.sort(function(a,b){return(order[a.monetizationType]||9)-(order[b.monetizationType]||9)});
-    var seen={};var results=[];
-    raw.forEach(function(o){
-      var sn=o.package.shortName;
-      if(seen[sn])return;
-      seen[sn]=true;
-      var typeLabel={FLATRATE:'Stream',FLATRATE_AND_BUY:'Stream',ADS:'Free w/ Ads',FREE:'Free',RENT:'Rent',BUY:'Buy'}[o.monetizationType]||o.monetizationType;
-      if(o.retailPrice&&(o.monetizationType==='RENT'||o.monetizationType==='BUY'))typeLabel+=' ($'+(+o.retailPrice).toFixed(2)+')';
-      results.push({name:o.package.clearName,icon:'https://images.justwatch.com'+o.package.icon,label:typeLabel});
-    });
-    _unRenderWP(results,containerId);
-  })
-  .catch(function(){
-    // JustWatch failed (CORS, empty, etc.) — fall back to TMDB Watch Providers
-    if(tmdbId)_unFetchWPTmdb(type,tmdbId,containerId);
-  });
+  // JustWatch blocks CORS — go straight to TMDB Watch Providers
+  if(tmdbId)_unFetchWPTmdb(type,tmdbId,containerId);
 }
 function _unFetchWPTmdb(type,tmdbId,containerId){
   var tk=(D.un||{}).tmdb_key||'';if(!tk)return;
@@ -6138,7 +6110,7 @@ function renderStatus(){
   var hs_count=Object.keys(D.hs||{}).length;
   var ps_count=Object.keys(D.ps||{}).length;
   var el=document.getElementById('status');
-  el.innerHTML='<span>Actors: '+total_people+'</span><span>Headshots: '+hs_count+'</span><span>Posters: '+ps_count+'</span><span>Updated: __BUILD_TIME__</span><span>v37</span>';
+  el.innerHTML='<span>Actors: '+total_people+'</span><span>Headshots: '+hs_count+'</span><span>Posters: '+ps_count+'</span><span>Updated: __BUILD_TIME__</span><span>v38</span>';
 }
 
 function render(){
