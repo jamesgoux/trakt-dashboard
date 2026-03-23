@@ -481,23 +481,24 @@ Drop GameTrack games.csv or <span style="color:#6366f1;text-decoration:underline
 <!-- Up Next Overlay -->
 <div id="un-overlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg);z-index:9000;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;transition:transform .3s ease;will-change:transform;scroll-padding-top:70px">
 <div id="un-hdr" style="position:sticky;top:0;z-index:9001;background:rgba(15,15,15,.97);backdrop-filter:blur(8px);padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.06)">
-<!-- Normal header: Home | Title (centered) | 🔍 -->
 <div id="un-hdr-normal" style="display:flex;align-items:center">
 <button onclick="_unHomeBtn()" class="un-back" id="un-back-btn" style="flex-shrink:0">←</button>
 <h2 id="un-header-title" style="font-size:18px;font-weight:700;margin:0;flex:1;text-align:center"><span class="i">📺</span> Up Next</h2>
-<button onclick="_unOpenSearchBar()" class="un-back" id="un-search-btn" style="flex-shrink:0;font-size:16px">🔍</button>
+<button onclick="_unOpenSearchOverlay()" class="un-back" id="un-search-btn" style="flex-shrink:0;font-size:16px">🔍</button>
 </div>
-<!-- Search header: ← | input | ✕ -->
-<div id="un-hdr-search" style="display:none;align-items:center;gap:8px">
-<button onclick="_unHomeBtn()" class="un-back" style="flex-shrink:0">←</button>
+</div>
+<div id="un-content"></div>
+</div>
+<!-- Search overlay: completely separate from Up Next -->
+<div id="un-search-ov" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg);z-index:9600;overflow-y:auto;-webkit-overflow-scrolling:touch">
+<div style="position:sticky;top:0;z-index:9601;background:rgba(15,15,15,.97);backdrop-filter:blur(8px);padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;gap:8px">
+<button onclick="_unCloseSearchOverlay()" class="un-back" style="flex-shrink:0">←</button>
 <div style="flex:1;position:relative">
 <input type="text" id="un-search" class="un-search-input" placeholder="Search movies & shows…" autocomplete="off" autocorrect="off" spellcheck="false" style="padding-left:14px">
 </div>
 <button id="un-search-clear" class="un-search-clear" onclick="_unSearchClear()" style="position:static;transform:none;display:none;flex-shrink:0;padding:8px;color:var(--t2);background:none;border:none;font-size:18px;cursor:pointer">✕</button>
 </div>
-</div>
-<div style="position:relative" id="un-wrap"><div id="un-content"></div>
-<div id="un-search-results" style="display:none;position:absolute;top:0;left:0;right:0;min-height:100vh;background:var(--bg);z-index:2"></div></div>
+<div id="un-search-results"></div>
 </div>
 <script>
 var D=__DASHBOARD_DATA__;
@@ -3687,8 +3688,6 @@ function openUpNext(skipSync){
   if(!skipSync){
     _unCurrentView='home';_unNavStack=[];
     _unUpdateHeader();
-    document.getElementById('un-hdr-normal').style.display='flex';
-    document.getElementById('un-hdr-search').style.display='none';
     var si=document.getElementById('un-search');if(si){si.value='';si.blur()}
     document.getElementById('un-search-clear').style.display='none';
     // Remove any lingering episode detail foreground
@@ -5001,18 +5000,10 @@ function _traktGet(path,needsAuth){
   return fetch('https://api.trakt.tv'+path,{headers:hdr}).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json()});
 }
 
-// Search bar open/close
-// Home/close button: search active → close search; sub-page → go home; home → close overlay
+// Home/close button for Up Next header
 function _unHomeBtn(){
-  // If episode detail is open, dismiss it
   var fg=document.getElementById('un-detail-fg');
   if(fg){fg.remove();document.getElementById('un-overlay').style.overflowY='auto';_crBase=null;_crAll=null}
-  // If search bar is open, close it and return to queue
-  var searchHdr=document.getElementById('un-hdr-search');
-  if(searchHdr&&searchHdr.style.display==='flex'){
-    _unCloseSearchBar();
-    return;
-  }
   if(_unCurrentView==='home'){
     closeUpNext();
   }else{
@@ -5020,71 +5011,47 @@ function _unHomeBtn(){
   }
 }
 
-function _unOpenSearchBar(){
-  var ov=document.getElementById('un-overlay');
-  _unSearchSavedScroll=ov.scrollTop;
-  document.getElementById('un-hdr-normal').style.display='none';
-  document.getElementById('un-hdr-search').style.display='flex';
+// Search overlay: completely separate from Up Next
+function _unOpenSearchOverlay(){
+  var sov=document.getElementById('un-search-ov');
+  sov.style.display='';
   var input=document.getElementById('un-search');
   input.value='';
   document.getElementById('un-search-clear').style.display='none';
+  document.getElementById('un-search-results').innerHTML='';
   input.focus();
 }
-// Show/hide search overlay — un-content is NEVER touched, scroll never changes
-function _unShowSearchOverlay(){
-  var sr=document.getElementById('un-search-results');
-  if(sr)sr.style.display='';
-  // Scroll to top of overlay so search results are visible
-  var ov=document.getElementById('un-overlay');
-  if(ov)ov.scrollTop=0;
-}
-function _unHideSearchOverlay(){
-  var sr=document.getElementById('un-search-results');
-  if(sr){sr.style.display='none';sr.innerHTML=''}
-  // Scroll back to saved position — un-content was never hidden so just set it
-  var ov=document.getElementById('un-overlay');
-  if(ov)ov.scrollTop=_unSearchSavedScroll||0;
-}
-
-var _unSearchSavedScroll=0;
-var _unClosingSearch=false;
-function _unCloseSearchBar(){
-  _unClosingSearch=true;
+function _unCloseSearchOverlay(){
+  var sov=document.getElementById('un-search-ov');
   var input=document.getElementById('un-search');
   input.blur();
   input.value='';
-  document.getElementById('un-search-clear').style.display='none';
-  document.getElementById('un-hdr-search').style.display='none';
-  document.getElementById('un-hdr-normal').style.display='flex';
-  _unHideSearchOverlay();
-  _unCurrentView='home';
-  _unNavStack=[];
-  _unUpdateHeader();
-  _unClosingSearch=false;
+  sov.style.display='none';
+  document.getElementById('un-search-results').innerHTML='';
+  // If we navigated to a show/movie/season, reset to home
+  if(_unCurrentView!=='home'){_unCurrentView='home';_unNavStack=[];_unUpdateHeader()}
 }
+function _unShowSearchOverlay(){/* no-op, search overlay is always visible when open */}
+function _unHideSearchOverlay(){/* no-op */}
 
 // Search input setup
 (function(){
   var input=document.getElementById('un-search');
   var clearBtn=document.getElementById('un-search-clear');
   if(!input)return;
-  // Typing = filter Up Next queue locally (renders into search overlay)
   input.addEventListener('input',function(){
-    if(_unClosingSearch)return;// Don't interfere with programmatic close
     var q=input.value.trim();
     clearBtn.style.display=q?'block':'none';
     if(_searchTimer)clearTimeout(_searchTimer);
-    if(!q){_unHideSearchOverlay();return}
+    if(!q){document.getElementById('un-search-results').innerHTML='';return}
     _searchTimer=setTimeout(function(){_unFilterQueue(q)},150);
   });
-  // Enter = search Trakt (wider search)
   input.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();if(_searchTimer)clearTimeout(_searchTimer);var q=input.value.trim();if(q)_unDoSearch(q)}});
 })();
 
 // Filter the Up Next queue by text match (local, instant)
 function _unFilterQueue(query){
-  if(!query){_unHideSearchOverlay();return}
-  _unShowSearchOverlay();
+  if(!query){document.getElementById('un-search-results').innerHTML='';return}
   var ud=_unData();var q=query.toLowerCase();
   var el=document.getElementById('un-search-results');
   // Filter shows
@@ -5137,14 +5104,12 @@ function _unSearchClear(){
   var input=document.getElementById('un-search');
   input.value='';
   document.getElementById('un-search-clear').style.display='none';
-  if(_unCurrentView!=='home')_unGoHome();
+  document.getElementById('un-search-results').innerHTML='';
   input.focus();
 }
 
 function _unDoSearch(query){
-  // Always set view first so nav stack is correct (even for cached results)
   if(_unCurrentView!=='search')_unSetView('search',{query:query});
-  _unShowSearchOverlay();
   if(_searchCache[query]){_unShowSearchResults(query,_searchCache[query]);return}
   var el=document.getElementById('un-search-results');
   el.innerHTML='<div class="un-loading">Searching Trakt…</div>';
@@ -5401,8 +5366,6 @@ function _unSetView(view,data){
   _unUpdateHeader();
   // When entering search view, show the search header
   if(view==='search'){
-    document.getElementById('un-hdr-normal').style.display='none';
-    document.getElementById('un-hdr-search').style.display='flex';
   }
 }
 
@@ -5427,8 +5390,6 @@ function _unUpdateHeader(){
   }
   // Ensure normal header is shown (not search bar) for non-search views
   if(_unCurrentView!=='search'){
-    document.getElementById('un-hdr-normal').style.display='flex';
-    document.getElementById('un-hdr-search').style.display='none';
   }
 }
 
@@ -5437,8 +5398,8 @@ function _unNavBack(){
   var fg=document.getElementById('un-detail-fg');
   if(fg){_unDismissDetail();return}
   // If search bar is open but no search done, just close the search bar
-  if(document.getElementById('un-hdr-search').style.display==='flex'&&_unCurrentView==='home'){
-    _unCloseSearchBar();
+  if(document.getElementById('un-search-ov').style.display!=='none'&&_unCurrentView==='home'){
+    _unCloseSearchOverlay();
     return;
   }
   if(_unNavStack.length){
@@ -5450,8 +5411,6 @@ function _unNavBack(){
       _unNavStack=[];
     }else if(prev.view==='search'){
       // Return to search results — show search bar with query
-      document.getElementById('un-hdr-normal').style.display='none';
-      document.getElementById('un-hdr-search').style.display='flex';
       var input=document.getElementById('un-search');
       var q=input?input.value.trim():'';
       if(q&&_searchCache[q])_unShowSearchResults(q,_searchCache[q]);
@@ -5490,8 +5449,6 @@ function _unGoHome(restoreScroll){
   _unNavStack=[];
   _unUpdateHeader();
   // Reset search bar to icon mode
-  document.getElementById('un-hdr-normal').style.display='flex';
-  document.getElementById('un-hdr-search').style.display='none';
   var input=document.getElementById('un-search');
   if(input){input.value='';input.blur()}
   document.getElementById('un-search-clear').style.display='none';
@@ -6028,11 +5985,8 @@ function closeUpNext(){
   _unCurrentView='home';
   _unNavStack=[];
   _unUpdateHeader();
-  // Reset search bar
-  document.getElementById('un-hdr-normal').style.display='flex';
-  document.getElementById('un-hdr-search').style.display='none';
-  var input=document.getElementById('un-search');if(input)input.value='';
-  document.getElementById('un-search-clear').style.display='none';
+  // Close search overlay if open
+  var sov=document.getElementById('un-search-ov');if(sov)sov.style.display='none';
   var ov=document.getElementById('un-overlay');
   _unScrollPos=ov.scrollTop;
   ov.style.transition='transform .3s ease';
@@ -6048,7 +6002,7 @@ function closeUpNext(){
     sx=e.touches[0].clientX;sy=e.touches[0].clientY;
     tracking=true;_dir=null;
     // Treat search bar open as a sub-page (don't slide overlay away)
-    var _searchOpen=document.getElementById('un-hdr-search').style.display==='flex';
+    var _searchOpen=document.getElementById('un-search-ov').style.display!=='none';
     _onSub=(_unCurrentView!=='home')||_searchOpen;
     _atTop=ov.scrollTop<5;
     _atBot=ov.scrollHeight-ov.scrollTop-ov.clientHeight<5;
@@ -6098,7 +6052,7 @@ function closeUpNext(){
         setTimeout(function(){
           cnt.style.transition='none';cnt.style.transform='';cnt.style.opacity='1';
           // If search bar is open, close it (return to queue)
-          if(document.getElementById('un-hdr-search').style.display==='flex'&&_unCurrentView==='home'){_unCloseSearchBar()}
+          if(document.getElementById('un-search-ov').style.display!=='none'&&_unCurrentView==='home'){_unCloseSearchOverlay()}
           else{_unNavBack()}
         },220);
       }else{
@@ -6109,13 +6063,13 @@ function closeUpNext(){
     }else if(_dir==='v'&&_onSub&&cnt){
       // Sub-page vertical: animate out up/down then nav back
       if(Math.abs(dy)>threshold){
-        var _searchOpenV=document.getElementById('un-hdr-search').style.display==='flex'&&_unCurrentView==='home';
+        var _searchOpenV=document.getElementById('un-search-ov').style.display!=='none'&&_unCurrentView==='home';
         var dir=dy>0?'100%':'-100%';
         cnt.style.transition='transform .2s ease,opacity .2s ease';
         cnt.style.transform='translateY('+dir+')';cnt.style.opacity='0';
         setTimeout(function(){
           cnt.style.transition='none';cnt.style.transform='';cnt.style.opacity='1';
-          if(_searchOpenV){_unCloseSearchBar()}else{_unNavBack()}
+          if(_searchOpenV){_unCloseSearchOverlay()}else{_unNavBack()}
         },220);
       }else{
         cnt.style.transition='transform .2s ease,opacity .2s ease';
@@ -6131,7 +6085,7 @@ function renderStatus(){
   var hs_count=Object.keys(D.hs||{}).length;
   var ps_count=Object.keys(D.ps||{}).length;
   var el=document.getElementById('status');
-  el.innerHTML='<span>Actors: '+total_people+'</span><span>Headshots: '+hs_count+'</span><span>Posters: '+ps_count+'</span><span>Updated: __BUILD_TIME__</span><span>v34</span>';
+  el.innerHTML='<span>Actors: '+total_people+'</span><span>Headshots: '+hs_count+'</span><span>Posters: '+ps_count+'</span><span>Updated: __BUILD_TIME__</span><span>v35</span>';
 }
 
 function render(){
