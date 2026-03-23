@@ -189,6 +189,69 @@ tr:hover td{background:rgba(255,255,255,.02)}
 .un-empty{text-align:center;padding:40px;color:var(--t2);font-size:14px}
 /* Back nav button */
 .un-back{background:none;border:1px solid rgba(255,255,255,.1);color:var(--t2);border-radius:8px;padding:8px 14px;font-size:14px;cursor:pointer;min-height:44px;min-width:44px;display:flex;align-items:center;justify-content:center}
+/* Watchlist styles */
+.un-wl-toggle{display:flex;gap:6px;padding:10px 16px;max-width:600px;margin:0 auto}
+.un-wl-toggle button{padding:6px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s}
+.un-wl-sort{display:flex;gap:6px;padding:0 16px 8px;max-width:600px;margin:0 auto}
+.un-wl-sort button{padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer;border:1px solid rgba(255,255,255,.08);background:none;color:var(--t2);transition:all .15s}
+.un-wl-sort button.active{border-color:var(--tv);color:var(--tv);background:rgba(20,184,166,.08)}
+.un-wl-list{padding:8px 16px;max-width:600px;margin:0 auto}
+.un-wl-card{display:flex;gap:12px;padding:12px;background:var(--sf);border-radius:12px;border:1px solid rgba(255,255,255,.06);margin-bottom:10px;cursor:pointer;transition:background .15s;position:relative}
+.un-wl-card:active{background:#1e1e3a}
+.un-wl-poster{width:72px;height:108px;border-radius:8px;object-fit:cover;background:#222;flex-shrink:0}
+.un-wl-poster-ph{width:72px;height:108px;border-radius:8px;background:linear-gradient(135deg,#1a1a2e,#0f3460);display:flex;align-items:center;justify-content:center;font-size:22px;color:var(--t2);flex-shrink:0}
+.un-wl-info{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.un-wl-title{font-weight:700;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.un-wl-meta{font-size:12px;color:var(--t2);display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.un-wl-runtime{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:4px;background:rgba(255,255,255,.06);font-size:11px;font-weight:600;color:var(--tx);white-space:nowrap}
+.un-wl-genres{font-size:11px;color:var(--t2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.un-wl-jw{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:2px}
+.un-wl-jw-icons{display:flex;gap:3px;align-items:center}
+.un-wl-jw-icon{width:22px;height:22px;border-radius:4px}
+.un-wl-jw-price{font-size:11px;font-weight:600;padding:2px 6px;border-radius:4px;white-space:nowrap}
+.un-wl-jw-rent{background:rgba(251,191,36,.12);color:#fbbf24}
+.un-wl-jw-buy{background:rgba(59,130,246,.12);color:#60a5fa}
+.un-wl-jw-free{background:rgba(20,184,166,.12);color:#14b8a6;font-size:11px;font-weight:600;padding:2px 6px;border-radius:4px}
+.un-wl-arrow{color:var(--t2);font-size:18px;flex-shrink:0;align-self:center}
+.un-wl-source{position:absolute;top:8px;right:8px;font-size:9px;padding:1px 5px;border-radius:3px;background:rgba(255,255,255,.06);color:var(--t2);text-transform:uppercase;letter-spacing:.5px}
+.un-wl-count{font-size:12px;color:var(--t2);text-align:center;padding:4px 16px}
+.un-wl-drag{width:28px;display:flex;align-items:center;justify-content:center;color:var(--t2);font-size:16px;flex-shrink:0;cursor:grab;touch-action:none;-webkit-user-select:none;user-select:none;letter-spacing:-2px}
+.un-wl-drag:active{color:var(--tv)}
+.un-wl-ghost{position:fixed!important;left:16px!important;right:16px!important;z-index:10000!important;opacity:.92!important;transform:scale(1.02)!important;box-shadow:0 8px 32px rgba(0,0,0,.5)!important;pointer-events:none!important;transition:none!important;max-width:568px;margin:0 auto}
+.un-wl-card.wl-dropping{opacity:.3;transition:opacity .15s}
+.un-wl-drop-bar{height:3px;background:var(--tv);border-radius:2px;margin:-2px 16px 8px;transition:opacity .15s}
+.un-wl-sync{font-size:11px;color:var(--t2);text-align:center;padding:2px 0;transition:opacity .3s}
+.un-wl-sync.saving{color:#fbbf24}
+.un-wl-sync.saved{color:var(--tv)}
+.un-cal-wrap{padding:0 16px 80px;max-width:600px;margin:0 auto}
+.un-cal-date{position:sticky;top:56px;z-index:2;padding:10px 0 6px;margin-top:4px;font-size:13px;font-weight:700;color:var(--tx);display:flex;align-items:center;gap:8px;background:var(--bg)}
+.un-cal-date-today{color:#14b8a6}
+.un-cal-date .un-cal-dow{font-weight:400;color:var(--t2);font-size:11px;text-transform:uppercase;letter-spacing:.5px}
+.un-cal-date .un-cal-count{margin-left:auto;font-size:11px;font-weight:500;color:var(--t2)}
+.un-cal-show{display:flex;gap:12px;padding:10px 12px;background:var(--sf);border-radius:12px;border:1px solid rgba(255,255,255,.06);margin-bottom:8px;cursor:pointer;transition:background .15s;position:relative}
+.un-cal-show:active{background:#1e1e3a}
+.un-cal-poster{width:56px;height:84px;border-radius:8px;object-fit:cover;background:#222;flex-shrink:0}
+.un-cal-poster-ph{width:56px;height:84px;border-radius:8px;background:linear-gradient(135deg,#1a1a2e,#0f3460);display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--t2);flex-shrink:0}
+.un-cal-info{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;justify-content:center}
+.un-cal-title{font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.un-cal-ep{font-size:12px;color:var(--t2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.un-cal-ep b{color:var(--tx);font-weight:600}
+.un-cal-time{font-size:11px;color:var(--t2);margin-top:1px}
+.un-cal-bundle-hdr{display:flex;gap:12px;padding:10px 12px;background:var(--sf);border-radius:12px 12px 0 0;border:1px solid rgba(255,255,255,.06);border-bottom:none;margin-bottom:0;cursor:pointer;transition:background .15s;position:relative}
+.un-cal-bundle-hdr:active{background:#1e1e3a}
+.un-cal-bundle-hdr.collapsed{border-radius:12px;border-bottom:1px solid rgba(255,255,255,.06);margin-bottom:8px}
+.un-cal-badge{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;border-radius:10px;background:rgba(20,184,166,.2);color:#14b8a6;font-size:11px;font-weight:700;padding:0 6px;margin-left:6px}
+.un-cal-expand{color:var(--t2);font-size:14px;flex-shrink:0;align-self:center;transition:transform .2s}
+.un-cal-expand.open{transform:rotate(180deg)}
+.un-cal-bundle-eps{background:var(--sf);border:1px solid rgba(255,255,255,.06);border-top:1px solid rgba(255,255,255,.04);border-radius:0 0 12px 12px;margin-bottom:8px;overflow:hidden}
+.un-cal-ep-row{display:flex;align-items:center;gap:10px;padding:8px 12px 8px 80px;border-top:1px solid rgba(255,255,255,.04);cursor:pointer;transition:background .15s}
+.un-cal-ep-row:first-child{border-top:none}
+.un-cal-ep-row:active{background:#1e1e3a}
+.un-cal-ep-num{font-size:12px;font-weight:600;color:var(--tv);white-space:nowrap;min-width:50px}
+.un-cal-ep-title{font-size:12px;color:var(--tx);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.un-cal-ep-time{font-size:11px;color:var(--t2);flex-shrink:0}
+.un-cal-empty{text-align:center;padding:60px 20px;color:var(--t2);font-size:14px}
+.un-cal-loading{text-align:center;padding:20px;color:var(--t2);font-size:13px}
 @media(max-width:768px){.un-grid{grid-template-columns:1fr;padding:10px}}
 @media(max-width:768px){
 .g2,.g3{grid-template-columns:1fr}
@@ -484,6 +547,8 @@ Drop GameTrack games.csv or <span style="color:#6366f1;text-decoration:underline
 <div id="un-hdr-normal" style="display:flex;align-items:center">
 <button onclick="_unHomeBtn()" class="un-back" id="un-back-btn" style="flex-shrink:0">←</button>
 <h2 id="un-header-title" style="font-size:18px;font-weight:700;margin:0;flex:1;text-align:center"><span class="i">📺</span> Up Next</h2>
+<button onclick="_unOpenWatchlist()" class="un-back" id="un-wl-btn" style="flex-shrink:0;font-size:16px">📋</button>
+<button onclick="_unOpenCalendar()" class="un-back" id="un-cal-btn" style="flex-shrink:0;font-size:16px">📅</button>
 <button onclick="_unOpenSearchOverlay()" class="un-back" id="un-search-btn" style="flex-shrink:0;font-size:16px">🔍</button>
 </div>
 </div>
@@ -5007,6 +5072,8 @@ function _unHomeBtn(){
   if(_unCurrentView==='home'){
     closeUpNext();
   }else{
+    // Close search overlay if open (from show/movie sub-pages)
+    var _sov3=document.getElementById('un-search-ov');if(_sov3)_sov3.style.display='none';
     _unGoHome();
   }
 }
@@ -5084,7 +5151,7 @@ function _unCloseSearchOverlay(){
   // If we navigated to a show/movie/season, reset to home
   if(_unCurrentView!=='home'){_unCurrentView='home';_unNavStack=[];_unUpdateHeader()}
 }
-function _unShowSearchOverlay(){/* no-op, search overlay is always visible when open */}
+function _unShowSearchOverlay(){var sov=document.getElementById('un-search-ov');if(sov)sov.style.display=''}
 function _unHideSearchOverlay(){/* no-op */}
 
 // Search input setup
@@ -5397,21 +5464,43 @@ function _unSetView(view,data){
 function _unUpdateHeader(){
   var title=document.getElementById('un-header-title');
   var searchBtn=document.getElementById('un-search-btn');
+  var wlBtn=document.getElementById('un-wl-btn');
+  var calBtn=document.getElementById('un-cal-btn');
   if(_unCurrentView==='home'){
     title.innerHTML='<span class="i">📺</span> Up Next';
     if(searchBtn)searchBtn.style.display='';
+    if(wlBtn)wlBtn.style.display='';
+    if(calBtn)calBtn.style.display='';
+  }else if(_unCurrentView==='calendar'){
+    title.innerHTML='<span class="i">📅</span> Upcoming';
+    if(searchBtn)searchBtn.style.display='none';
+    if(wlBtn)wlBtn.style.display='none';
+    if(calBtn)calBtn.style.display='none';
+  }else if(_unCurrentView==='watchlist'){
+    title.innerHTML='<span class="i">📋</span> Watchlist';
+    if(searchBtn)searchBtn.style.display='none';
+    if(wlBtn)wlBtn.style.display='none';
+    if(calBtn)calBtn.style.display='none';
   }else if(_unCurrentView==='search'){
     title.innerHTML='<span class="i">🔍</span> Search';
     if(searchBtn)searchBtn.style.display='none';
+    if(wlBtn)wlBtn.style.display='none';
+    if(calBtn)calBtn.style.display='none';
   }else if(_unCurrentView==='show'){
     title.innerHTML='<span class="i">📺</span> Show';
     if(searchBtn)searchBtn.style.display='none';
+    if(wlBtn)wlBtn.style.display='none';
+    if(calBtn)calBtn.style.display='none';
   }else if(_unCurrentView==='season'){
     title.innerHTML='<span class="i">📺</span> Season';
     if(searchBtn)searchBtn.style.display='none';
+    if(wlBtn)wlBtn.style.display='none';
+    if(calBtn)calBtn.style.display='none';
   }else if(_unCurrentView==='movie'){
     title.innerHTML='<span class="i">🎞️</span> Movie';
     if(searchBtn)searchBtn.style.display='none';
+    if(wlBtn)wlBtn.style.display='none';
+    if(calBtn)calBtn.style.display='none';
   }
   // Ensure normal header is shown (not search bar) for non-search views
   if(_unCurrentView!=='search'){
@@ -5440,6 +5529,18 @@ function _unNavBack(){
       var q=input?input.value.trim():'';
       if(q&&_searchCache[q])_unShowSearchResults(q,_searchCache[q]);
       else _unGoHome();
+    }else if(prev.view==='watchlist'){
+      // Return to watchlist view — close search overlay if open
+      var _sov=document.getElementById('un-search-ov');if(_sov)_sov.style.display='none';
+      _unCurrentView='watchlist';
+      _unUpdateHeader();
+      _wlRender();
+    }else if(prev.view==='calendar'){
+      // Return to calendar view — close search overlay if open
+      var _sov2=document.getElementById('un-search-ov');if(_sov2)_sov2.style.display='none';
+      _unCurrentView='calendar';
+      _unUpdateHeader();
+      _calRender();
     }else if(prev.view==='show'){
       // Re-render show page from cache
       var cached2=prev.data&&_showDataCache[prev.data.slug];
@@ -5480,6 +5581,493 @@ function _unGoHome(restoreScroll){
   _unScrollPos=restoreScroll||0;
   _unReturning=!!restoreScroll;
   _renderUpNext();
+}
+
+// ─── Watchlist ───────────────────────────────────────────────────
+var _wlFilter='movie'; // 'movie' or 'show'
+var _wlSort='added'; // 'added', 'title', 'runtime', 'rating', 'custom'
+var _wlCustomOrder={movies:[],shows:[]};
+var _wlListSlug=null; // Trakt list slug for persistence
+var _wlDragActive=false;
+var _wlDragIdx=-1;
+var _wlDragGhost=null;
+var _wlDragOverIdx=-1;
+var _wlItems=null; // current items array reference
+var _wlScrollTimer=null;
+
+// Init custom order from D.wlst.custom_order or localStorage
+(function(){
+  var wl=D.wlst||{};
+  if(wl.custom_order)_wlCustomOrder=wl.custom_order;
+  try{var ls=localStorage.getItem('iris-wl-order');if(ls){var p=JSON.parse(ls);if(p.movies||p.shows)_wlCustomOrder=p}}catch(e){}
+})();
+
+function _unOpenWatchlist(){
+  _unSetView('watchlist',{});
+  var ov=document.getElementById('un-overlay');ov.scrollTop=0;
+  _wlRender();
+}
+
+function _fmtRuntime(m){
+  if(!m)return '';
+  if(m>=60)return Math.floor(m/60)+'h '+(m%60?m%60+'m':'');
+  return m+'m';
+}
+
+function _wlGetItems(){
+  var wl=D.wlst||{};
+  var src=_wlFilter==='movie'?(wl.movies||[]):(wl.shows||[]);
+  if(_wlSort==='custom'){
+    var orderKey=_wlFilter==='movie'?'movies':'shows';
+    var order=_wlCustomOrder[orderKey]||[];
+    if(order.length){
+      var bySlug={};src.forEach(function(it){bySlug[it.slug]=it});
+      var ordered=[];
+      order.forEach(function(s){if(bySlug[s]){ordered.push(bySlug[s]);delete bySlug[s]}});
+      // Append any new items not in custom order
+      src.forEach(function(it){if(bySlug[it.slug])ordered.push(it)});
+      return ordered;
+    }
+    return src.slice();
+  }
+  if(_wlSort==='title')return src.slice().sort(function(a,b){return(a.title||'').localeCompare(b.title||'')});
+  if(_wlSort==='runtime')return src.slice().sort(function(a,b){return(b.runtime||0)-(a.runtime||0)});
+  if(_wlSort==='rating')return src.slice().sort(function(a,b){return(b.rating||0)-(a.rating||0)});
+  return src.slice();
+}
+
+function _wlRender(){
+  var el=document.getElementById('un-content');
+  var wl=D.wlst||{};
+  var items=_wlGetItems();
+  _wlItems=items;
+  var isCustom=_wlSort==='custom';
+
+  var mc=(wl.movies||[]).length, sc2=(wl.shows||[]).length;
+
+  // Toggle buttons
+  var h='<div class="un-wl-toggle">';
+  h+='<button onclick="_wlSetFilter(\'movie\')" style="border:1px solid '+(_wlFilter==='movie'?'#fb923c':'rgba(255,255,255,.1)')+';background:'+(_wlFilter==='movie'?'rgba(251,146,60,.15)':'none')+';color:'+(_wlFilter==='movie'?'#fb923c':'var(--t2)')+'">🎞️ Movies'+(mc?' ('+mc+')':'')+'</button>';
+  h+='<button onclick="_wlSetFilter(\'show\')" style="border:1px solid '+(_wlFilter==='show'?'var(--tv)':'rgba(255,255,255,.1)')+';background:'+(_wlFilter==='show'?'rgba(20,184,166,.15)':'none')+';color:'+(_wlFilter==='show'?'var(--tv)':'var(--t2)')+'">📺 Shows'+(sc2?' ('+sc2+')':'')+'</button>';
+  h+='</div>';
+
+  // Sort buttons
+  h+='<div class="un-wl-sort">';
+  ['added','custom','title','runtime','rating'].forEach(function(s){
+    var lbl=s==='added'?'Recent':s==='custom'?'Custom':s==='title'?'A-Z':s==='runtime'?'Runtime':'Rating';
+    h+='<button class="'+(_wlSort===s?'active':'')+'" onclick="_wlSetSort(\''+s+'\')">'+lbl+'</button>';
+  });
+  h+='</div>';
+
+  if(!items.length){
+    h+='<div class="un-empty">No '+(_wlFilter==='movie'?'movies':'shows')+' on your watchlist</div>';
+    el.innerHTML=h;return;
+  }
+
+  h+='<div class="un-wl-count">'+items.length+' '+(_wlFilter==='movie'?'movies':'shows');
+  if(isCustom)h+=' · <span id="wl-sync-status" class="un-wl-sync">drag to reorder</span>';
+  h+='</div>';
+  h+='<div class="un-wl-list" id="wl-list">';
+
+  items.forEach(function(item,i){
+    var isMovie=_wlFilter==='movie';
+    var slug=item.slug||'';
+    var tmdbId=item.tmdb_id||0;
+    var poster=item.poster||'';
+    var rt=item.runtime||0;
+    var jw=item.jw||{};
+
+    h+='<div class="un-wl-card" data-idx="'+i+'" data-slug="'+slug+'"'+(isCustom?'':' onclick="_wlTap(\''+(_wlFilter)+'\',\''+slug.replace(/'/g,"\\'")+'\','+tmdbId+')"')+'>';
+
+    // Drag handle (only in custom sort mode)
+    if(isCustom){
+      h+='<div class="un-wl-drag" ontouchstart="_wlDragStart(event,'+i+')" onmousedown="_wlDragStart(event,'+i+')">⋮⋮</div>';
+    }
+
+    // Poster
+    if(poster){
+      h+='<img class="un-wl-poster" src="'+poster+'" loading="lazy" onerror="this.className=\'un-wl-poster-ph\';this.innerHTML=\''+(isMovie?'🎞️':'📺')+'\';this.removeAttribute(\'src\')">';
+    }else{
+      h+='<div class="un-wl-poster-ph" id="wlp-'+i+'">'+(isMovie?'🎞️':'📺')+'</div>';
+    }
+
+    h+='<div class="un-wl-info"'+(isCustom?' onclick="_wlTap(\''+(_wlFilter)+'\',\''+slug.replace(/'/g,"\\'")+'\','+tmdbId+')"':'')+'>';
+
+    // Title
+    h+='<div class="un-wl-title">'+item.title+'</div>';
+
+    // Meta line
+    h+='<div class="un-wl-meta">';
+    if(item.year)h+='<span>'+item.year+'</span>';
+    if(item.rating)h+='<span>⭐ '+item.rating+'</span>';
+    if(rt)h+='<span class="un-wl-runtime">🕐 '+_fmtRuntime(rt)+'</span>';
+    if(!isMovie&&item.aired_episodes)h+='<span>'+item.aired_episodes+' eps</span>';
+    if(!isMovie&&item.status){
+      var stc=item.status==='returning series'?'var(--tv)':item.status==='ended'?'var(--t2)':'#fbbf24';
+      h+='<span style="color:'+stc+'">'+item.status.replace('returning series','Returning').replace('ended','Ended').replace('canceled','Canceled').replace('in production','In Production')+'</span>';
+    }
+    h+='</div>';
+
+    // Genres
+    if(item.genres&&item.genres.length){
+      h+='<div class="un-wl-genres">'+(item.genres.slice(0,3).join(', '))+'</div>';
+    }
+
+    // JustWatch row
+    if(jw.s||jw.r||jw.b){
+      h+='<div class="un-wl-jw">';
+      if(jw.s&&jw.s.length){
+        h+='<div class="un-wl-jw-icons">';
+        jw.s.slice(0,4).forEach(function(svc){
+          if(svc.i)h+='<img class="un-wl-jw-icon" src="'+svc.i+'" alt="'+svc.n+'" title="'+svc.n+'" loading="lazy" onerror="this.style.display=\'none\'">';
+        });
+        h+='</div>';
+        h+='<span class="un-wl-jw-free">Streaming</span>';
+      }
+      if(jw.r&&jw.r.length&&jw.r[0].p)h+='<span class="un-wl-jw-price un-wl-jw-rent">Rent '+jw.r[0].p+'</span>';
+      if(jw.b&&jw.b.length&&jw.b[0].p)h+='<span class="un-wl-jw-price un-wl-jw-buy">Buy '+jw.b[0].p+'</span>';
+      h+='</div>';
+    }
+
+    h+='</div>'; // .un-wl-info
+
+    // Source badge
+    if(item.source==='both')h+='<div class="un-wl-source">LB+T</div>';
+    else if(item.source==='letterboxd')h+='<div class="un-wl-source">LB</div>';
+
+    if(!isCustom)h+='<div class="un-wl-arrow">›</div>';
+    h+='</div>'; // .un-wl-card
+
+    // Async poster load
+    if(!poster&&tmdbId){
+      var tk=(D.un||{}).tmdb_key||'';
+      if(tk){
+        (function(idx,type,tid,key){
+          fetch('https://api.themoviedb.org/3/'+(type==='movie'?'movie':'tv')+'/'+tid+'?api_key='+key)
+          .then(function(r2){return r2.json()}).then(function(d2){
+            if(d2.poster_path){
+              var ph=document.getElementById('wlp-'+idx);
+              if(ph){var img=document.createElement('img');img.className='un-wl-poster';img.src='https://image.tmdb.org/t/p/w185'+d2.poster_path;img.loading='lazy';img.onerror=function(){this.style.display='none'};ph.parentNode.replaceChild(img,ph)}
+            }
+          }).catch(function(){});
+        })(i,_wlFilter,tmdbId,tk);
+      }
+    }
+  });
+
+  h+='</div>'; // .un-wl-list
+  el.innerHTML=h;
+}
+
+function _wlSetFilter(f){_wlFilter=f;_wlRender()}
+function _wlSetSort(s){_wlSort=s;_wlRender()}
+
+function _wlTap(type,slug,tmdbId){
+  if(_wlDragActive)return;
+  if(type==='movie')_unOpenMovie(slug,tmdbId);
+  else _unOpenShow(slug,tmdbId);
+}
+
+// ─── Drag and Drop ──────────────────────────────────────────────
+function _wlDragStart(e,idx){
+  e.preventDefault();e.stopPropagation();
+  _wlDragActive=true;_wlDragIdx=idx;_wlDragOverIdx=idx;
+  var touch=e.touches?e.touches[0]:e;
+  var card=e.target.closest('.un-wl-card');
+  if(!card)return;
+  var rect=card.getBoundingClientRect();
+
+  // Create ghost
+  _wlDragGhost=card.cloneNode(true);
+  _wlDragGhost.className='un-wl-card un-wl-ghost';
+  _wlDragGhost.style.top=(rect.top)+'px';
+  _wlDragGhost.style.width=rect.width+'px';
+  document.body.appendChild(_wlDragGhost);
+
+  // Mark original
+  card.classList.add('wl-dropping');
+
+  // Bind move/end
+  var moveH=function(ev){_wlDragMove(ev)};
+  var endH=function(ev){
+    document.removeEventListener('touchmove',moveH);
+    document.removeEventListener('touchend',endH);
+    document.removeEventListener('mousemove',moveH);
+    document.removeEventListener('mouseup',endH);
+    _wlDragEnd(ev);
+  };
+  document.addEventListener('touchmove',moveH,{passive:false});
+  document.addEventListener('touchend',endH);
+  document.addEventListener('mousemove',moveH);
+  document.addEventListener('mouseup',endH);
+}
+
+function _wlDragMove(e){
+  if(!_wlDragActive||!_wlDragGhost)return;
+  if(e.cancelable)e.preventDefault();
+  var touch=e.touches?e.touches[0]:e;
+  var y=touch.clientY;
+
+  _wlDragGhost.style.top=(y-60)+'px';
+
+  // Auto-scroll
+  var ov=document.getElementById('un-overlay');
+  if(_wlScrollTimer)clearTimeout(_wlScrollTimer);
+  if(y<100){ov.scrollTop-=12;_wlScrollTimer=setTimeout(function(){_wlDragMove(e)},30)}
+  else if(y>window.innerHeight-100){ov.scrollTop+=12;_wlScrollTimer=setTimeout(function(){_wlDragMove(e)},30)}
+
+  // Find insertion target
+  var cards=document.querySelectorAll('#wl-list .un-wl-card:not(.un-wl-ghost)');
+  var newOver=_wlDragIdx;
+  cards.forEach(function(c,ci){
+    var r=c.getBoundingClientRect();
+    if(y>r.top&&y<r.bottom)newOver=ci;
+  });
+
+  if(newOver!==_wlDragOverIdx){
+    // Remove old drop indicator
+    cards.forEach(function(c){c.classList.remove('wl-dropping')});
+    _wlDragOverIdx=newOver;
+    // Highlight target
+    if(cards[newOver])cards[newOver].classList.add('wl-dropping');
+  }
+}
+
+function _wlDragEnd(e){
+  if(!_wlDragActive)return;
+  if(_wlScrollTimer){clearTimeout(_wlScrollTimer);_wlScrollTimer=null}
+  _wlDragActive=false;
+  if(_wlDragGhost){_wlDragGhost.remove();_wlDragGhost=null}
+
+  // Perform reorder
+  if(_wlItems&&_wlDragIdx!==_wlDragOverIdx&&_wlDragIdx>=0&&_wlDragOverIdx>=0){
+    var moved=_wlItems.splice(_wlDragIdx,1)[0];
+    _wlItems.splice(_wlDragOverIdx,0,moved);
+
+    // Save new order
+    var slugs=_wlItems.map(function(it){return it.slug});
+    var orderKey=_wlFilter==='movie'?'movies':'shows';
+    _wlCustomOrder[orderKey]=slugs;
+    localStorage.setItem('iris-wl-order',JSON.stringify(_wlCustomOrder));
+
+    // Sync to Trakt
+    _wlSyncToTrakt();
+  }
+
+  // Re-render
+  _wlDragIdx=-1;_wlDragOverIdx=-1;
+  _wlRender();
+}
+
+// ─── Trakt List Persistence ─────────────────────────────────────
+var _wlSyncDebounce=null;
+function _wlSyncToTrakt(){
+  if(_wlSyncDebounce)clearTimeout(_wlSyncDebounce);
+  var st=document.getElementById('wl-sync-status');
+  if(st){st.textContent='saving…';st.className='un-wl-sync saving'}
+  _wlSyncDebounce=setTimeout(function(){_wlDoSync()},1500);
+}
+
+function _wlDoSync(){
+  if(!D._tt||!D._tc)return;
+  var h={'Content-Type':'application/json','trakt-api-version':'2','trakt-api-key':D._tc,'Authorization':'Bearer '+D._tt};
+  var orderJson=JSON.stringify(_wlCustomOrder);
+
+  // Find or create list
+  var p=_wlListSlug?Promise.resolve(_wlListSlug):
+    fetch('https://api.trakt.tv/users/me/lists',{headers:h}).then(function(r){return r.json()}).then(function(lists){
+      var existing=(lists||[]).find(function(l){return l.name==='Iris Custom Order'});
+      if(existing){_wlListSlug=existing.ids.slug;return _wlListSlug}
+      return fetch('https://api.trakt.tv/users/me/lists',{method:'POST',headers:h,
+        body:JSON.stringify({name:'Iris Custom Order',description:orderJson,privacy:'private',allow_comments:false})
+      }).then(function(r2){return r2.json()}).then(function(nl){_wlListSlug=nl.ids.slug;return _wlListSlug});
+    });
+
+  p.then(function(slug){
+    // Update description with order JSON
+    return fetch('https://api.trakt.tv/users/me/lists/'+slug,{method:'PUT',headers:h,
+      body:JSON.stringify({description:orderJson})
+    });
+  }).then(function(){
+    var st=document.getElementById('wl-sync-status');
+    if(st){st.textContent='✓ synced';st.className='un-wl-sync saved'}
+  }).catch(function(e){
+    console.warn('Watchlist sync failed:',e);
+    var st=document.getElementById('wl-sync-status');
+    if(st){st.textContent='saved locally';st.className='un-wl-sync'}
+  });
+}
+
+// ─── Upcoming Calendar ───────────────────────────────────────────
+var _calRenderedDays=0;
+var _calBatchSize=30;
+var _calScrollBound=false;
+
+function _unOpenCalendar(){
+  _unSetView('calendar',{});
+  var ov=document.getElementById('un-overlay');ov.scrollTop=0;
+  _calRenderedDays=0;
+  _calRender();
+}
+
+function _calRender(){
+  var el=document.getElementById('un-content');
+  var cal=D.cal||{};
+  var days=cal.days||[];
+
+  if(!days.length){
+    el.innerHTML='<div class="un-cal-empty">📅 No upcoming episodes found.<br><span style="font-size:12px;margin-top:8px;display:block">Episodes from shows you watch will appear here when they have upcoming air dates.</span></div>';
+    return;
+  }
+
+  // Filter to only future/today dates
+  var today=new Date();today.setHours(0,0,0,0);
+  var todayStr=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
+  var futureDays=days.filter(function(d){return d.date>=todayStr});
+
+  if(!futureDays.length){
+    el.innerHTML='<div class="un-cal-empty">📅 No upcoming episodes in the next '+cal.days_ahead+' days.<br><span style="font-size:12px;margin-top:8px;display:block">All caught up! Check back later.</span></div>';
+    return;
+  }
+
+  _calRenderedDays=0;
+  el.innerHTML='<div class="un-cal-wrap" id="un-cal-list"></div>';
+  _calAppendBatch(futureDays);
+
+  // Bind infinite scroll
+  if(!_calScrollBound){
+    _calScrollBound=true;
+    document.getElementById('un-overlay').addEventListener('scroll',function(){
+      if(_unCurrentView!=='calendar')return;
+      var ov=document.getElementById('un-overlay');
+      if(ov.scrollTop+ov.clientHeight>=ov.scrollHeight-200){
+        var cal2=D.cal||{};var days2=cal2.days||[];
+        var todayStr2=new Date().toISOString().slice(0,10);
+        var fd=days2.filter(function(d){return d.date>=todayStr2});
+        if(_calRenderedDays<fd.length)_calAppendBatch(fd);
+      }
+    });
+  }
+}
+
+function _calAppendBatch(futureDays){
+  var el=document.getElementById('un-cal-list');
+  if(!el)return;
+  var start=_calRenderedDays;
+  var end=Math.min(start+_calBatchSize,futureDays.length);
+  if(start>=end)return;
+
+  var today=new Date();today.setHours(0,0,0,0);
+  var todayStr=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
+  var tmrw=new Date(today);tmrw.setDate(tmrw.getDate()+1);
+  var tmrwStr=tmrw.getFullYear()+'-'+String(tmrw.getMonth()+1).padStart(2,'0')+'-'+String(tmrw.getDate()).padStart(2,'0');
+
+  var DOW=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  var MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+  var h='';
+  for(var i=start;i<end;i++){
+    var day=futureDays[i];
+    var dt=new Date(day.date+'T12:00:00');
+    var isToday=day.date===todayStr;
+    var isTmrw=day.date===tmrwStr;
+
+    var dateLabel=isToday?'Today':isTmrw?'Tomorrow':DOW[dt.getDay()]+', '+MON[dt.getMonth()]+' '+dt.getDate();
+    var totalEps=0;
+    day.shows.forEach(function(s){totalEps+=s.eps.length});
+
+    h+='<div class="un-cal-date'+(isToday?' un-cal-date-today':'')+'">';
+    h+='<span>'+dateLabel+'</span>';
+    if(!isToday&&!isTmrw)h+='<span class="un-cal-dow">'+day.date.slice(5)+'</span>';
+    h+='<span class="un-cal-count">'+totalEps+' ep'+(totalEps!==1?'s':'')+'</span>';
+    h+='</div>';
+
+    day.shows.forEach(function(show){
+      var poster=show.poster;
+      var posterHtml=poster?'<img class="un-cal-poster" src="'+poster+'" alt="" loading="lazy">':'<div class="un-cal-poster-ph">📺</div>';
+
+      if(show.eps.length===1){
+        // Single episode — simple card
+        var ep=show.eps[0];
+        var timeStr=_calFmtTime(ep.aired);
+        h+='<div class="un-cal-show" onclick="_calTapShow(\''+show.slug.replace(/'/g,"\\'")+'\','+show.tmdb_id+')">';
+        h+=posterHtml;
+        h+='<div class="un-cal-info">';
+        h+='<div class="un-cal-title">'+_esc(show.title)+'</div>';
+        h+='<div class="un-cal-ep"><b>S'+String(ep.s).padStart(2,'0')+'E'+String(ep.e).padStart(2,'0')+'</b>';
+        if(ep.t)h+=' · '+_esc(ep.t);
+        h+='</div>';
+        if(timeStr)h+='<div class="un-cal-time">🕐 '+timeStr+'</div>';
+        if(ep.rt)h+='<div class="un-cal-time">'+ep.rt+' min</div>';
+        h+='</div></div>';
+      }else{
+        // Multiple episodes — bundled expandable
+        var bid='cal-b-'+day.date+'-'+show.slug;
+        h+='<div class="un-cal-bundle-hdr collapsed" id="'+bid+'-hdr" onclick="_calToggleBundle(\''+bid+'\')">';
+        h+=posterHtml;
+        h+='<div class="un-cal-info">';
+        h+='<div class="un-cal-title">'+_esc(show.title)+'<span class="un-cal-badge">'+show.eps.length+'</span></div>';
+        h+='<div class="un-cal-ep"><b>S'+String(show.eps[0].s).padStart(2,'0')+'E'+String(show.eps[0].e).padStart(2,'0')+'</b>';
+        h+=' – <b>E'+String(show.eps[show.eps.length-1].e).padStart(2,'0')+'</b></div>';
+        var totalRt=0;show.eps.forEach(function(e2){totalRt+=(e2.rt||0)});
+        if(totalRt)h+='<div class="un-cal-time">'+totalRt+' min total</div>';
+        h+='</div>';
+        h+='<span class="un-cal-expand" id="'+bid+'-arrow">▼</span>';
+        h+='</div>';
+        h+='<div class="un-cal-bundle-eps" id="'+bid+'-eps" style="display:none">';
+        show.eps.forEach(function(ep2){
+          var timeStr2=_calFmtTime(ep2.aired);
+          h+='<div class="un-cal-ep-row" onclick="event.stopPropagation();_calTapShow(\''+show.slug.replace(/'/g,"\\'")+'\','+show.tmdb_id+')">';
+          h+='<span class="un-cal-ep-num">S'+String(ep2.s).padStart(2,'0')+'E'+String(ep2.e).padStart(2,'0')+'</span>';
+          h+='<span class="un-cal-ep-title">'+(ep2.t?_esc(ep2.t):'')+'</span>';
+          if(timeStr2)h+='<span class="un-cal-ep-time">'+timeStr2+'</span>';
+          h+='</div>';
+        });
+        h+='</div>';
+      }
+    });
+  }
+
+  el.insertAdjacentHTML('beforeend',h);
+  _calRenderedDays=end;
+
+  // Show load-more indicator if more days
+  var existing=document.getElementById('un-cal-more');
+  if(existing)existing.remove();
+  if(end<futureDays.length){
+    el.insertAdjacentHTML('beforeend','<div id="un-cal-more" class="un-cal-loading">Scroll for more…</div>');
+  }
+}
+
+function _calToggleBundle(bid){
+  var hdr=document.getElementById(bid+'-hdr');
+  var eps=document.getElementById(bid+'-eps');
+  var arrow=document.getElementById(bid+'-arrow');
+  if(!hdr||!eps)return;
+  var open=eps.style.display!=='none';
+  eps.style.display=open?'none':'';
+  hdr.classList.toggle('collapsed',open);
+  if(arrow)arrow.classList.toggle('open',!open);
+}
+
+function _calFmtTime(isoStr){
+  if(!isoStr)return '';
+  try{
+    var d=new Date(isoStr);
+    var h=d.getHours(),m=d.getMinutes();
+    var ampm=h>=12?'PM':'AM';
+    h=h%12;if(h===0)h=12;
+    return h+':'+(m<10?'0':'')+m+' '+ampm;
+  }catch(e){return ''}
+}
+
+function _calTapShow(slug,tmdbId){
+  _unOpenShow(slug,tmdbId);
+}
+
+function _esc(s){
+  if(!s)return '';
+  var d=document.createElement('div');d.textContent=s;return d.innerHTML;
 }
 
 // ─── Movie Detail ────────────────────────────────────────────────
