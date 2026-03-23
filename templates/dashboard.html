@@ -557,7 +557,7 @@ Drop GameTrack games.csv or <span style="color:#6366f1;text-decoration:underline
 <!-- Search overlay: completely separate from Up Next -->
 <div id="un-search-ov" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg);z-index:9600;overflow-y:auto;-webkit-overflow-scrolling:touch">
 <div style="position:sticky;top:0;z-index:9601;background:rgba(15,15,15,.97);backdrop-filter:blur(8px);padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;gap:8px">
-<button onclick="_unCloseSearchOverlay()" class="un-back" style="flex-shrink:0">←</button>
+<button onclick="_unSearchBack()" class="un-back" style="flex-shrink:0">←</button>
 <div style="flex:1;position:relative">
 <input type="text" id="un-search" class="un-search-input" placeholder="Search movies & shows…" autocomplete="off" autocorrect="off" spellcheck="false" style="padding-left:14px">
 </div>
@@ -5069,11 +5069,15 @@ function _traktGet(path,needsAuth){
 function _unHomeBtn(){
   var fg=document.getElementById('un-detail-fg');
   if(fg){fg.remove();document.getElementById('un-overlay').style.overflowY='auto';_crBase=null;_crAll=null}
+  // If search overlay is open, navigate back through search stack first
+  var _sovH=document.getElementById('un-search-ov');
+  if(_sovH&&_sovH.style.display!=='none'){
+    _unSearchBack();
+    return;
+  }
   if(_unCurrentView==='home'){
     closeUpNext();
   }else{
-    // Close search overlay if open (from show/movie sub-pages)
-    var _sov3=document.getElementById('un-search-ov');if(_sov3)_sov3.style.display='none';
     _unGoHome();
   }
 }
@@ -5140,6 +5144,16 @@ function _unLoadTrending(){
     var el2=document.getElementById('un-search-results');
     if(el2)el2.innerHTML='';
   });
+}
+// Search overlay ← button: back to search results on sub-pages, close on home
+function _unSearchBack(){
+  if(_unCurrentView!=='home'&&_unNavStack.length){
+    // On movie/show/season sub-page — navigate back through stack
+    _unNavBack();
+  }else{
+    // On search home screen — close search overlay
+    _unCloseSearchOverlay();
+  }
 }
 function _unCloseSearchOverlay(){
   var sov=document.getElementById('un-search-ov');
@@ -6892,7 +6906,7 @@ function renderStatus(){
   var hs_count=Object.keys(D.hs||{}).length;
   var ps_count=Object.keys(D.ps||{}).length;
   var el=document.getElementById('status');
-  el.innerHTML='<span>Actors: '+total_people+'</span><span>Headshots: '+hs_count+'</span><span>Posters: '+ps_count+'</span><span>Updated: __BUILD_TIME__</span><span>v44</span>';
+  el.innerHTML='<span>Actors: '+total_people+'</span><span>Headshots: '+hs_count+'</span><span>Posters: '+ps_count+'</span><span>Updated: __BUILD_TIME__</span><span>v45</span>';
 }
 
 function render(){
