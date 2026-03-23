@@ -1,19 +1,19 @@
-name: Core Build
+name: Watchlist + JustWatch
 
 on:
   schedule:
-    - cron: '*/10 * * * *'
+    - cron: '*/30 * * * *'
   workflow_dispatch:
 
 permissions:
   contents: write
 
 concurrency:
-  group: core-build
+  group: watchlist
   cancel-in-progress: false
 
 jobs:
-  build:
+  watchlist:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -24,28 +24,19 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Auto-refresh Trakt token
-        env:
-          TRAKT_CLIENT_ID: ${{ secrets.TRAKT_CLIENT_ID }}
-          TRAKT_CLIENT_SECRET: ${{ secrets.TRAKT_CLIENT_SECRET }}
-          TRAKT_REFRESH_TOKEN: ${{ secrets.TRAKT_REFRESH_TOKEN }}
-        run: python scripts/refresh_trakt_token.py
-        continue-on-error: true
-
-      - name: Refresh Trakt data + rebuild HTML
+      - name: Refresh Watchlist with JustWatch prices
         env:
           TRAKT_CLIENT_ID: ${{ secrets.TRAKT_CLIENT_ID }}
           TRAKT_USERNAME: ${{ secrets.TRAKT_USERNAME }}
-          TRAKT_ACCESS_TOKEN: ${{ secrets.TRAKT_ACCESS_TOKEN }}
-          LASTFM_API_KEY: ${{ secrets.LASTFM_API_KEY }}
-          LASTFM_USER: ${{ secrets.LASTFM_USER }}
-        run: python scripts/refresh_data.py
+          TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+        run: python scripts/refresh_watchlist.py
+        continue-on-error: true
 
       - name: Commit and push
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add -A
-          git diff --quiet --staged || git commit -m "Core build $(date -u +'%Y-%m-%d %H:%M UTC')"
+          git diff --quiet --staged || git commit -m "Watchlist refresh $(date -u +'%H:%M UTC')"
           git pull --no-rebase -X ours origin main || true
           git push
