@@ -92,6 +92,15 @@ jobs:
         run: python scripts/refresh_upnext.py
         continue-on-error: true
 
+      - name: Refresh Upcoming Calendar
+        env:
+          TRAKT_CLIENT_ID: ${{ secrets.TRAKT_CLIENT_ID }}
+          TRAKT_USERNAME: ${{ secrets.TRAKT_USERNAME }}
+          TRAKT_ACCESS_TOKEN: ${{ secrets.TRAKT_ACCESS_TOKEN }}
+          TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+        run: python scripts/refresh_upcoming.py
+        continue-on-error: true
+
       - name: Refresh Trakt data + rebuild HTML
         env:
           TRAKT_CLIENT_ID: ${{ secrets.TRAKT_CLIENT_ID }}
