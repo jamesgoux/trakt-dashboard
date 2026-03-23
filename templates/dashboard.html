@@ -6837,7 +6837,7 @@ function closeUpNext(){
       var ovDx=parseInt(ov.style.transform.replace(/[^0-9.-]/g,''))||0;
       ov.style.transition='transform .3s ease';
       if(ovDx>window.innerWidth*0.35){
-        if(_swSlideOv){ov.style.transform='translateX(100%)';setTimeout(function(){ov.style.transform='';_unNavBack()},320)}
+        if(_swSlideOv){ov.style.transform='translateX(100%)';setTimeout(function(){ov.style.transition='none';ov.style.transform='';_unNavBack();requestAnimationFrame(function(){ov.style.transition=''})},320)}
         else{closeUpNext()}
       }else{ov.style.transform=''}
     }else if(_dir==='h'&&_onSub&&_swCnt){
@@ -6914,7 +6914,7 @@ function renderStatus(){
   var hs_count=Object.keys(D.hs||{}).length;
   var ps_count=Object.keys(D.ps||{}).length;
   var el=document.getElementById('status');
-  el.innerHTML='<span>Actors: '+total_people+'</span><span>Headshots: '+hs_count+'</span><span>Posters: '+ps_count+'</span><span>Updated: __BUILD_TIME__</span><span>v50</span>';
+  el.innerHTML='<span>Actors: '+total_people+'</span><span>Headshots: '+hs_count+'</span><span>Posters: '+ps_count+'</span><span>Updated: __BUILD_TIME__</span><span>v51</span>';
 }
 
 function render(){
