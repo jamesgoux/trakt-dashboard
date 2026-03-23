@@ -6235,10 +6235,10 @@ function _unOpenMovie(slug,tmdbId){
     }
     // Watch buttons — above synopsis
     var _mvReleaseDate=movie.released||'';
-    h+='<div style="display:flex;gap:8px;margin-bottom:16px">';
-    h+='<button onclick="_unShowMovieDatePicker(\''+slug.replace(/'/g,"\\'")+'\','+(movie.ids.trakt||0)+')" style="flex:1;padding:14px 8px;background:#0e7490;color:#fff;border:none;border-radius:10px;font-size:13px;cursor:pointer;font-weight:600;min-height:48px">Other Date</button>';
-    if(_mvReleaseDate)h+='<button onclick="_unMarkMovieWatchedAt(\''+slug.replace(/'/g,"\\'")+'\','+(movie.ids.trakt||0)+',\''+_mvReleaseDate+'\',this)" style="flex:1;padding:14px 8px;background:#0e7490;color:#fff;border:none;border-radius:10px;font-size:13px;cursor:pointer;font-weight:600;min-height:48px">Release Date</button>';
-    h+='<button id="un-mv-watch" onclick="_unMarkMovieWatched(\''+slug.replace(/'/g,"\\'")+'\','+(movie.ids.trakt||0)+',this)" style="flex:1;padding:14px 8px;background:var(--tv);color:#fff;border:none;border-radius:10px;font-size:13px;cursor:pointer;font-weight:600;min-height:48px">Just Now</button>';
+    h+='<div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:nowrap">';
+    h+='<button onclick="_unShowMovieDatePicker(\''+slug.replace(/'/g,"\\'")+'\','+(movie.ids.trakt||0)+')" style="flex:1;padding:12px 6px;background:#0e7490;color:#fff;border:none;border-radius:10px;font-size:12px;cursor:pointer;font-weight:600;min-height:44px;white-space:nowrap;overflow:hidden">Other Date</button>';
+    if(_mvReleaseDate)h+='<button onclick="_unMarkMovieWatchedAt(\''+slug.replace(/'/g,"\\'")+'\','+(movie.ids.trakt||0)+',\''+_mvReleaseDate+'\',this)" style="flex:1;padding:12px 6px;background:#0e7490;color:#fff;border:none;border-radius:10px;font-size:12px;cursor:pointer;font-weight:600;min-height:44px;white-space:nowrap;overflow:hidden">Release Date</button>';
+    h+='<button id="un-mv-watch" onclick="_unMarkMovieWatched(\''+slug.replace(/'/g,"\\'")+'\','+(movie.ids.trakt||0)+',this)" style="flex:1;padding:12px 6px;background:var(--tv);color:#fff;border:none;border-radius:10px;font-size:12px;cursor:pointer;font-weight:600;min-height:44px;white-space:nowrap;overflow:hidden">Just Now</button>';
     h+='</div>';
     if(movie.overview)h+='<div class="un-movie-overview">'+movie.overview+'</div>';
     // Where to Watch
@@ -6281,13 +6281,15 @@ function _unOpenMovie(slug,tmdbId){
 // Fetch and display movie watch history from Trakt
 function _unFetchMovieHistory(slug,traktId){
   var ct=document.getElementById('un-mv-history');if(!ct)return;
-  var cid=D._tc,tok=D._tt;if(!cid||!tok)return;
+  var cid=D._tc,tok=D._tt;
+  if(!cid||!tok){ct.innerHTML='<div style="font-size:11px;color:var(--t2);padding:8px;text-align:center">Watch history unavailable (auth)</div>';return}
+  if(!traktId){ct.innerHTML='';return}
   var hdr={'Content-Type':'application/json','trakt-api-version':'2','trakt-api-key':cid,'Authorization':'Bearer '+tok};
   ct.innerHTML='';
   fetch('https://api.trakt.tv/users/jamesgoux/history/movies/'+traktId+'?limit=10',{headers:hdr})
   .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json()})
   .then(function(entries){
-    if(!entries||!entries.length)return;
+    if(!entries||!entries.length){ct.innerHTML='<div style="font-size:11px;color:var(--t2);padding:8px;text-align:center">Not yet watched</div>';return}
     var h='<div style="border-radius:10px;background:rgba(255,255,255,.04);padding:12px;margin:16px 0">';
     h+='<div style="font-size:12px;font-weight:600;color:var(--t2);margin-bottom:8px">✅ Watched '+entries.length+'×</div>';
     entries.forEach(function(e){
@@ -6303,20 +6305,23 @@ function _unFetchMovieHistory(slug,traktId){
     h+='</div>';
     if(ct)ct.innerHTML=h;
   })
-  .catch(function(){});
+  .catch(function(e){
+    console.warn('Movie history fetch failed:',e.message);
+    if(ct)ct.innerHTML='<div style="font-size:11px;color:var(--t2);padding:8px;text-align:center">History: '+e.message+'</div>';
+  });
 }
 
 function _unMarkMovieWatched(slug,traktId,btn){
   if(btn){btn.disabled=true;btn.textContent='Syncing…'}
   var watchedAt=new Date().toISOString();
   var cid=D._tc,tok=D._tt;
-  if(!cid||!tok){alert('Trakt credentials not available');if(btn){btn.disabled=false;btn.textContent='✓ Mark as Watched'}return}
+  if(!cid||!tok){alert('Trakt credentials not available');if(btn){btn.disabled=false;btn.textContent='Retry'}return}
   var body=JSON.stringify({movies:[{ids:{trakt:traktId},watched_at:watchedAt}]});
   fetch('https://api.trakt.tv/sync/history',{method:'POST',headers:{'Content-Type':'application/json','trakt-api-version':'2','trakt-api-key':cid,'Authorization':'Bearer '+tok},body:body})
   .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json()})
   .then(function(d){
     console.log('Movie synced:',d);
-    if(btn){btn.textContent='✓ Watched!';btn.style.background='#059669'}
+    if(btn){btn.textContent='✓ Done';btn.style.background='#059669'}
     // Inject into D.c.r (dashboard recently watched)
     D.c.r.unshift({type:'movie',title:slug,detail:'',watched_at:watchedAt.substring(0,10),yr:watchedAt.substring(0,4)});
     // Inject into Up Next recently watched
@@ -6327,7 +6332,7 @@ function _unMarkMovieWatched(slug,traktId,btn){
   })
   .catch(function(e){
     alert('Failed to sync: '+e.message);
-    if(btn){btn.disabled=false;btn.textContent='✓ Mark as Watched'}
+    if(btn){btn.disabled=false;btn.textContent='Retry'}
   });
 }
 
@@ -6342,8 +6347,8 @@ function _unMarkMovieWatchedAt(slug,traktId,dateStr,btn){
   .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json()})
   .then(function(d){
     console.log('Movie synced at release:',d);
-    if(btn){btn.textContent='✓ Watched!';btn.style.background='#059669'}
-    var mvWatch=document.getElementById('un-mv-watch');if(mvWatch){mvWatch.textContent='✓ Watched!';mvWatch.style.background='#059669';mvWatch.disabled=true}
+    if(btn){btn.textContent='✓ Done';btn.style.background='#059669'}
+    var mvWatch=document.getElementById('un-mv-watch');if(mvWatch){mvWatch.textContent='✓ Done';mvWatch.style.background='#059669';mvWatch.disabled=true}
     D.c.r.unshift({type:'movie',title:slug,detail:'',watched_at:dateStr,yr:dateStr.substring(0,4)});
     var ud=D.un||{};if(!ud.recent)ud.recent=[];
     ud.recent.unshift({show:slug,slug:slug,season:0,episode:0,ep_title:'movie',watched_at:watchedAt,ep_id:0,ep_aired:''});
@@ -6906,7 +6911,7 @@ function renderStatus(){
   var hs_count=Object.keys(D.hs||{}).length;
   var ps_count=Object.keys(D.ps||{}).length;
   var el=document.getElementById('status');
-  el.innerHTML='<span>Actors: '+total_people+'</span><span>Headshots: '+hs_count+'</span><span>Posters: '+ps_count+'</span><span>Updated: __BUILD_TIME__</span><span>v45</span>';
+  el.innerHTML='<span>Actors: '+total_people+'</span><span>Headshots: '+hs_count+'</span><span>Posters: '+ps_count+'</span><span>Updated: __BUILD_TIME__</span><span>v46</span>';
 }
 
 function render(){
