@@ -5038,45 +5038,32 @@ function _unLoadTrending(){
   var el=document.getElementById('un-search-results');
   if(_trendingCache){el.innerHTML=_trendingCache;return}
   el.innerHTML='<div class="un-loading">Loading trending…</div>';
-  var showsP=_traktGet('/shows/trending?extended=full&limit=10');
-  var moviesP=_traktGet('/movies/trending?extended=full&limit=10');
+  var showsP=_traktGet('/shows/trending?extended=full&limit=15');
+  var moviesP=_traktGet('/movies/trending?extended=full&limit=15');
   Promise.all([showsP,moviesP]).then(function(res){
-    var shows=res[0]||[];var movies=res[1]||[];
-    var h='<div class="un-section" style="padding-top:8px">🔥 Trending Shows</div><div class="un-sr">';
-    shows.forEach(function(r,i){
-      var s=r.show||{};var slug=(s.ids||{}).slug||'';var tmdbId=(s.ids||{}).tmdb||0;
-      var rating=s.rating?s.rating.toFixed(1):'';var watchers=r.watchers||0;
-      h+='<div class="un-sr-item" onclick="_unSearchTap(\'show\',\''+slug.replace(/'/g,"\\'")+'\','+tmdbId+')">';
-      h+='<div class="un-sr-poster-ph" id="trp-s'+i+'">📺</div>';
-      h+='<div class="un-sr-info"><div class="un-sr-title">'+s.title+'</div>';
-      h+='<div class="un-sr-meta"><span class="un-sr-badge un-sr-badge-show">Show</span> '+(s.year||'');
+    // Merge shows + movies, sort by watcher count
+    var all=[];
+    (res[0]||[]).forEach(function(r){var s=r.show||{};all.push({type:'show',item:s,watchers:r.watchers||0,slug:(s.ids||{}).slug||'',tmdbId:(s.ids||{}).tmdb||0})});
+    (res[1]||[]).forEach(function(r){var m=r.movie||{};all.push({type:'movie',item:m,watchers:r.watchers||0,slug:(m.ids||{}).slug||'',tmdbId:(m.ids||{}).tmdb||0})});
+    all.sort(function(a,b){return b.watchers-a.watchers});
+    var h='<div class="un-section" style="padding-top:8px">🔥 Trending Now</div><div class="un-sr">';
+    all.slice(0,20).forEach(function(r,i){
+      var isMovie=r.type==='movie';
+      var title=r.item.title||'';var year=r.item.year||'';
+      var rating=r.item.rating?r.item.rating.toFixed(1):'';
+      h+='<div class="un-sr-item" onclick="_unSearchTap(\''+r.type+'\',\''+r.slug.replace(/'/g,"\\'")+'\','+r.tmdbId+')">';
+      h+='<div class="un-sr-poster-ph" id="trp-'+i+'">'+(isMovie?'🎞️':'📺')+'</div>';
+      h+='<div class="un-sr-info"><div class="un-sr-title">'+title+'</div>';
+      h+='<div class="un-sr-meta"><span class="un-sr-badge un-sr-badge-'+r.type+'">'+(isMovie?'Movie':'Show')+'</span> '+year;
       if(rating)h+=' · ⭐ '+rating;
-      if(watchers)h+=' · 👁 '+watchers;
+      h+=' · 👁 '+r.watchers;
       h+='</div></div><div class="un-sr-arrow">›</div></div>';
       // Async poster
-      if(tmdbId){var tk=(D.un||{}).tmdb_key||'';if(tk){(function(idx,tid){
-        fetch('https://api.themoviedb.org/3/tv/'+tid+'?api_key='+tk).then(function(r2){return r2.json()}).then(function(d){
-          if(d.poster_path){var ph=document.getElementById('trp-s'+idx);if(ph){var img=document.createElement('img');img.className='un-sr-poster';img.src='https://image.tmdb.org/t/p/w185'+d.poster_path;img.loading='lazy';ph.parentNode.replaceChild(img,ph)}}
+      if(r.tmdbId){var tk=(D.un||{}).tmdb_key||'';if(tk){(function(idx,type,tid){
+        fetch('https://api.themoviedb.org/3/'+(type==='movie'?'movie':'tv')+'/'+tid+'?api_key='+tk).then(function(r2){return r2.json()}).then(function(d){
+          if(d.poster_path){var ph=document.getElementById('trp-'+idx);if(ph){var img=document.createElement('img');img.className='un-sr-poster';img.src='https://image.tmdb.org/t/p/w185'+d.poster_path;img.loading='lazy';ph.parentNode.replaceChild(img,ph)}}
         }).catch(function(){});
-      })(i,tmdbId)}}
-    });
-    h+='</div>';
-    h+='<div class="un-section">🔥 Trending Movies</div><div class="un-sr">';
-    movies.forEach(function(r,i){
-      var m=r.movie||{};var slug=(m.ids||{}).slug||'';var tmdbId=(m.ids||{}).tmdb||0;
-      var rating=m.rating?m.rating.toFixed(1):'';var watchers=r.watchers||0;
-      h+='<div class="un-sr-item" onclick="_unSearchTap(\'movie\',\''+slug.replace(/'/g,"\\'")+'\','+tmdbId+')">';
-      h+='<div class="un-sr-poster-ph" id="trp-m'+i+'">🎞️</div>';
-      h+='<div class="un-sr-info"><div class="un-sr-title">'+m.title+'</div>';
-      h+='<div class="un-sr-meta"><span class="un-sr-badge un-sr-badge-movie">Movie</span> '+(m.year||'');
-      if(rating)h+=' · ⭐ '+rating;
-      if(watchers)h+=' · 👁 '+watchers;
-      h+='</div></div><div class="un-sr-arrow">›</div></div>';
-      if(tmdbId){var tk=(D.un||{}).tmdb_key||'';if(tk){(function(idx,tid){
-        fetch('https://api.themoviedb.org/3/movie/'+tid+'?api_key='+tk).then(function(r2){return r2.json()}).then(function(d){
-          if(d.poster_path){var ph=document.getElementById('trp-m'+idx);if(ph){var img=document.createElement('img');img.className='un-sr-poster';img.src='https://image.tmdb.org/t/p/w185'+d.poster_path;img.loading='lazy';ph.parentNode.replaceChild(img,ph)}}
-        }).catch(function(){});
-      })(i,tmdbId)}}
+      })(i,r.type,r.tmdbId)}}
     });
     h+='</div>';
     _trendingCache=h;
@@ -6151,7 +6138,7 @@ function renderStatus(){
   var hs_count=Object.keys(D.hs||{}).length;
   var ps_count=Object.keys(D.ps||{}).length;
   var el=document.getElementById('status');
-  el.innerHTML='<span>Actors: '+total_people+'</span><span>Headshots: '+hs_count+'</span><span>Posters: '+ps_count+'</span><span>Updated: __BUILD_TIME__</span><span>v36</span>';
+  el.innerHTML='<span>Actors: '+total_people+'</span><span>Headshots: '+hs_count+'</span><span>Posters: '+ps_count+'</span><span>Updated: __BUILD_TIME__</span><span>v37</span>';
 }
 
 function render(){
