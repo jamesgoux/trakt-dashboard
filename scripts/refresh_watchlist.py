@@ -73,8 +73,12 @@ def fetch_letterboxd_watchlist():
             title = title.replace("&#039;", "'").replace("&amp;", "&").replace("&quot;", '"')
             year = int(ym.group(2)) if ym else None
 
-            # Try to get TMDB ID from cache
+            # Try to get TMDB ID from cache (slug-based or title|year format)
             tmdb_id = lb_tmdb.get(slug, {}).get("tmdb_id") if isinstance(lb_tmdb.get(slug), dict) else lb_tmdb.get(slug)
+            if not tmdb_id and year:
+                tmdb_id = lb_tmdb.get(f"{title}|{year}")
+            if not tmdb_id:
+                tmdb_id = lb_tmdb.get(f"{name}|{year}") if year else None
 
             movies.append({
                 "title": title,
@@ -573,11 +577,30 @@ def run():
     with open("data/watchlist.json", "w") as f:
         json.dump(output, f, separators=(",", ":"))
 
+    # Save resolved TMDB IDs back to lb_tmdb_cache (both slug and title|year formats)
+    cache_updated = 0
+    for m in final_movies:
+        tid = m.get("tmdb_id")
+        if tid:
+            slug_key = m.get("slug", "")
+            title_key = f"{m.get('title', '')}|{m.get('year', '')}" if m.get("year") else ""
+            if slug_key and slug_key not in lb_tmdb:
+                lb_tmdb[slug_key] = tid
+                cache_updated += 1
+            if title_key and title_key not in lb_tmdb:
+                lb_tmdb[title_key] = tid
+                cache_updated += 1
+    if cache_updated:
+        with open("data/lb_tmdb_cache.json", "w") as f:
+            json.dump(lb_tmdb, f, separators=(",", ":"))
+        print(f"  Updated lb_tmdb_cache: +{cache_updated} entries ({len(lb_tmdb)} total)")
+
     # Stats
     movies_with_jw = sum(1 for m in final_movies if m.get("jw"))
     shows_with_jw = sum(1 for s in final_shows if s.get("jw"))
     movies_with_rt = sum(1 for m in final_movies if m.get("runtime"))
-    print(f"\n  Final: {len(final_movies)} movies ({movies_with_rt} with runtime, {movies_with_jw} with JW)")
+    movies_with_tmdb = sum(1 for m in final_movies if m.get("tmdb_id"))
+    print(f"\n  Final: {len(final_movies)} movies ({movies_with_rt} with runtime, {movies_with_jw} with JW, {movies_with_tmdb} with TMDB ID)")
     print(f"         {len(final_shows)} shows ({shows_with_jw} with JW)")
     print(f"  Saved to data/watchlist.json")
 
