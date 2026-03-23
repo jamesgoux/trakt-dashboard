@@ -5325,16 +5325,24 @@ function _unSearchTap(type,slug,tmdbId){
 // ─── Where to Watch ──────────────────────────────────────────────
 // Primary: JustWatch GraphQL (has prices). Fallback: TMDB Watch Providers.
 function _unFetchJW(type,slug,containerId,tmdbId){
-  // Check watchlist cache for JustWatch prices first
+  // Check watchlist cache for JustWatch prices — try slug match then TMDB ID match
   var wl=D.wlst||D.wl||{};
   var items=type==='movie'?(wl.movies||[]):(wl.shows||[]);
-  var cached=items.find(function(m){return m.slug===slug});
+  var cached=items.find(function(m){return m.slug===slug})||(tmdbId&&items.find(function(m){return m.tmdb_id===tmdbId}));
   if(cached&&cached.jw&&(cached.jw.s||cached.jw.r||cached.jw.b)){
     var results=[];
     (cached.jw.s||[]).forEach(function(o){results.push({name:o.n,icon:o.i,label:'Stream'})});
     (cached.jw.r||[]).forEach(function(o){results.push({name:o.n,icon:o.i,label:'Rent'+(o.p?' ('+o.p+')':'')})});
     (cached.jw.b||[]).forEach(function(o){results.push({name:o.n,icon:o.i,label:'Buy'+(o.p?' ('+o.p+')':'')})});
     if(results.length){_unRenderWP(results,containerId);return}
+  }
+  // Check Up Next show streaming data
+  if(type==='show'&&D.un&&D.un.shows){
+    var uns=D.un.shows.find(function(s){return s.slug===slug||(tmdbId&&s.tmdb_id===tmdbId)});
+    if(uns&&uns.stream&&uns.stream.length){
+      var sr=uns.stream.map(function(o){return{name:o.n,icon:o.i,label:'Stream'}});
+      _unRenderWP(sr,containerId);return;
+    }
   }
   // Fallback to TMDB Watch Providers (no prices but CORS-friendly)
   if(tmdbId)_unFetchWPTmdb(type,tmdbId,containerId);
@@ -6884,7 +6892,7 @@ function renderStatus(){
   var hs_count=Object.keys(D.hs||{}).length;
   var ps_count=Object.keys(D.ps||{}).length;
   var el=document.getElementById('status');
-  el.innerHTML='<span>Actors: '+total_people+'</span><span>Headshots: '+hs_count+'</span><span>Posters: '+ps_count+'</span><span>Updated: __BUILD_TIME__</span><span>v43</span>';
+  el.innerHTML='<span>Actors: '+total_people+'</span><span>Headshots: '+hs_count+'</span><span>Posters: '+ps_count+'</span><span>Updated: __BUILD_TIME__</span><span>v44</span>';
 }
 
 function render(){
