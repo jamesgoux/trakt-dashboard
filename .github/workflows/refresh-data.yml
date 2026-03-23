@@ -15,7 +15,7 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -32,6 +32,73 @@ jobs:
         run: python scripts/refresh_trakt_token.py
         continue-on-error: true
 
+      # ── External Sources ──────────────────────────────────
+      - name: Refresh Letterboxd
+        run: python scripts/refresh_letterboxd.py
+        continue-on-error: true
+
+      - name: Refresh Goodreads
+        env:
+          GOODREADS_USER_ID: ${{ secrets.GOODREADS_USER_ID }}
+        run: python scripts/refresh_goodreads.py
+        continue-on-error: true
+
+      - name: Refresh Concerts
+        env:
+          SETLIST_FM_API_KEY: ${{ secrets.SETLIST_FM_API_KEY }}
+        run: python scripts/refresh_setlist.py
+        continue-on-error: true
+
+      - name: Refresh Podcasts
+        env:
+          POCKETCASTS_EMAIL: ${{ secrets.POCKETCASTS_EMAIL }}
+          POCKETCASTS_PASSWORD: ${{ secrets.POCKETCASTS_PASSWORD }}
+        run: python scripts/refresh_pocketcasts.py
+        continue-on-error: true
+
+      - name: Refresh Serializd
+        env:
+          SERIALIZD_EMAIL: ${{ secrets.SERIALIZD_EMAIL }}
+          SERIALIZD_PASSWORD: ${{ secrets.SERIALIZD_PASSWORD }}
+        run: python scripts/refresh_serializd.py
+        continue-on-error: true
+
+      - name: Refresh Last.fm
+        env:
+          LASTFM_API_KEY: ${{ secrets.LASTFM_API_KEY }}
+          LASTFM_USER: ${{ secrets.LASTFM_USER }}
+        run: python scripts/refresh_lastfm.py
+        timeout-minutes: 5
+        continue-on-error: true
+
+      # ── Watchlist + Up Next ───────────────────────────────
+      - name: Refresh Watchlist + JustWatch
+        env:
+          TRAKT_CLIENT_ID: ${{ secrets.TRAKT_CLIENT_ID }}
+          TRAKT_USERNAME: ${{ secrets.TRAKT_USERNAME }}
+          TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+        run: python scripts/refresh_watchlist.py
+        continue-on-error: true
+
+      - name: Refresh Up Next
+        env:
+          TRAKT_CLIENT_ID: ${{ secrets.TRAKT_CLIENT_ID }}
+          TRAKT_USERNAME: ${{ secrets.TRAKT_USERNAME }}
+          TRAKT_ACCESS_TOKEN: ${{ secrets.TRAKT_ACCESS_TOKEN }}
+          TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+        run: python scripts/refresh_upnext.py
+        continue-on-error: true
+
+      - name: Refresh Upcoming Calendar
+        env:
+          TRAKT_CLIENT_ID: ${{ secrets.TRAKT_CLIENT_ID }}
+          TRAKT_USERNAME: ${{ secrets.TRAKT_USERNAME }}
+          TRAKT_ACCESS_TOKEN: ${{ secrets.TRAKT_ACCESS_TOKEN }}
+          TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+        run: python scripts/refresh_upcoming.py
+        continue-on-error: true
+
+      # ── Build Dashboard ───────────────────────────────────
       - name: Refresh Trakt data + rebuild HTML
         env:
           TRAKT_CLIENT_ID: ${{ secrets.TRAKT_CLIENT_ID }}

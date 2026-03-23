@@ -1,8 +1,6 @@
-name: Watchlist + JustWatch
+name: Watchlist + JustWatch (standalone)
 
 on:
-  schedule:
-    - cron: '*/30 * * * *'
   workflow_dispatch:
 
 permissions:
