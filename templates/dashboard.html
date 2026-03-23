@@ -5902,6 +5902,8 @@ function _wlDoSync(){
 var _calRenderedDays=0;
 var _calBatchSize=30;
 var _calScrollBound=false;
+var _calFetching=false;
+var _calEndDate=null; // tracks the furthest date we have data for
 
 function _unOpenCalendar(){
   _unSetView('calendar',{});
@@ -5931,6 +5933,17 @@ function _calRender(){
   }
 
   _calRenderedDays=0;
+  // Track the furthest date we have pre-fetched data for
+  var cal2=D.cal||{};
+  if(cal2.days&&cal2.days.length){
+    var lastDate=cal2.days[cal2.days.length-1].date;
+    // End date = last pre-fetched date + 1 day
+    var ld=new Date(lastDate+'T12:00:00');ld.setDate(ld.getDate()+1);
+    _calEndDate=ld.toISOString().slice(0,10);
+  }else{
+    var nd=new Date();nd.setDate(nd.getDate()+(cal2.days_ahead||90));
+    _calEndDate=nd.toISOString().slice(0,10);
+  }
   el.innerHTML='<div class="un-cal-wrap" id="un-cal-list"></div>';
   _calAppendBatch(futureDays);
 
@@ -5941,10 +5954,11 @@ function _calRender(){
       if(_unCurrentView!=='calendar')return;
       var ov=document.getElementById('un-overlay');
       if(ov.scrollTop+ov.clientHeight>=ov.scrollHeight-200){
-        var cal2=D.cal||{};var days2=cal2.days||[];
-        var todayStr2=new Date().toISOString().slice(0,10);
-        var fd=days2.filter(function(d){return d.date>=todayStr2});
-        if(_calRenderedDays<fd.length)_calAppendBatch(fd);
+        var cal3=D.cal||{};var days3=cal3.days||[];
+        var todayStr3=new Date().toISOString().slice(0,10);
+        var fd2=days3.filter(function(d){return d.date>=todayStr3});
+        if(_calRenderedDays<fd2.length){_calAppendBatch(fd2)}
+        else if(!_calFetching){_calFetchMore()}
       }
     });
   }
@@ -6031,15 +6045,99 @@ function _calAppendBatch(futureDays){
   el.insertAdjacentHTML('beforeend',h);
   _calRenderedDays=end;
 
-  // Show load-more indicator or end-of-list
+  // Show load-more indicator
   var existing=document.getElementById('un-cal-more');
   if(existing)existing.remove();
   if(end<futureDays.length){
     el.insertAdjacentHTML('beforeend','<div id="un-cal-more" class="un-cal-loading">Scroll for more…</div>');
   }else{
-    var calData=D.cal||{};
-    el.insertAdjacentHTML('beforeend','<div id="un-cal-more" class="un-cal-loading" style="padding:30px 20px;opacity:.5">📅 '+futureDays.length+' days with episodes in the next '+(calData.days_ahead||90)+' days</div>');
+    // All pre-fetched rendered — show hint that more can be loaded live
+    el.insertAdjacentHTML('beforeend','<div id="un-cal-more" class="un-cal-loading" style="padding:20px;opacity:.6">Scroll to load more…</div>');
   }
+}
+
+function _calFetchMore(){
+  if(_calFetching||!D._tc||!D._tt)return;
+  _calFetching=true;
+  var moreEl=document.getElementById('un-cal-more');
+  if(moreEl)moreEl.innerHTML='Loading more episodes…';
+
+  var startDate=_calEndDate;
+  var batchDays=33;
+  var url='https://api.trakt.tv/calendars/my/shows/'+startDate+'/'+batchDays;
+  fetch(url,{headers:{'Content-Type':'application/json','trakt-api-version':'2','trakt-api-key':D._tc,'Authorization':'Bearer '+D._tt}})
+  .then(function(r){if(!r.ok)throw new Error(r.status);return r.json()})
+  .then(function(episodes){
+    // Advance end date
+    var nd=new Date(startDate+'T12:00:00');nd.setDate(nd.getDate()+batchDays);
+    _calEndDate=nd.toISOString().slice(0,10);
+
+    if(!episodes||!episodes.length){
+      _calFetching=false;
+      if(moreEl)moreEl.innerHTML='📅 No more upcoming episodes';
+      return;
+    }
+
+    // Group by date + show (same logic as pipeline)
+    var byDate={};
+    episodes.forEach(function(entry){
+      var show=entry.show||{};var ep=entry.episode||{};
+      var aired=entry.first_aired||ep.first_aired||'';
+      if(!aired)return;
+      var dateStr=aired.slice(0,10);
+      var slug=(show.ids||{}).slug||'';
+      if(!slug)return;
+      var key=dateStr+'|'+slug;
+      if(!byDate[key])byDate[key]={date:dateStr,show:{title:show.title||'',slug:slug,trakt_id:(show.ids||{}).trakt||'',tmdb_id:(show.ids||{}).tmdb||0,year:show.year||''},eps:[]};
+      byDate[key].eps.push({s:ep.season||0,e:ep.number||0,t:ep.title||'',aired:aired,rt:ep.runtime||0});
+    });
+
+    // Sort and convert to days array
+    var keys=Object.keys(byDate).sort();
+    var newDays={};
+    keys.forEach(function(k){
+      var item=byDate[k];
+      if(!newDays[item.date])newDays[item.date]=[];
+      // Sort episodes within show
+      item.eps.sort(function(a,b){return a.s-b.s||a.e-b.e});
+      // Look up poster from existing data
+      var poster='';
+      var PS2=D.ps||{};
+      if(PS2[item.show.slug])poster=PS2[item.show.slug];
+      newDays[item.date].push({slug:item.show.slug,title:item.show.title,trakt_id:item.show.trakt_id,tmdb_id:item.show.tmdb_id,year:item.show.year,poster:poster,eps:item.eps});
+    });
+
+    var datesArr=Object.keys(newDays).sort();
+    var addedDays=[];
+    datesArr.forEach(function(d){
+      addedDays.push({date:d,shows:newDays[d]});
+    });
+
+    // Merge into D.cal
+    if(!D.cal)D.cal={days:[]};
+    addedDays.forEach(function(nd2){
+      // Only add if not already present
+      var exists=D.cal.days.some(function(ed){return ed.date===nd2.date});
+      if(!exists)D.cal.days.push(nd2);
+    });
+    D.cal.days.sort(function(a,b){return a.date<b.date?-1:1});
+
+    // Re-filter and render new batch
+    var todayStr4=new Date().toISOString().slice(0,10);
+    var fd3=D.cal.days.filter(function(d2){return d2.date>=todayStr4});
+    if(_calRenderedDays<fd3.length){
+      _calAppendBatch(fd3);
+    }else{
+      if(moreEl)moreEl.innerHTML='📅 No more upcoming episodes';
+    }
+    _calFetching=false;
+  })
+  .catch(function(e){
+    _calFetching=false;
+    if(moreEl)moreEl.innerHTML='Failed to load more — tap to retry';
+    if(moreEl)moreEl.onclick=function(){_calFetchMore()};
+    console.error('Calendar fetch error:',e);
+  });
 }
 
 function _calToggleBundle(bid){
