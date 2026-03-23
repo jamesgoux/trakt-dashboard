@@ -3739,7 +3739,7 @@ function _unFmtMin(m){if(!m)return'';var h=Math.floor(m/60);var mn=m%60;return h
 function _unData(){var d=D.un||{};return{shows:d.shows||d||[],recent:d.recent||[]}}
 
 var _unScrollPos=0;var _unReturning=false;var _unEverOpened=false;
-var _lastExternalSync=0;
+var _lastExternalSync=0;var _unPreSynced=false;
 // Sync-first architecture: openUpNext syncs with Trakt BEFORE rendering (single paint).
 // Internal callers (markWatched, removeRecent, etc.) pass skipSync=true since they just modified data.
 function openUpNext(skipSync){
@@ -3762,8 +3762,11 @@ function openUpNext(skipSync){
   // 1) Fetch recent history (catches external watches)
   // 2) Live-check progress for top shows (catches stale next_episode)
   // Both run in parallel, then render once.
-  // Render immediately with cached data (instant), then sync in background
+  // Render with data (pre-synced if background preload completed)
   _renderUpNext();
+  // If background pre-sync already ran, skip the re-render entirely (clean single paint)
+  if(_unPreSynced){_unPreSynced=false;return}
+  // Otherwise sync now (subsequent opens, or pre-sync didn't finish in time)
   var needsSync=!skipSync&&D._tc&&D._tt&&(Date.now()-_lastExternalSync>30000);
   if(needsSync){
     _lastExternalSync=Date.now();
@@ -6914,7 +6917,7 @@ function renderStatus(){
   var hs_count=Object.keys(D.hs||{}).length;
   var ps_count=Object.keys(D.ps||{}).length;
   var el=document.getElementById('status');
-  el.innerHTML='<span>Actors: '+total_people+'</span><span>Headshots: '+hs_count+'</span><span>Posters: '+ps_count+'</span><span>Updated: __BUILD_TIME__</span><span>v51</span>';
+  el.innerHTML='<span>Actors: '+total_people+'</span><span>Headshots: '+hs_count+'</span><span>Posters: '+ps_count+'</span><span>Updated: __BUILD_TIME__</span><span>v52</span>';
 }
 
 function render(){
@@ -6977,6 +6980,18 @@ function _bgPreload(){
       // Scrobbles
       if(D.lfm&&D.lfm.weekly)(D.lfm.weekly);
       _bgPreloaded=true;
+      // Pre-sync Up Next data so first open has no visible re-render
+      if(D._tc&&D._tt){
+        _lastExternalSync=Date.now();
+        var hdr={'Content-Type':'application/json','trakt-api-version':'2','trakt-api-key':D._tc,'Authorization':'Bearer '+D._tt};
+        var histP=fetch('https://api.trakt.tv/users/jamesgoux/history/episodes?limit=100',{headers:hdr})
+          .then(function(r){return r.ok?r.json():[]}).catch(function(){return[]});
+        var progP=_liveCheckProgress(hdr);
+        Promise.all([histP,progP]).then(function(res){
+          _applyExternalWatches(res[0]);
+          _unPreSynced=true;
+        }).catch(function(){});
+      }
     }catch(e){}
   },{timeout:3000});
 }
