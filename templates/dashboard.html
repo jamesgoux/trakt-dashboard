@@ -6843,14 +6843,17 @@ function closeUpNext(){
   },{passive:true});
 })();
 // Swipe-to-dismiss search overlay (with slide animation)
+// Ignores swipes inside horizontal scroll containers (cast, streaming)
 (function(){
   var sov=document.getElementById('un-search-ov');if(!sov)return;
-  var sx=0,sy=0,dir=null,moved=false;
+  var sx=0,sy=0,dir=null,moved=false,inScroll=false;
   sov.addEventListener('touchstart',function(e){
     sx=e.touches[0].clientX;sy=e.touches[0].clientY;dir=null;moved=false;
-    sov.style.transition='none';
+    inScroll=!!e.target.closest('.un-cast-scroll');
+    if(!inScroll)sov.style.transition='none';
   },{passive:true});
   sov.addEventListener('touchmove',function(e){
+    if(inScroll)return;
     var dx=e.touches[0].clientX-sx,dy=e.touches[0].clientY-sy;
     if(!dir&&(Math.abs(dx)>12||Math.abs(dy)>12)){
       dir=Math.abs(dx)>Math.abs(dy)?'h':'v';
@@ -6858,6 +6861,7 @@ function closeUpNext(){
     if(dir==='h'&&dx>0){moved=true;sov.style.transform='translateX('+dx+'px)';sov.style.opacity=Math.max(0,1-dx/400)}
   },{passive:true});
   sov.addEventListener('touchend',function(e){
+    if(inScroll){inScroll=false;dir=null;return}
     var dx=e.changedTouches[0].clientX-sx;
     if(dir==='h'&&dx>80){
       sov.style.transition='transform .2s ease,opacity .2s ease';
@@ -6877,7 +6881,7 @@ function renderStatus(){
   var hs_count=Object.keys(D.hs||{}).length;
   var ps_count=Object.keys(D.ps||{}).length;
   var el=document.getElementById('status');
-  el.innerHTML='<span>Actors: '+total_people+'</span><span>Headshots: '+hs_count+'</span><span>Posters: '+ps_count+'</span><span>Updated: __BUILD_TIME__</span><span>v41</span>';
+  el.innerHTML='<span>Actors: '+total_people+'</span><span>Headshots: '+hs_count+'</span><span>Posters: '+ps_count+'</span><span>Updated: __BUILD_TIME__</span><span>v42</span>';
 }
 
 function render(){
