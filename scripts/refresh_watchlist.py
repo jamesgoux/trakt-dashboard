@@ -31,51 +31,64 @@ JW_BUDGET = 100  # max new JustWatch lookups per run
 
 
 def fetch_letterboxd_watchlist():
-    """Fetch Letterboxd watchlist via RSS feed."""
-    url = f"https://letterboxd.com/{LB_USERNAME}/watchlist/rss/"
-    print(f"Fetching Letterboxd watchlist RSS ({LB_USERNAME})...")
-    try:
-        # Use requests.get() directly (not retry_request) — matches refresh_letterboxd.py
-        # Letterboxd Cloudflare needs proper User-Agent
-        r = requests.get(url, timeout=15, headers={"User-Agent": "Mozilla/5.0"})
-        if r.status_code != 200:
-            print(f"  RSS fetch failed: {r.status_code}")
-            return []
-    except Exception as e:
-        print(f"  RSS fetch error: {e}")
-        return []
+    """Fetch Letterboxd watchlist by scraping HTML pages.
+    RSS endpoint (/watchlist/rss/) is Cloudflare-blocked from GH Actions,
+    but the HTML pages work fine with a browser User-Agent."""
+    import re as _re
+    print(f"Fetching Letterboxd watchlist ({LB_USERNAME})...")
+    ua = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36"}
 
-    ns = {"letterboxd": "https://letterboxd.com", "tmdb": "https://themoviedb.org"}
-    root = ET.fromstring(r.text)
-    items = root.findall(".//item")
-    print(f"  RSS items: {len(items)}")
+    # Load existing LB→TMDB cache for slug-based lookups
+    lb_tmdb = {}
+    if os.path.exists("data/lb_tmdb_cache.json"):
+        with open("data/lb_tmdb_cache.json") as f:
+            lb_tmdb = json.load(f)
 
     movies = []
-    for item in items:
-        title = item.findtext("letterboxd:filmTitle", "", ns)
-        year = item.findtext("letterboxd:filmYear", "", ns)
-        tmdb_id = item.findtext("tmdb:movieId", "", ns)
-        link = item.findtext("link", "")
-        pub_date = item.findtext("pubDate", "")
+    for page in range(1, 20):  # up to ~500 films
+        url = f"https://letterboxd.com/{LB_USERNAME}/watchlist/page/{page}/"
+        try:
+            r = requests.get(url, timeout=15, headers=ua)
+            if r.status_code != 200:
+                break
+        except Exception as e:
+            print(f"  Page {page} error: {e}")
+            break
 
-        if not title:
-            continue
+        # Extract film data from HTML attributes
+        films = _re.findall(
+            r'data-item-name="([^"]+)"\s+data-item-slug="([^"]+)"\s+'
+            r'data-item-link="([^"]+)"\s+data-item-full-display-name="([^"]+)"\s+'
+            r'data-film-id="(\d+)"',
+            r.text
+        )
+        if not films:
+            break
 
-        # Extract Letterboxd slug from link for JustWatch matching
-        lb_slug = ""
-        if link:
-            parts = link.rstrip("/").split("/")
-            if parts:
-                lb_slug = parts[-1]
+        for name, slug, link, full_name, film_id in films:
+            # Parse "Title (Year)" from full display name
+            ym = _re.match(r'^(.+)\s+\((\d{4})\)$', full_name)
+            title = ym.group(1) if ym else name
+            # Unescape HTML entities
+            title = title.replace("&#039;", "'").replace("&amp;", "&").replace("&quot;", '"')
+            year = int(ym.group(2)) if ym else None
 
-        movies.append({
-            "title": title,
-            "year": int(year) if year else None,
-            "tmdb_id": int(tmdb_id) if tmdb_id else None,
-            "lb_slug": lb_slug,
-            "added_at": pub_date,
-        })
+            # Try to get TMDB ID from cache
+            tmdb_id = lb_tmdb.get(slug, {}).get("tmdb_id") if isinstance(lb_tmdb.get(slug), dict) else lb_tmdb.get(slug)
 
+            movies.append({
+                "title": title,
+                "year": year,
+                "tmdb_id": int(tmdb_id) if tmdb_id else None,
+                "lb_slug": slug,
+                "added_at": "",
+            })
+
+        if len(films) < 28:
+            break
+        time.sleep(0.5)
+
+    print(f"  Letterboxd watchlist: {len(movies)} films across {page} pages")
     return movies
 
 
@@ -135,6 +148,26 @@ def fetch_trakt_watchlist():
         print(f"  Trakt shows failed: {r.status_code if r else 'no response'}")
 
     return movies, shows
+
+
+def search_tmdb_movie(title, year=None):
+    """Search TMDB for a movie by title + year to get TMDB ID."""
+    if not TMDB_API_KEY or not title:
+        return None
+    try:
+        q = urllib.request.quote(title)
+        url = f"https://api.themoviedb.org/3/search/movie?api_key={TMDB_API_KEY}&query={q}"
+        if year:
+            url += f"&year={year}"
+        req = urllib.request.Request(url, headers={"Accept": "application/json"})
+        resp = urllib.request.urlopen(req, timeout=5)
+        d = json.loads(resp.read())
+        results = d.get("results", [])
+        if results:
+            return results[0].get("id")
+    except Exception:
+        pass
+    return None
 
 
 def fetch_tmdb_movie(tmdb_id):
@@ -215,7 +248,8 @@ def fetch_justwatch(slug, media_type="movie", tmdb_id=None):
                                      data=body, headers={"Content-Type": "application/json"})
         resp = urllib.request.urlopen(req, timeout=5)
         d = json.loads(resp.read())
-        node = d.get("data", {}).get("urlV2", {}).get("node")
+        url_v2 = (d.get("data") or {}).get("urlV2") or {}
+        node = url_v2.get("node")
         if not node:
             print(f"    JW miss for {slug} ({jw_type}), trying TMDB providers...")
             return fetch_tmdb_watch_providers(tmdb_id, media_type)
@@ -313,11 +347,21 @@ def run():
             # No TMDB ID — use slug as key
             movies_by_tmdb[f"slug:{m['slug']}"] = {**m, "source": "trakt"}
 
-    # Merge Letterboxd
+    # Merge Letterboxd — resolve TMDB IDs for items missing from cache
     lb_only = 0
     lb_both = 0
+    lb_searched = 0
     for lb in lb_movies:
         tid = lb.get("tmdb_id")
+
+        # If no TMDB ID from cache, search TMDB by title+year (budgeted)
+        if not tid and lb_searched < 50:
+            tid = search_tmdb_movie(lb["title"], lb.get("year"))
+            if tid:
+                lb["tmdb_id"] = tid
+                lb_searched += 1
+                time.sleep(0.1)
+
         if tid and tid in movies_by_tmdb:
             movies_by_tmdb[tid]["source"] = "both"
             lb_both += 1
@@ -336,14 +380,54 @@ def run():
                 "overview": "",
             }
             lb_only += 1
+        else:
+            # No TMDB ID at all — still add with title-based slug
+            key = f"lb:{lb.get('lb_slug', lb['title'])}"
+            movies_by_tmdb[key] = {
+                "title": lb["title"],
+                "year": lb["year"],
+                "tmdb_id": None,
+                "slug": lb.get("lb_slug") or slugify_for_jw(lb["title"]),
+                "source": "letterboxd",
+                "added_at": lb.get("added_at", ""),
+                "runtime": 0,
+                "genres": [],
+                "rating": None,
+                "overview": "",
+            }
+            lb_only += 1
 
+    if lb_searched:
+        print(f"  TMDB search: resolved {lb_searched} LB films missing from cache")
     print(f"  Deduplication: {len(movies_by_tmdb)} unique movies ({lb_both} on both, {lb_only} LB-only)")
 
-    # 3. Enrich Letterboxd-only movies from TMDB
+    # 3. Enrich movies from TMDB (runtime, poster, genres) — use cache for existing items
+    # Load existing enrichment cache to avoid re-fetching
+    enrich_cache = {}
+    for item in existing.get("movies", []):
+        if item.get("tmdb_id") and item.get("runtime"):
+            enrich_cache[item["tmdb_id"]] = item
+
     tmdb_fetched = 0
+    TMDB_BUDGET = 150  # max new TMDB lookups per run
+
     for key, m in movies_by_tmdb.items():
-        if m["source"] == "letterboxd" and m.get("tmdb_id") and not m.get("runtime"):
-            tmdb_data = fetch_tmdb_movie(m["tmdb_id"])
+        tid = m.get("tmdb_id")
+        if not tid:
+            continue
+
+        # Use enrichment cache first
+        if tid in enrich_cache and not m.get("runtime"):
+            cached = enrich_cache[tid]
+            m["runtime"] = cached.get("runtime", 0)
+            m["poster"] = cached.get("poster", "")
+            m["genres"] = cached.get("genres", m.get("genres", []))
+            m["rating"] = cached.get("rating", m.get("rating"))
+            continue
+
+        # Only fetch from TMDB if we need runtime/poster
+        if not m.get("runtime") and tmdb_fetched < TMDB_BUDGET:
+            tmdb_data = fetch_tmdb_movie(tid)
             if tmdb_data:
                 m["runtime"] = tmdb_data.get("runtime", 0)
                 m["poster"] = tmdb_data.get("poster", "")
@@ -351,14 +435,12 @@ def run():
                     m["genres"] = tmdb_data["genres"]
                 if tmdb_data.get("rating"):
                     m["rating"] = tmdb_data["rating"]
-                if tmdb_data.get("overview"):
-                    m["overview"] = tmdb_data["overview"]
                 if tmdb_data.get("imdb_id"):
                     m["imdb_id"] = tmdb_data["imdb_id"]
                 tmdb_fetched += 1
                 time.sleep(0.15)
 
-    # Fetch posters for Trakt movies that don't have them
+    # Fetch posters for movies that don't have them
     for key, m in movies_by_tmdb.items():
         if not m.get("poster") and m.get("tmdb_id") and TMDB_API_KEY:
             # Check poster cache first
