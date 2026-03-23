@@ -6188,7 +6188,8 @@ function _unOpenMovie(slug,tmdbId){
   var el=document.getElementById('un-search-results');
   el.innerHTML='<div class="un-loading">Loading movie…</div>';
   _unSetView('movie',{slug:slug,tmdbId:tmdbId});
-  var ov=document.getElementById('un-overlay');ov.scrollTop=0;
+  // Scroll the search overlay to top (not the Up Next queue behind it)
+  var _sov=document.getElementById('un-search-ov');if(_sov)_sov.scrollTop=0;
   // Fetch movie details from Trakt
   _traktGet('/movies/'+encodeURIComponent(slug)+'?extended=full')
   .then(function(movie){
@@ -6380,7 +6381,8 @@ function _unOpenShow(slug,tmdbId){
   var el=document.getElementById('un-search-results');
   el.innerHTML='<div class="un-loading">Loading show…</div>';
   _unSetView('show',{slug:slug,tmdbId:tmdbId});
-  var ov=document.getElementById('un-overlay');ov.scrollTop=0;
+  // Scroll the search overlay to top (not the Up Next queue behind it)
+  var _sov=document.getElementById('un-search-ov');if(_sov)_sov.scrollTop=0;
   // Fetch show details + seasons + progress in parallel
   var showP=_traktGet('/shows/'+encodeURIComponent(slug)+'?extended=full');
   var seasonsP=_traktGet('/shows/'+encodeURIComponent(slug)+'/seasons?extended=full');
@@ -6509,7 +6511,8 @@ function _unOpenSeason(slug,seasonNum,tmdbId){
   var el=document.getElementById('un-search-results');
   el.innerHTML='<div class="un-loading">Loading episodes…</div>';
   _unSetView('season',{slug:slug,season:seasonNum,tmdbId:tmdbId});
-  var ov=document.getElementById('un-overlay');ov.scrollTop=0;
+  // Scroll the search overlay to top (not the Up Next queue behind it)
+  var _sov=document.getElementById('un-search-ov');if(_sov)_sov.scrollTop=0;
   var ck=slug+'|'+seasonNum;
   // Fetch episodes + watched progress in parallel
   var epsP=_traktGet('/shows/'+encodeURIComponent(slug)+'/seasons/'+seasonNum+'/episodes?extended=full');
@@ -6617,7 +6620,7 @@ function _unEpNavShow(slug,tmdbId){
   // Render show page directly (skip _unSetView to avoid double-push)
   var el=document.getElementById('un-search-results');
   el.innerHTML='<div class="un-loading">Loading show…</div>';
-  var ov=document.getElementById('un-overlay');ov.scrollTop=0;
+  var _sov=document.getElementById('un-search-ov');if(_sov)_sov.scrollTop=0;
   var showP=_traktGet('/shows/'+encodeURIComponent(slug)+'?extended=full');
   var seasonsP=_traktGet('/shows/'+encodeURIComponent(slug)+'/seasons?extended=full');
   var progP=(D._tt)?_traktGet('/shows/'+encodeURIComponent(slug)+'/progress/watched',true).catch(function(){return null}):Promise.resolve(null);
@@ -6637,7 +6640,7 @@ function _unEpNavSeason(slug,season,tmdbId){
   _unUpdateHeader();
   var el=document.getElementById('un-search-results');
   el.innerHTML='<div class="un-loading">Loading episodes…</div>';
-  var ov=document.getElementById('un-overlay');ov.scrollTop=0;
+  var _sov=document.getElementById('un-search-ov');if(_sov)_sov.scrollTop=0;
   var epsP=_traktGet('/shows/'+encodeURIComponent(slug)+'/seasons/'+season+'/episodes?extended=full');
   var cached=_showDataCache[slug];
   var progP=cached&&cached.progress?Promise.resolve(cached.progress):(D._tt?_traktGet('/shows/'+encodeURIComponent(slug)+'/progress/watched',true).catch(function(){return null}):Promise.resolve(null));
@@ -6881,7 +6884,7 @@ function renderStatus(){
   var hs_count=Object.keys(D.hs||{}).length;
   var ps_count=Object.keys(D.ps||{}).length;
   var el=document.getElementById('status');
-  el.innerHTML='<span>Actors: '+total_people+'</span><span>Headshots: '+hs_count+'</span><span>Posters: '+ps_count+'</span><span>Updated: __BUILD_TIME__</span><span>v42</span>';
+  el.innerHTML='<span>Actors: '+total_people+'</span><span>Headshots: '+hs_count+'</span><span>Posters: '+ps_count+'</span><span>Updated: __BUILD_TIME__</span><span>v43</span>';
 }
 
 function render(){
