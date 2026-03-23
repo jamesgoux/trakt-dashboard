@@ -54,7 +54,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
 .fd-chip.fd-on{background:rgba(124,58,237,.2);border-color:rgba(124,58,237,.5);color:#fff;font-weight:600}
 .fd-chip:active{transform:scale(.97)}
 .fd-yr{text-align:center;padding:10px 8px;font-variant-numeric:tabular-nums}
-@media(min-width:768px){#filter-dialog{display:flex !important;align-items:center;justify-content:center}#filter-inner{height:auto !important;max-height:80vh;border-radius:16px;background:var(--bg);border:1px solid rgba(255,255,255,.1);box-shadow:0 20px 60px rgba(0,0,0,.5)}}
+@media(min-width:768px){#filter-dialog.fd-open{display:flex;align-items:center;justify-content:center}#filter-inner{height:auto !important;max-height:80vh;border-radius:16px;background:var(--bg);border:1px solid rgba(255,255,255,.1);box-shadow:0 20px 60px rgba(0,0,0,.5)}}
 .pn{display:flex;align-items:center;gap:10px}
 .hs{width:44px;height:44px;border-radius:50%;object-fit:cover;background:#222;flex-shrink:0}
 .hp{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#1a1a2e,#0f3460);display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--t2);font-weight:700;flex-shrink:0}
@@ -665,12 +665,12 @@ function _fdUpdateGo(){
 function openFilterDialog(){
   _fdYrSel=cy;_fdTySel=ct;
   _fdBuildYears();_fdBuildTypes();_fdUpdateGo();
-  document.getElementById('filter-dialog').style.display='';
+  var fd=document.getElementById('filter-dialog');fd.style.display='flex';fd.classList.add('fd-open');
   _lockBody();
   // Scroll current year into view
   setTimeout(function(){var active=document.querySelector('#fd-years .fd-on');if(active)active.scrollIntoView({block:'center'})},50);
 }
-function closeFilterDialog(){document.getElementById('filter-dialog').style.display='none';_unlockBody()}
+function closeFilterDialog(){var fd=document.getElementById('filter-dialog');fd.style.display='none';fd.classList.remove('fd-open');_unlockBody()}
 function applyFilter(){
   var changed=_fdYrSel!==cy||_fdTySel!==ct;
   cy=_fdYrSel;ct=_fdTySel;
@@ -6911,7 +6911,7 @@ function renderStatus(){
   var hs_count=Object.keys(D.hs||{}).length;
   var ps_count=Object.keys(D.ps||{}).length;
   var el=document.getElementById('status');
-  el.innerHTML='<span>Actors: '+total_people+'</span><span>Headshots: '+hs_count+'</span><span>Posters: '+ps_count+'</span><span>Updated: __BUILD_TIME__</span><span>v46</span>';
+  el.innerHTML='<span>Actors: '+total_people+'</span><span>Headshots: '+hs_count+'</span><span>Posters: '+ps_count+'</span><span>Updated: __BUILD_TIME__</span><span>v47</span>';
 }
 
 function render(){
