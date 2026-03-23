@@ -74,6 +74,14 @@ jobs:
         timeout-minutes: 5
         continue-on-error: true
 
+      - name: Refresh Watchlist
+        env:
+          TRAKT_CLIENT_ID: ${{ secrets.TRAKT_CLIENT_ID }}
+          TRAKT_USERNAME: ${{ secrets.TRAKT_USERNAME }}
+          TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+        run: python scripts/refresh_watchlist.py
+        continue-on-error: true
+
       # Build dashboard from all collected data
       - name: Refresh Up Next
         env:
@@ -82,6 +90,15 @@ jobs:
           TRAKT_ACCESS_TOKEN: ${{ secrets.TRAKT_ACCESS_TOKEN }}
           TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
         run: python scripts/refresh_upnext.py
+        continue-on-error: true
+
+      - name: Refresh Upcoming Calendar
+        env:
+          TRAKT_CLIENT_ID: ${{ secrets.TRAKT_CLIENT_ID }}
+          TRAKT_USERNAME: ${{ secrets.TRAKT_USERNAME }}
+          TRAKT_ACCESS_TOKEN: ${{ secrets.TRAKT_ACCESS_TOKEN }}
+          TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+        run: python scripts/refresh_upcoming.py
         continue-on-error: true
 
       - name: Refresh Trakt data + rebuild HTML

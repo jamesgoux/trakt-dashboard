@@ -2465,6 +2465,16 @@ if os.path.exists("data/up_next.json"):
         else:
             data["un"] = un_raw
 
+# Upcoming Calendar — load pre-computed episode calendar
+if os.path.exists("data/upcoming.json"):
+    with open("data/upcoming.json") as f:
+        cal_raw = json.load(f)
+    if cal_raw:
+        data["cal"] = cal_raw
+        total_days = len(cal_raw.get("days", []))
+        total_eps = sum(len(s.get("eps", [])) for d in cal_raw.get("days", []) for s in d.get("shows", []))
+        print(f"  Upcoming: {total_days} days, {total_eps} episodes")
+
 # Sports — load from repo-backed JSON
 if os.path.exists("data/sports.json"):
     with open("data/sports.json") as f:
@@ -2562,6 +2572,14 @@ if os.path.exists("data/health.json"):
         # Full workout array for year filtering + lifeline + charts
         data["_hwAll"] = health_deduped
         print(f"  Health: {len(health_deduped)} workouts, {len(by_type)} types, {round(total_dur/3600,1)}h total")
+
+# Watchlist — load pre-computed watchlist with JustWatch prices
+if os.path.exists("data/watchlist.json"):
+    with open("data/watchlist.json") as f:
+        wlst_raw = json.load(f)
+    if wlst_raw:
+        data["wlst"] = wlst_raw
+        print(f"  Watchlist: {len(wlst_raw.get('movies',[]))} movies, {len(wlst_raw.get('shows',[]))} shows")
 
 # Inject Trakt credentials for client-side mark-as-watched
 _trakt_token = get_trakt_access_token()
