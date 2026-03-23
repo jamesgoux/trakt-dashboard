@@ -6827,7 +6827,7 @@ function closeUpNext(){
       if(!_onSub){ov.style.transform='translateX('+Math.max(0,dx)+'px)'}
       else if(_swCnt){_swCnt.style.transform='translateX('+Math.max(0,dx)+'px)'}
     }else if(_dir==='v'&&_onSub&&_swCnt){
-      _swCnt.style.transform='translateY('+dy+'px)';_swCnt.style.opacity=Math.max(0,1-ady/300);
+      _swCnt.style.transform='translateY('+dy+'px)';
     }
   },{passive:true});
   ov.addEventListener('touchend',function(e){
@@ -6861,15 +6861,15 @@ function closeUpNext(){
       if(Math.abs(dy)>threshold){
         var _searchOpenV=document.getElementById('un-search-ov').style.display!=='none'&&_unCurrentView==='home';
         var dir=dy>0?'100%':'-100%';
-        _swCnt.style.transition='transform .2s ease,opacity .2s ease';
-        _swCnt.style.transform='translateY('+dir+')';_swCnt.style.opacity='0';
+        _swCnt.style.transition='transform .25s ease';
+        _swCnt.style.transform='translateY('+dir+')';
         setTimeout(function(){
-          _swCnt.style.transition='none';_swCnt.style.transform='';_swCnt.style.opacity='1';
+          _swCnt.style.transition='none';_swCnt.style.transform='';
           if(_searchOpenV){_unCloseSearchOverlay()}else{_unNavBack()}
-        },220);
+        },260);
       }else{
-        _swCnt.style.transition='transform .2s ease,opacity .2s ease';
-        _swCnt.style.transform='';_swCnt.style.opacity='1';
+        _swCnt.style.transition='transform .2s ease';
+        _swCnt.style.transform='';
         setTimeout(function(){_swCnt.style.transition=''},220);
       }
     }
@@ -6914,7 +6914,7 @@ function renderStatus(){
   var hs_count=Object.keys(D.hs||{}).length;
   var ps_count=Object.keys(D.ps||{}).length;
   var el=document.getElementById('status');
-  el.innerHTML='<span>Actors: '+total_people+'</span><span>Headshots: '+hs_count+'</span><span>Posters: '+ps_count+'</span><span>Updated: __BUILD_TIME__</span><span>v55</span>';
+  el.innerHTML='<span>Actors: '+total_people+'</span><span>Headshots: '+hs_count+'</span><span>Posters: '+ps_count+'</span><span>Updated: __BUILD_TIME__</span><span>v56</span>';
 }
 
 function render(){
