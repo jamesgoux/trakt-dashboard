@@ -1,8 +1,6 @@
-name: Refresh Trakt Data
+name: Core Build
 
 on:
-  push:
-    branches: [main]
   schedule:
     - cron: '*/20 * * * *'
   workflow_dispatch:
@@ -11,13 +9,13 @@ permissions:
   contents: write
 
 concurrency:
-  group: refresh-data
+  group: core-build
   cancel-in-progress: false
 
 jobs:
-  refresh:
+  build:
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -34,73 +32,6 @@ jobs:
         run: python scripts/refresh_trakt_token.py
         continue-on-error: true
 
-      # Fast sources first
-      - name: Refresh Letterboxd
-        run: python scripts/refresh_letterboxd.py
-        continue-on-error: true
-
-      - name: Refresh Goodreads
-        env:
-          GOODREADS_USER_ID: ${{ secrets.GOODREADS_USER_ID }}
-        run: python scripts/refresh_goodreads.py
-        continue-on-error: true
-
-      - name: Refresh Concerts
-        env:
-          SETLIST_FM_API_KEY: ${{ secrets.SETLIST_FM_API_KEY }}
-        run: python scripts/refresh_setlist.py
-        continue-on-error: true
-
-      - name: Refresh Podcasts
-        env:
-          POCKETCASTS_EMAIL: ${{ secrets.POCKETCASTS_EMAIL }}
-          POCKETCASTS_PASSWORD: ${{ secrets.POCKETCASTS_PASSWORD }}
-        run: python scripts/refresh_pocketcasts.py
-        continue-on-error: true
-
-      - name: Refresh Serializd
-        env:
-          SERIALIZD_EMAIL: ${{ secrets.SERIALIZD_EMAIL }}
-          SERIALIZD_PASSWORD: ${{ secrets.SERIALIZD_PASSWORD }}
-        run: python scripts/refresh_serializd.py
-        continue-on-error: true
-
-      # Slower sources
-      - name: Refresh Last.fm
-        env:
-          LASTFM_API_KEY: ${{ secrets.LASTFM_API_KEY }}
-          LASTFM_USER: ${{ secrets.LASTFM_USER }}
-        run: python scripts/refresh_lastfm.py
-        timeout-minutes: 5
-        continue-on-error: true
-
-      - name: Refresh Watchlist
-        env:
-          TRAKT_CLIENT_ID: ${{ secrets.TRAKT_CLIENT_ID }}
-          TRAKT_USERNAME: ${{ secrets.TRAKT_USERNAME }}
-          TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
-        run: python scripts/refresh_watchlist.py
-        continue-on-error: true
-
-      # Build dashboard from all collected data
-      - name: Refresh Up Next
-        env:
-          TRAKT_CLIENT_ID: ${{ secrets.TRAKT_CLIENT_ID }}
-          TRAKT_USERNAME: ${{ secrets.TRAKT_USERNAME }}
-          TRAKT_ACCESS_TOKEN: ${{ secrets.TRAKT_ACCESS_TOKEN }}
-          TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
-        run: python scripts/refresh_upnext.py
-        continue-on-error: true
-
-      - name: Refresh Upcoming Calendar
-        env:
-          TRAKT_CLIENT_ID: ${{ secrets.TRAKT_CLIENT_ID }}
-          TRAKT_USERNAME: ${{ secrets.TRAKT_USERNAME }}
-          TRAKT_ACCESS_TOKEN: ${{ secrets.TRAKT_ACCESS_TOKEN }}
-          TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
-        run: python scripts/refresh_upcoming.py
-        continue-on-error: true
-
       - name: Refresh Trakt data + rebuild HTML
         env:
           TRAKT_CLIENT_ID: ${{ secrets.TRAKT_CLIENT_ID }}
@@ -110,20 +41,11 @@ jobs:
           LASTFM_USER: ${{ secrets.LASTFM_USER }}
         run: python scripts/refresh_data.py
 
-      - name: Quick image backfill
-        env:
-          TRAKT_CLIENT_ID: ${{ secrets.TRAKT_CLIENT_ID }}
-          TMDB_BEARER_TOKEN: ${{ secrets.TMDB_BEARER_TOKEN }}
-          TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
-          HEADSHOT_BUDGET: "50"
-        run: python scripts/refresh_headshots.py
-        continue-on-error: true
-
       - name: Commit and push
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add -A
-          git diff --quiet --staged || git commit -m "Auto-refresh $(date -u +'%Y-%m-%d %H:%M UTC')"
+          git diff --quiet --staged || git commit -m "Core build $(date -u +'%Y-%m-%d %H:%M UTC')"
           git pull --no-rebase -X ours origin main || true
           git push
