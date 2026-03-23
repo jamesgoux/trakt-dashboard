@@ -6876,39 +6876,57 @@ function closeUpNext(){
   },{passive:true});
 })();
 // Swipe-to-dismiss search overlay
-// Sub-pages: no slide (iOS back gesture conflict), just navigate on threshold
-// Search home: slide overlay to close
+// Sub-pages: slide #un-search-results content (overlay stays put, no dashboard bleed)
+// Search home: slide whole overlay to close
 // Ignores swipes inside horizontal scroll containers (cast, streaming)
 (function(){
   var sov=document.getElementById('un-search-ov');if(!sov)return;
+  var scnt=document.getElementById('un-search-results');
   var sx=0,sy=0,dir=null,moved=false,inScroll=false,isSubPage=false;
   sov.addEventListener('touchstart',function(e){
     sx=e.touches[0].clientX;sy=e.touches[0].clientY;dir=null;moved=false;
     inScroll=!!e.target.closest('.un-cast-scroll');
     isSubPage=(_unCurrentView!=='home');
-    if(!inScroll&&!isSubPage)sov.style.transition='none';
+    if(!inScroll){
+      if(isSubPage&&scnt){scnt.style.transition='none'}
+      else{sov.style.transition='none'}
+    }
   },{passive:true});
   sov.addEventListener('touchmove',function(e){
-    if(inScroll||isSubPage)return;// Sub-pages: no visual slide
+    if(inScroll)return;
     var dx=e.touches[0].clientX-sx,dy=e.touches[0].clientY-sy;
     if(!dir&&(Math.abs(dx)>12||Math.abs(dy)>12)){
       dir=Math.abs(dx)>Math.abs(dy)?'h':'v';
     }
-    if(dir==='h'&&dx>0){moved=true;sov.style.transform='translateX('+dx+'px)'}
+    if(dir==='h'&&dx>0){
+      moved=true;
+      if(isSubPage&&scnt){scnt.style.transform='translateX('+dx+'px)'}
+      else{sov.style.transform='translateX('+dx+'px)'}
+    }
   },{passive:true});
   sov.addEventListener('touchend',function(e){
     if(inScroll){inScroll=false;dir=null;return}
     var dx=e.changedTouches[0].clientX-sx;
-    // Sub-pages: just navigate back on threshold (no animation to avoid iOS conflict)
-    if(isSubPage&&dx>60){_unSearchBack();dir=null;moved=false;return}
     if(dir==='h'&&dx>80){
-      sov.style.transition='transform .25s ease';
-      sov.style.transform='translateX(100%)';
-      setTimeout(function(){sov.style.transition='';sov.style.transform='';_unSearchBack()},260);
+      if(isSubPage&&scnt){
+        scnt.style.transition='transform .25s ease';
+        scnt.style.transform='translateX(100%)';
+        setTimeout(function(){scnt.style.transition='none';scnt.style.transform='';_unSearchBack()},260);
+      }else{
+        sov.style.transition='transform .25s ease';
+        sov.style.transform='translateX(100%)';
+        setTimeout(function(){sov.style.transition='';sov.style.transform='';_unSearchBack()},260);
+      }
     }else if(moved){
-      sov.style.transition='transform .2s ease';
-      sov.style.transform='';
-      setTimeout(function(){sov.style.transition=''},220);
+      if(isSubPage&&scnt){
+        scnt.style.transition='transform .2s ease';
+        scnt.style.transform='';
+        setTimeout(function(){scnt.style.transition=''},220);
+      }else{
+        sov.style.transition='transform .2s ease';
+        sov.style.transform='';
+        setTimeout(function(){sov.style.transition=''},220);
+      }
     }
     dir=null;moved=false;
   },{passive:true});
@@ -6919,7 +6937,7 @@ function renderStatus(){
   var hs_count=Object.keys(D.hs||{}).length;
   var ps_count=Object.keys(D.ps||{}).length;
   var el=document.getElementById('status');
-  el.innerHTML='<span>Actors: '+total_people+'</span><span>Headshots: '+hs_count+'</span><span>Posters: '+ps_count+'</span><span>Updated: __BUILD_TIME__</span><span>v58</span>';
+  el.innerHTML='<span>Actors: '+total_people+'</span><span>Headshots: '+hs_count+'</span><span>Posters: '+ps_count+'</span><span>Updated: __BUILD_TIME__</span><span>v59</span>';
 }
 
 function render(){
