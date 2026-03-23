@@ -6240,13 +6240,13 @@ function _unOpenMovie(slug,tmdbId){
     if(_mvReleaseDate)h+='<button onclick="_unMarkMovieWatchedAt(\''+slug.replace(/'/g,"\\'")+'\','+(movie.ids.trakt||0)+',\''+_mvReleaseDate+'\',this)" style="flex:1;padding:12px 6px;background:#0e7490;color:#fff;border:none;border-radius:10px;font-size:12px;cursor:pointer;font-weight:600;min-height:44px;white-space:nowrap;overflow:hidden">Release Date</button>';
     h+='<button id="un-mv-watch" onclick="_unMarkMovieWatched(\''+slug.replace(/'/g,"\\'")+'\','+(movie.ids.trakt||0)+',this)" style="flex:1;padding:12px 6px;background:var(--tv);color:#fff;border:none;border-radius:10px;font-size:12px;cursor:pointer;font-weight:600;min-height:44px;white-space:nowrap;overflow:hidden">Just Now</button>';
     h+='</div>';
+    // Watch history — right below buttons
+    h+='<div id="un-mv-history"></div>';
     if(movie.overview)h+='<div class="un-movie-overview">'+movie.overview+'</div>';
     // Where to Watch
     h+='<div id="un-mv-jw"></div>';
     // Cast
     h+='<div id="un-mv-cast"></div>';
-    // Watch history
-    h+='<div id="un-mv-history"></div>';
     if(movie.trailer){
       var ytId='';var tm=movie.trailer.match(/[?&]v=([^&]+)/);if(tm)ytId=tm[1];
       if(ytId)h+='<div style="margin-bottom:16px;text-align:center"><a href="'+movie.trailer+'" target="_blank" style="color:var(--tv);font-size:13px;text-decoration:none">▶ Watch Trailer</a></div>';
@@ -6911,7 +6911,7 @@ function renderStatus(){
   var hs_count=Object.keys(D.hs||{}).length;
   var ps_count=Object.keys(D.ps||{}).length;
   var el=document.getElementById('status');
-  el.innerHTML='<span>Actors: '+total_people+'</span><span>Headshots: '+hs_count+'</span><span>Posters: '+ps_count+'</span><span>Updated: __BUILD_TIME__</span><span>v47</span>';
+  el.innerHTML='<span>Actors: '+total_people+'</span><span>Headshots: '+hs_count+'</span><span>Posters: '+ps_count+'</span><span>Updated: __BUILD_TIME__</span><span>v48</span>';
 }
 
 function render(){
