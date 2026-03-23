@@ -5325,7 +5325,18 @@ function _unSearchTap(type,slug,tmdbId){
 // ─── Where to Watch ──────────────────────────────────────────────
 // Primary: JustWatch GraphQL (has prices). Fallback: TMDB Watch Providers.
 function _unFetchJW(type,slug,containerId,tmdbId){
-  // JustWatch blocks CORS — go straight to TMDB Watch Providers
+  // Check watchlist cache for JustWatch prices first
+  var wl=D.wlst||D.wl||{};
+  var items=type==='movie'?(wl.movies||[]):(wl.shows||[]);
+  var cached=items.find(function(m){return m.slug===slug});
+  if(cached&&cached.jw&&(cached.jw.s||cached.jw.r||cached.jw.b)){
+    var results=[];
+    (cached.jw.s||[]).forEach(function(o){results.push({name:o.n,icon:o.i,label:'Stream'})});
+    (cached.jw.r||[]).forEach(function(o){results.push({name:o.n,icon:o.i,label:'Rent'+(o.p?' ('+o.p+')':'')})});
+    (cached.jw.b||[]).forEach(function(o){results.push({name:o.n,icon:o.i,label:'Buy'+(o.p?' ('+o.p+')':'')})});
+    if(results.length){_unRenderWP(results,containerId);return}
+  }
+  // Fallback to TMDB Watch Providers (no prices but CORS-friendly)
   if(tmdbId)_unFetchWPTmdb(type,tmdbId,containerId);
 }
 function _unFetchWPTmdb(type,tmdbId,containerId){
@@ -6211,6 +6222,8 @@ function _unOpenMovie(slug,tmdbId){
     h+='<div id="un-mv-jw"></div>';
     // Cast
     h+='<div id="un-mv-cast"></div>';
+    // Watch history
+    h+='<div id="un-mv-history"></div>';
     if(movie.trailer){
       var ytId='';var tm=movie.trailer.match(/[?&]v=([^&]+)/);if(tm)ytId=tm[1];
       if(ytId)h+='<div style="margin-bottom:16px;text-align:center"><a href="'+movie.trailer+'" target="_blank" style="color:var(--tv);font-size:13px;text-decoration:none">▶ Watch Trailer</a></div>';
@@ -6221,6 +6234,8 @@ function _unOpenMovie(slug,tmdbId){
     var tid=tmdbId||(movie.ids||{}).tmdb;
     _unFetchJW('movie',slug,'un-mv-jw',tid);
     if(tid)_unFetchCast(tid,'movie',0,0,'un-mv-cast',15);
+    // Load movie watch history
+    _unFetchMovieHistory(slug,(movie.ids||{}).trakt||0);
     // Load poster from TMDB
     if(tid){
       var tk=(D.un||{}).tmdb_key||'';
@@ -6240,6 +6255,34 @@ function _unOpenMovie(slug,tmdbId){
   });
 }
 
+// Fetch and display movie watch history from Trakt
+function _unFetchMovieHistory(slug,traktId){
+  var ct=document.getElementById('un-mv-history');if(!ct)return;
+  var cid=D._tc,tok=D._tt;if(!cid||!tok)return;
+  var hdr={'Content-Type':'application/json','trakt-api-version':'2','trakt-api-key':cid,'Authorization':'Bearer '+tok};
+  ct.innerHTML='';
+  fetch('https://api.trakt.tv/users/jamesgoux/history/movies/'+traktId+'?limit=10',{headers:hdr})
+  .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json()})
+  .then(function(entries){
+    if(!entries||!entries.length)return;
+    var h='<div style="border-radius:10px;background:rgba(255,255,255,.04);padding:12px;margin:16px 0">';
+    h+='<div style="font-size:12px;font-weight:600;color:var(--t2);margin-bottom:8px">✅ Watched '+entries.length+'×</div>';
+    entries.forEach(function(e){
+      var wa=e.watched_at||'';
+      var isEpoch=wa.startsWith('1970');
+      var dateStr=isEpoch?'No date':wa.substring(0,10);
+      var timeStr=isEpoch?'':wa.substring(11,16);
+      h+='<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-top:1px solid rgba(255,255,255,.06)">';
+      h+='<div style="flex:1;font-size:13px;color:var(--tx)">'+dateStr;
+      if(timeStr&&!isEpoch)h+=' <span style="color:var(--t2);font-size:11px">'+timeStr+'</span>';
+      h+='</div></div>';
+    });
+    h+='</div>';
+    if(ct)ct.innerHTML=h;
+  })
+  .catch(function(){});
+}
+
 function _unMarkMovieWatched(slug,traktId,btn){
   if(btn){btn.disabled=true;btn.textContent='Syncing…'}
   var watchedAt=new Date().toISOString();
@@ -6251,12 +6294,13 @@ function _unMarkMovieWatched(slug,traktId,btn){
   .then(function(d){
     console.log('Movie synced:',d);
     if(btn){btn.textContent='✓ Watched!';btn.style.background='#059669'}
-    // Inject into D.c.r
-    _traktGet('/movies/'+encodeURIComponent(slug)+'?extended=full').then(function(movie){
-      D.c.r.unshift({type:'movie',title:movie.title||slug,detail:String(movie.year||''),watched_at:watchedAt.substring(0,10),yr:watchedAt.substring(0,4)});
-    }).catch(function(){
-      D.c.r.unshift({type:'movie',title:slug,detail:'',watched_at:watchedAt.substring(0,10),yr:watchedAt.substring(0,4)});
-    });
+    // Inject into D.c.r (dashboard recently watched)
+    D.c.r.unshift({type:'movie',title:slug,detail:'',watched_at:watchedAt.substring(0,10),yr:watchedAt.substring(0,4)});
+    // Inject into Up Next recently watched
+    var ud=D.un||{};if(!ud.recent)ud.recent=[];
+    ud.recent.unshift({show:slug,slug:slug,season:0,episode:0,ep_title:'movie',watched_at:watchedAt,ep_id:0,ep_aired:''});
+    // Refresh watch history on movie page
+    _unFetchMovieHistory(slug,traktId);
   })
   .catch(function(e){
     alert('Failed to sync: '+e.message);
@@ -6276,9 +6320,11 @@ function _unMarkMovieWatchedAt(slug,traktId,dateStr,btn){
   .then(function(d){
     console.log('Movie synced at release:',d);
     if(btn){btn.textContent='✓ Watched!';btn.style.background='#059669'}
-    // Disable all watch buttons
     var mvWatch=document.getElementById('un-mv-watch');if(mvWatch){mvWatch.textContent='✓ Watched!';mvWatch.style.background='#059669';mvWatch.disabled=true}
     D.c.r.unshift({type:'movie',title:slug,detail:'',watched_at:dateStr,yr:dateStr.substring(0,4)});
+    var ud=D.un||{};if(!ud.recent)ud.recent=[];
+    ud.recent.unshift({show:slug,slug:slug,season:0,episode:0,ep_title:'movie',watched_at:watchedAt,ep_id:0,ep_aired:''});
+    _unFetchMovieHistory(slug,traktId);
   })
   .catch(function(e){alert('Failed: '+e.message);if(btn){btn.disabled=false;btn.textContent='Release Date'}});
 }
@@ -6796,20 +6842,33 @@ function closeUpNext(){
     }
   },{passive:true});
 })();
-// Swipe-to-dismiss search overlay
+// Swipe-to-dismiss search overlay (with slide animation)
 (function(){
   var sov=document.getElementById('un-search-ov');if(!sov)return;
-  var sx=0,sy=0,dir=null;
-  sov.addEventListener('touchstart',function(e){sx=e.touches[0].clientX;sy=e.touches[0].clientY;dir=null},{passive:true});
+  var sx=0,sy=0,dir=null,moved=false;
+  sov.addEventListener('touchstart',function(e){
+    sx=e.touches[0].clientX;sy=e.touches[0].clientY;dir=null;moved=false;
+    sov.style.transition='none';
+  },{passive:true});
   sov.addEventListener('touchmove',function(e){
-    if(dir)return;
     var dx=e.touches[0].clientX-sx,dy=e.touches[0].clientY-sy;
-    if(Math.abs(dx)>15||Math.abs(dy)>15)dir=Math.abs(dx)>Math.abs(dy)?'h':'v';
+    if(!dir&&(Math.abs(dx)>12||Math.abs(dy)>12)){
+      dir=Math.abs(dx)>Math.abs(dy)?'h':'v';
+    }
+    if(dir==='h'&&dx>0){moved=true;sov.style.transform='translateX('+dx+'px)';sov.style.opacity=Math.max(0,1-dx/400)}
   },{passive:true});
   sov.addEventListener('touchend',function(e){
     var dx=e.changedTouches[0].clientX-sx;
-    if(dir==='h'&&dx>80)_unCloseSearchOverlay();
-    dir=null;
+    if(dir==='h'&&dx>80){
+      sov.style.transition='transform .2s ease,opacity .2s ease';
+      sov.style.transform='translateX(100%)';sov.style.opacity='0';
+      setTimeout(function(){sov.style.transition='';sov.style.transform='';sov.style.opacity='';_unCloseSearchOverlay()},220);
+    }else if(moved){
+      sov.style.transition='transform .2s ease,opacity .2s ease';
+      sov.style.transform='';sov.style.opacity='';
+      setTimeout(function(){sov.style.transition=''},220);
+    }
+    dir=null;moved=false;
   },{passive:true});
 })();
 
@@ -6818,7 +6877,7 @@ function renderStatus(){
   var hs_count=Object.keys(D.hs||{}).length;
   var ps_count=Object.keys(D.ps||{}).length;
   var el=document.getElementById('status');
-  el.innerHTML='<span>Actors: '+total_people+'</span><span>Headshots: '+hs_count+'</span><span>Posters: '+ps_count+'</span><span>Updated: __BUILD_TIME__</span><span>v39</span>';
+  el.innerHTML='<span>Actors: '+total_people+'</span><span>Headshots: '+hs_count+'</span><span>Posters: '+ps_count+'</span><span>Updated: __BUILD_TIME__</span><span>v41</span>';
 }
 
 function render(){
