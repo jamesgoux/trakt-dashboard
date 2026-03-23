@@ -189,6 +189,32 @@ tr:hover td{background:rgba(255,255,255,.02)}
 .un-empty{text-align:center;padding:40px;color:var(--t2);font-size:14px}
 /* Back nav button */
 .un-back{background:none;border:1px solid rgba(255,255,255,.1);color:var(--t2);border-radius:8px;padding:8px 14px;font-size:14px;cursor:pointer;min-height:44px;min-width:44px;display:flex;align-items:center;justify-content:center}
+/* Watchlist styles */
+.un-wl-toggle{display:flex;gap:6px;padding:10px 16px;max-width:600px;margin:0 auto}
+.un-wl-toggle button{padding:6px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s}
+.un-wl-sort{display:flex;gap:6px;padding:0 16px 8px;max-width:600px;margin:0 auto}
+.un-wl-sort button{padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer;border:1px solid rgba(255,255,255,.08);background:none;color:var(--t2);transition:all .15s}
+.un-wl-sort button.active{border-color:var(--tv);color:var(--tv);background:rgba(20,184,166,.08)}
+.un-wl-list{padding:8px 16px;max-width:600px;margin:0 auto}
+.un-wl-card{display:flex;gap:12px;padding:12px;background:var(--sf);border-radius:12px;border:1px solid rgba(255,255,255,.06);margin-bottom:10px;cursor:pointer;transition:background .15s;position:relative}
+.un-wl-card:active{background:#1e1e3a}
+.un-wl-poster{width:72px;height:108px;border-radius:8px;object-fit:cover;background:#222;flex-shrink:0}
+.un-wl-poster-ph{width:72px;height:108px;border-radius:8px;background:linear-gradient(135deg,#1a1a2e,#0f3460);display:flex;align-items:center;justify-content:center;font-size:22px;color:var(--t2);flex-shrink:0}
+.un-wl-info{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.un-wl-title{font-weight:700;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.un-wl-meta{font-size:12px;color:var(--t2);display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.un-wl-runtime{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:4px;background:rgba(255,255,255,.06);font-size:11px;font-weight:600;color:var(--tx);white-space:nowrap}
+.un-wl-genres{font-size:11px;color:var(--t2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.un-wl-jw{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:2px}
+.un-wl-jw-icons{display:flex;gap:3px;align-items:center}
+.un-wl-jw-icon{width:22px;height:22px;border-radius:4px}
+.un-wl-jw-price{font-size:11px;font-weight:600;padding:2px 6px;border-radius:4px;white-space:nowrap}
+.un-wl-jw-rent{background:rgba(251,191,36,.12);color:#fbbf24}
+.un-wl-jw-buy{background:rgba(59,130,246,.12);color:#60a5fa}
+.un-wl-jw-free{background:rgba(20,184,166,.12);color:#14b8a6;font-size:11px;font-weight:600;padding:2px 6px;border-radius:4px}
+.un-wl-arrow{color:var(--t2);font-size:18px;flex-shrink:0;align-self:center}
+.un-wl-source{position:absolute;top:8px;right:8px;font-size:9px;padding:1px 5px;border-radius:3px;background:rgba(255,255,255,.06);color:var(--t2);text-transform:uppercase;letter-spacing:.5px}
+.un-wl-count{font-size:12px;color:var(--t2);text-align:center;padding:4px 16px}
 @media(max-width:768px){.un-grid{grid-template-columns:1fr;padding:10px}}
 @media(max-width:768px){
 .g2,.g3{grid-template-columns:1fr}
@@ -484,6 +510,7 @@ Drop GameTrack games.csv or <span style="color:#6366f1;text-decoration:underline
 <div id="un-hdr-normal" style="display:flex;align-items:center">
 <button onclick="_unHomeBtn()" class="un-back" id="un-back-btn" style="flex-shrink:0">←</button>
 <h2 id="un-header-title" style="font-size:18px;font-weight:700;margin:0;flex:1;text-align:center"><span class="i">📺</span> Up Next</h2>
+<button onclick="_unOpenWatchlist()" class="un-back" id="un-wl-btn" style="flex-shrink:0;font-size:16px">📋</button>
 <button onclick="_unOpenSearchOverlay()" class="un-back" id="un-search-btn" style="flex-shrink:0;font-size:16px">🔍</button>
 </div>
 </div>
@@ -5397,21 +5424,31 @@ function _unSetView(view,data){
 function _unUpdateHeader(){
   var title=document.getElementById('un-header-title');
   var searchBtn=document.getElementById('un-search-btn');
+  var wlBtn=document.getElementById('un-wl-btn');
   if(_unCurrentView==='home'){
     title.innerHTML='<span class="i">📺</span> Up Next';
     if(searchBtn)searchBtn.style.display='';
+    if(wlBtn)wlBtn.style.display='';
+  }else if(_unCurrentView==='watchlist'){
+    title.innerHTML='<span class="i">📋</span> Watchlist';
+    if(searchBtn)searchBtn.style.display='none';
+    if(wlBtn)wlBtn.style.display='none';
   }else if(_unCurrentView==='search'){
     title.innerHTML='<span class="i">🔍</span> Search';
     if(searchBtn)searchBtn.style.display='none';
+    if(wlBtn)wlBtn.style.display='none';
   }else if(_unCurrentView==='show'){
     title.innerHTML='<span class="i">📺</span> Show';
     if(searchBtn)searchBtn.style.display='none';
+    if(wlBtn)wlBtn.style.display='none';
   }else if(_unCurrentView==='season'){
     title.innerHTML='<span class="i">📺</span> Season';
     if(searchBtn)searchBtn.style.display='none';
+    if(wlBtn)wlBtn.style.display='none';
   }else if(_unCurrentView==='movie'){
     title.innerHTML='<span class="i">🎞️</span> Movie';
     if(searchBtn)searchBtn.style.display='none';
+    if(wlBtn)wlBtn.style.display='none';
   }
   // Ensure normal header is shown (not search bar) for non-search views
   if(_unCurrentView!=='search'){
@@ -5440,6 +5477,12 @@ function _unNavBack(){
       var q=input?input.value.trim():'';
       if(q&&_searchCache[q])_unShowSearchResults(q,_searchCache[q]);
       else _unGoHome();
+    }else if(prev.view==='watchlist'){
+      // Return to watchlist view — close search overlay if open
+      var _sov=document.getElementById('un-search-ov');if(_sov)_sov.style.display='none';
+      _unCurrentView='watchlist';
+      _unUpdateHeader();
+      _wlRender();
     }else if(prev.view==='show'){
       // Re-render show page from cache
       var cached2=prev.data&&_showDataCache[prev.data.slug];
@@ -5480,6 +5523,168 @@ function _unGoHome(restoreScroll){
   _unScrollPos=restoreScroll||0;
   _unReturning=!!restoreScroll;
   _renderUpNext();
+}
+
+// ─── Watchlist ───────────────────────────────────────────────────
+var _wlFilter='movie'; // 'movie' or 'show'
+var _wlSort='added'; // 'added', 'title', 'runtime', 'rating'
+
+function _unOpenWatchlist(){
+  _unSetView('watchlist',{});
+  var ov=document.getElementById('un-overlay');ov.scrollTop=0;
+  _wlRender();
+}
+
+function _fmtRuntime(m){
+  if(!m)return '';
+  if(m>=60)return Math.floor(m/60)+'h '+(m%60?m%60+'m':'');
+  return m+'m';
+}
+
+function _wlRender(){
+  var el=document.getElementById('un-content');
+  var wl=D.wlst||{};
+  var items=_wlFilter==='movie'?(wl.movies||[]):(wl.shows||[]);
+
+  // Sort
+  if(_wlSort==='title')items=items.slice().sort(function(a,b){return (a.title||'').localeCompare(b.title||'')});
+  else if(_wlSort==='runtime')items=items.slice().sort(function(a,b){return (b.runtime||0)-(a.runtime||0)});
+  else if(_wlSort==='rating')items=items.slice().sort(function(a,b){return (b.rating||0)-(a.rating||0)});
+  // 'added' = default order from pipeline (already sorted by added_at desc)
+
+  var mc=(wl.movies||[]).length, sc2=(wl.shows||[]).length;
+
+  // Toggle buttons
+  var h='<div class="un-wl-toggle">';
+  h+='<button onclick="_wlSetFilter(\'movie\')" style="border:1px solid '+(_wlFilter==='movie'?'#fb923c':'rgba(255,255,255,.1)')+';background:'+(_wlFilter==='movie'?'rgba(251,146,60,.15)':'none')+';color:'+(_wlFilter==='movie'?'#fb923c':'var(--t2)')+'">🎞️ Movies'+(mc?' ('+mc+')':'')+'</button>';
+  h+='<button onclick="_wlSetFilter(\'show\')" style="border:1px solid '+(_wlFilter==='show'?'var(--tv)':'rgba(255,255,255,.1)')+';background:'+(_wlFilter==='show'?'rgba(20,184,166,.15)':'none')+';color:'+(_wlFilter==='show'?'var(--tv)':'var(--t2)')+'">📺 Shows'+(sc2?' ('+sc2+')':'')+'</button>';
+  h+='</div>';
+
+  // Sort buttons
+  h+='<div class="un-wl-sort">';
+  ['added','title','runtime','rating'].forEach(function(s){
+    var lbl=s==='added'?'Recent':s==='title'?'A-Z':s==='runtime'?'Runtime':'Rating';
+    h+='<button class="'+(_wlSort===s?'active':'')+'" onclick="_wlSetSort(\''+s+'\')">'+lbl+'</button>';
+  });
+  h+='</div>';
+
+  if(!items.length){
+    h+='<div class="un-empty">No '+(_wlFilter==='movie'?'movies':'shows')+' on your watchlist</div>';
+    el.innerHTML=h;return;
+  }
+
+  h+='<div class="un-wl-count">'+items.length+' '+(_wlFilter==='movie'?'movies':'shows')+'</div>';
+  h+='<div class="un-wl-list">';
+
+  items.forEach(function(item,i){
+    var isMovie=_wlFilter==='movie';
+    var slug=item.slug||'';
+    var tmdbId=item.tmdb_id||0;
+    var poster=item.poster||'';
+    var rt=item.runtime||0;
+    var jw=item.jw||{};
+
+    h+='<div class="un-wl-card" onclick="_wlTap(\''+(_wlFilter)+'\',\''+slug.replace(/'/g,"\\'")+'\','+tmdbId+')">';
+
+    // Poster
+    if(poster){
+      h+='<img class="un-wl-poster" src="'+poster+'" loading="lazy" onerror="this.className=\'un-wl-poster-ph\';this.innerHTML=\''+(isMovie?'🎞️':'📺')+'\';this.removeAttribute(\'src\')">';
+    }else{
+      h+='<div class="un-wl-poster-ph" id="wlp-'+i+'">'+(isMovie?'🎞️':'📺')+'</div>';
+    }
+
+    h+='<div class="un-wl-info">';
+
+    // Title
+    h+='<div class="un-wl-title">'+item.title+'</div>';
+
+    // Meta line: year, rating, runtime
+    h+='<div class="un-wl-meta">';
+    if(item.year)h+='<span>'+item.year+'</span>';
+    if(item.rating)h+='<span>⭐ '+item.rating+'</span>';
+    if(rt)h+='<span class="un-wl-runtime">🕐 '+_fmtRuntime(rt)+'</span>';
+    if(!isMovie&&item.aired_episodes)h+='<span>'+item.aired_episodes+' eps</span>';
+    if(!isMovie&&item.status){
+      var stc=item.status==='returning series'?'var(--tv)':item.status==='ended'?'var(--t2)':'#fbbf24';
+      h+='<span style="color:'+stc+'">'+item.status.replace('returning series','Returning').replace('ended','Ended').replace('canceled','Canceled').replace('in production','In Production')+'</span>';
+    }
+    h+='</div>';
+
+    // Genres
+    if(item.genres&&item.genres.length){
+      h+='<div class="un-wl-genres">'+(item.genres.slice(0,3).join(', '))+'</div>';
+    }
+
+    // JustWatch row: streaming icons + prices
+    if(jw.s||jw.r||jw.b){
+      h+='<div class="un-wl-jw">';
+
+      // Streaming service icons
+      if(jw.s&&jw.s.length){
+        h+='<div class="un-wl-jw-icons">';
+        jw.s.slice(0,4).forEach(function(svc){
+          if(svc.i)h+='<img class="un-wl-jw-icon" src="'+svc.i+'" alt="'+svc.n+'" title="'+svc.n+'" loading="lazy" onerror="this.style.display=\'none\'">';
+        });
+        h+='</div>';
+        h+='<span class="un-wl-jw-free">Streaming</span>';
+      }
+
+      // Cheapest rent
+      if(jw.r&&jw.r.length&&jw.r[0].p){
+        h+='<span class="un-wl-jw-price un-wl-jw-rent">Rent '+jw.r[0].p+'</span>';
+      }
+
+      // Cheapest buy
+      if(jw.b&&jw.b.length&&jw.b[0].p){
+        h+='<span class="un-wl-jw-price un-wl-jw-buy">Buy '+jw.b[0].p+'</span>';
+      }
+
+      h+='</div>';
+    }
+
+    h+='</div>'; // .un-wl-info
+
+    // Source badge
+    if(item.source==='both')h+='<div class="un-wl-source">LB+T</div>';
+    else if(item.source==='letterboxd')h+='<div class="un-wl-source">LB</div>';
+
+    h+='<div class="un-wl-arrow">›</div>';
+    h+='</div>'; // .un-wl-card
+
+    // Async poster load for items without pre-fetched posters
+    if(!poster&&tmdbId){
+      var tk=(D.un||{}).tmdb_key||'';
+      if(tk){
+        (function(idx,type,tid,key){
+          fetch('https://api.themoviedb.org/3/'+(type==='movie'?'movie':'tv')+'/'+tid+'?api_key='+key)
+          .then(function(r){return r.json()}).then(function(d){
+            if(d.poster_path){
+              var ph=document.getElementById('wlp-'+idx);
+              if(ph){
+                var img=document.createElement('img');
+                img.className='un-wl-poster';
+                img.src='https://image.tmdb.org/t/p/w185'+d.poster_path;
+                img.loading='lazy';
+                img.onerror=function(){this.style.display='none'};
+                ph.parentNode.replaceChild(img,ph);
+              }
+            }
+          }).catch(function(){});
+        })(i,_wlFilter,tmdbId,tk);
+      }
+    }
+  });
+
+  h+='</div>'; // .un-wl-list
+  el.innerHTML=h;
+}
+
+function _wlSetFilter(f){_wlFilter=f;_wlRender()}
+function _wlSetSort(s){_wlSort=s;_wlRender()}
+
+function _wlTap(type,slug,tmdbId){
+  if(type==='movie')_unOpenMovie(slug,tmdbId);
+  else _unOpenShow(slug,tmdbId);
 }
 
 // ─── Movie Detail ────────────────────────────────────────────────
