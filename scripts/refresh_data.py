@@ -2465,6 +2465,16 @@ if os.path.exists("data/up_next.json"):
         else:
             data["un"] = un_raw
 
+# Upcoming Calendar — load pre-computed episode calendar
+if os.path.exists("data/upcoming.json"):
+    with open("data/upcoming.json") as f:
+        cal_raw = json.load(f)
+    if cal_raw:
+        data["cal"] = cal_raw
+        total_days = len(cal_raw.get("days", []))
+        total_eps = sum(len(s.get("eps", [])) for d in cal_raw.get("days", []) for s in d.get("shows", []))
+        print(f"  Upcoming: {total_days} days, {total_eps} episodes")
+
 # Sports — load from repo-backed JSON
 if os.path.exists("data/sports.json"):
     with open("data/sports.json") as f:

@@ -215,6 +215,35 @@ tr:hover td{background:rgba(255,255,255,.02)}
 .un-wl-arrow{color:var(--t2);font-size:18px;flex-shrink:0;align-self:center}
 .un-wl-source{position:absolute;top:8px;right:8px;font-size:9px;padding:1px 5px;border-radius:3px;background:rgba(255,255,255,.06);color:var(--t2);text-transform:uppercase;letter-spacing:.5px}
 .un-wl-count{font-size:12px;color:var(--t2);text-align:center;padding:4px 16px}
+.un-cal-wrap{padding:0 16px 80px;max-width:600px;margin:0 auto}
+.un-cal-date{position:sticky;top:56px;z-index:2;padding:10px 0 6px;margin-top:4px;font-size:13px;font-weight:700;color:var(--tx);display:flex;align-items:center;gap:8px;background:var(--bg)}
+.un-cal-date-today{color:#14b8a6}
+.un-cal-date .un-cal-dow{font-weight:400;color:var(--t2);font-size:11px;text-transform:uppercase;letter-spacing:.5px}
+.un-cal-date .un-cal-count{margin-left:auto;font-size:11px;font-weight:500;color:var(--t2)}
+.un-cal-show{display:flex;gap:12px;padding:10px 12px;background:var(--sf);border-radius:12px;border:1px solid rgba(255,255,255,.06);margin-bottom:8px;cursor:pointer;transition:background .15s;position:relative}
+.un-cal-show:active{background:#1e1e3a}
+.un-cal-poster{width:56px;height:84px;border-radius:8px;object-fit:cover;background:#222;flex-shrink:0}
+.un-cal-poster-ph{width:56px;height:84px;border-radius:8px;background:linear-gradient(135deg,#1a1a2e,#0f3460);display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--t2);flex-shrink:0}
+.un-cal-info{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;justify-content:center}
+.un-cal-title{font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.un-cal-ep{font-size:12px;color:var(--t2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.un-cal-ep b{color:var(--tx);font-weight:600}
+.un-cal-time{font-size:11px;color:var(--t2);margin-top:1px}
+.un-cal-bundle-hdr{display:flex;gap:12px;padding:10px 12px;background:var(--sf);border-radius:12px 12px 0 0;border:1px solid rgba(255,255,255,.06);border-bottom:none;margin-bottom:0;cursor:pointer;transition:background .15s;position:relative}
+.un-cal-bundle-hdr:active{background:#1e1e3a}
+.un-cal-bundle-hdr.collapsed{border-radius:12px;border-bottom:1px solid rgba(255,255,255,.06);margin-bottom:8px}
+.un-cal-badge{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;border-radius:10px;background:rgba(20,184,166,.2);color:#14b8a6;font-size:11px;font-weight:700;padding:0 6px;margin-left:6px}
+.un-cal-expand{color:var(--t2);font-size:14px;flex-shrink:0;align-self:center;transition:transform .2s}
+.un-cal-expand.open{transform:rotate(180deg)}
+.un-cal-bundle-eps{background:var(--sf);border:1px solid rgba(255,255,255,.06);border-top:1px solid rgba(255,255,255,.04);border-radius:0 0 12px 12px;margin-bottom:8px;overflow:hidden}
+.un-cal-ep-row{display:flex;align-items:center;gap:10px;padding:8px 12px 8px 80px;border-top:1px solid rgba(255,255,255,.04);cursor:pointer;transition:background .15s}
+.un-cal-ep-row:first-child{border-top:none}
+.un-cal-ep-row:active{background:#1e1e3a}
+.un-cal-ep-num{font-size:12px;font-weight:600;color:var(--tv);white-space:nowrap;min-width:50px}
+.un-cal-ep-title{font-size:12px;color:var(--tx);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.un-cal-ep-time{font-size:11px;color:var(--t2);flex-shrink:0}
+.un-cal-empty{text-align:center;padding:60px 20px;color:var(--t2);font-size:14px}
+.un-cal-loading{text-align:center;padding:20px;color:var(--t2);font-size:13px}
 @media(max-width:768px){.un-grid{grid-template-columns:1fr;padding:10px}}
 @media(max-width:768px){
 .g2,.g3{grid-template-columns:1fr}
@@ -511,6 +540,7 @@ Drop GameTrack games.csv or <span style="color:#6366f1;text-decoration:underline
 <button onclick="_unHomeBtn()" class="un-back" id="un-back-btn" style="flex-shrink:0">←</button>
 <h2 id="un-header-title" style="font-size:18px;font-weight:700;margin:0;flex:1;text-align:center"><span class="i">📺</span> Up Next</h2>
 <button onclick="_unOpenWatchlist()" class="un-back" id="un-wl-btn" style="flex-shrink:0;font-size:16px">📋</button>
+<button onclick="_unOpenCalendar()" class="un-back" id="un-cal-btn" style="flex-shrink:0;font-size:16px">📅</button>
 <button onclick="_unOpenSearchOverlay()" class="un-back" id="un-search-btn" style="flex-shrink:0;font-size:16px">🔍</button>
 </div>
 </div>
@@ -5034,6 +5064,8 @@ function _unHomeBtn(){
   if(_unCurrentView==='home'){
     closeUpNext();
   }else{
+    // Close search overlay if open (from show/movie sub-pages)
+    var _sov3=document.getElementById('un-search-ov');if(_sov3)_sov3.style.display='none';
     _unGoHome();
   }
 }
@@ -5111,7 +5143,7 @@ function _unCloseSearchOverlay(){
   // If we navigated to a show/movie/season, reset to home
   if(_unCurrentView!=='home'){_unCurrentView='home';_unNavStack=[];_unUpdateHeader()}
 }
-function _unShowSearchOverlay(){/* no-op, search overlay is always visible when open */}
+function _unShowSearchOverlay(){var sov=document.getElementById('un-search-ov');if(sov)sov.style.display=''}
 function _unHideSearchOverlay(){/* no-op */}
 
 // Search input setup
@@ -5425,30 +5457,42 @@ function _unUpdateHeader(){
   var title=document.getElementById('un-header-title');
   var searchBtn=document.getElementById('un-search-btn');
   var wlBtn=document.getElementById('un-wl-btn');
+  var calBtn=document.getElementById('un-cal-btn');
   if(_unCurrentView==='home'){
     title.innerHTML='<span class="i">📺</span> Up Next';
     if(searchBtn)searchBtn.style.display='';
     if(wlBtn)wlBtn.style.display='';
+    if(calBtn)calBtn.style.display='';
+  }else if(_unCurrentView==='calendar'){
+    title.innerHTML='<span class="i">📅</span> Upcoming';
+    if(searchBtn)searchBtn.style.display='none';
+    if(wlBtn)wlBtn.style.display='none';
+    if(calBtn)calBtn.style.display='none';
   }else if(_unCurrentView==='watchlist'){
     title.innerHTML='<span class="i">📋</span> Watchlist';
     if(searchBtn)searchBtn.style.display='none';
     if(wlBtn)wlBtn.style.display='none';
+    if(calBtn)calBtn.style.display='none';
   }else if(_unCurrentView==='search'){
     title.innerHTML='<span class="i">🔍</span> Search';
     if(searchBtn)searchBtn.style.display='none';
     if(wlBtn)wlBtn.style.display='none';
+    if(calBtn)calBtn.style.display='none';
   }else if(_unCurrentView==='show'){
     title.innerHTML='<span class="i">📺</span> Show';
     if(searchBtn)searchBtn.style.display='none';
     if(wlBtn)wlBtn.style.display='none';
+    if(calBtn)calBtn.style.display='none';
   }else if(_unCurrentView==='season'){
     title.innerHTML='<span class="i">📺</span> Season';
     if(searchBtn)searchBtn.style.display='none';
     if(wlBtn)wlBtn.style.display='none';
+    if(calBtn)calBtn.style.display='none';
   }else if(_unCurrentView==='movie'){
     title.innerHTML='<span class="i">🎞️</span> Movie';
     if(searchBtn)searchBtn.style.display='none';
     if(wlBtn)wlBtn.style.display='none';
+    if(calBtn)calBtn.style.display='none';
   }
   // Ensure normal header is shown (not search bar) for non-search views
   if(_unCurrentView!=='search'){
@@ -5483,6 +5527,12 @@ function _unNavBack(){
       _unCurrentView='watchlist';
       _unUpdateHeader();
       _wlRender();
+    }else if(prev.view==='calendar'){
+      // Return to calendar view — close search overlay if open
+      var _sov2=document.getElementById('un-search-ov');if(_sov2)_sov2.style.display='none';
+      _unCurrentView='calendar';
+      _unUpdateHeader();
+      _calRender();
     }else if(prev.view==='show'){
       // Re-render show page from cache
       var cached2=prev.data&&_showDataCache[prev.data.slug];
@@ -5685,6 +5735,178 @@ function _wlSetSort(s){_wlSort=s;_wlRender()}
 function _wlTap(type,slug,tmdbId){
   if(type==='movie')_unOpenMovie(slug,tmdbId);
   else _unOpenShow(slug,tmdbId);
+}
+
+// ─── Upcoming Calendar ───────────────────────────────────────────
+var _calRenderedDays=0;
+var _calBatchSize=30;
+var _calScrollBound=false;
+
+function _unOpenCalendar(){
+  _unSetView('calendar',{});
+  var ov=document.getElementById('un-overlay');ov.scrollTop=0;
+  _calRenderedDays=0;
+  _calRender();
+}
+
+function _calRender(){
+  var el=document.getElementById('un-content');
+  var cal=D.cal||{};
+  var days=cal.days||[];
+
+  if(!days.length){
+    el.innerHTML='<div class="un-cal-empty">📅 No upcoming episodes found.<br><span style="font-size:12px;margin-top:8px;display:block">Episodes from shows you watch will appear here when they have upcoming air dates.</span></div>';
+    return;
+  }
+
+  // Filter to only future/today dates
+  var today=new Date();today.setHours(0,0,0,0);
+  var todayStr=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
+  var futureDays=days.filter(function(d){return d.date>=todayStr});
+
+  if(!futureDays.length){
+    el.innerHTML='<div class="un-cal-empty">📅 No upcoming episodes in the next '+cal.days_ahead+' days.<br><span style="font-size:12px;margin-top:8px;display:block">All caught up! Check back later.</span></div>';
+    return;
+  }
+
+  _calRenderedDays=0;
+  el.innerHTML='<div class="un-cal-wrap" id="un-cal-list"></div>';
+  _calAppendBatch(futureDays);
+
+  // Bind infinite scroll
+  if(!_calScrollBound){
+    _calScrollBound=true;
+    document.getElementById('un-overlay').addEventListener('scroll',function(){
+      if(_unCurrentView!=='calendar')return;
+      var ov=document.getElementById('un-overlay');
+      if(ov.scrollTop+ov.clientHeight>=ov.scrollHeight-200){
+        var cal2=D.cal||{};var days2=cal2.days||[];
+        var todayStr2=new Date().toISOString().slice(0,10);
+        var fd=days2.filter(function(d){return d.date>=todayStr2});
+        if(_calRenderedDays<fd.length)_calAppendBatch(fd);
+      }
+    });
+  }
+}
+
+function _calAppendBatch(futureDays){
+  var el=document.getElementById('un-cal-list');
+  if(!el)return;
+  var start=_calRenderedDays;
+  var end=Math.min(start+_calBatchSize,futureDays.length);
+  if(start>=end)return;
+
+  var today=new Date();today.setHours(0,0,0,0);
+  var todayStr=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
+  var tmrw=new Date(today);tmrw.setDate(tmrw.getDate()+1);
+  var tmrwStr=tmrw.getFullYear()+'-'+String(tmrw.getMonth()+1).padStart(2,'0')+'-'+String(tmrw.getDate()).padStart(2,'0');
+
+  var DOW=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  var MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+  var h='';
+  for(var i=start;i<end;i++){
+    var day=futureDays[i];
+    var dt=new Date(day.date+'T12:00:00');
+    var isToday=day.date===todayStr;
+    var isTmrw=day.date===tmrwStr;
+
+    var dateLabel=isToday?'Today':isTmrw?'Tomorrow':DOW[dt.getDay()]+', '+MON[dt.getMonth()]+' '+dt.getDate();
+    var totalEps=0;
+    day.shows.forEach(function(s){totalEps+=s.eps.length});
+
+    h+='<div class="un-cal-date'+(isToday?' un-cal-date-today':'')+'">';
+    h+='<span>'+dateLabel+'</span>';
+    if(!isToday&&!isTmrw)h+='<span class="un-cal-dow">'+day.date.slice(5)+'</span>';
+    h+='<span class="un-cal-count">'+totalEps+' ep'+(totalEps!==1?'s':'')+'</span>';
+    h+='</div>';
+
+    day.shows.forEach(function(show){
+      var poster=show.poster;
+      var posterHtml=poster?'<img class="un-cal-poster" src="'+poster+'" alt="" loading="lazy">':'<div class="un-cal-poster-ph">📺</div>';
+
+      if(show.eps.length===1){
+        // Single episode — simple card
+        var ep=show.eps[0];
+        var timeStr=_calFmtTime(ep.aired);
+        h+='<div class="un-cal-show" onclick="_calTapShow(\''+show.slug.replace(/'/g,"\\'")+'\','+show.tmdb_id+')">';
+        h+=posterHtml;
+        h+='<div class="un-cal-info">';
+        h+='<div class="un-cal-title">'+_esc(show.title)+'</div>';
+        h+='<div class="un-cal-ep"><b>S'+String(ep.s).padStart(2,'0')+'E'+String(ep.e).padStart(2,'0')+'</b>';
+        if(ep.t)h+=' · '+_esc(ep.t);
+        h+='</div>';
+        if(timeStr)h+='<div class="un-cal-time">🕐 '+timeStr+'</div>';
+        if(ep.rt)h+='<div class="un-cal-time">'+ep.rt+' min</div>';
+        h+='</div></div>';
+      }else{
+        // Multiple episodes — bundled expandable
+        var bid='cal-b-'+day.date+'-'+show.slug;
+        h+='<div class="un-cal-bundle-hdr collapsed" id="'+bid+'-hdr" onclick="_calToggleBundle(\''+bid+'\')">';
+        h+=posterHtml;
+        h+='<div class="un-cal-info">';
+        h+='<div class="un-cal-title">'+_esc(show.title)+'<span class="un-cal-badge">'+show.eps.length+'</span></div>';
+        h+='<div class="un-cal-ep"><b>S'+String(show.eps[0].s).padStart(2,'0')+'E'+String(show.eps[0].e).padStart(2,'0')+'</b>';
+        h+=' – <b>E'+String(show.eps[show.eps.length-1].e).padStart(2,'0')+'</b></div>';
+        var totalRt=0;show.eps.forEach(function(e2){totalRt+=(e2.rt||0)});
+        if(totalRt)h+='<div class="un-cal-time">'+totalRt+' min total</div>';
+        h+='</div>';
+        h+='<span class="un-cal-expand" id="'+bid+'-arrow">▼</span>';
+        h+='</div>';
+        h+='<div class="un-cal-bundle-eps" id="'+bid+'-eps" style="display:none">';
+        show.eps.forEach(function(ep2){
+          var timeStr2=_calFmtTime(ep2.aired);
+          h+='<div class="un-cal-ep-row" onclick="event.stopPropagation();_calTapShow(\''+show.slug.replace(/'/g,"\\'")+'\','+show.tmdb_id+')">';
+          h+='<span class="un-cal-ep-num">S'+String(ep2.s).padStart(2,'0')+'E'+String(ep2.e).padStart(2,'0')+'</span>';
+          h+='<span class="un-cal-ep-title">'+(ep2.t?_esc(ep2.t):'')+'</span>';
+          if(timeStr2)h+='<span class="un-cal-ep-time">'+timeStr2+'</span>';
+          h+='</div>';
+        });
+        h+='</div>';
+      }
+    });
+  }
+
+  el.insertAdjacentHTML('beforeend',h);
+  _calRenderedDays=end;
+
+  // Show load-more indicator if more days
+  var existing=document.getElementById('un-cal-more');
+  if(existing)existing.remove();
+  if(end<futureDays.length){
+    el.insertAdjacentHTML('beforeend','<div id="un-cal-more" class="un-cal-loading">Scroll for more…</div>');
+  }
+}
+
+function _calToggleBundle(bid){
+  var hdr=document.getElementById(bid+'-hdr');
+  var eps=document.getElementById(bid+'-eps');
+  var arrow=document.getElementById(bid+'-arrow');
+  if(!hdr||!eps)return;
+  var open=eps.style.display!=='none';
+  eps.style.display=open?'none':'';
+  hdr.classList.toggle('collapsed',open);
+  if(arrow)arrow.classList.toggle('open',!open);
+}
+
+function _calFmtTime(isoStr){
+  if(!isoStr)return '';
+  try{
+    var d=new Date(isoStr);
+    var h=d.getHours(),m=d.getMinutes();
+    var ampm=h>=12?'PM':'AM';
+    h=h%12;if(h===0)h=12;
+    return h+':'+(m<10?'0':'')+m+' '+ampm;
+  }catch(e){return ''}
+}
+
+function _calTapShow(slug,tmdbId){
+  _unOpenShow(slug,tmdbId);
+}
+
+function _esc(s){
+  if(!s)return '';
+  var d=document.createElement('div');d.textContent=s;return d.innerHTML;
 }
 
 // ─── Movie Detail ────────────────────────────────────────────────
