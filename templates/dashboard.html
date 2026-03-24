@@ -721,12 +721,12 @@ function _irisUpdateUI(){
   var btn=document.getElementById('iris-user-btn');
   if(!btn)return;
   if(_irisUser){
-    // Logged in: purple accent dot on person icon
+    // Logged in: green dot on person icon
     btn.innerHTML='👤';
     btn.className='hbtn';
     btn.style.cssText='position:relative';
     var dot=btn.querySelector('.iris-auth-dot');
-    if(!dot){dot=document.createElement('span');dot.className='iris-auth-dot';dot.style.cssText='position:absolute;top:6px;right:6px;width:8px;height:8px;background:var(--ac);border-radius:50%;border:2px solid var(--bg)';btn.appendChild(dot)}
+    if(!dot){dot=document.createElement('span');dot.className='iris-auth-dot';dot.style.cssText='position:absolute;top:6px;right:6px;width:8px;height:8px;background:#4ade80;border-radius:50%;border:2px solid var(--bg)';btn.appendChild(dot)}
   }else{
     // Logged out: plain icon, no dot
     btn.innerHTML='👤';
