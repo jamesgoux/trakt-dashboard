@@ -1644,7 +1644,7 @@ function movieCharts(animate){
     items=da.slice(0,mob?20:24);
   }
   document.querySelectorAll('.mv-mode').forEach(function(b){b.classList.toggle('vb-on',b.dataset.v===mode)});
-  function mvSlug(n){return n.toLowerCase().replace(/[^a-z0-9]/g,'-')}
+  function mvSlug(n){return n.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')}
   function mvImg(n,yr){var sl=mvSlug(n);for(var k in PS){if(k===sl||k===sl+'-'+yr)return PS[k]}for(var k in PS){if(sl.length>5&&k.indexOf(sl)>=0)return PS[k]}return null}
   function mvKey(n){return mvSlug(n)}
   var grid=document.getElementById('mdc');
@@ -4299,7 +4299,7 @@ function _unFmtMin(m){if(!m)return'';var h=Math.floor(m/60);var mn=m%60;return h
 function _unData(){var d=D.un||{};return{shows:d.shows||d||[],recent:d.recent||[]}}
 
 var _unScrollPos=0;var _unReturning=false;var _unEverOpened=false;
-var _lastExternalSync=0;var _unPreSynced=false;
+var _lastExternalSync=0;var _unPreSynced=false;var _unPreRendered=false;
 // Sync-first architecture: openUpNext syncs with Trakt BEFORE rendering (single paint).
 // Internal callers (markWatched, removeRecent, etc.) pass skipSync=true since they just modified data.
 function openUpNext(skipSync){
@@ -4319,10 +4319,23 @@ function openUpNext(skipSync){
     var fg=document.getElementById('un-detail-fg');if(fg){fg.remove()}
   }
   // If sync needed (user-initiated open, not internal re-render):
-  // 1) Fetch recent history (catches external watches)
-  // 2) Live-check progress for top shows (catches stale next_episode)
-  // Both run in parallel, then render once.
-  // Render with data (pre-synced if background preload completed)
+  // If content was pre-rendered during background idle, just reveal overlay (zero work)
+  if(_unPreRendered&&!skipSync){
+    _unPreRendered=false;_unPreSynced=false;
+    var ov=document.getElementById('un-overlay');
+    ov.style.display='';
+    _unEverOpened=true;
+    ov.style.visibility='hidden';ov.style.transition='none';ov.style.transform='translateX(100%)';
+    requestAnimationFrame(function(){
+      var anchor=document.getElementById('un-default-scroll');
+      if(anchor){var hdrH=ov.firstElementChild?ov.firstElementChild.offsetHeight:70;var anchorTop=anchor.getBoundingClientRect().top-ov.getBoundingClientRect().top+ov.scrollTop;ov.scrollTop=Math.max(0,anchorTop-hdrH)}
+      else ov.scrollTop=0;
+      ov.style.visibility='';ov.style.transition='transform .3s ease';
+      requestAnimationFrame(function(){ov.style.transform=''});
+    });
+    _lockBody();return;
+  }
+  // Render with data (build + show overlay)
   _renderUpNext();
   // If background pre-sync already ran, skip the re-render entirely (clean single paint)
   if(_unPreSynced){_unPreSynced=false;return}
@@ -4484,7 +4497,7 @@ function _setupRWVirtualScroll(ov){
     };
   }
 }
-function _renderUpNext(){
+function _renderUpNext(prerender){
   var ud=_unData();
   var recent=ud.recent||[];
   var recentSet={};recent.forEach(function(r){recentSet[r.slug+'|'+r.season+'|'+r.episode]=true});
@@ -4495,7 +4508,7 @@ function _renderUpNext(){
   });
   var el=document.getElementById('un-content');
   var oldFg=document.getElementById('un-detail-fg');if(oldFg){oldFg.remove();document.getElementById('un-overlay').style.overflowY='auto'}
-  if(!shows.length&&!recent.length){el.innerHTML='<div style="text-align:center;padding:60px;color:var(--t2)"><div style="font-size:40px;margin-bottom:12px">📺</div><div style="font-size:16px;margin-bottom:8px">No Up Next data yet</div><div style="font-size:12px;max-width:400px;margin:0 auto">Trigger a refresh from the <a href="https://github.com/jamesgoux/iris-stats/actions" style="color:var(--sp)">Actions tab</a>.</div></div>';document.getElementById('un-overlay').style.display='';_lockBody();return}
+  if(!shows.length&&!recent.length){el.innerHTML='<div style="text-align:center;padding:60px;color:var(--t2)"><div style="font-size:40px;margin-bottom:12px">📺</div><div style="font-size:16px;margin-bottom:8px">No Up Next data yet</div><div style="font-size:12px;max-width:400px;margin:0 auto">Trigger a refresh from the <a href="https://github.com/jamesgoux/iris-stats/actions" style="color:var(--sp)">Actions tab</a>.</div></div>';if(prerender)return;document.getElementById('un-overlay').style.display='';_lockBody();return}
 
   var newItems=shows.filter(function(s){return s.is_new});
   var rest=shows.filter(function(s){return !s.is_new});
@@ -4560,6 +4573,8 @@ function _renderUpNext(){
   el.innerHTML=h;
   var ov=document.getElementById('un-overlay');
   _setupRWVirtualScroll(ov);
+  // Pre-render mode: content built into hidden overlay, stop here
+  if(prerender)return;
   // If overlay is already visible (internal re-render from markWatched, removeEpDone, etc.)
   // just swap content and restore scroll — no animation
   var alreadyOpen=ov.style.display!=='none'&&ov.style.visibility!=='hidden';
@@ -7725,7 +7740,7 @@ function _bgPreload(){
       // Scrobbles
       if(D.lfm&&D.lfm.weekly)(D.lfm.weekly);
       _bgPreloaded=true;
-      // Pre-sync Up Next data so first open has no visible re-render
+      // Pre-sync Up Next data + pre-render HTML so first open is instant
       if(D._tc&&D._tt){
         _lastExternalSync=Date.now();
         var hdr={'Content-Type':'application/json','trakt-api-version':'2','trakt-api-key':D._tc,'Authorization':'Bearer '+D._tt};
@@ -7735,7 +7750,13 @@ function _bgPreload(){
         Promise.all([histP,progP]).then(function(res){
           _applyExternalWatches(res[0]);
           _unPreSynced=true;
-        }).catch(function(){});
+          _renderUpNext(true);_unPreRendered=true;
+        }).catch(function(){
+          _renderUpNext(true);_unPreRendered=true;
+        });
+      } else {
+        // No Trakt auth — still pre-render with cached data
+        _renderUpNext(true);_unPreRendered=true;
       }
     }catch(e){}
   },{timeout:3000});
