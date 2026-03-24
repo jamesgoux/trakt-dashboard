@@ -590,7 +590,7 @@ Drop GameTrack games.csv or <span style="color:#6366f1;text-decoration:underline
 </div>
 </div>
 <!-- Auth Modal -->
-<div id="iris-auth-modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);z-index:9998;display:none;align-items:center;justify-content:center">
+<div id="iris-auth-modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);z-index:9998;align-items:center;justify-content:center">
 <div style="background:var(--sf);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:28px;max-width:380px;width:90%;position:relative">
 <button onclick="_irisCloseAuth()" style="position:absolute;top:12px;right:14px;background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;padding:4px">✕</button>
 <div style="text-align:center;margin-bottom:20px">
@@ -787,7 +787,7 @@ function _irisOpenAuth(){
   _irisRenderAuthMode();
   var m=document.getElementById('iris-auth-modal');
   m.style.display='flex';
-  document.getElementById('iris-auth-email').focus();
+  setTimeout(function(){document.getElementById('iris-auth-email').focus()},150);
 }
 function _irisCloseAuth(){
   document.getElementById('iris-auth-modal').style.display='none';
