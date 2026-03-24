@@ -596,10 +596,12 @@ Drop GameTrack games.csv or <span style="color:#6366f1;text-decoration:underline
 <div id="iris-auth-title" style="font-size:20px;font-weight:800;color:var(--ac)">Log in to Iris</div>
 </div>
 <div id="iris-auth-error" style="display:none;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.3);border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:12px;color:#ef4444"></div>
-<input id="iris-auth-email" type="email" placeholder="Email" autocomplete="email" style="width:100%;padding:12px 14px;background:var(--bg);border:1px solid rgba(255,255,255,.15);border-radius:10px;color:var(--tx);font-size:14px;margin-bottom:10px;box-sizing:border-box">
-<input id="iris-auth-pass" type="password" placeholder="Password" autocomplete="current-password" style="width:100%;padding:12px 14px;background:var(--bg);border:1px solid rgba(255,255,255,.15);border-radius:10px;color:var(--tx);font-size:14px;margin-bottom:10px;box-sizing:border-box" onkeydown="if(event.key==='Enter')_irisAuthSubmit()">
-<div id="iris-auth-username-row" style="display:none"><input id="iris-auth-username" type="text" placeholder="Username (public)" autocomplete="username" style="width:100%;padding:12px 14px;background:var(--bg);border:1px solid rgba(255,255,255,.15);border-radius:10px;color:var(--tx);font-size:14px;margin-bottom:10px;box-sizing:border-box"></div>
-<button id="iris-auth-submit" onclick="_irisAuthSubmit()" style="width:100%;padding:14px;background:var(--ac);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:14px">Log In</button>
+<form id="iris-auth-form" onsubmit="event.preventDefault();_irisAuthSubmit()" method="post" action="#">
+<input id="iris-auth-email" name="email" type="email" placeholder="Email" autocomplete="email" style="width:100%;padding:12px 14px;background:var(--bg);border:1px solid rgba(255,255,255,.15);border-radius:10px;color:var(--tx);font-size:14px;margin-bottom:10px;box-sizing:border-box">
+<input id="iris-auth-pass" name="password" type="password" placeholder="Password" autocomplete="current-password" style="width:100%;padding:12px 14px;background:var(--bg);border:1px solid rgba(255,255,255,.15);border-radius:10px;color:var(--tx);font-size:14px;margin-bottom:10px;box-sizing:border-box">
+<div id="iris-auth-username-row" style="display:none"><input id="iris-auth-username" name="username" type="text" placeholder="Username (public)" autocomplete="username" style="width:100%;padding:12px 14px;background:var(--bg);border:1px solid rgba(255,255,255,.15);border-radius:10px;color:var(--tx);font-size:14px;margin-bottom:10px;box-sizing:border-box"></div>
+<button id="iris-auth-submit" type="submit" style="width:100%;padding:14px;background:var(--ac);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:14px">Log In</button>
+</form>
 <div style="text-align:center;font-size:13px;color:var(--t2)"><span id="iris-auth-toggle-text">Don't have an account?</span> <a href="#" id="iris-auth-toggle" onclick="event.preventDefault();_irisToggleAuthMode()" style="color:var(--ac);text-decoration:none;font-weight:600">Sign Up</a></div>
 </div>
 </div>
