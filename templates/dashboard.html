@@ -1644,7 +1644,7 @@ function movieCharts(animate){
     items=da.slice(0,mob?20:24);
   }
   document.querySelectorAll('.mv-mode').forEach(function(b){b.classList.toggle('vb-on',b.dataset.v===mode)});
-  function mvSlug(n){return n.toLowerCase().replace(/[^a-z0-9]/g,'-')}
+  function mvSlug(n){return n.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')}
   function mvImg(n,yr){var sl=mvSlug(n);for(var k in PS){if(k===sl||k===sl+'-'+yr)return PS[k]}for(var k in PS){if(sl.length>5&&k.indexOf(sl)>=0)return PS[k]}return null}
   function mvKey(n){return mvSlug(n)}
   var grid=document.getElementById('mdc');
