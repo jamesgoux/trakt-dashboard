@@ -41,7 +41,9 @@ body{background:var(--bg);color:var(--tx);font-family:-apple-system,BlinkMacSyst
 .s-g{border-left-color:#666}.s-n{border-left-color:var(--tv)}.s-u{border-left-color:#666}
 .s-t{border-left-color:#666}.s-e{border-left-color:#666}.s-c{border-left-color:#666}.s-con{border-left-color:var(--cn)}.s-th{border-left-color:var(--th)}.s-sp{border-left-color:var(--sp)}
 .s-r{border-left-color:#666}.s-gr{border-left-color:var(--bk)}.s-lfm{border-left-color:var(--mu)}
-.stb{max-height:300px;overflow-y:auto;overflow-x:hidden}.stb table{width:100%}.stb th:nth-child(n+3),.stb td:nth-child(n+3){text-align:right;width:38px;padding-left:4px}.stb::-webkit-scrollbar{width:5px}.stb::-webkit-scrollbar-thumb{background:#333;border-radius:3px}
+.stb{max-height:300px;overflow-y:auto;overflow-x:hidden}.stb table{width:100%}.stb th:nth-child(n+3),.stb td:nth-child(n+3){text-align:right;width:38px;padding-left:4px}
+.cd ::-webkit-scrollbar{width:5px}.cd ::-webkit-scrollbar-thumb{background:#333;border-radius:3px}.cd ::-webkit-scrollbar-track{background:transparent}
+.cd *{scrollbar-width:thin;scrollbar-color:#333 transparent}
 table{width:100%;border-collapse:collapse;font-size:12px}
 th{text-align:left;padding:7px 8px;color:var(--t2);font-weight:500;border-bottom:1px solid rgba(255,255,255,.1);font-size:10px;text-transform:uppercase;letter-spacing:.5px;position:sticky;top:0;background:var(--sf);z-index:1}
 td{padding:6px 8px;border-bottom:1px solid rgba(255,255,255,.04)}
@@ -423,7 +425,7 @@ body{overflow-x:hidden}
 <div id="sec-gr" class="cd s-gr"><h3><span class="i">📚</span>Books Read <span class="vtog" style="float:right"><button class="vb vb-on gr-tog" data-v="books">By Books</button><button class="vb gr-tog" data-v="pages">By Pages</button></span></h3><div id="grc" style="height:280px"></div></div>
 <div class="cd s-gr"><h3><span class="i">⭐</span>Book Ratings</h3><div id="gr-dist" style="height:280px"></div></div>
 <div class="cd s-gr"><h3><span class="i">✍️</span>Most Read Authors</h3><div id="gr-auth" style="height:280px"></div></div>
-<div class="cd s-gr"><h3><span class="i">📖</span>Time to Read</h3><div id="gr-ttr-wrap" style="max-height:280px;overflow-y:auto"><div id="gr-ttr" style="height:280px"></div></div></div>
+<div class="cd s-gr"><h3><span class="i">📖</span>Time to Read</h3><div id="gr-ttr-wrap" style="max-height:280px;overflow-y:auto;overflow-x:hidden"><div id="gr-ttr" style="height:280px"></div></div></div>
 <div class="cd s-gr"><h3><span class="i">📏</span>By Pages <span class="vtog" style="float:right"><button class="vb vb-on gr-pg" data-v="long" onclick="window._grPg='long';renderGoodreads()">Longest</button><button class="vb gr-pg" data-v="short" onclick="window._grPg='short';renderGoodreads()">Shortest</button></span></h3><div id="gr-pages"></div></div>
 <div class="cd s-gr"><h3><span class="i">⭐</span>By Rating <span class="vtog" style="float:right"><button class="vb vb-on gr-rt" data-v="high" onclick="window._grRt='high';renderGoodreads()">Highest</button><button class="vb gr-rt" data-v="low" onclick="window._grRt='low';renderGoodreads()">Lowest</button></span></h3><div id="gr-rating"></div></div>
 <div class="cd s-gr"><h3><span class="i">🏷️</span>Genres (Community)</h3><div id="gr-genres" style="height:280px"></div></div>
@@ -438,8 +440,8 @@ body{overflow-x:hidden}
 </div>
 <!-- BOARD GAMES -->
 <div class="g2 med-s" data-med="all boardgame" id="bg-wrap" style="display:none">
-<div id="sec-bg" class="cd fw"><h3><span class="i">🎲</span>Top Games</h3><div id="bg-chart" style="height:400px;overflow-y:auto"></div></div>
-<div class="cd"><h3><span class="i">👥</span>Players</h3><div id="bg-players" style="height:400px;overflow-y:auto"></div></div>
+<div id="sec-bg" class="cd fw"><h3><span class="i">🎲</span>Top Games</h3><div id="bg-chart" style="height:400px;overflow-y:auto;overflow-x:hidden"></div></div>
+<div class="cd"><h3><span class="i">👥</span>Players</h3><div id="bg-players" style="height:400px;overflow-y:auto;overflow-x:hidden"></div></div>
 <div class="cd"><h3><span class="i">📅</span>Day of Week</h3><div id="bg-dow" style="height:280px"></div></div>
 <div class="cd"><h3><span class="i">👤</span>Player Count</h3><div id="bg-pcount" style="height:280px"></div></div>
 <div class="cd"><h3><span class="i">📍</span>Locations</h3><div id="bg-locations" style="height:280px"></div></div>
