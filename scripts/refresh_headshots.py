@@ -14,6 +14,18 @@ Daily run (default): 2000 items. 20-min run: 300 items.
 
 import os, json, time, re, requests
 
+# Time-based budget: exit cleanly before workflow timeout
+MAX_RUNTIME_SECONDS = int(os.environ.get("HEADSHOT_MAX_MINUTES", "20")) * 60
+_start_time = time.time()
+
+def time_remaining():
+    """Seconds remaining before we should stop."""
+    return MAX_RUNTIME_SECONDS - (time.time() - _start_time)
+
+def should_stop():
+    """True if we should save and exit to avoid timeout."""
+    return time.time() - _start_time >= MAX_RUNTIME_SECONDS
+
 CLIENT_ID = os.environ.get("TRAKT_CLIENT_ID")
 BASE_URL = "https://api.trakt.tv"
 TRAKT_HEADERS = {"Content-Type": "application/json", "trakt-api-version": "2", "trakt-api-key": CLIENT_ID}
@@ -129,6 +141,9 @@ def fetch_posters(budget):
 
     count = 0; used = 0
     for i, (slug, _) in enumerate(need):
+        if should_stop():
+            print(f"  ⏱️ Time limit reached after {i} items")
+            break
         for kind_tmdb, kind_trakt in [("tv", "shows"), ("movie", "movies")]:
             try:
                 r1 = requests.get(f"{BASE_URL}/{kind_trakt}/{slug}", headers=TRAKT_HEADERS, timeout=5)
@@ -184,6 +199,9 @@ def fetch_logos(budget):
 
     count = 0; used = 0
     for i, (name, _) in enumerate(need):
+        if should_stop():
+            print(f"  ⏱️ Time limit reached after {i} items")
+            break
         found_slug = None
         for slug, names in studios_raw.items():
             ns = names if isinstance(names, list) else [names]
@@ -269,6 +287,11 @@ def fetch_headshots_for(label, priority, source_files, budget):
 
     count = 0; used = 0; new_skips = 0
     for i, (slug, info) in enumerate(need):
+        if should_stop():
+            print(f"  ⏱️ Time limit reached after {i} items")
+            save_json("data/headshots.json", hs)
+            save_json("data/headshots_skip.json", skip)
+            break
         try:
             r1 = requests.get(f"{BASE_URL}/people/{slug}?extended=full", headers=TRAKT_HEADERS, timeout=5)
             used += 1
@@ -314,7 +337,7 @@ def fetch_headshots_for(label, priority, source_files, budget):
 # MAIN — allocate budget across categories
 # ============================================================
 print("=== Iris Image Backfill ===")
-print(f"Budget: {TOTAL_BUDGET} items, Mode: {'API' if USE_TMDB_API else 'scrape'}\n")
+print(f"Budget: {TOTAL_BUDGET} items, Time limit: {MAX_RUNTIME_SECONDS//60}min, Mode: {'API' if USE_TMDB_API else 'scrape'}\n")
 
 remaining = TOTAL_BUDGET
 
@@ -323,26 +346,33 @@ used = fetch_posters(min(remaining * 20 // 100, remaining))
 remaining -= used
 
 # 2. Logos (10%)
-used = fetch_logos(min(remaining * 10 // 100, remaining))
-remaining -= used
+if not should_stop():
+    used = fetch_logos(min(remaining * 10 // 100, remaining))
+    remaining -= used
 
 # 3. Actors (35% of remaining)
-actor_budget = remaining * 35 // 100
-used = fetch_headshots_for("Actors", 3, ["data/people.json"], actor_budget)
-remaining -= used
+if not should_stop():
+    actor_budget = remaining * 35 // 100
+    used = fetch_headshots_for("Actors", 3, ["data/people.json"], actor_budget)
+    remaining -= used
 
 # 4. Directors (30% of remaining)
-dir_budget = remaining * 45 // 100
-used = fetch_headshots_for("Directors", 4, ["data/directors.json"], dir_budget)
-remaining -= used
+if not should_stop():
+    dir_budget = remaining * 45 // 100
+    used = fetch_headshots_for("Directors", 4, ["data/directors.json"], dir_budget)
+    remaining -= used
 
 # 5. Writers (rest)
-used = fetch_headshots_for("Writers", 5, ["data/writers.json"], remaining)
+if not should_stop():
+    used = fetch_headshots_for("Writers", 5, ["data/writers.json"], remaining)
 
 # Summary
+elapsed = time.time() - _start_time
 hs = load_json("data/headshots.json")
 ps = load_json("data/posters.json")
 lg = load_json("data/logos.json")
-print(f"\n=== Summary ===")
+print(f"\n=== Summary ({elapsed:.0f}s / {MAX_RUNTIME_SECONDS}s) ===")
 print(f"Headshots: {len(hs)}, Posters: {len(ps)}, Logos: {len(lg)}")
+if elapsed >= MAX_RUNTIME_SECONDS:
+    print("⏱️ Stopped at time limit — progress saved, will continue next run")
 print("Done!")
