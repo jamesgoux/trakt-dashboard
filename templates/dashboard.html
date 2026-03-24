@@ -834,6 +834,57 @@ function _irisAuthToast(msg){
   setTimeout(function(){t.style.opacity='0';setTimeout(function(){t.remove()},300)},2500);
 }
 
+// ===== IRIS STORAGE + LOCALSTORAGE HELPERS =====
+
+// Save JSON to Supabase Storage (authenticated)
+function _irisSaveToStorage(filename,data){
+  if(!_irisSB||!_irisUser)return Promise.reject(new Error('Not authenticated'));
+  var path=_irisUser.id+'/'+filename;
+  var body=typeof data==='string'?data:JSON.stringify(data,null,2);
+  return fetch(_IRIS_SB_URL+'/storage/v1/object/user-data/'+path,{
+    method:'POST',
+    headers:{'apikey':_IRIS_SB_ANON,'Authorization':'Bearer '+_irisSB.auth.session?.access_token||'','Content-Type':'application/json','x-upsert':'true'},
+    body:body
+  }).then(function(r){
+    if(!r.ok)throw new Error('Storage upload failed: '+r.status);
+    return r.json();
+  });
+}
+
+// Upload file blob to Supabase Storage (authenticated)
+function _irisUploadFile(filename,blob,contentType){
+  if(!_irisSB||!_irisUser)return Promise.reject(new Error('Not authenticated'));
+  var path=_irisUser.id+'/imports/'+filename;
+  return _irisSB.auth.getSession().then(function(s){
+    return fetch(_IRIS_SB_URL+'/storage/v1/object/user-data/'+path,{
+      method:'POST',
+      headers:{'apikey':_IRIS_SB_ANON,'Authorization':'Bearer '+s.data.session.access_token,'Content-Type':contentType||'application/octet-stream','x-upsert':'true'},
+      body:blob
+    });
+  }).then(function(r){
+    if(!r.ok)throw new Error('Upload failed: '+r.status);
+    return r.json();
+  });
+}
+
+// Namespaced localStorage: iris_{uid}_{key} when logged in, iris_{key} when anonymous
+function _irisLSKey(key){
+  return _irisUser?'iris_'+_irisUser.id.substring(0,8)+'_'+key:'iris_'+key;
+}
+function _irisLSGet(key,fallback){
+  var v=localStorage.getItem(_irisLSKey(key));
+  if(v!==null)return v;
+  // Fallback: try unprefixed key (migration from pre-multi-user)
+  var old=localStorage.getItem('iris_'+key);
+  return old!==null?old:(fallback||null);
+}
+function _irisLSSet(key,value){
+  localStorage.setItem(_irisLSKey(key),value);
+}
+function _irisLSRemove(key){
+  localStorage.removeItem(_irisLSKey(key));
+}
+
 // Request data refresh
 function _irisRequestRefresh(){
   if(!_irisSB||!_irisUser){_irisAuthToast('Log in to refresh');return}
@@ -3099,9 +3150,9 @@ var _spSchedule=D.spSchedule||{events:{},teams:{}};
 var _spTrackedTeams=D.spTeams||[];
 // Sports: merge repo data (D.sp) + localStorage pending additions
 var _spRepo=D.sp||[];
-var _spPending=JSON.parse(localStorage.getItem('iris_sports_pending')||'[]');
+var _spPending=JSON.parse(_irisLSGet('sports_pending')||'[]');
 // Migrate old localStorage format (iris_sports) to pending if repo is empty
-(function(){var old=JSON.parse(localStorage.getItem('iris_sports')||'[]');if(old.length&&!_spRepo.length){_spPending=old;localStorage.setItem('iris_sports_pending',JSON.stringify(_spPending));localStorage.removeItem('iris_sports')}})();
+(function(){var old=JSON.parse(_irisLSGet('sports')||'[]');if(old.length&&!_spRepo.length){_spPending=old;_irisLSSet('sports_pending',JSON.stringify(_spPending));_irisLSRemove('sports')}})();
 var SP=(function(){var ids={};var merged=[];_spRepo.forEach(function(e){ids[e.id]=true;merged.push(e)});_spPending.forEach(function(e){if(!ids[e.id]){ids[e.id]=true;merged.push(e)}});return merged})();
 window._spSelected=null;
 
@@ -3112,51 +3163,25 @@ function _lgColor(league){if(!league)return'#0ea5e9';for(var k in _lgColors){if(
 // Auto-commit sports.json to GitHub repo
 function _spCommitToRepo(){
   if(!_irisRequireAuth('save sports events')){return}
-  var pat=localStorage.getItem('iris_gh_pat');
-  if(!pat){
-    // Show clean one-time PAT prompt
-    var modal=document.createElement('div');
-    modal.id='pat-modal';
-    modal.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.8);z-index:9999;display:flex;align-items:center;justify-content:center';
-    modal.innerHTML='<div style="background:var(--sf);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:24px;max-width:400px;width:90%"><h3 style="margin:0 0 8px;font-size:16px;color:var(--tx)">Connect to GitHub</h3><p style="font-size:12px;color:var(--t2);margin:0 0 16px;line-height:1.5">Enter a GitHub Personal Access Token to sync sports events across devices. Create one at <a href="https://github.com/settings/tokens?type=beta" target="_blank" style="color:var(--sp)">github.com/settings/tokens</a> with <b>Contents: Read & Write</b> for iris-stats.</p><input id="sp-pat-input" type="password" placeholder="github_pat_..." style="width:100%;padding:12px;background:var(--bg);border:1px solid rgba(255,255,255,.15);border-radius:8px;color:var(--tx);font-size:13px;font-family:monospace;margin-bottom:12px"><div style="display:flex;gap:8px"><button onclick="var v=document.getElementById(\'sp-pat-input\').value.trim();if(v){localStorage.setItem(\'iris_gh_pat\',v);document.getElementById(\'pat-modal\').remove();_spCommitToRepo()}" style="flex:1;padding:12px;background:var(--sp);color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer;font-weight:600">Save</button><button onclick="document.getElementById(\'pat-modal\').remove()" style="padding:12px 16px;background:none;border:1px solid rgba(255,255,255,.1);color:var(--t2);border-radius:8px;font-size:14px;cursor:pointer">Skip</button></div></div>';
-    document.body.appendChild(modal);
-    return;
-  }
-  // Merge repo + pending into full list
+  // Save to Supabase Storage (replaces GitHub API write)
   var all=SP.slice();
-  var bodyStr=JSON.stringify(all,null,2);
-  // Base64 encode safely (handles Unicode)
-  var b64=btoa(Array.from(new TextEncoder().encode(bodyStr),function(b){return String.fromCharCode(b)}).join(''));
-  // Get current file SHA first
-  fetch('https://api.github.com/repos/jamesgoux/iris-stats/contents/data/sports.json',{headers:{'Authorization':'Bearer '+pat,'Accept':'application/vnd.github.v3+json'}})
-    .then(function(r){return r.json()})
-    .then(function(d){
-      var sha=d.sha||'';
-      return fetch('https://api.github.com/repos/jamesgoux/iris-stats/contents/data/sports.json',{
-        method:'PUT',headers:{'Authorization':'Bearer '+pat,'Accept':'application/vnd.github.v3+json','Content-Type':'application/json'},
-        body:JSON.stringify({message:'Update sports events ('+all.length+' games)',content:b64,sha:sha})
-      });
+  _irisSaveToStorage('sports.json',all)
+    .then(function(){
+      _spPending=[];_irisLSSet('sports_pending','[]');
+      _spToast('✓ Saved to cloud','#4ade80');
     })
-    .then(function(r){
-      if(r.ok){_spPending=[];localStorage.setItem('iris_sports_pending','[]');_spToast('✓ Saved to GitHub','#4ade80')}
-      else{r.json().then(function(d){console.warn('Sports sync failed:',r.status,d);if(r.status===401){localStorage.removeItem('iris_gh_pat');_spToast('Token invalid — tap + Add to re-enter','#ef4444')}else{_spToast('Sync failed ('+r.status+')','#ef4444')}})}
-    })
-    .catch(function(e){console.warn('Sports sync error:',e);_spToast('Sync error — check console','#ef4444')});
+    .catch(function(e){
+      console.warn('Sports sync error:',e);
+      _spToast('Sync error: '+e.message,'#ef4444');
+    });
 }
 // CSV auto-commit to repo (reuses sports PAT)
 function _csvCommitToRepo(path,content,msg,cb){
-  var pat=localStorage.getItem('iris_gh_pat');
-  if(!pat){if(cb)cb(false);return}
-  var b64=btoa(Array.from(new TextEncoder().encode(content),function(b){return String.fromCharCode(b)}).join(''));
-  fetch('https://api.github.com/repos/jamesgoux/iris-stats/contents/'+path,{headers:{'Authorization':'Bearer '+pat,'Accept':'application/vnd.github.v3+json'}})
-    .then(function(r){return r.json()})
-    .then(function(d){
-      return fetch('https://api.github.com/repos/jamesgoux/iris-stats/contents/'+path,{
-        method:'PUT',headers:{'Authorization':'Bearer '+pat,'Accept':'application/vnd.github.v3+json','Content-Type':'application/json'},
-        body:JSON.stringify({message:msg,content:b64,sha:d.sha||''})
-      });
-    })
-    .then(function(r){if(cb)cb(r.ok)})
+  // Upload to Supabase Storage (replaces GitHub API write)
+  if(!_irisUser){if(cb)cb(false);return}
+  var filename=path.split('/').pop();
+  _irisSaveToStorage('imports/'+filename,content)
+    .then(function(){if(cb)cb(true)})
     .catch(function(){if(cb)cb(false)});
 }
 
@@ -3535,19 +3560,9 @@ function _spAutoTrackTeam(teamName){
   leagueId=leagueMap[league]||'';
   var newTeam={name:teamName,league:league,league_id:leagueId,team_id:teamId,sport:sport};
   _spTrackedTeams.push(newTeam);
-  // Commit updated teams list to repo
-  var pat=localStorage.getItem('iris_gh_pat');if(!pat)return;
-  var content=JSON.stringify(_spTrackedTeams,null,2);
-  var b64=btoa(Array.from(new TextEncoder().encode(content),function(b){return String.fromCharCode(b)}).join(''));
-  fetch('https://api.github.com/repos/jamesgoux/iris-stats/contents/data/sports_teams.json',{headers:{'Authorization':'Bearer '+pat,'Accept':'application/vnd.github.v3+json'}})
-    .then(function(r){return r.json()})
-    .then(function(d){
-      return fetch('https://api.github.com/repos/jamesgoux/iris-stats/contents/data/sports_teams.json',{
-        method:'PUT',headers:{'Authorization':'Bearer '+pat,'Accept':'application/vnd.github.v3+json','Content-Type':'application/json'},
-        body:JSON.stringify({message:'Track new team: '+teamName,content:b64,sha:d.sha||''})
-      });
-    })
-    .then(function(r){if(r.ok)_spToast('Tracking '+teamName+' for schedule cache','#4ade80')})
+  // Save updated teams list to Supabase Storage
+  _irisSaveToStorage('sports_teams.json',_spTrackedTeams)
+    .then(function(){_spToast('Tracking '+teamName+' for schedule cache','#4ade80')})
     .catch(function(){});
 }
 
@@ -3561,7 +3576,7 @@ function quickSaveSport(btn,watchType){
   var newEv={id:ev.idEvent,date:_spLocalDate(ev),sport:ev.strSport,league:ev.strLeague,home_team:ev.strHomeTeam,away_team:ev.strAwayTeam,home_score:ev.intHomeScore,away_score:ev.intAwayScore,venue:ev.strVenue||'',home_badge:ev.strHomeTeamBadge||'',away_badge:ev.strAwayTeamBadge||'',watch_type:watchType,my_team:window._spTeamName||''};
   SP.push(newEv);
   _spPending.push(newEv);
-  localStorage.setItem('iris_sports_pending',JSON.stringify(_spPending));
+  _irisLSSet('sports_pending',JSON.stringify(_spPending));
   _spAutoTrackTeam(window._spTeamName);
   _spCommitToRepo();
   // Flash success then refresh
@@ -3578,7 +3593,7 @@ function saveSportsEvent(){
   var newEv={id:ev.idEvent,date:_spLocalDate(ev),sport:ev.strSport,league:ev.strLeague,home_team:ev.strHomeTeam,away_team:ev.strAwayTeam,home_score:ev.intHomeScore,away_score:ev.intAwayScore,venue:ev.strVenue||'',home_badge:ev.strHomeTeamBadge||'',away_badge:ev.strAwayTeamBadge||'',watch_type:wt.dataset.v,my_team:window._spTeamName||''};
   SP.push(newEv);
   _spPending.push(newEv);
-  localStorage.setItem('iris_sports_pending',JSON.stringify(_spPending));
+  _irisLSSet('sports_pending',JSON.stringify(_spPending));
   _spAutoTrackTeam(window._spTeamName);
   _spCommitToRepo();
   var confirmEl=document.getElementById('sp-ov-confirm');
@@ -3968,7 +3983,7 @@ function renderSports(){
 function deleteSportsEvent(id){
   SP=SP.filter(function(e){return e.id!==id});
   _spPending=_spPending.filter(function(e){return e.id!==id});
-  localStorage.setItem('iris_sports_pending',JSON.stringify(_spPending));
+  _irisLSSet('sports_pending',JSON.stringify(_spPending));
   _spCommitToRepo();
   renderSports();
 }
@@ -4172,8 +4187,8 @@ function _llRenderBatch(){
 }
 
 // Up Next page
-var _unWatched=JSON.parse(localStorage.getItem('iris_un_watched')||'{}');
-var _unRemoved=JSON.parse(localStorage.getItem('iris_un_removed')||'{}');
+var _unWatched=JSON.parse(_irisLSGet('un_watched')||'{}');
+var _unRemoved=JSON.parse(_irisLSGet('un_removed')||'{}');
 var _undoStack={};// Saved episode metadata before advancing, keyed by slug|season|episode
 function _saveUndoState(show,season,episode){
   var k=show.slug+'|'+season+'|'+episode;
@@ -4257,19 +4272,19 @@ Object.keys(_unWatched).forEach(function(key){
   // Prune: pipeline has it in recent (caught up), or slug not in Up Next data at all (ghost)
   if(rSet[key]||!knownSlugs[slug]){delete _unWatched[key];pruned=true}
 });
-if(pruned){localStorage.setItem('iris_un_watched',JSON.stringify(_unWatched));console.log('Pruned '+Object.keys(_unWatched).length+' _unWatched entries')}
+if(pruned){_irisLSSet('un_watched',JSON.stringify(_unWatched));console.log('Pruned '+Object.keys(_unWatched).length+' _unWatched entries')}
 // Build-change prune: also clear old entries older than build time
-var lastBuild=localStorage.getItem('iris_un_build')||'';
+var lastBuild=_irisLSGet('un_build')||'';
 if(build!==lastBuild&&build!=='__BUILD_'+'TIME__'){
-  localStorage.setItem('iris_un_build',build);
+  _irisLSSet('un_build',build);
   var buildMs=new Date(build.replace(' UTC','')+' UTC').getTime()||0;
   Object.keys(_unWatched).forEach(function(key){
     var wMs=new Date(_unWatched[key]).getTime()||0;
     if(wMs&&wMs<buildMs){delete _unWatched[key];pruned=true}
   });
-  if(pruned)localStorage.setItem('iris_un_watched',JSON.stringify(_unWatched));
+  if(pruned)_irisLSSet('un_watched',JSON.stringify(_unWatched));
   // Prune only stale removals (>24hr) — keep recent removals to prevent ghost reappearance
-  if(Object.keys(_unRemoved).length){var rmCut=Date.now()-86400000,rmP=false;Object.keys(_unRemoved).forEach(function(k){if(_unRemoved[k]<rmCut){delete _unRemoved[k];rmP=true}});if(rmP)localStorage.setItem('iris_un_removed',JSON.stringify(_unRemoved))}
+  if(Object.keys(_unRemoved).length){var rmCut=Date.now()-86400000,rmP=false;Object.keys(_unRemoved).forEach(function(k){if(_unRemoved[k]<rmCut){delete _unRemoved[k];rmP=true}});if(rmP)_irisLSSet('un_removed',JSON.stringify(_unRemoved))}
 }
 // Advance shows based on _unWatched entries (skip if later removed)
 shows.forEach(function(s){
@@ -4286,7 +4301,7 @@ shows.forEach(function(s){
     key=s.slug+'|'+s.season+'|'+s.episode;
   }
 });
-if(pruned)localStorage.setItem('iris_un_watched',JSON.stringify(_unWatched));
+if(pruned)_irisLSSet('un_watched',JSON.stringify(_unWatched));
 })();
 var _scrollY=0;
 function _lockBody(){_scrollY=window.scrollY;document.body.style.position='fixed';document.body.style.top='-'+_scrollY+'px';document.body.style.width='100%';document.body.style.overflow='hidden'}
@@ -5129,10 +5144,10 @@ function _renderEpHistory(ct,entries){
 function _isRemoved(slug,season,ep,watchedAt){
   var k=slug+'|'+season+'|'+ep;var rmTime=_unRemoved[k];if(!rmTime)return false;
   // If the episode was re-watched AFTER removal, show it (the removal is stale)
-  if(watchedAt){var wt=new Date(watchedAt).getTime();if(wt&&wt>rmTime){delete _unRemoved[k];localStorage.setItem('iris_un_removed',JSON.stringify(_unRemoved));return false}}
+  if(watchedAt){var wt=new Date(watchedAt).getTime();if(wt&&wt>rmTime){delete _unRemoved[k];_irisLSSet('un_removed',JSON.stringify(_unRemoved));return false}}
   return true;
 }
-function _markRemoved(slug,season,ep){_unRemoved[slug+'|'+season+'|'+ep]=Date.now();localStorage.setItem('iris_un_removed',JSON.stringify(_unRemoved))}
+function _markRemoved(slug,season,ep){_unRemoved[slug+'|'+season+'|'+ep]=Date.now();_irisLSSet('un_removed',JSON.stringify(_unRemoved))}
 
 // Remove a single watch entry — executes immediately on tap
 function _removeEpWatch(historyId,btn,ev){
@@ -5146,7 +5161,7 @@ function _removeEpWatch(historyId,btn,ev){
   // Also clear volatile caches
   if(_rmSlug){
     var lsKey=_rmSlug+'|'+_rmSeason+'|'+_rmEp;
-    if(_unWatched[lsKey]){delete _unWatched[lsKey];localStorage.setItem('iris_un_watched',JSON.stringify(_unWatched))}
+    if(_unWatched[lsKey]){delete _unWatched[lsKey];_irisLSSet('un_watched',JSON.stringify(_unWatched))}
     delete _epHistCache[_rmSlug+'|'+_rmSeason+'|'+_rmEp];
   }
   var ud=D.un||{};
@@ -5321,7 +5336,7 @@ function markWatchedAt(slug,season,episode,epTraktId,when){
   var watchedAt=when==='now'?new Date().toISOString():when;
   if(!watchedAt){alert('Please select a date first');return}
   _unWatched[key]=watchedAt;
-  localStorage.setItem('iris_un_watched',JSON.stringify(_unWatched));
+  _irisLSSet('un_watched',JSON.stringify(_unWatched));
   _injectRecentWatch(slug,season,episode,watchedAt);
   // Capture show info before _unDismissDetail clears _crBase
   var showTitle=_crBase?_crBase.show||slug:slug;
@@ -5406,7 +5421,7 @@ function markWatched(slug,season,episode,epTraktId,btn){
   card.style.opacity='0.3';card.style.pointerEvents='none';
   var watchedAt=new Date().toISOString();
   _unWatched[key]=watchedAt;
-  localStorage.setItem('iris_un_watched',JSON.stringify(_unWatched));
+  _irisLSSet('un_watched',JSON.stringify(_unWatched));
   _injectRecentWatch(slug,season,episode,watchedAt);
   // Add to Recently Watched with slide-down + fade-in animation
   (function(){
@@ -5516,7 +5531,7 @@ function removeRecent(epId,btn){
   _markRemoved(slug,season,episode);
   // Clear from _unWatched
   var lsKey=slug+'|'+season+'|'+episode;
-  if(_unWatched[lsKey]){delete _unWatched[lsKey];localStorage.setItem('iris_un_watched',JSON.stringify(_unWatched))}
+  if(_unWatched[lsKey]){delete _unWatched[lsKey];_irisLSSet('un_watched',JSON.stringify(_unWatched))}
   // Clear from D.un.recent
   var ud=D.un||{};
   if(ud.recent){ud.recent=ud.recent.filter(function(r){return !(r.slug===slug&&r.season==season&&r.episode==episode)})}
@@ -7330,7 +7345,7 @@ function _unToggleEpWatched(ev,slug,season,episode,epTraktId,btn){
     // Update _unWatched for Up Next sync
     var key=slug+'|'+season+'|'+episode;
     _unWatched[key]=watchedAt;
-    localStorage.setItem('iris_un_watched',JSON.stringify(_unWatched));
+    _irisLSSet('un_watched',JSON.stringify(_unWatched));
   }
 }
 
@@ -7501,7 +7516,7 @@ function renderStatus(){
   var hs_count=Object.keys(D.hs||{}).length;
   var ps_count=Object.keys(D.ps||{}).length;
   var el=document.getElementById('status');
-  el.innerHTML='<span>Actors: '+total_people+'</span><span>Headshots: '+hs_count+'</span><span>Posters: '+ps_count+'</span><span>Updated: __BUILD_TIME__</span><span>v62</span>';
+  el.innerHTML='<span>Actors: '+total_people+'</span><span>Headshots: '+hs_count+'</span><span>Posters: '+ps_count+'</span><span>Updated: __BUILD_TIME__</span><span>v63</span>';
 }
 
 function render(){
@@ -7834,27 +7849,11 @@ function processBGS(file){
 }
 
 function commitBGS(content,parsed){
-  var pat=localStorage.getItem('iris_gh_pat');
-  if(!pat){
-    pat=prompt('Enter GitHub Personal Access Token (needs repo scope):');
-    if(!pat){stat.textContent='Cancelled';return}
-    localStorage.setItem('iris_gh_pat',pat);
-  }
-  // Get current file SHA (needed for update)
-  fetch('https://api.github.com/repos/jamesgoux/iris-stats/contents/data/bgstats_export.json',{
-    headers:{'Authorization':'token '+pat}
-  }).then(function(r){return r.ok?r.json():{sha:null}}).then(function(existing){
-    var body={message:'Update BG Stats export ('+parsed.plays.length+' plays)',content:btoa(unescape(encodeURIComponent(content)))};
-    if(existing.sha)body.sha=existing.sha;
-    return fetch('https://api.github.com/repos/jamesgoux/iris-stats/contents/data/bgstats_export.json',{
-      method:'PUT',
-      headers:{'Authorization':'token '+pat,'Content-Type':'application/json'},
-      body:JSON.stringify(body)
-    });
-  }).then(function(r){
-    if(r.ok){stat.textContent='✓ Uploaded! '+parsed.plays.length+' plays, '+parsed.players.length+' players. Will rebuild on next refresh.';stat.style.color='#4ade80'}
-    else{r.json().then(function(d){stat.textContent='Upload failed: '+(d.message||r.status);stat.style.color='#ef4444';if(r.status===401)localStorage.removeItem('iris_gh_pat')})}
-  }).catch(function(e){stat.textContent='Error: '+e.message;stat.style.color='#ef4444'});
+  if(!_irisRequireAuth('upload BG Stats')){return}
+  stat.textContent='Uploading to cloud...';
+  _irisSaveToStorage('imports/bgstats_export.json',content)
+    .then(function(){stat.textContent='✓ Uploaded! '+parsed.plays.length+' plays, '+parsed.players.length+' players. Will rebuild on next refresh.';stat.style.color='#4ade80'})
+    .catch(function(e){stat.textContent='Upload failed: '+e.message;stat.style.color='#ef4444'});
 }
 })();
 
@@ -7931,24 +7930,14 @@ function processGT(file){
     stat.innerHTML='<span style="color:#4ade80">✓</span> Parsed '+games.length+' games ('+finished.length+' finished, '+Math.round(totalH)+'h). Syncing...';
     renderGames();
 
-    // Commit gametrack.json to repo
-    var pat=localStorage.getItem('iris_gh_pat');
-    if(!pat){stat.innerHTML+=' <span style="color:#fbbf24">No GitHub PAT — data loaded locally only.</span>';return}
-    var content=JSON.stringify(output);
-    var b64=btoa(Array.from(new TextEncoder().encode(content),function(b){return String.fromCharCode(b)}).join(''));
-    fetch('https://api.github.com/repos/jamesgoux/iris-stats/contents/data/gametrack.json',{
-      headers:{'Authorization':'token '+pat}
-    }).then(function(r){return r.ok?r.json():{sha:null}}).then(function(existing){
-      var body={message:'Update GameTrack data ('+games.length+' games)',content:b64};
-      if(existing.sha)body.sha=existing.sha;
-      return fetch('https://api.github.com/repos/jamesgoux/iris-stats/contents/data/gametrack.json',{
-        method:'PUT',headers:{'Authorization':'token '+pat,'Content-Type':'application/json'},
-        body:JSON.stringify(body)
-      });
-    }).then(function(r){
-      if(r.ok){stat.innerHTML='<span style="color:#4ade80">✓</span> '+games.length+' games synced to GitHub!';stat.style.color='#4ade80'}
-      else{stat.innerHTML+=' <span style="color:#ef4444">Sync failed ('+r.status+')</span>'}
-    }).catch(function(e){stat.innerHTML+=' <span style="color:#ef4444">Error: '+e.message+'</span>'});
+    // Save gametrack.json to Supabase Storage
+    if(_irisUser){
+      _irisSaveToStorage('imports/gametrack.json',JSON.stringify(output))
+        .then(function(){stat.innerHTML='<span style="color:#4ade80">✓</span> '+games.length+' games synced to cloud!';stat.style.color='#4ade80'})
+        .catch(function(e){stat.innerHTML+=' <span style="color:#ef4444">Sync failed: '+e.message+'</span>'});
+    }else{
+      stat.innerHTML+=' <span style="color:#fbbf24">Log in to sync data across devices.</span>';
+    }
   };
   reader.readAsText(file);
 }
