@@ -17,7 +17,7 @@ body{background:var(--bg);color:var(--tx);font-family:-apple-system,BlinkMacSyst
 .dash{max-width:1400px;margin:0 auto;padding:0 16px 16px}
 .fbar{position:sticky;top:0;z-index:100;background:rgba(15,15,15,.97);backdrop-filter:blur(8px);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:20px;border-bottom:1px solid rgba(255,255,255,.06);transition:transform .3s ease}
 .fbar h1{font-size:20px;font-weight:700}.fbar h1 span{color:var(--ac)}
-.fctrls{display:flex;align-items:center;gap:6px;flex-wrap:nowrap;flex:1;min-width:0}
+.fctrls{display:flex;align-items:center;gap:6px;flex-wrap:nowrap;flex:1;min-width:0;justify-content:flex-end}
 .fbtn{background:var(--sf);border:1px solid rgba(255,255,255,.1);color:var(--tx);border-radius:8px;padding:0;font-size:15px;cursor:pointer;-webkit-tap-highlight-color:transparent;min-height:44px;position:relative;overflow:hidden;transition:background .15s,transform .1s}
 .fbtn:active{background:#333;transform:scale(.95)}
 .fbtn select{background:var(--sf);color:var(--tx);border:none;font-size:15px;cursor:pointer;-webkit-appearance:none;appearance:none;padding:10px 12px;width:100%;height:100%}
@@ -270,7 +270,8 @@ body{overflow-x:hidden}
 .fbar h1{display:none}
 .fbar .iris-logo-mob{display:block!important;width:24px;height:24px;flex-shrink:0}
 .fbar{gap:6px}
-.fctrls{gap:5px;flex-wrap:nowrap;align-items:center}
+.fctrls{gap:5px;flex-wrap:nowrap;align-items:center;justify-content:stretch}
+#filter-btn{flex:1}
 .fbtn select{font-size:13px;padding:0 8px;line-height:44px;height:44px}
 .hbtn{min-height:44px;padding:8px 12px;font-size:20px}
 }
@@ -288,7 +289,7 @@ body{overflow-x:hidden}
 <h1><svg class="iris-logo" viewBox="0 0 512 512" width="28" height="28" style="vertical-align:middle;margin-right:6px"><defs><radialGradient id="ig" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#e94560"/><stop offset="45%" stop-color="#7c3aed"/><stop offset="100%" stop-color="#c4b5fd"/></radialGradient></defs><path d="M256 96C128 96 32 256 32 256s96 160 224 160 224-160 224-160S384 96 256 96z" fill="#c4b5fd"/><circle cx="256" cy="256" r="200" fill="url(#ig)"/><circle cx="256" cy="256" r="80" fill="#0f0f0f"/><circle cx="220" cy="220" r="28" fill="rgba(255,255,255,0.4)"/><circle cx="280" cy="240" r="12" fill="rgba(255,255,255,0.2)"/></svg><span style="color:var(--ac);font-weight:800">iris</span> <span id="iris-hdr-user" style="color:var(--t2);font-weight:400">// jamesgoux</span></h1>
 <div class="fctrls">
 <svg class="iris-logo-mob" viewBox="0 0 512 512" width="24" height="24" style="display:none;vertical-align:middle;flex-shrink:0"><defs><radialGradient id="igm" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#e94560"/><stop offset="45%" stop-color="#7c3aed"/><stop offset="100%" stop-color="#c4b5fd"/></radialGradient></defs><path d="M256 96C128 96 32 256 32 256s96 160 224 160 224-160 224-160S384 96 256 96z" fill="#c4b5fd"/><circle cx="256" cy="256" r="200" fill="url(#igm)"/><circle cx="256" cy="256" r="80" fill="#0f0f0f"/><circle cx="220" cy="220" r="28" fill="rgba(255,255,255,0.4)"/></svg>
-<button id="filter-btn" onclick="openFilterDialog()" style="flex:1;min-width:0;padding:0 10px;background:var(--sf);border:1px solid rgba(255,255,255,.15);border-radius:8px;color:var(--tx);font-size:12px;cursor:pointer;font-weight:600;height:44px;display:flex;align-items:center;justify-content:center;white-space:nowrap;overflow:hidden">2026 🧬 Life</button>
+<button id="filter-btn" onclick="openFilterDialog()" style="min-width:0;padding:0 14px;background:var(--sf);border:1px solid rgba(255,255,255,.15);border-radius:8px;color:var(--tx);font-size:12px;cursor:pointer;font-weight:600;height:44px;display:flex;align-items:center;justify-content:center;white-space:nowrap;overflow:hidden">2026 🧬 Life</button>
 <!-- Hidden selects for backward compat -->
 <select id="gs" style="display:none"><option value="all">All</option><option value="life">Life</option><option value="movietv">Movies/TV</option><option value="movie">Movies</option><option value="show">Shows</option><option value="book">Books</option><option value="music">Music</option><option value="concert">Concerts</option><option value="podcast">Podcasts</option><option value="theater">Theater</option><option value="boardgame">Board Games</option><option value="sports">Sports</option><option value="game">Video Games</option><option value="health">Workouts</option></select>
 <select id="ys" style="display:none"><option value="all">All Time</option></select>
