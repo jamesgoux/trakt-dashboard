@@ -12,8 +12,12 @@ from collections import defaultdict, Counter
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from utils import retry_request, get_trakt_access_token
+from user_config import load_user_config, get_service, upload_user_data
 
-LOCAL_TZ = ZoneInfo("America/Los_Angeles")
+# Load per-user config (Supabase → env var fallback)
+_ucfg = load_user_config()
+_tz_name = _ucfg.get("_timezone", "America/Los_Angeles")
+LOCAL_TZ = ZoneInfo(_tz_name)
 
 def to_local(utc_str):
     """Convert UTC ISO timestamp to local timezone, preserving ISO format with tz info.
@@ -29,12 +33,12 @@ def to_local(utc_str):
     except Exception:
         return utc_str
 
-CLIENT_ID = os.environ.get("TRAKT_CLIENT_ID")
-USERNAME = os.environ.get("TRAKT_USERNAME")
+CLIENT_ID = get_service(_ucfg, "trakt", "client_id") or os.environ.get("TRAKT_CLIENT_ID")
+USERNAME = _ucfg.get("_username") or os.environ.get("TRAKT_USERNAME")
 BASE_URL = "https://api.trakt.tv"
 HEADERS = {"Content-Type": "application/json", "trakt-api-version": "2", "trakt-api-key": CLIENT_ID}
 
-TMDB_API_KEY = os.environ.get("TMDB_API_KEY", "")
+TMDB_API_KEY = get_service(_ucfg, "_tmdb", "api_key") or os.environ.get("TMDB_API_KEY", "")
 TMDB_BASE = "https://api.themoviedb.org/3"
 
 def _slugify(name):
@@ -2327,8 +2331,8 @@ if os.path.exists("data/lastfm_daily.json"):
             ll_counts[d]["sc"] = count
             exact_sc_days.add(d)
 
-LASTFM_KEY = os.environ.get("LASTFM_API_KEY", "")
-LASTFM_USER = os.environ.get("LASTFM_USER", "")
+LASTFM_KEY = get_service(_ucfg, "lastfm", "api_key") or os.environ.get("LASTFM_API_KEY", "")
+LASTFM_USER = get_service(_ucfg, "lastfm", "username") or os.environ.get("LASTFM_USER", "")
 if LASTFM_KEY and LASTFM_USER:
     # Fetch exact daily scrobbles for last 35 days via API
     import urllib.request as urlreq

@@ -17,8 +17,8 @@ import json, time, requests
 from datetime import datetime, timezone
 from utils import retry_request
 
-EMAIL = os.environ.get("POCKETCASTS_EMAIL", "")
-PASSWORD = os.environ.get("POCKETCASTS_PASSWORD", "")
+EMAIL = get_service(_ucfg, "pocketcasts", "email") or os.environ.get("POCKETCASTS_EMAIL", "")
+PASSWORD = get_service(_ucfg, "pocketcasts", "password") or os.environ.get("POCKETCASTS_PASSWORD", "")
 BASE = "https://api.pocketcasts.com"
 
 if not EMAIL or not PASSWORD:
@@ -66,6 +66,9 @@ print("  Logged in")
 
 now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 from zoneinfo import ZoneInfo
+from user_config import load_user_config, get_service
+_ucfg = load_user_config()
+
 now_date = datetime.now(ZoneInfo("America/Los_Angeles")).strftime("%Y-%m-%d")
 
 # Load previous snapshot for polling comparison

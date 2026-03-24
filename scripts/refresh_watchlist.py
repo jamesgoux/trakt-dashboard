@@ -10,13 +10,16 @@ import xml.etree.ElementTree as ET
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 os.chdir(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from utils import retry_request
+from user_config import load_user_config, get_service
+_ucfg = load_user_config()
 
-CLIENT_ID = os.environ.get("TRAKT_CLIENT_ID")
-USERNAME = os.environ.get("TRAKT_USERNAME", "jamesgoux")
-TMDB_API_KEY = os.environ.get("TMDB_API_KEY", "")
+
+CLIENT_ID = get_service(_ucfg, "trakt", "client_id") or os.environ.get("TRAKT_CLIENT_ID")
+USERNAME = get_service(_ucfg, "trakt", "username") or os.environ.get("TRAKT_USERNAME", "jamesgoux")
+TMDB_API_KEY = get_service(_ucfg, "_tmdb", "api_key") or os.environ.get("TMDB_API_KEY", "")
 BASE = "https://api.trakt.tv"
 HEADERS = {"Content-Type": "application/json", "trakt-api-version": "2", "trakt-api-key": CLIENT_ID}
-LB_USERNAME = os.environ.get("LETTERBOXD_USERNAME", USERNAME)
+LB_USERNAME = get_service(_ucfg, "letterboxd", "username") or os.environ.get("LETTERBOXD_USERNAME", USERNAME)
 
 # JustWatch query: FLATRATE + RENT + BUY with prices
 JW_QUERY = """query($path:String!){urlV2(fullPath:$path){node{...on MovieOrShow{

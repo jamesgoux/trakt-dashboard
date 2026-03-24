@@ -10,8 +10,11 @@ For full history + tags, user can upload a CSV export.
 """
 
 import os, json, requests, xml.etree.ElementTree as ET
+from user_config import load_user_config, get_service
+_ucfg = load_user_config()
 
-USERNAME = os.environ.get("LETTERBOXD_USERNAME", os.environ.get("TRAKT_USERNAME", "jamesgoux"))
+
+USERNAME = get_service(_ucfg, "letterboxd", "username") or os.environ.get("LETTERBOXD_USERNAME", get_service(_ucfg, "trakt", "username") or os.environ.get("TRAKT_USERNAME", "jamesgoux"))
 RSS_URL = f"https://letterboxd.com/{USERNAME}/rss/"
 
 def refresh_letterboxd():

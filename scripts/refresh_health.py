@@ -6,12 +6,15 @@ Outputs flat workout array to data/health.json (consumed by refresh_data.py).
 Requires GH_HEALTH_TOKEN environment variable (PAT with repo scope).
 """
 import os, sys, json, csv, io, base64
+from user_config import load_user_config, get_service
+_ucfg = load_user_config()
+
 try:
     import requests
 except ImportError:
     print("ERROR: requests not installed"); sys.exit(1)
 
-TOKEN = os.environ.get('GH_HEALTH_TOKEN', '')
+TOKEN = get_service(_ucfg, "health", "github_token") or os.environ.get("GH_HEALTH_TOKEN", '')
 REPO = 'jamesgoux/health'
 API = 'https://api.github.com'
 HEADERS = {'Authorization': f'token {TOKEN}', 'Accept': 'application/vnd.github.v3+json'}
