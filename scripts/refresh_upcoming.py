@@ -7,11 +7,14 @@ from collections import defaultdict
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 os.chdir(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from utils import retry_request, get_trakt_access_token
+from user_config import load_user_config, get_service
+_ucfg = load_user_config()
 
-CLIENT_ID = os.environ.get("TRAKT_CLIENT_ID")
-USERNAME = os.environ.get("TRAKT_USERNAME")
+
+CLIENT_ID = get_service(_ucfg, "trakt", "client_id") or os.environ.get("TRAKT_CLIENT_ID")
+USERNAME = get_service(_ucfg, "trakt", "username") or os.environ.get("TRAKT_USERNAME")
 ACCESS_TOKEN = get_trakt_access_token()
-TMDB_API_KEY = os.environ.get("TMDB_API_KEY", "")
+TMDB_API_KEY = get_service(_ucfg, "_tmdb", "api_key") or os.environ.get("TMDB_API_KEY", "")
 BASE = "https://api.trakt.tv"
 HEADERS = {"Content-Type": "application/json", "trakt-api-version": "2", "trakt-api-key": CLIENT_ID}
 AUTH_HEADERS = {**HEADERS, "Authorization": f"Bearer {ACCESS_TOKEN}"} if ACCESS_TOKEN else HEADERS

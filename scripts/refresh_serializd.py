@@ -4,6 +4,9 @@ Fetch Serializd TV show ratings via their internal API.
 Saves to data/serializd.json with show name, rating (1-10), date, TMDB IDs.
 """
 import os, json, time, requests
+from user_config import load_user_config, get_service
+_ucfg = load_user_config()
+
 
 BASE = "https://www.serializd.com/api"
 HEADERS = {
@@ -13,8 +16,8 @@ HEADERS = {
     "Content-Type": "application/json",
 }
 
-email = os.environ.get("SERIALIZD_EMAIL")
-password = os.environ.get("SERIALIZD_PASSWORD")
+email = get_service(_ucfg, "serializd", "email") or os.environ.get("SERIALIZD_EMAIL")
+password = get_service(_ucfg, "serializd", "password") or os.environ.get("SERIALIZD_PASSWORD")
 if not email or not password:
     print("SERIALIZD: No credentials, skipping"); exit(0)
 

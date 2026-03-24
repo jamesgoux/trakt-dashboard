@@ -15,9 +15,7 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 35
-    env:
-      PYTHONUNBUFFERED: '1'
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -34,25 +32,42 @@ jobs:
         run: python scripts/refresh_trakt_token.py
         continue-on-error: true
 
-      # ── External Sources (parallel — all write to separate data files) ──
-      - name: Refresh external sources
+      # ── External Sources ──────────────────────────────────
+      - name: Refresh Letterboxd
+        run: python scripts/refresh_letterboxd.py
+        continue-on-error: true
+
+      - name: Refresh Goodreads
         env:
           GOODREADS_USER_ID: ${{ secrets.GOODREADS_USER_ID }}
+        run: python scripts/refresh_goodreads.py
+        continue-on-error: true
+
+      - name: Refresh Concerts
+        env:
           SETLIST_FM_API_KEY: ${{ secrets.SETLIST_FM_API_KEY }}
+        run: python scripts/refresh_setlist.py
+        continue-on-error: true
+
+      - name: Refresh Podcasts
+        env:
           POCKETCASTS_EMAIL: ${{ secrets.POCKETCASTS_EMAIL }}
           POCKETCASTS_PASSWORD: ${{ secrets.POCKETCASTS_PASSWORD }}
+        run: python scripts/refresh_pocketcasts.py
+        continue-on-error: true
+
+      - name: Refresh Serializd
+        env:
           SERIALIZD_EMAIL: ${{ secrets.SERIALIZD_EMAIL }}
           SERIALIZD_PASSWORD: ${{ secrets.SERIALIZD_PASSWORD }}
+        run: python scripts/refresh_serializd.py
+        continue-on-error: true
+
+      - name: Refresh Last.fm
+        env:
           LASTFM_API_KEY: ${{ secrets.LASTFM_API_KEY }}
           LASTFM_USER: ${{ secrets.LASTFM_USER }}
-        run: |
-          python scripts/refresh_letterboxd.py &
-          python scripts/refresh_goodreads.py &
-          python scripts/refresh_setlist.py &
-          python scripts/refresh_pocketcasts.py &
-          python scripts/refresh_serializd.py &
-          python scripts/refresh_lastfm.py &
-          wait
+        run: python scripts/refresh_lastfm.py
         timeout-minutes: 5
         continue-on-error: true
 
@@ -91,6 +106,10 @@ jobs:
           TRAKT_ACCESS_TOKEN: ${{ secrets.TRAKT_ACCESS_TOKEN }}
           LASTFM_API_KEY: ${{ secrets.LASTFM_API_KEY }}
           LASTFM_USER: ${{ secrets.LASTFM_USER }}
+          TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
         run: python scripts/refresh_data.py
 
       - name: Commit and push
@@ -101,3 +120,13 @@ jobs:
           git diff --quiet --staged || git commit -m "Core build $(date -u +'%Y-%m-%d %H:%M UTC')"
           git pull --no-rebase -X ours origin main || true
           git push
+
+      # ── Process pending refresh requests ──────────────────
+      - name: Process pending user refreshes
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+          TMDB_BEARER_TOKEN: ${{ secrets.TMDB_BEARER_TOKEN }}
+        run: python scripts/process_refresh_queue.py
+        continue-on-error: true

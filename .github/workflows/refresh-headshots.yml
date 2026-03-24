@@ -15,9 +15,7 @@ concurrency:
 jobs:
   headshots:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
-    env:
-      PYTHONUNBUFFERED: '1'
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -32,7 +30,6 @@ jobs:
           TMDB_BEARER_TOKEN: ${{ secrets.TMDB_BEARER_TOKEN }}
           TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
         run: python scripts/refresh_headshots.py
-        timeout-minutes: 35
 
       - name: Refresh sports schedules
         run: python scripts/refresh_sports_schedule.py

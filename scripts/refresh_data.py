@@ -12,8 +12,12 @@ from collections import defaultdict, Counter
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from utils import retry_request, get_trakt_access_token
+from user_config import load_user_config, get_service, upload_user_data
 
-LOCAL_TZ = ZoneInfo("America/Los_Angeles")
+# Load per-user config (Supabase → env var fallback)
+_ucfg = load_user_config()
+_tz_name = _ucfg.get("_timezone", "America/Los_Angeles")
+LOCAL_TZ = ZoneInfo(_tz_name)
 
 def to_local(utc_str):
     """Convert UTC ISO timestamp to local timezone, preserving ISO format with tz info.
@@ -29,12 +33,12 @@ def to_local(utc_str):
     except Exception:
         return utc_str
 
-CLIENT_ID = os.environ.get("TRAKT_CLIENT_ID")
-USERNAME = os.environ.get("TRAKT_USERNAME")
+CLIENT_ID = get_service(_ucfg, "trakt", "client_id") or os.environ.get("TRAKT_CLIENT_ID")
+USERNAME = _ucfg.get("_username") or os.environ.get("TRAKT_USERNAME")
 BASE_URL = "https://api.trakt.tv"
 HEADERS = {"Content-Type": "application/json", "trakt-api-version": "2", "trakt-api-key": CLIENT_ID}
 
-TMDB_API_KEY = os.environ.get("TMDB_API_KEY", "")
+TMDB_API_KEY = get_service(_ucfg, "_tmdb", "api_key") or os.environ.get("TMDB_API_KEY", "")
 TMDB_BASE = "https://api.themoviedb.org/3"
 
 def _slugify(name):
@@ -2337,8 +2341,8 @@ if os.path.exists("data/lastfm_daily.json"):
             ll_counts[d]["sc"] = count
             exact_sc_days.add(d)
 
-LASTFM_KEY = os.environ.get("LASTFM_API_KEY", "")
-LASTFM_USER = os.environ.get("LASTFM_USER", "")
+LASTFM_KEY = get_service(_ucfg, "lastfm", "api_key") or os.environ.get("LASTFM_API_KEY", "")
+LASTFM_USER = get_service(_ucfg, "lastfm", "username") or os.environ.get("LASTFM_USER", "")
 if LASTFM_KEY and LASTFM_USER:
     # Fetch exact daily scrobbles for last 35 days via API
     import urllib.request as urlreq
@@ -2602,10 +2606,53 @@ with open("templates/dashboard.html") as f:
     template = f.read()
 html = template.replace("__DASHBOARD_DATA__", data_str)
 html = html.replace("__BUILD_TIME__", datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC"))
+# Supabase multi-user config (env vars, with empty fallback = embedded-only mode)
+html = html.replace("__SUPABASE_URL__", os.environ.get("SUPABASE_URL", ""))
+html = html.replace("__SUPABASE_ANON_KEY__", os.environ.get("SUPABASE_ANON_KEY", ""))
+# Embedded user identity (for ?user=X routing)
+html = html.replace("__IRIS_EMBEDDED_USER__", os.environ.get("TRAKT_USERNAME", "jamesgoux"))
 with open("index.html", "w") as f:
     f.write(html)
 
 print(f"  index.html: {len(html)//1024}KB")
 print(f"  Actors: {len(data.get('a',[]))}, Actresses: {len(data.get('x',[]))}")
 print(f"  Networks: {len(data.get('c',{}).get('net',[]))}, Studios: {len(data.get('c',{}).get('stu',[]))}")
+
+# Upload data blob to Supabase Storage (if configured)
+sb_url = os.environ.get("SUPABASE_URL", "")
+sb_key = os.environ.get("SUPABASE_SERVICE_KEY", "")
+if sb_url and sb_key:
+    print("\n--- Supabase Storage Upload ---")
+    try:
+        import requests as sb_req
+        # Look up user_id from profiles
+        trakt_user = os.environ.get("TRAKT_USERNAME", "jamesgoux")
+        prof_r = sb_req.get(
+            f"{sb_url}/rest/v1/profiles?username=eq.{trakt_user}&select=id",
+            headers={"apikey": sb_key, "Authorization": f"Bearer {sb_key}"}
+        )
+        if prof_r.status_code == 200 and prof_r.json():
+            uid = prof_r.json()[0]["id"]
+            # Upload the data blob
+            up_r = sb_req.post(
+                f"{sb_url}/storage/v1/object/user-data/{uid}/dashboard.json",
+                headers={
+                    "apikey": sb_key,
+                    "Authorization": f"Bearer {sb_key}",
+                    "Content-Type": "application/json",
+                    "x-upsert": "true",
+                },
+                data=data_str.encode("utf-8"),
+            )
+            if up_r.status_code in (200, 201):
+                print(f"  Uploaded {len(data_str)//1024}KB to user-data/{uid}/dashboard.json")
+            else:
+                print(f"  Upload failed: {up_r.status_code} {up_r.text[:200]}")
+        else:
+            print(f"  Profile not found for {trakt_user}, skipping upload")
+    except Exception as e:
+        print(f"  Supabase upload error (non-fatal): {e}")
+else:
+    print("  Supabase not configured, skipping upload")
+
 print("Done!")

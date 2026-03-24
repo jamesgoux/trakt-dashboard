@@ -9,6 +9,7 @@
 <link rel="icon" type="image/svg+xml" href="iris-icon.svg">
 <title>Iris // jamesgoux</title>
 <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
 :root{--bg:#0f0f0f;--sf:#1a1a2e;--ac:#fb923c;--tx:#eee;--t2:#999;--gr:#4ade80;--bl:#14b8a6;--pu:#14b8a6;--or:#fb923c;--tv:#14b8a6;--mv:#fb923c;--mu:#15803d;--bk:#fbbf24;--cn:#3b82f6;--th:#a78bfa;--sp:#0ea5e9}
 *{margin:0;padding:0;box-sizing:border-box}
@@ -279,10 +280,10 @@ body{overflow-x:hidden}
 <div id="iris-loader" class="iris-loader">
 <svg viewBox="0 0 512 512" width="80" height="80"><defs><radialGradient id="igl" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#e94560"/><stop offset="45%" stop-color="#7c3aed"/><stop offset="100%" stop-color="#c4b5fd"/></radialGradient></defs><path d="M256 96C128 96 32 256 32 256s96 160 224 160 224-160 224-160S384 96 256 96z" fill="#c4b5fd"/><circle cx="256" cy="256" r="200" fill="url(#igl)"/><circle cx="256" cy="256" r="80" fill="#0f0f0f"/><circle cx="220" cy="220" r="28" fill="rgba(255,255,255,0.4)"/><circle cx="280" cy="240" r="12" fill="rgba(255,255,255,0.2)"/></svg>
 <div style="font-size:24px;font-weight:800;color:var(--ac)">iris</div>
-<div style="font-size:13px;color:var(--t2);margin-top:4px">// jamesgoux</div>
+<div id="iris-loader-user" style="font-size:13px;color:var(--t2);margin-top:4px">// jamesgoux</div>
 </div>
 <div class="fbar">
-<h1><svg class="iris-logo" viewBox="0 0 512 512" width="28" height="28" style="vertical-align:middle;margin-right:6px"><defs><radialGradient id="ig" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#e94560"/><stop offset="45%" stop-color="#7c3aed"/><stop offset="100%" stop-color="#c4b5fd"/></radialGradient></defs><path d="M256 96C128 96 32 256 32 256s96 160 224 160 224-160 224-160S384 96 256 96z" fill="#c4b5fd"/><circle cx="256" cy="256" r="200" fill="url(#ig)"/><circle cx="256" cy="256" r="80" fill="#0f0f0f"/><circle cx="220" cy="220" r="28" fill="rgba(255,255,255,0.4)"/><circle cx="280" cy="240" r="12" fill="rgba(255,255,255,0.2)"/></svg><span style="color:var(--ac);font-weight:800">iris</span> <span style="color:var(--t2);font-weight:400">// jamesgoux</span></h1>
+<h1><svg class="iris-logo" viewBox="0 0 512 512" width="28" height="28" style="vertical-align:middle;margin-right:6px"><defs><radialGradient id="ig" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#e94560"/><stop offset="45%" stop-color="#7c3aed"/><stop offset="100%" stop-color="#c4b5fd"/></radialGradient></defs><path d="M256 96C128 96 32 256 32 256s96 160 224 160 224-160 224-160S384 96 256 96z" fill="#c4b5fd"/><circle cx="256" cy="256" r="200" fill="url(#ig)"/><circle cx="256" cy="256" r="80" fill="#0f0f0f"/><circle cx="220" cy="220" r="28" fill="rgba(255,255,255,0.4)"/><circle cx="280" cy="240" r="12" fill="rgba(255,255,255,0.2)"/></svg><span style="color:var(--ac);font-weight:800">iris</span> <span id="iris-hdr-user" style="color:var(--t2);font-weight:400">// jamesgoux</span></h1>
 <div class="fctrls">
 <svg class="iris-logo-mob" viewBox="0 0 512 512" width="24" height="24" style="display:none;vertical-align:middle;flex-shrink:0"><defs><radialGradient id="igm" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#e94560"/><stop offset="45%" stop-color="#7c3aed"/><stop offset="100%" stop-color="#c4b5fd"/></radialGradient></defs><path d="M256 96C128 96 32 256 32 256s96 160 224 160 224-160 224-160S384 96 256 96z" fill="#c4b5fd"/><circle cx="256" cy="256" r="200" fill="url(#igm)"/><circle cx="256" cy="256" r="80" fill="#0f0f0f"/><circle cx="220" cy="220" r="28" fill="rgba(255,255,255,0.4)"/></svg>
 <button id="filter-btn" onclick="openFilterDialog()" style="flex:1;min-width:0;padding:0 10px;background:var(--sf);border:1px solid rgba(255,255,255,.15);border-radius:8px;color:var(--tx);font-size:12px;cursor:pointer;font-weight:600;height:44px;display:flex;align-items:center;justify-content:center;white-space:nowrap;overflow:hidden">2026 🧬 Life</button>
@@ -290,9 +291,9 @@ body{overflow-x:hidden}
 <select id="gs" style="display:none"><option value="all">All</option><option value="life">Life</option><option value="movietv">Movies/TV</option><option value="movie">Movies</option><option value="show">Shows</option><option value="book">Books</option><option value="music">Music</option><option value="concert">Concerts</option><option value="podcast">Podcasts</option><option value="theater">Theater</option><option value="boardgame">Board Games</option><option value="sports">Sports</option><option value="game">Video Games</option><option value="health">Workouts</option></select>
 <select id="ys" style="display:none"><option value="all">All Time</option></select>
 <div style="position:relative"><button class="hbtn" onclick="_buildJumpMenu();var m=document.getElementById('jmp-menu');m.style.display=m.style.display==='block'?'none':'block'" title="Jump to section"><span style="display:block;transform:translateY(-1px)">☰</span></button><div id="jmp-menu" style="display:none;position:absolute;right:0;top:100%;margin-top:6px;background:var(--sf);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:6px 0;min-width:200px;max-height:70vh;overflow-y:auto;z-index:150;box-shadow:0 8px 30px rgba(0,0,0,.5)"></div></div>
-<button class="hbtn" id="refresh-btn" onclick="this.querySelector('.rf-icon').classList.add('hbtn-spin');this.style.color='var(--ac)';document.querySelector('.fbar').classList.add('fbar-pulse');setTimeout(function(){location.href=location.pathname+'?_='+Date.now()+(location.hash||'')},900)" title="Refresh"><span class="rf-icon" style="display:inline-block">↻</span></button>
 <button class="hbtn" onclick="openSportsAdd()" title="Add Game">🏟️</button>
 <button class="hbtn" onclick="openUpNext()" title="Up Next">📺</button>
+<div style="position:relative"><button class="hbtn" id="iris-user-btn" onclick="_irisToggleUserMenu()" title="Account">👤</button><div id="iris-user-menu" style="display:none;position:absolute;right:0;top:100%;margin-top:6px;background:var(--sf);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:6px 0;min-width:180px;z-index:9999;box-shadow:0 8px 30px rgba(0,0,0,.5)"></div></div>
 </div>
 </div>
 <!-- Filter Dialog -->
@@ -565,12 +566,648 @@ Drop GameTrack games.csv or <span style="color:#6366f1;text-decoration:underline
 </div>
 <div id="un-search-results"></div>
 </div>
+<!-- Settings Overlay -->
+<div id="iris-settings-ov" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg);z-index:9800;overflow-y:auto;-webkit-overflow-scrolling:touch">
+<div style="max-width:600px;margin:0 auto;padding:16px 16px 80px">
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+<div style="font-size:22px;font-weight:800;color:var(--ac)">⚙️ Settings</div>
+<button onclick="_irisCloseSettings()" style="background:none;border:none;color:var(--t2);font-size:22px;cursor:pointer;padding:8px">✕</button>
+</div>
+<div id="iris-settings-profile" style="margin-bottom:20px;padding:16px;background:var(--sf);border-radius:12px;border:1px solid rgba(255,255,255,.08)"></div>
+<div style="font-size:14px;font-weight:700;color:var(--t2);margin-bottom:12px;text-transform:uppercase;letter-spacing:1px">Data Sources</div>
+<div id="iris-settings-grid" style="display:grid;grid-template-columns:1fr;gap:8px"></div>
+</div>
+</div>
+<!-- Auth Modal -->
+<div id="iris-auth-modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);z-index:9998;display:none;align-items:center;justify-content:center">
+<div style="background:var(--sf);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:28px;max-width:380px;width:90%;position:relative">
+<button onclick="_irisCloseAuth()" style="position:absolute;top:12px;right:14px;background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;padding:4px">✕</button>
+<div style="text-align:center;margin-bottom:20px">
+<svg viewBox="0 0 512 512" width="40" height="40" style="margin-bottom:8px"><defs><radialGradient id="iga" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#e94560"/><stop offset="45%" stop-color="#7c3aed"/><stop offset="100%" stop-color="#c4b5fd"/></radialGradient></defs><path d="M256 96C128 96 32 256 32 256s96 160 224 160 224-160 224-160S384 96 256 96z" fill="#c4b5fd"/><circle cx="256" cy="256" r="200" fill="url(#iga)"/><circle cx="256" cy="256" r="80" fill="#0f0f0f"/><circle cx="220" cy="220" r="28" fill="rgba(255,255,255,0.4)"/></svg>
+<div id="iris-auth-title" style="font-size:20px;font-weight:800;color:var(--ac)">Log in to Iris</div>
+</div>
+<div id="iris-auth-error" style="display:none;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.3);border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:12px;color:#ef4444"></div>
+<input id="iris-auth-email" type="email" placeholder="Email" autocomplete="email" style="width:100%;padding:12px 14px;background:var(--bg);border:1px solid rgba(255,255,255,.15);border-radius:10px;color:var(--tx);font-size:14px;margin-bottom:10px;box-sizing:border-box">
+<input id="iris-auth-pass" type="password" placeholder="Password" autocomplete="current-password" style="width:100%;padding:12px 14px;background:var(--bg);border:1px solid rgba(255,255,255,.15);border-radius:10px;color:var(--tx);font-size:14px;margin-bottom:10px;box-sizing:border-box" onkeydown="if(event.key==='Enter')_irisAuthSubmit()">
+<div id="iris-auth-username-row" style="display:none"><input id="iris-auth-username" type="text" placeholder="Username (public)" autocomplete="username" style="width:100%;padding:12px 14px;background:var(--bg);border:1px solid rgba(255,255,255,.15);border-radius:10px;color:var(--tx);font-size:14px;margin-bottom:10px;box-sizing:border-box"></div>
+<button id="iris-auth-submit" onclick="_irisAuthSubmit()" style="width:100%;padding:14px;background:var(--ac);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:14px">Log In</button>
+<div style="text-align:center;font-size:13px;color:var(--t2)"><span id="iris-auth-toggle-text">Don't have an account?</span> <a href="#" id="iris-auth-toggle" onclick="event.preventDefault();_irisToggleAuthMode()" style="color:var(--ac);text-decoration:none;font-weight:600">Sign Up</a></div>
+</div>
+</div>
 <script>
-var D=__DASHBOARD_DATA__;
-var HS=D.hs||{},TL=D.tl||[],SYD=D.syd||[],MYD=D.myd||[],SM=D.sm||{},LO=D.lg||{};
+// Embedded data (jamesgoux — zero-latency for primary user)
+var _irisEmbeddedData=__DASHBOARD_DATA__;
+var _IRIS_EMBEDDED_USER='__IRIS_EMBEDDED_USER__';
+
+// Dynamic data loading: ?user=X loads from Supabase, default = embedded
+var D=_irisEmbeddedData;
+var _irisViewingUser=_IRIS_EMBEDDED_USER;
+var _irisDataSource='embedded'; // 'embedded' or 'api'
+
+// Derived globals (re-initialized after dynamic load)
+function _irisInitDerived(){
+  HS=D.hs||{};TL=D.tl||[];SYD=D.syd||[];MYD=D.myd||[];SM=D.sm||{};LO=D.lg||{};PS=D.ps||{};
+}
+var HS={},TL=[],SYD=[],MYD=[],SM={},LO={},PS={};
+_irisInitDerived();
 var ch=[],cy='all',ct='all';
 var mob=window.innerWidth<768;
-var PS=D.ps||{};
+
+// Update UI to reflect which user's data is being viewed
+function _irisSetViewingUser(username){
+  _irisViewingUser=username||_IRIS_EMBEDDED_USER;
+  var hdr=document.getElementById('iris-hdr-user');
+  if(hdr)hdr.textContent='// '+_irisViewingUser;
+  var loader=document.getElementById('iris-loader-user');
+  if(loader)loader.textContent='// '+_irisViewingUser;
+}
+
+// Fetch another user's data from Supabase
+function _irisFetchUserData(username){
+  if(!_irisSB){return Promise.reject(new Error('Supabase not configured'))}
+  _irisSetViewingUser(username);
+  // Show loading state
+  var loader=document.getElementById('iris-loader');
+  if(loader){loader.style.display='flex';loader.querySelector('div:last-child')||0;
+    var msg=loader.querySelector('#iris-loader-user');
+    if(msg)msg.textContent='// loading '+username+'…';
+  }
+  // Resolve username → user_id via public profiles
+  return fetch(_IRIS_SB_URL+'/rest/v1/profiles?username=eq.'+encodeURIComponent(username)+'&select=id,username,display_name,timezone&is_public=eq.true',{
+    headers:{'apikey':_IRIS_SB_ANON,'Authorization':'Bearer '+_IRIS_SB_ANON}
+  })
+  .then(function(r){if(!r.ok)throw new Error('Profile lookup failed');return r.json()})
+  .then(function(profiles){
+    if(!profiles.length)throw new Error('User not found: '+username);
+    var uid=profiles[0].id;
+    // Fetch data blob from public Storage
+    return fetch(_IRIS_SB_URL+'/storage/v1/object/public/user-data/'+uid+'/dashboard.json');
+  })
+  .then(function(r){
+    if(!r.ok)throw new Error('Data not available for '+username);
+    return r.json();
+  })
+  .then(function(data){
+    D=data;
+    _irisDataSource='api';
+    _irisInitDerived();
+    _irisSetViewingUser(username);
+    return data;
+  });
+}
+
+// ===== IRIS AUTH (Supabase) =====
+var _IRIS_SB_URL='__SUPABASE_URL__';
+var _IRIS_SB_ANON='__SUPABASE_ANON_KEY__';
+var _irisSB=null,_irisUser=null,_irisProfile=null,_irisAuthMode='login';
+var _irisTraktToken=null,_irisTraktClientId=null;
+
+// Init Supabase client (only if URL is configured)
+if(_IRIS_SB_URL&&_IRIS_SB_URL.indexOf('__')!==0&&typeof supabase!=='undefined'){
+  _irisSB=supabase.createClient(_IRIS_SB_URL,_IRIS_SB_ANON);
+  // Listen for auth state changes
+  _irisSB.auth.onAuthStateChange(function(event,session){
+    if(event==='SIGNED_IN'&&session){
+      _irisUser=session.user;
+      _irisLoadProfile();
+      _irisLoadTraktToken();
+      _irisUpdateUI();
+    }else if(event==='SIGNED_OUT'){
+      _irisUser=null;_irisProfile=null;_irisTraktToken=null;_irisTraktClientId=null;
+      _irisUpdateUI();
+    }
+  });
+  // Restore existing session
+  _irisSB.auth.getSession().then(function(res){
+    if(res.data.session){
+      _irisUser=res.data.session.user;
+      _irisLoadProfile();
+      _irisLoadTraktToken();
+      _irisUpdateUI();
+    }
+  });
+}
+
+// Load user profile from Supabase
+function _irisLoadProfile(){
+  if(!_irisSB||!_irisUser)return;
+  _irisSB.from('profiles').select('*').eq('id',_irisUser.id).single().then(function(res){
+    if(res.data){_irisProfile=res.data;_irisUpdateUI()}
+  });
+}
+
+// Load Trakt token from Supabase integrations
+function _irisLoadTraktToken(){
+  if(!_irisSB||!_irisUser)return;
+  _irisSB.from('integrations').select('config').eq('user_id',_irisUser.id).eq('service','trakt').single().then(function(res){
+    if(res.data&&res.data.config){
+      var cfg=res.data.config;
+      if(cfg.access_token)_irisTraktToken=cfg.access_token;
+      if(cfg.client_id)_irisTraktClientId=cfg.client_id;
+    }
+  });
+}
+
+// Get effective Trakt credentials (Supabase user → embedded fallback)
+function _irisGetTraktAuth(){
+  return{
+    clientId:_irisTraktClientId||D._tc||'',
+    accessToken:_irisTraktToken||D._tt||''
+  };
+}
+
+// Update header UI based on auth state
+function _irisUpdateUI(){
+  var btn=document.getElementById('iris-user-btn');
+  if(!btn)return;
+  if(_irisUser){
+    // Logged in: purple accent dot on person icon
+    btn.innerHTML='👤';
+    btn.className='hbtn';
+    btn.style.cssText='position:relative';
+    var dot=btn.querySelector('.iris-auth-dot');
+    if(!dot){dot=document.createElement('span');dot.className='iris-auth-dot';dot.style.cssText='position:absolute;top:6px;right:6px;width:8px;height:8px;background:var(--ac);border-radius:50%;border:2px solid var(--bg)';btn.appendChild(dot)}
+  }else{
+    // Logged out: plain icon, no dot
+    btn.innerHTML='👤';
+    btn.className='hbtn';
+    btn.style.cssText='';
+    var dot=btn.querySelector('.iris-auth-dot');
+    if(dot)dot.remove();
+  }
+}
+
+// Toggle user menu dropdown
+function _irisToggleUserMenu(){
+  if(!_irisUser){_irisOpenAuth();return}
+  var menu=document.getElementById('iris-user-menu');
+  if(menu.style.display==='block'){menu.style.display='none';return}
+  var name=_irisProfile?_irisProfile.display_name||_irisProfile.username:'User';
+  menu.innerHTML='<div style="padding:10px 16px 8px;font-size:13px;font-weight:700;color:var(--tx);border-bottom:1px solid rgba(255,255,255,.08);margin-bottom:4px">'+name+'</div>'
+    +'<div style="padding:8px 16px;font-size:13px;color:var(--t2);cursor:pointer" onmouseover="this.style.color=\'var(--tx)\'" onmouseout="this.style.color=\'var(--t2)\'" onclick="_irisUserMenuAction(\'settings\')">⚙️ Integrations</div>'
+    +'<div style="padding:8px 16px;font-size:13px;color:var(--t2);cursor:pointer" onmouseover="this.style.color=\'var(--tx)\'" onmouseout="this.style.color=\'var(--t2)\'" onclick="_irisUserMenuAction(\'refresh\')">🔄 Refresh Data</div>'
+    +'<div style="padding:8px 16px;font-size:13px;color:var(--t2);cursor:pointer" onmouseover="this.style.color=\'var(--tx)\'" onmouseout="this.style.color=\'var(--t2)\'" onclick="_irisUserMenuAction(\'logout\')">🚪 Log Out</div>';
+  menu.style.display='block';
+  // Close on outside click
+  setTimeout(function(){document.addEventListener('click',_irisCloseMenu,{once:true})},10);
+}
+function _irisCloseMenu(e){
+  var menu=document.getElementById('iris-user-menu');
+  if(menu)menu.style.display='none';
+}
+function _irisUserMenuAction(action){
+  document.getElementById('iris-user-menu').style.display='none';
+  if(action==='logout'){
+    _irisSB.auth.signOut();
+    _irisUser=null;_irisProfile=null;_irisTraktToken=null;_irisTraktClientId=null;
+    _irisUpdateUI();
+  }else if(action==='settings'){
+    _irisOpenSettings();
+  }else if(action==='refresh'){
+    _irisRequestRefresh();
+  }
+}
+
+// Auth modal controls
+function _irisOpenAuth(){
+  _irisAuthMode='login';
+  _irisRenderAuthMode();
+  var m=document.getElementById('iris-auth-modal');
+  m.style.display='flex';
+  document.getElementById('iris-auth-email').focus();
+}
+function _irisCloseAuth(){
+  document.getElementById('iris-auth-modal').style.display='none';
+  document.getElementById('iris-auth-error').style.display='none';
+  document.getElementById('iris-auth-email').value='';
+  document.getElementById('iris-auth-pass').value='';
+  var u=document.getElementById('iris-auth-username');if(u)u.value='';
+}
+function _irisToggleAuthMode(){
+  _irisAuthMode=_irisAuthMode==='login'?'register':'login';
+  _irisRenderAuthMode();
+}
+function _irisRenderAuthMode(){
+  var isReg=_irisAuthMode==='register';
+  document.getElementById('iris-auth-title').textContent=isReg?'Create Account':'Log in to Iris';
+  document.getElementById('iris-auth-submit').textContent=isReg?'Create Account':'Log In';
+  document.getElementById('iris-auth-toggle-text').textContent=isReg?'Already have an account?':'Don\'t have an account?';
+  document.getElementById('iris-auth-toggle').textContent=isReg?'Log In':'Sign Up';
+  document.getElementById('iris-auth-username-row').style.display=isReg?'':'none';
+  document.getElementById('iris-auth-error').style.display='none';
+}
+function _irisAuthSubmit(){
+  var email=document.getElementById('iris-auth-email').value.trim();
+  var pass=document.getElementById('iris-auth-pass').value;
+  var errEl=document.getElementById('iris-auth-error');
+  var btn=document.getElementById('iris-auth-submit');
+  if(!email||!pass){errEl.textContent='Please enter email and password';errEl.style.display='';return}
+  btn.disabled=true;btn.textContent='···';errEl.style.display='none';
+  if(_irisAuthMode==='register'){
+    var username=document.getElementById('iris-auth-username').value.trim().toLowerCase().replace(/[^a-z0-9_-]/g,'');
+    if(!username){errEl.textContent='Please enter a username';errEl.style.display='';btn.disabled=false;_irisRenderAuthMode();return}
+    _irisSB.auth.signUp({email:email,password:pass,options:{data:{username:username}}}).then(function(res){
+      if(res.error){errEl.textContent=res.error.message;errEl.style.display='';btn.disabled=false;_irisRenderAuthMode();return}
+      // Create profile
+      _irisSB.from('profiles').insert({id:res.data.user.id,username:username,display_name:username,is_public:true}).then(function(){
+        _irisCloseAuth();
+      });
+    });
+  }else{
+    _irisSB.auth.signInWithPassword({email:email,password:pass}).then(function(res){
+      if(res.error){errEl.textContent=res.error.message;errEl.style.display='';btn.disabled=false;_irisRenderAuthMode();return}
+      _irisCloseAuth();
+    });
+  }
+}
+
+// Gate check: returns true if user is logged in, shows login prompt if not
+function _irisRequireAuth(action){
+  if(_irisUser)return true;
+  _irisOpenAuth();
+  return false;
+}
+
+// Toast helper for auth-gated actions
+function _irisAuthToast(msg){
+  var t=document.createElement('div');
+  t.style.cssText='position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:rgba(124,58,237,.95);color:#fff;padding:10px 20px;border-radius:10px;font-size:13px;font-weight:600;z-index:99999;pointer-events:none;transition:opacity .3s';
+  t.textContent=msg||'Log in to use this feature';
+  document.body.appendChild(t);
+  setTimeout(function(){t.style.opacity='0';setTimeout(function(){t.remove()},300)},2500);
+}
+
+// ===== IRIS STORAGE + LOCALSTORAGE HELPERS =====
+
+// Save JSON to Supabase Storage (authenticated)
+function _irisSaveToStorage(filename,data){
+  if(!_irisSB||!_irisUser)return Promise.reject(new Error('Not authenticated'));
+  var path=_irisUser.id+'/'+filename;
+  var body=typeof data==='string'?data:JSON.stringify(data,null,2);
+  return fetch(_IRIS_SB_URL+'/storage/v1/object/user-data/'+path,{
+    method:'POST',
+    headers:{'apikey':_IRIS_SB_ANON,'Authorization':'Bearer '+_irisSB.auth.session?.access_token||'','Content-Type':'application/json','x-upsert':'true'},
+    body:body
+  }).then(function(r){
+    if(!r.ok)throw new Error('Storage upload failed: '+r.status);
+    return r.json();
+  });
+}
+
+// Upload file blob to Supabase Storage (authenticated)
+function _irisUploadFile(filename,blob,contentType){
+  if(!_irisSB||!_irisUser)return Promise.reject(new Error('Not authenticated'));
+  var path=_irisUser.id+'/imports/'+filename;
+  return _irisSB.auth.getSession().then(function(s){
+    return fetch(_IRIS_SB_URL+'/storage/v1/object/user-data/'+path,{
+      method:'POST',
+      headers:{'apikey':_IRIS_SB_ANON,'Authorization':'Bearer '+s.data.session.access_token,'Content-Type':contentType||'application/octet-stream','x-upsert':'true'},
+      body:blob
+    });
+  }).then(function(r){
+    if(!r.ok)throw new Error('Upload failed: '+r.status);
+    return r.json();
+  });
+}
+
+// Namespaced localStorage: iris_{uid}_{key} when logged in, iris_{key} when anonymous
+function _irisLSKey(key){
+  return _irisUser?'iris_'+_irisUser.id.substring(0,8)+'_'+key:'iris_'+key;
+}
+function _irisLSGet(key,fallback){
+  var v=localStorage.getItem(_irisLSKey(key));
+  if(v!==null)return v;
+  // Fallback: try unprefixed key (migration from pre-multi-user)
+  var old=localStorage.getItem('iris_'+key);
+  return old!==null?old:(fallback||null);
+}
+function _irisLSSet(key,value){
+  localStorage.setItem(_irisLSKey(key),value);
+}
+function _irisLSRemove(key){
+  localStorage.removeItem(_irisLSKey(key));
+}
+
+// Request data refresh
+function _irisRequestRefresh(){
+  if(!_irisSB||!_irisUser){_irisAuthToast('Log in to refresh');return}
+  _irisSB.from('profiles').update({refresh_requested_at:new Date().toISOString(),refresh_status:'pending'}).eq('id',_irisUser.id).then(function(res){
+    if(res.error){_irisAuthToast('Refresh request failed');return}
+    _irisAuthToast('Refresh queued! Data will update within ~15 minutes.');
+  });
+}
+
+// ===== IRIS SETTINGS =====
+var _irisSettingsOpen=false;
+var _irisIntegrations={}; // service -> {id, config, is_enabled, last_sync_at, last_error}
+
+// Service definitions
+var _irisSvcDefs=[
+  {id:'trakt',name:'Trakt',icon:'📺',type:'oauth',desc:'TV & movie watch history',fields:[]},
+  {id:'letterboxd',name:'Letterboxd',icon:'🎞️',type:'username',desc:'Movie diary & ratings',fields:[{key:'username',label:'Username',placeholder:'e.g. jamesgoux'}]},
+  {id:'lastfm',name:'Last.fm',icon:'🎧',type:'fields',desc:'Music scrobbles',fields:[{key:'username',label:'Username',placeholder:'e.g. jamesgoux'},{key:'api_key',label:'API Key',placeholder:'Last.fm API key',password:true}]},
+  {id:'goodreads',name:'Goodreads',icon:'📚',type:'username',desc:'Books & reading',fields:[{key:'user_id',label:'User ID',placeholder:'e.g. 2645271'}]},
+  {id:'pocketcasts',name:'Pocket Casts',icon:'🎙️',type:'credentials',desc:'Podcast listening',fields:[{key:'email',label:'Email',placeholder:'email@example.com'},{key:'password',label:'Password',placeholder:'Password',password:true}]},
+  {id:'serializd',name:'Serializd',icon:'📡',type:'credentials',desc:'TV season ratings',fields:[{key:'email',label:'Email',placeholder:'email@example.com'},{key:'password',label:'Password',placeholder:'Password',password:true}]},
+  {id:'bgg',name:'BoardGameGeek',icon:'🎲',type:'credentials',desc:'Board game plays',fields:[{key:'username',label:'Username',placeholder:'e.g. jamesgoux'},{key:'password',label:'Password',placeholder:'Password',password:true}]},
+  {id:'setlistfm',name:'setlist.fm',icon:'🎸',type:'fields',desc:'Concert history',fields:[{key:'api_key',label:'API Key',placeholder:'setlist.fm API key',password:true}]},
+  {id:'health',name:'Apple Health',icon:'🏃',type:'fields',desc:'Workouts via Hadge→GitHub',fields:[{key:'repo_path',label:'GitHub Repo',placeholder:'e.g. user/health'},{key:'github_token',label:'GitHub PAT',placeholder:'ghp_...',password:true}]},
+  {id:'sports',name:'Sports',icon:'🏟️',type:'info',desc:'Tracked via dashboard'},
+  {id:'gametrack',name:'GameTrack',icon:'🎮',type:'info',desc:'Import via CSV in dashboard'},
+  {id:'theater',name:'Theater',icon:'🎭',type:'info',desc:'Import via CSV in dashboard'},
+  {id:'bgstats',name:'BG Stats',icon:'🎲',type:'info',desc:'Import via JSON in dashboard'},
+];
+
+function _irisOpenSettings(){
+  if(!_irisUser){_irisOpenAuth();return}
+  document.getElementById('iris-settings-ov').style.display='';
+  _irisSettingsOpen=true;
+  _irisLoadIntegrations();
+  _irisRenderSettingsProfile();
+}
+function _irisCloseSettings(){
+  document.getElementById('iris-settings-ov').style.display='none';
+  _irisSettingsOpen=false;
+}
+
+function _irisRenderSettingsProfile(){
+  var el=document.getElementById('iris-settings-profile');
+  if(!_irisProfile){el.innerHTML='';return}
+  el.innerHTML='<div style="display:flex;align-items:center;gap:12px">'
+    +'<div style="width:44px;height:44px;background:var(--ac);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;color:#fff">'+(_irisProfile.username||'?')[0].toUpperCase()+'</div>'
+    +'<div><div style="font-size:16px;font-weight:700;color:var(--tx)">'+(_irisProfile.display_name||_irisProfile.username)+'</div>'
+    +'<div style="font-size:12px;color:var(--t2)">@'+_irisProfile.username+' · '+(_irisProfile.timezone||'')+'</div></div></div>';
+}
+
+function _irisLoadIntegrations(){
+  if(!_irisSB||!_irisUser)return;
+  _irisSB.from('integrations').select('*').eq('user_id',_irisUser.id).then(function(res){
+    _irisIntegrations={};
+    (res.data||[]).forEach(function(r){_irisIntegrations[r.service]=r});
+    _irisRenderServiceGrid();
+  });
+}
+
+function _irisRenderServiceGrid(){
+  var grid=document.getElementById('iris-settings-grid');
+  grid.innerHTML='';
+  _irisSvcDefs.forEach(function(svc){
+    var integ=_irisIntegrations[svc.id];
+    var status='none'; // none, connected, error
+    if(integ&&integ.is_enabled){
+      var cfg=integ.config||{};
+      var hasConfig=false;
+      if(svc.id==='trakt')hasConfig=!!cfg.access_token;
+      else if(svc.type==='info')hasConfig=true;
+      else{for(var k in cfg){if(cfg[k]){hasConfig=true;break}}}
+      status=integ.last_error?'error':(hasConfig?'connected':'none');
+    }
+    var dot=status==='connected'?'🟢':status==='error'?'🔴':'⚪';
+    var card=document.createElement('div');
+    card.style.cssText='padding:14px 16px;background:var(--sf);border-radius:10px;border:1px solid rgba(255,255,255,.06);cursor:pointer;transition:border-color .15s';
+    card.onmouseover=function(){this.style.borderColor='rgba(255,255,255,.15)'};
+    card.onmouseout=function(){this.style.borderColor='rgba(255,255,255,.06)'};
+    card.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between">'
+      +'<div style="display:flex;align-items:center;gap:10px">'
+      +'<span style="font-size:20px">'+svc.icon+'</span>'
+      +'<div><div style="font-size:14px;font-weight:600;color:var(--tx)">'+svc.name+'</div>'
+      +'<div style="font-size:11px;color:var(--t2)">'+svc.desc+'</div></div></div>'
+      +'<span style="font-size:10px">'+dot+'</span></div>'
+      +'<div id="iris-svc-detail-'+svc.id+'" style="display:none;margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,.06)"></div>';
+    card.onclick=function(e){
+      if(e.target.tagName==='INPUT'||e.target.tagName==='BUTTON'||e.target.tagName==='A')return;
+      _irisToggleServiceDetail(svc.id);
+    };
+    grid.appendChild(card);
+  });
+}
+
+function _irisToggleServiceDetail(svcId){
+  var el=document.getElementById('iris-svc-detail-'+svcId);
+  if(!el)return;
+  if(el.style.display!=='none'){el.style.display='none';return}
+  // Close others
+  _irisSvcDefs.forEach(function(s){
+    var o=document.getElementById('iris-svc-detail-'+s.id);
+    if(o&&s.id!==svcId)o.style.display='none';
+  });
+  el.style.display='';
+  var svc=_irisSvcDefs.find(function(s){return s.id===svcId});
+  if(!svc)return;
+  var integ=_irisIntegrations[svcId];
+  var cfg=(integ&&integ.config)||{};
+
+  if(svc.type==='oauth'&&svcId==='trakt'){
+    _irisRenderTraktConfig(el,cfg,integ);
+  }else if(svc.type==='info'){
+    el.innerHTML='<div style="font-size:12px;color:var(--t2)">'+svc.desc+'. No configuration needed here.</div>';
+  }else{
+    _irisRenderFieldConfig(el,svc,cfg,integ);
+  }
+}
+
+// Generic field-based config form
+function _irisRenderFieldConfig(el,svc,cfg,integ){
+  var h='';
+  // Trust messaging for services that require sensitive data
+  var _hasSensitive=svc.fields.some(function(f){return f.password});
+  if(_hasSensitive){
+    var _msg=svc.type==='credentials'
+      ?'Your credentials are <b style="color:#4ade80">encrypted at rest</b> and only used server-side to sync your data. They are never sent to your browser or shared. This integration is optional.'
+      :'Your API key is <b style="color:#4ade80">encrypted at rest</b> and only used server-side. It is never exposed to other users.';
+    h+='<div style="display:flex;align-items:flex-start;gap:8px;padding:10px 12px;background:rgba(74,222,128,.06);border:1px solid rgba(74,222,128,.15);border-radius:8px;margin-bottom:12px">'
+      +'<span style="font-size:14px;flex-shrink:0;margin-top:1px">🔒</span>'
+      +'<div style="font-size:11px;color:var(--t2);line-height:1.5">'+_msg+'</div></div>';
+  }
+  svc.fields.forEach(function(f){
+    var val=cfg[f.key]||'';
+    var type=f.password?'password':'text';
+    // For password/sensitive fields with existing encrypted values, show placeholder instead of actual value
+    var isEncrypted=f.password&&val&&val.substring(0,4)==='enc:';
+    var displayVal=isEncrypted?'':val;
+    var ph=isEncrypted?'••••••••  (saved, enter new value to change)':(f.placeholder||'');
+    h+='<div style="margin-bottom:8px"><label style="font-size:11px;color:var(--t2);display:block;margin-bottom:3px">'
+      +(f.password?'🔒 ':'')+f.label
+      +(isEncrypted?' <span style="color:#4ade80;font-size:10px">encrypted</span>':'')
+      +'</label>'
+      +'<input id="iris-svc-f-'+svc.id+'-'+f.key+'" type="'+type+'" value="'+displayVal.replace(/"/g,'&quot;')+'" placeholder="'+ph+'"'
+      +(isEncrypted?' data-encrypted="1"':'')
+      +' style="width:100%;padding:10px;background:var(--bg);border:1px solid rgba(255,255,255,.12);border-radius:8px;color:var(--tx);font-size:13px;box-sizing:border-box"></div>';
+  });
+  h+='<div style="display:flex;gap:8px;margin-top:10px">';
+  h+='<button onclick="_irisSaveService(\''+svc.id+'\')" style="flex:1;padding:10px;background:var(--ac);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer">Save</button>';
+  if(integ&&Object.keys(cfg).some(function(k){return cfg[k]})){
+    h+='<button onclick="_irisDisconnectService(\''+svc.id+'\')" style="padding:10px 14px;background:none;border:1px solid rgba(239,68,68,.4);color:#ef4444;border-radius:8px;font-size:13px;cursor:pointer">Disconnect</button>';
+  }
+  h+='</div><div id="iris-svc-status-'+svc.id+'" style="margin-top:8px;font-size:12px"></div>';
+  el.innerHTML=h;
+}
+
+// Save service config
+function _irisSaveService(svcId){
+  var svc=_irisSvcDefs.find(function(s){return s.id===svcId});
+  if(!svc||!_irisSB||!_irisUser)return;
+  var integ=_irisIntegrations[svcId];
+  var existingCfg=(integ&&integ.config)||{};
+  var cfg={};
+  svc.fields.forEach(function(f){
+    var inp=document.getElementById('iris-svc-f-'+svcId+'-'+f.key);
+    if(!inp)return;
+    var val=inp.value.trim();
+    // If this is an encrypted field and user left it blank, preserve the existing encrypted value
+    if(!val&&inp.dataset.encrypted==='1'){
+      cfg[f.key]=existingCfg[f.key]||'';
+    }else{
+      cfg[f.key]=val;
+    }
+  });
+  var statusEl=document.getElementById('iris-svc-status-'+svcId);
+  if(statusEl)statusEl.innerHTML='<span style="color:var(--t2)">Saving…</span>';
+
+  var promise;
+  if(integ){
+    promise=_irisSB.from('integrations').update({config:cfg,is_enabled:true,last_error:null,updated_at:new Date().toISOString()}).eq('id',integ.id);
+  }else{
+    promise=_irisSB.from('integrations').insert({user_id:_irisUser.id,service:svcId,config:cfg,is_enabled:true});
+  }
+  promise.then(function(res){
+    if(res.error){
+      if(statusEl)statusEl.innerHTML='<span style="color:#ef4444">Error: '+res.error.message+'</span>';
+    }else{
+      if(statusEl)statusEl.innerHTML='<span style="color:#4ade80">✓ Saved</span>';
+      _irisLoadIntegrations(); // refresh grid
+    }
+  });
+}
+
+// Disconnect service
+function _irisDisconnectService(svcId){
+  if(!_irisSB||!_irisUser)return;
+  var integ=_irisIntegrations[svcId];
+  if(!integ)return;
+  if(!confirm('Disconnect '+svcId+'? Your credentials will be removed.'))return;
+  _irisSB.from('integrations').update({config:{},is_enabled:false,last_error:null}).eq('id',integ.id).then(function(res){
+    if(!res.error)_irisLoadIntegrations();
+  });
+}
+
+// Trakt OAuth device code flow
+function _irisRenderTraktConfig(el,cfg,integ){
+  if(cfg.access_token){
+    var exp=cfg.token_expires_at?new Date(cfg.token_expires_at*1000).toLocaleDateString():'unknown';
+    el.innerHTML='<div style="font-size:13px;color:#4ade80;margin-bottom:8px">🟢 Connected as <b>'+(cfg.username||'unknown')+'</b></div>'
+      +'<div style="font-size:11px;color:var(--t2);margin-bottom:12px">Token expires: '+exp+'</div>'
+      +'<div style="display:flex;gap:8px">'
+      +'<button onclick="_irisTraktReauth()" style="flex:1;padding:10px;background:var(--sf);border:1px solid rgba(255,255,255,.12);color:var(--tx);border-radius:8px;font-size:13px;cursor:pointer">Re-authorize</button>'
+      +'<button onclick="_irisDisconnectService(\'trakt\')" style="padding:10px 14px;background:none;border:1px solid rgba(239,68,68,.4);color:#ef4444;border-radius:8px;font-size:13px;cursor:pointer">Disconnect</button></div>';
+  }else{
+    el.innerHTML='<div style="font-size:13px;color:var(--t2);margin-bottom:12px">Connect your Trakt account to track movies & TV shows.</div>'
+      +'<button onclick="_irisTraktAuth()" id="iris-trakt-auth-btn" style="width:100%;padding:12px;background:#ed1c24;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer">Connect Trakt</button>'
+      +'<div id="iris-trakt-auth-status" style="margin-top:10px"></div>';
+  }
+}
+
+function _irisTraktReauth(){_irisTraktAuth()}
+function _irisTraktAuth(){
+  if(!_irisSB||!_irisUser)return;
+  var statusEl=document.getElementById('iris-trakt-auth-status');
+  var btn=document.getElementById('iris-trakt-auth-btn');
+  if(btn){btn.disabled=true;btn.textContent='Loading…'}
+
+  // Get shared Trakt credentials from global_config
+  _irisSB.from('global_config').select('value').eq('key','trakt').single().then(function(res){
+    if(!res.data||!res.data.value||!res.data.value.client_id){
+      if(statusEl)statusEl.innerHTML='<span style="color:#ef4444">Trakt app not configured. Contact admin.</span>';
+      return;
+    }
+    var cid=res.data.value.client_id;
+    var csec=res.data.value.client_secret;
+
+    // Step 1: Request device code
+    fetch('https://api.trakt.tv/oauth/device/code',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({client_id:cid})
+    }).then(function(r){return r.json()}).then(function(d){
+      var code=d.user_code;
+      var devCode=d.device_code;
+      var interval=(d.interval||5)*1000;
+      var expiry=Date.now()+(d.expires_in||600)*1000;
+
+      // Show code to user
+      var detail=document.getElementById('iris-svc-detail-trakt');
+      if(detail){
+        detail.innerHTML='<div style="text-align:center;padding:12px 0">'
+          +'<div style="font-size:13px;color:var(--t2);margin-bottom:8px">Go to <a href="https://trakt.tv/activate" target="_blank" style="color:var(--ac);font-weight:600">trakt.tv/activate</a> and enter:</div>'
+          +'<div style="font-size:32px;font-weight:800;color:var(--tx);letter-spacing:6px;font-family:monospace;margin:12px 0">'+code+'</div>'
+          +'<div style="font-size:12px;color:var(--t2)">Waiting for authorization…</div>'
+          +'<div id="iris-trakt-poll-status" style="margin-top:8px;font-size:12px;color:var(--t2)"></div></div>';
+      }
+
+      // Step 2: Poll for token
+      var pollTimer=setInterval(function(){
+        if(Date.now()>expiry){
+          clearInterval(pollTimer);
+          var ps=document.getElementById('iris-trakt-poll-status');
+          if(ps)ps.innerHTML='<span style="color:#ef4444">Code expired. Try again.</span>';
+          return;
+        }
+        fetch('https://api.trakt.tv/oauth/device/token',{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({code:devCode,client_id:cid,client_secret:csec})
+        }).then(function(r){
+          if(r.status===200){
+            clearInterval(pollTimer);
+            r.json().then(function(tok){
+              // Get Trakt username
+              fetch('https://api.trakt.tv/users/me',{
+                headers:{'Content-Type':'application/json','trakt-api-version':'2','trakt-api-key':cid,'Authorization':'Bearer '+tok.access_token}
+              }).then(function(ur){return ur.json()}).then(function(user){
+                var traktCfg={
+                  username:user.username||'',
+                  client_id:cid,
+                  access_token:tok.access_token,
+                  refresh_token:tok.refresh_token,
+                  token_expires_at:tok.created_at+tok.expires_in
+                };
+                // Save to Supabase
+                var integ=_irisIntegrations['trakt'];
+                var p2;
+                if(integ){
+                  p2=_irisSB.from('integrations').update({config:traktCfg,is_enabled:true,last_error:null}).eq('id',integ.id);
+                }else{
+                  p2=_irisSB.from('integrations').insert({user_id:_irisUser.id,service:'trakt',config:traktCfg,is_enabled:true});
+                }
+                p2.then(function(){
+                  // Update local state
+                  _irisTraktToken=tok.access_token;
+                  _irisTraktClientId=cid;
+                  _irisLoadIntegrations();
+                  var detail2=document.getElementById('iris-svc-detail-trakt');
+                  if(detail2)detail2.innerHTML='<div style="text-align:center;color:#4ade80;font-weight:600;padding:12px">✓ Connected as '+user.username+'!</div>';
+                });
+              });
+            });
+          }else if(r.status===400){
+            // Still waiting for user
+            var ps=document.getElementById('iris-trakt-poll-status');
+            if(ps)ps.textContent='Waiting… ('+Math.round((expiry-Date.now())/1000)+'s remaining)';
+          }else if(r.status===409){
+            clearInterval(pollTimer);
+            var ps2=document.getElementById('iris-trakt-poll-status');
+            if(ps2)ps2.innerHTML='<span style="color:#ef4444">Code already used. Try again.</span>';
+          }else if(r.status===410){
+            clearInterval(pollTimer);
+            var ps3=document.getElementById('iris-trakt-poll-status');
+            if(ps3)ps3.innerHTML='<span style="color:#ef4444">Code expired. Try again.</span>';
+          }
+        });
+      },interval);
+    });
+  });
+}
+
 // Lazy chart observer — defer init until visible
 var _lazyQ=[];var _lazyObs=new IntersectionObserver(function(entries){entries.forEach(function(e){if(e.isIntersecting){var idx=_lazyQ.findIndex(function(q){return q.el===e.target});if(idx>=0){var q=_lazyQ.splice(idx,1)[0];q.fn();_lazyObs.unobserve(e.target)}}})},{rootMargin:'200px'});
 function lazyChart(el,fn){if(!el)return;var rect=el.getBoundingClientRect();if(rect.top<window.innerHeight+200){fn()}else{_lazyQ.push({el:el,fn:fn});_lazyObs.observe(el)}}
@@ -2543,9 +3180,9 @@ var _spSchedule=D.spSchedule||{events:{},teams:{}};
 var _spTrackedTeams=D.spTeams||[];
 // Sports: merge repo data (D.sp) + localStorage pending additions
 var _spRepo=D.sp||[];
-var _spPending=JSON.parse(localStorage.getItem('iris_sports_pending')||'[]');
+var _spPending=JSON.parse(_irisLSGet('sports_pending')||'[]');
 // Migrate old localStorage format (iris_sports) to pending if repo is empty
-(function(){var old=JSON.parse(localStorage.getItem('iris_sports')||'[]');if(old.length&&!_spRepo.length){_spPending=old;localStorage.setItem('iris_sports_pending',JSON.stringify(_spPending));localStorage.removeItem('iris_sports')}})();
+(function(){var old=JSON.parse(_irisLSGet('sports')||'[]');if(old.length&&!_spRepo.length){_spPending=old;_irisLSSet('sports_pending',JSON.stringify(_spPending));_irisLSRemove('sports')}})();
 var SP=(function(){var ids={};var merged=[];_spRepo.forEach(function(e){ids[e.id]=true;merged.push(e)});_spPending.forEach(function(e){if(!ids[e.id]){ids[e.id]=true;merged.push(e)}});return merged})();
 window._spSelected=null;
 
@@ -2555,51 +3192,26 @@ function _lgColor(league){if(!league)return'#0ea5e9';for(var k in _lgColors){if(
 
 // Auto-commit sports.json to GitHub repo
 function _spCommitToRepo(){
-  var pat=localStorage.getItem('iris_gh_pat');
-  if(!pat){
-    // Show clean one-time PAT prompt
-    var modal=document.createElement('div');
-    modal.id='pat-modal';
-    modal.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.8);z-index:9999;display:flex;align-items:center;justify-content:center';
-    modal.innerHTML='<div style="background:var(--sf);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:24px;max-width:400px;width:90%"><h3 style="margin:0 0 8px;font-size:16px;color:var(--tx)">Connect to GitHub</h3><p style="font-size:12px;color:var(--t2);margin:0 0 16px;line-height:1.5">Enter a GitHub Personal Access Token to sync sports events across devices. Create one at <a href="https://github.com/settings/tokens?type=beta" target="_blank" style="color:var(--sp)">github.com/settings/tokens</a> with <b>Contents: Read & Write</b> for iris-stats.</p><input id="sp-pat-input" type="password" placeholder="github_pat_..." style="width:100%;padding:12px;background:var(--bg);border:1px solid rgba(255,255,255,.15);border-radius:8px;color:var(--tx);font-size:13px;font-family:monospace;margin-bottom:12px"><div style="display:flex;gap:8px"><button onclick="var v=document.getElementById(\'sp-pat-input\').value.trim();if(v){localStorage.setItem(\'iris_gh_pat\',v);document.getElementById(\'pat-modal\').remove();_spCommitToRepo()}" style="flex:1;padding:12px;background:var(--sp);color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer;font-weight:600">Save</button><button onclick="document.getElementById(\'pat-modal\').remove()" style="padding:12px 16px;background:none;border:1px solid rgba(255,255,255,.1);color:var(--t2);border-radius:8px;font-size:14px;cursor:pointer">Skip</button></div></div>';
-    document.body.appendChild(modal);
-    return;
-  }
-  // Merge repo + pending into full list
+  if(!_irisRequireAuth('save sports events')){return}
+  // Save to Supabase Storage (replaces GitHub API write)
   var all=SP.slice();
-  var bodyStr=JSON.stringify(all,null,2);
-  // Base64 encode safely (handles Unicode)
-  var b64=btoa(Array.from(new TextEncoder().encode(bodyStr),function(b){return String.fromCharCode(b)}).join(''));
-  // Get current file SHA first
-  fetch('https://api.github.com/repos/jamesgoux/iris-stats/contents/data/sports.json',{headers:{'Authorization':'Bearer '+pat,'Accept':'application/vnd.github.v3+json'}})
-    .then(function(r){return r.json()})
-    .then(function(d){
-      var sha=d.sha||'';
-      return fetch('https://api.github.com/repos/jamesgoux/iris-stats/contents/data/sports.json',{
-        method:'PUT',headers:{'Authorization':'Bearer '+pat,'Accept':'application/vnd.github.v3+json','Content-Type':'application/json'},
-        body:JSON.stringify({message:'Update sports events ('+all.length+' games)',content:b64,sha:sha})
-      });
+  _irisSaveToStorage('sports.json',all)
+    .then(function(){
+      _spPending=[];_irisLSSet('sports_pending','[]');
+      _spToast('✓ Saved to cloud','#4ade80');
     })
-    .then(function(r){
-      if(r.ok){_spPending=[];localStorage.setItem('iris_sports_pending','[]');_spToast('✓ Saved to GitHub','#4ade80')}
-      else{r.json().then(function(d){console.warn('Sports sync failed:',r.status,d);if(r.status===401){localStorage.removeItem('iris_gh_pat');_spToast('Token invalid — tap + Add to re-enter','#ef4444')}else{_spToast('Sync failed ('+r.status+')','#ef4444')}})}
-    })
-    .catch(function(e){console.warn('Sports sync error:',e);_spToast('Sync error — check console','#ef4444')});
+    .catch(function(e){
+      console.warn('Sports sync error:',e);
+      _spToast('Sync error: '+e.message,'#ef4444');
+    });
 }
 // CSV auto-commit to repo (reuses sports PAT)
 function _csvCommitToRepo(path,content,msg,cb){
-  var pat=localStorage.getItem('iris_gh_pat');
-  if(!pat){if(cb)cb(false);return}
-  var b64=btoa(Array.from(new TextEncoder().encode(content),function(b){return String.fromCharCode(b)}).join(''));
-  fetch('https://api.github.com/repos/jamesgoux/iris-stats/contents/'+path,{headers:{'Authorization':'Bearer '+pat,'Accept':'application/vnd.github.v3+json'}})
-    .then(function(r){return r.json()})
-    .then(function(d){
-      return fetch('https://api.github.com/repos/jamesgoux/iris-stats/contents/'+path,{
-        method:'PUT',headers:{'Authorization':'Bearer '+pat,'Accept':'application/vnd.github.v3+json','Content-Type':'application/json'},
-        body:JSON.stringify({message:msg,content:b64,sha:d.sha||''})
-      });
-    })
-    .then(function(r){if(cb)cb(r.ok)})
+  // Upload to Supabase Storage (replaces GitHub API write)
+  if(!_irisUser){if(cb)cb(false);return}
+  var filename=path.split('/').pop();
+  _irisSaveToStorage('imports/'+filename,content)
+    .then(function(){if(cb)cb(true)})
     .catch(function(){if(cb)cb(false)});
 }
 
@@ -2978,19 +3590,9 @@ function _spAutoTrackTeam(teamName){
   leagueId=leagueMap[league]||'';
   var newTeam={name:teamName,league:league,league_id:leagueId,team_id:teamId,sport:sport};
   _spTrackedTeams.push(newTeam);
-  // Commit updated teams list to repo
-  var pat=localStorage.getItem('iris_gh_pat');if(!pat)return;
-  var content=JSON.stringify(_spTrackedTeams,null,2);
-  var b64=btoa(Array.from(new TextEncoder().encode(content),function(b){return String.fromCharCode(b)}).join(''));
-  fetch('https://api.github.com/repos/jamesgoux/iris-stats/contents/data/sports_teams.json',{headers:{'Authorization':'Bearer '+pat,'Accept':'application/vnd.github.v3+json'}})
-    .then(function(r){return r.json()})
-    .then(function(d){
-      return fetch('https://api.github.com/repos/jamesgoux/iris-stats/contents/data/sports_teams.json',{
-        method:'PUT',headers:{'Authorization':'Bearer '+pat,'Accept':'application/vnd.github.v3+json','Content-Type':'application/json'},
-        body:JSON.stringify({message:'Track new team: '+teamName,content:b64,sha:d.sha||''})
-      });
-    })
-    .then(function(r){if(r.ok)_spToast('Tracking '+teamName+' for schedule cache','#4ade80')})
+  // Save updated teams list to Supabase Storage
+  _irisSaveToStorage('sports_teams.json',_spTrackedTeams)
+    .then(function(){_spToast('Tracking '+teamName+' for schedule cache','#4ade80')})
     .catch(function(){});
 }
 
@@ -3004,7 +3606,7 @@ function quickSaveSport(btn,watchType){
   var newEv={id:ev.idEvent,date:_spLocalDate(ev),sport:ev.strSport,league:ev.strLeague,home_team:ev.strHomeTeam,away_team:ev.strAwayTeam,home_score:ev.intHomeScore,away_score:ev.intAwayScore,venue:ev.strVenue||'',home_badge:ev.strHomeTeamBadge||'',away_badge:ev.strAwayTeamBadge||'',watch_type:watchType,my_team:window._spTeamName||''};
   SP.push(newEv);
   _spPending.push(newEv);
-  localStorage.setItem('iris_sports_pending',JSON.stringify(_spPending));
+  _irisLSSet('sports_pending',JSON.stringify(_spPending));
   _spAutoTrackTeam(window._spTeamName);
   _spCommitToRepo();
   // Flash success then refresh
@@ -3021,7 +3623,7 @@ function saveSportsEvent(){
   var newEv={id:ev.idEvent,date:_spLocalDate(ev),sport:ev.strSport,league:ev.strLeague,home_team:ev.strHomeTeam,away_team:ev.strAwayTeam,home_score:ev.intHomeScore,away_score:ev.intAwayScore,venue:ev.strVenue||'',home_badge:ev.strHomeTeamBadge||'',away_badge:ev.strAwayTeamBadge||'',watch_type:wt.dataset.v,my_team:window._spTeamName||''};
   SP.push(newEv);
   _spPending.push(newEv);
-  localStorage.setItem('iris_sports_pending',JSON.stringify(_spPending));
+  _irisLSSet('sports_pending',JSON.stringify(_spPending));
   _spAutoTrackTeam(window._spTeamName);
   _spCommitToRepo();
   var confirmEl=document.getElementById('sp-ov-confirm');
@@ -3411,7 +4013,7 @@ function renderSports(){
 function deleteSportsEvent(id){
   SP=SP.filter(function(e){return e.id!==id});
   _spPending=_spPending.filter(function(e){return e.id!==id});
-  localStorage.setItem('iris_sports_pending',JSON.stringify(_spPending));
+  _irisLSSet('sports_pending',JSON.stringify(_spPending));
   _spCommitToRepo();
   renderSports();
 }
@@ -3615,8 +4217,8 @@ function _llRenderBatch(){
 }
 
 // Up Next page
-var _unWatched=JSON.parse(localStorage.getItem('iris_un_watched')||'{}');
-var _unRemoved=JSON.parse(localStorage.getItem('iris_un_removed')||'{}');
+var _unWatched=JSON.parse(_irisLSGet('un_watched')||'{}');
+var _unRemoved=JSON.parse(_irisLSGet('un_removed')||'{}');
 var _undoStack={};// Saved episode metadata before advancing, keyed by slug|season|episode
 function _saveUndoState(show,season,episode){
   var k=show.slug+'|'+season+'|'+episode;
@@ -3700,19 +4302,19 @@ Object.keys(_unWatched).forEach(function(key){
   // Prune: pipeline has it in recent (caught up), or slug not in Up Next data at all (ghost)
   if(rSet[key]||!knownSlugs[slug]){delete _unWatched[key];pruned=true}
 });
-if(pruned){localStorage.setItem('iris_un_watched',JSON.stringify(_unWatched));console.log('Pruned '+Object.keys(_unWatched).length+' _unWatched entries')}
+if(pruned){_irisLSSet('un_watched',JSON.stringify(_unWatched));console.log('Pruned '+Object.keys(_unWatched).length+' _unWatched entries')}
 // Build-change prune: also clear old entries older than build time
-var lastBuild=localStorage.getItem('iris_un_build')||'';
+var lastBuild=_irisLSGet('un_build')||'';
 if(build!==lastBuild&&build!=='__BUILD_'+'TIME__'){
-  localStorage.setItem('iris_un_build',build);
+  _irisLSSet('un_build',build);
   var buildMs=new Date(build.replace(' UTC','')+' UTC').getTime()||0;
   Object.keys(_unWatched).forEach(function(key){
     var wMs=new Date(_unWatched[key]).getTime()||0;
     if(wMs&&wMs<buildMs){delete _unWatched[key];pruned=true}
   });
-  if(pruned)localStorage.setItem('iris_un_watched',JSON.stringify(_unWatched));
+  if(pruned)_irisLSSet('un_watched',JSON.stringify(_unWatched));
   // Prune only stale removals (>24hr) — keep recent removals to prevent ghost reappearance
-  if(Object.keys(_unRemoved).length){var rmCut=Date.now()-86400000,rmP=false;Object.keys(_unRemoved).forEach(function(k){if(_unRemoved[k]<rmCut){delete _unRemoved[k];rmP=true}});if(rmP)localStorage.setItem('iris_un_removed',JSON.stringify(_unRemoved))}
+  if(Object.keys(_unRemoved).length){var rmCut=Date.now()-86400000,rmP=false;Object.keys(_unRemoved).forEach(function(k){if(_unRemoved[k]<rmCut){delete _unRemoved[k];rmP=true}});if(rmP)_irisLSSet('un_removed',JSON.stringify(_unRemoved))}
 }
 // Advance shows based on _unWatched entries (skip if later removed)
 shows.forEach(function(s){
@@ -3729,7 +4331,7 @@ shows.forEach(function(s){
     key=s.slug+'|'+s.season+'|'+s.episode;
   }
 });
-if(pruned)localStorage.setItem('iris_un_watched',JSON.stringify(_unWatched));
+if(pruned)_irisLSSet('un_watched',JSON.stringify(_unWatched));
 })();
 var _scrollY=0;
 function _lockBody(){_scrollY=window.scrollY;document.body.style.position='fixed';document.body.style.top='-'+_scrollY+'px';document.body.style.width='100%';document.body.style.overflow='hidden'}
@@ -4490,8 +5092,9 @@ function _crNavToEp(season,newEp){
 }
 
 function _traktSync(epTraktId,watchedAt,onDone){
-  var cid=D._tc,tok=D._tt;
-  if(!cid||!tok){console.warn('Trakt credentials not injected');if(onDone)onDone(false);return}
+  var auth=_irisGetTraktAuth();
+  var cid=auth.clientId,tok=auth.accessToken;
+  if(!cid||!tok){console.warn('Trakt credentials not available');if(onDone)onDone(false);return}
   var body=JSON.stringify({episodes:[{ids:{trakt:epTraktId},watched_at:watchedAt}]});
   fetch('https://api.trakt.tv/sync/history',{method:'POST',headers:{'Content-Type':'application/json','trakt-api-version':'2','trakt-api-key':cid,'Authorization':'Bearer '+tok},body:body})
   .then(function(r){if(!r.ok)throw new Error('Trakt '+r.status);return r.json()})
@@ -4571,10 +5174,10 @@ function _renderEpHistory(ct,entries){
 function _isRemoved(slug,season,ep,watchedAt){
   var k=slug+'|'+season+'|'+ep;var rmTime=_unRemoved[k];if(!rmTime)return false;
   // If the episode was re-watched AFTER removal, show it (the removal is stale)
-  if(watchedAt){var wt=new Date(watchedAt).getTime();if(wt&&wt>rmTime){delete _unRemoved[k];localStorage.setItem('iris_un_removed',JSON.stringify(_unRemoved));return false}}
+  if(watchedAt){var wt=new Date(watchedAt).getTime();if(wt&&wt>rmTime){delete _unRemoved[k];_irisLSSet('un_removed',JSON.stringify(_unRemoved));return false}}
   return true;
 }
-function _markRemoved(slug,season,ep){_unRemoved[slug+'|'+season+'|'+ep]=Date.now();localStorage.setItem('iris_un_removed',JSON.stringify(_unRemoved))}
+function _markRemoved(slug,season,ep){_unRemoved[slug+'|'+season+'|'+ep]=Date.now();_irisLSSet('un_removed',JSON.stringify(_unRemoved))}
 
 // Remove a single watch entry — executes immediately on tap
 function _removeEpWatch(historyId,btn,ev){
@@ -4588,7 +5191,7 @@ function _removeEpWatch(historyId,btn,ev){
   // Also clear volatile caches
   if(_rmSlug){
     var lsKey=_rmSlug+'|'+_rmSeason+'|'+_rmEp;
-    if(_unWatched[lsKey]){delete _unWatched[lsKey];localStorage.setItem('iris_un_watched',JSON.stringify(_unWatched))}
+    if(_unWatched[lsKey]){delete _unWatched[lsKey];_irisLSSet('un_watched',JSON.stringify(_unWatched))}
     delete _epHistCache[_rmSlug+'|'+_rmSeason+'|'+_rmEp];
   }
   var ud=D.un||{};
@@ -4758,11 +5361,12 @@ function _insertRecentCard(cardHtml){
 }
 
 function markWatchedAt(slug,season,episode,epTraktId,when){
+  if(!_irisRequireAuth('mark watched')){return}
   var key=slug+'|'+season+'|'+episode;
   var watchedAt=when==='now'?new Date().toISOString():when;
   if(!watchedAt){alert('Please select a date first');return}
   _unWatched[key]=watchedAt;
-  localStorage.setItem('iris_un_watched',JSON.stringify(_unWatched));
+  _irisLSSet('un_watched',JSON.stringify(_unWatched));
   _injectRecentWatch(slug,season,episode,watchedAt);
   // Capture show info before _unDismissDetail clears _crBase
   var showTitle=_crBase?_crBase.show||slug:slug;
@@ -4841,12 +5445,13 @@ function _animateQueueUpdate(a){
 }
 
 function markWatched(slug,season,episode,epTraktId,btn){
+  if(!_irisRequireAuth('mark watched')){return}
   var key=slug+'|'+season+'|'+episode;
   var card=btn.closest('.un-card');
   card.style.opacity='0.3';card.style.pointerEvents='none';
   var watchedAt=new Date().toISOString();
   _unWatched[key]=watchedAt;
-  localStorage.setItem('iris_un_watched',JSON.stringify(_unWatched));
+  _irisLSSet('un_watched',JSON.stringify(_unWatched));
   _injectRecentWatch(slug,season,episode,watchedAt);
   // Add to Recently Watched with slide-down + fade-in animation
   (function(){
@@ -4956,7 +5561,7 @@ function removeRecent(epId,btn){
   _markRemoved(slug,season,episode);
   // Clear from _unWatched
   var lsKey=slug+'|'+season+'|'+episode;
-  if(_unWatched[lsKey]){delete _unWatched[lsKey];localStorage.setItem('iris_un_watched',JSON.stringify(_unWatched))}
+  if(_unWatched[lsKey]){delete _unWatched[lsKey];_irisLSSet('un_watched',JSON.stringify(_unWatched))}
   // Clear from D.un.recent
   var ud=D.un||{};
   if(ud.recent){ud.recent=ud.recent.filter(function(r){return !(r.slug===slug&&r.season==season&&r.episode==episode)})}
@@ -5063,8 +5668,9 @@ var _seasonEpDataCache={}; // slug|season -> episodes[]
 
 // Trakt API helper
 function _traktGet(path,needsAuth){
-  var hdr={'Content-Type':'application/json','trakt-api-version':'2','trakt-api-key':D._tc};
-  if(needsAuth&&D._tt)hdr['Authorization']='Bearer '+D._tt;
+  var auth=_irisGetTraktAuth();
+  var hdr={'Content-Type':'application/json','trakt-api-version':'2','trakt-api-key':auth.clientId};
+  if(needsAuth&&auth.accessToken)hdr['Authorization']='Bearer '+auth.accessToken;
   return fetch('https://api.trakt.tv'+path,{headers:hdr}).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json()});
 }
 
@@ -6390,7 +6996,9 @@ function _mvDpConfirm(){
   var when=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')+'T'+String(hour).padStart(2,'0')+':'+String(mIdx).padStart(2,'0');
   document.getElementById('un-dp-sheet').remove();
   // Mark movie as watched with custom date
-  var cid=D._tc,tok=D._tt;
+  if(!_irisRequireAuth('mark watched')){return}
+  var auth=_irisGetTraktAuth();
+  var cid=auth.clientId,tok=auth.accessToken;
   if(!cid||!tok){alert('Trakt credentials not available');return}
   var body=JSON.stringify({movies:[{ids:{trakt:_mvDpTraktId},watched_at:when}]});
   var btn=document.getElementById('un-mv-watch');
@@ -6416,7 +7024,7 @@ function _unOpenShow(slug,tmdbId){
   // Fetch show details + seasons + progress in parallel
   var showP=_traktGet('/shows/'+encodeURIComponent(slug)+'?extended=full');
   var seasonsP=_traktGet('/shows/'+encodeURIComponent(slug)+'/seasons?extended=full');
-  var progP=(D._tt)?_traktGet('/shows/'+encodeURIComponent(slug)+'/progress/watched',true).catch(function(){return null}):Promise.resolve(null);
+  var progP=(_irisGetTraktAuth().accessToken)?_traktGet('/shows/'+encodeURIComponent(slug)+'/progress/watched',true).catch(function(){return null}):Promise.resolve(null);
   Promise.all([showP,seasonsP,progP]).then(function(res){
     if(_unCurrentView!=='show')return;
     var show=res[0],seasons=res[1],progress=res[2];
@@ -6547,7 +7155,7 @@ function _unOpenSeason(slug,seasonNum,tmdbId){
   // Fetch episodes + watched progress in parallel
   var epsP=_traktGet('/shows/'+encodeURIComponent(slug)+'/seasons/'+seasonNum+'/episodes?extended=full');
   var cached=_showDataCache[slug];
-  var progP=cached&&cached.progress?Promise.resolve(cached.progress):(D._tt?_traktGet('/shows/'+encodeURIComponent(slug)+'/progress/watched',true).catch(function(){return null}):Promise.resolve(null));
+  var progP=cached&&cached.progress?Promise.resolve(cached.progress):(_irisGetTraktAuth().accessToken?_traktGet('/shows/'+encodeURIComponent(slug)+'/progress/watched',true).catch(function(){return null}):Promise.resolve(null));
   Promise.all([epsP,progP]).then(function(res){
     if(_unCurrentView!=='season')return;
     var episodes=res[0],progress=res[1];
@@ -6653,7 +7261,7 @@ function _unEpNavShow(slug,tmdbId){
   var _sov=document.getElementById('un-search-ov');if(_sov)_sov.scrollTop=0;
   var showP=_traktGet('/shows/'+encodeURIComponent(slug)+'?extended=full');
   var seasonsP=_traktGet('/shows/'+encodeURIComponent(slug)+'/seasons?extended=full');
-  var progP=(D._tt)?_traktGet('/shows/'+encodeURIComponent(slug)+'/progress/watched',true).catch(function(){return null}):Promise.resolve(null);
+  var progP=(_irisGetTraktAuth().accessToken)?_traktGet('/shows/'+encodeURIComponent(slug)+'/progress/watched',true).catch(function(){return null}):Promise.resolve(null);
   Promise.all([showP,seasonsP,progP]).then(function(res){
     if(_unCurrentView!=='show')return;
     _showDataCache[slug]={show:res[0],seasons:res[1],progress:res[2],tmdbId:tmdbId};
@@ -6673,7 +7281,7 @@ function _unEpNavSeason(slug,season,tmdbId){
   var _sov=document.getElementById('un-search-ov');if(_sov)_sov.scrollTop=0;
   var epsP=_traktGet('/shows/'+encodeURIComponent(slug)+'/seasons/'+season+'/episodes?extended=full');
   var cached=_showDataCache[slug];
-  var progP=cached&&cached.progress?Promise.resolve(cached.progress):(D._tt?_traktGet('/shows/'+encodeURIComponent(slug)+'/progress/watched',true).catch(function(){return null}):Promise.resolve(null));
+  var progP=cached&&cached.progress?Promise.resolve(cached.progress):(_irisGetTraktAuth().accessToken?_traktGet('/shows/'+encodeURIComponent(slug)+'/progress/watched',true).catch(function(){return null}):Promise.resolve(null));
   Promise.all([epsP,progP]).then(function(res){
     if(_unCurrentView!=='season')return;
     var ck=slug+'|'+season;_seasonEpDataCache[ck]=res[0];
@@ -6709,6 +7317,7 @@ function _unTapEpisode(slug,season,episode,tmdbId){
 
 function _unToggleEpWatched(ev,slug,season,episode,epTraktId,btn){
   ev.stopPropagation();
+  if(!_irisRequireAuth('toggle watched')){return}
   var isWatched=btn.classList.contains('watched');
   if(isWatched){
     // Remove watch
@@ -6766,7 +7375,7 @@ function _unToggleEpWatched(ev,slug,season,episode,epTraktId,btn){
     // Update _unWatched for Up Next sync
     var key=slug+'|'+season+'|'+episode;
     _unWatched[key]=watchedAt;
-    localStorage.setItem('iris_un_watched',JSON.stringify(_unWatched));
+    _irisLSSet('un_watched',JSON.stringify(_unWatched));
   }
 }
 
@@ -6937,7 +7546,7 @@ function renderStatus(){
   var hs_count=Object.keys(D.hs||{}).length;
   var ps_count=Object.keys(D.ps||{}).length;
   var el=document.getElementById('status');
-  el.innerHTML='<span>Actors: '+total_people+'</span><span>Headshots: '+hs_count+'</span><span>Posters: '+ps_count+'</span><span>Updated: __BUILD_TIME__</span><span>v59</span>';
+  el.innerHTML='<span>Actors: '+total_people+'</span><span>Headshots: '+hs_count+'</span><span>Posters: '+ps_count+'</span><span>Updated: __BUILD_TIME__</span><span>v63</span>';
 }
 
 function render(){
@@ -7033,7 +7642,49 @@ window.addEventListener('resize',function(){
   },{passive:true});
 })();
 window.addEventListener('hashchange',function(){readHash();render()});
-render();
+
+// ===== IRIS BOOTSTRAP: ?user=X dynamic loading =====
+(function(){
+  var params=new URLSearchParams(window.location.search);
+  var requestedUser=params.get('user');
+
+  // Case 1: No ?user param, or matches embedded user → use embedded data (instant)
+  if(!requestedUser||requestedUser===_IRIS_EMBEDDED_USER||(_IRIS_EMBEDDED_USER.indexOf('__')===0&&!requestedUser)){
+    _irisSetViewingUser(_IRIS_EMBEDDED_USER.indexOf('__')===0?'jamesgoux':_IRIS_EMBEDDED_USER);
+    render();
+    return;
+  }
+
+  // Case 2: Different user requested → fetch from Supabase
+  if(!_irisSB){
+    // Supabase not configured — fall back to embedded
+    console.warn('Iris: Supabase not configured, using embedded data');
+    _irisSetViewingUser(_IRIS_EMBEDDED_USER.indexOf('__')===0?'jamesgoux':_IRIS_EMBEDDED_USER);
+    render();
+    return;
+  }
+
+  // Fetch the requested user's data
+  _irisFetchUserData(requestedUser)
+    .then(function(){
+      render();
+    })
+    .catch(function(err){
+      console.error('Iris: Failed to load user data:',err);
+      // Show error in loader
+      var loader=document.getElementById('iris-loader');
+      if(loader){
+        var msg=loader.querySelector('#iris-loader-user');
+        if(msg){msg.textContent='User "'+requestedUser+'" not found';msg.style.color='#ef4444'}
+        // Add button to load default
+        var btn=document.createElement('button');
+        btn.textContent='Load default dashboard';
+        btn.style.cssText='margin-top:16px;padding:10px 20px;background:var(--ac);color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer;font-weight:600';
+        btn.onclick=function(){window.location.search=''};
+        msg.parentNode.appendChild(btn);
+      }
+    });
+})();
 
 // CSV Importer
 (function(){
@@ -7228,27 +7879,11 @@ function processBGS(file){
 }
 
 function commitBGS(content,parsed){
-  var pat=localStorage.getItem('iris_gh_pat');
-  if(!pat){
-    pat=prompt('Enter GitHub Personal Access Token (needs repo scope):');
-    if(!pat){stat.textContent='Cancelled';return}
-    localStorage.setItem('iris_gh_pat',pat);
-  }
-  // Get current file SHA (needed for update)
-  fetch('https://api.github.com/repos/jamesgoux/iris-stats/contents/data/bgstats_export.json',{
-    headers:{'Authorization':'token '+pat}
-  }).then(function(r){return r.ok?r.json():{sha:null}}).then(function(existing){
-    var body={message:'Update BG Stats export ('+parsed.plays.length+' plays)',content:btoa(unescape(encodeURIComponent(content)))};
-    if(existing.sha)body.sha=existing.sha;
-    return fetch('https://api.github.com/repos/jamesgoux/iris-stats/contents/data/bgstats_export.json',{
-      method:'PUT',
-      headers:{'Authorization':'token '+pat,'Content-Type':'application/json'},
-      body:JSON.stringify(body)
-    });
-  }).then(function(r){
-    if(r.ok){stat.textContent='✓ Uploaded! '+parsed.plays.length+' plays, '+parsed.players.length+' players. Will rebuild on next refresh.';stat.style.color='#4ade80'}
-    else{r.json().then(function(d){stat.textContent='Upload failed: '+(d.message||r.status);stat.style.color='#ef4444';if(r.status===401)localStorage.removeItem('iris_gh_pat')})}
-  }).catch(function(e){stat.textContent='Error: '+e.message;stat.style.color='#ef4444'});
+  if(!_irisRequireAuth('upload BG Stats')){return}
+  stat.textContent='Uploading to cloud...';
+  _irisSaveToStorage('imports/bgstats_export.json',content)
+    .then(function(){stat.textContent='✓ Uploaded! '+parsed.plays.length+' plays, '+parsed.players.length+' players. Will rebuild on next refresh.';stat.style.color='#4ade80'})
+    .catch(function(e){stat.textContent='Upload failed: '+e.message;stat.style.color='#ef4444'});
 }
 })();
 
@@ -7325,24 +7960,14 @@ function processGT(file){
     stat.innerHTML='<span style="color:#4ade80">✓</span> Parsed '+games.length+' games ('+finished.length+' finished, '+Math.round(totalH)+'h). Syncing...';
     renderGames();
 
-    // Commit gametrack.json to repo
-    var pat=localStorage.getItem('iris_gh_pat');
-    if(!pat){stat.innerHTML+=' <span style="color:#fbbf24">No GitHub PAT — data loaded locally only.</span>';return}
-    var content=JSON.stringify(output);
-    var b64=btoa(Array.from(new TextEncoder().encode(content),function(b){return String.fromCharCode(b)}).join(''));
-    fetch('https://api.github.com/repos/jamesgoux/iris-stats/contents/data/gametrack.json',{
-      headers:{'Authorization':'token '+pat}
-    }).then(function(r){return r.ok?r.json():{sha:null}}).then(function(existing){
-      var body={message:'Update GameTrack data ('+games.length+' games)',content:b64};
-      if(existing.sha)body.sha=existing.sha;
-      return fetch('https://api.github.com/repos/jamesgoux/iris-stats/contents/data/gametrack.json',{
-        method:'PUT',headers:{'Authorization':'token '+pat,'Content-Type':'application/json'},
-        body:JSON.stringify(body)
-      });
-    }).then(function(r){
-      if(r.ok){stat.innerHTML='<span style="color:#4ade80">✓</span> '+games.length+' games synced to GitHub!';stat.style.color='#4ade80'}
-      else{stat.innerHTML+=' <span style="color:#ef4444">Sync failed ('+r.status+')</span>'}
-    }).catch(function(e){stat.innerHTML+=' <span style="color:#ef4444">Error: '+e.message+'</span>'});
+    // Save gametrack.json to Supabase Storage
+    if(_irisUser){
+      _irisSaveToStorage('imports/gametrack.json',JSON.stringify(output))
+        .then(function(){stat.innerHTML='<span style="color:#4ade80">✓</span> '+games.length+' games synced to cloud!';stat.style.color='#4ade80'})
+        .catch(function(e){stat.innerHTML+=' <span style="color:#ef4444">Sync failed: '+e.message+'</span>'});
+    }else{
+      stat.innerHTML+=' <span style="color:#fbbf24">Log in to sync data across devices.</span>';
+    }
   };
   reader.readAsText(file);
 }

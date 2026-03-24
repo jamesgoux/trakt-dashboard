@@ -4,8 +4,11 @@ import json, os, sys, time, re
 from datetime import datetime
 from xml.etree import ElementTree
 import urllib.request
+from user_config import load_user_config, get_service
+_ucfg = load_user_config()
 
-GOODREADS_USER_ID = os.environ.get("GOODREADS_USER_ID", "")
+
+GOODREADS_USER_ID = get_service(_ucfg, "goodreads", "user_id") or os.environ.get("GOODREADS_USER_ID", "")
 if not GOODREADS_USER_ID:
     print("Set GOODREADS_USER_ID environment variable")
     sys.exit(0)  # soft exit — don't break CI
