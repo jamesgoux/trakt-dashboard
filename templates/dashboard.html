@@ -1009,11 +1009,30 @@ function _irisToggleServiceDetail(svcId){
 // Generic field-based config form
 function _irisRenderFieldConfig(el,svc,cfg,integ){
   var h='';
+  // Trust messaging for services that require sensitive data
+  var _hasSensitive=svc.fields.some(function(f){return f.password});
+  if(_hasSensitive){
+    var _msg=svc.type==='credentials'
+      ?'Your credentials are <b style="color:#4ade80">encrypted at rest</b> and only used server-side to sync your data. They are never sent to your browser or shared. This integration is optional.'
+      :'Your API key is <b style="color:#4ade80">encrypted at rest</b> and only used server-side. It is never exposed to other users.';
+    h+='<div style="display:flex;align-items:flex-start;gap:8px;padding:10px 12px;background:rgba(74,222,128,.06);border:1px solid rgba(74,222,128,.15);border-radius:8px;margin-bottom:12px">'
+      +'<span style="font-size:14px;flex-shrink:0;margin-top:1px">🔒</span>'
+      +'<div style="font-size:11px;color:var(--t2);line-height:1.5">'+_msg+'</div></div>';
+  }
   svc.fields.forEach(function(f){
     var val=cfg[f.key]||'';
     var type=f.password?'password':'text';
-    h+='<div style="margin-bottom:8px"><label style="font-size:11px;color:var(--t2);display:block;margin-bottom:3px">'+f.label+'</label>'
-      +'<input id="iris-svc-f-'+svc.id+'-'+f.key+'" type="'+type+'" value="'+val.replace(/"/g,'&quot;')+'" placeholder="'+(f.placeholder||'')+'" style="width:100%;padding:10px;background:var(--bg);border:1px solid rgba(255,255,255,.12);border-radius:8px;color:var(--tx);font-size:13px;box-sizing:border-box"></div>';
+    // For password/sensitive fields with existing encrypted values, show placeholder instead of actual value
+    var isEncrypted=f.password&&val&&val.substring(0,4)==='enc:';
+    var displayVal=isEncrypted?'':val;
+    var ph=isEncrypted?'••••••••  (saved, enter new value to change)':(f.placeholder||'');
+    h+='<div style="margin-bottom:8px"><label style="font-size:11px;color:var(--t2);display:block;margin-bottom:3px">'
+      +(f.password?'🔒 ':'')+f.label
+      +(isEncrypted?' <span style="color:#4ade80;font-size:10px">encrypted</span>':'')
+      +'</label>'
+      +'<input id="iris-svc-f-'+svc.id+'-'+f.key+'" type="'+type+'" value="'+displayVal.replace(/"/g,'&quot;')+'" placeholder="'+ph+'"'
+      +(isEncrypted?' data-encrypted="1"':'')
+      +' style="width:100%;padding:10px;background:var(--bg);border:1px solid rgba(255,255,255,.12);border-radius:8px;color:var(--tx);font-size:13px;box-sizing:border-box"></div>';
   });
   h+='<div style="display:flex;gap:8px;margin-top:10px">';
   h+='<button onclick="_irisSaveService(\''+svc.id+'\')" style="flex:1;padding:10px;background:var(--ac);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer">Save</button>';
@@ -1028,15 +1047,23 @@ function _irisRenderFieldConfig(el,svc,cfg,integ){
 function _irisSaveService(svcId){
   var svc=_irisSvcDefs.find(function(s){return s.id===svcId});
   if(!svc||!_irisSB||!_irisUser)return;
+  var integ=_irisIntegrations[svcId];
+  var existingCfg=(integ&&integ.config)||{};
   var cfg={};
   svc.fields.forEach(function(f){
     var inp=document.getElementById('iris-svc-f-'+svcId+'-'+f.key);
-    if(inp)cfg[f.key]=inp.value.trim();
+    if(!inp)return;
+    var val=inp.value.trim();
+    // If this is an encrypted field and user left it blank, preserve the existing encrypted value
+    if(!val&&inp.dataset.encrypted==='1'){
+      cfg[f.key]=existingCfg[f.key]||'';
+    }else{
+      cfg[f.key]=val;
+    }
   });
   var statusEl=document.getElementById('iris-svc-status-'+svcId);
   if(statusEl)statusEl.innerHTML='<span style="color:var(--t2)">Saving…</span>';
 
-  var integ=_irisIntegrations[svcId];
   var promise;
   if(integ){
     promise=_irisSB.from('integrations').update({config:cfg,is_enabled:true,last_error:null,updated_at:new Date().toISOString()}).eq('id',integ.id);
