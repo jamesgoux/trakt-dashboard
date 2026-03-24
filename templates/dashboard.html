@@ -4741,6 +4741,29 @@ document.getElementById('un-content').addEventListener('click',function(e){
   if(e.target.closest('.un-watch-btn,.un-del-btn'))return;
   showEpDetail(card);
 });
+// Desktop gutter click: tap dark space outside centered content to go back/dismiss
+document.getElementById('un-overlay').addEventListener('click',function(e){
+  if(window.innerWidth<768)return;
+  var t=e.target;
+  // Only trigger on background areas (overlay itself, un-content, or un-hdr background)
+  if(t.id==='un-overlay'||t.id==='un-content'){
+    if(_unCurrentView!=='home')_unNavBack();
+    else closeUpNext();
+  }
+});
+// Episode detail foreground gutter click
+document.addEventListener('click',function(e){
+  if(window.innerWidth<768)return;
+  var fg=document.getElementById('un-detail-fg');
+  if(!fg)return;
+  if(e.target===fg){_unNavBack()}
+});
+// Search overlay gutter click
+document.getElementById('iris-search-ov').addEventListener('click',function(e){
+  if(window.innerWidth<768)return;
+  var t=e.target;
+  if(t.id==='iris-search-ov'||t.id==='un-search-results'||t.id==='iris-s-media'){_irisSearchBack()}
+});
 function showEpDetail(card){
   _unScrollPos=document.getElementById('un-overlay').scrollTop;
   var slug=card.dataset.slug,s=parseInt(card.dataset.s),e=parseInt(card.dataset.e),eid=card.dataset.eid,tmdb=card.dataset.tmdb;
