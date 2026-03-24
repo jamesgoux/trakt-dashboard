@@ -1423,7 +1423,7 @@ if missing_slugs:
             if tid:
                 lb_tmdb_lookup[(lv.get("title", ""), str(lv.get("year", "")))] = str(tid)
 
-    resolved = 0; searched = 0
+    resolved = 0; searched = 0; trakt_api_budget = 50  # Cap Trakt API calls to prevent timeout
     for i, (title, year) in enumerate(unique_missing):
         cache_key = f"{title}|{year}"
         tmdb_id = None
@@ -1459,7 +1459,7 @@ if missing_slugs:
         if tmdb_id:
             slug = tmdb_to_slug.get(str(tmdb_id), "")
             # If not in our map, try Trakt lookup by TMDB ID (one API call)
-            if not slug:
+            if not slug and trakt_api_budget > 0:
                 try:
                     r = retry_request("get", f"{BASE_URL}/search/tmdb/{tmdb_id}",
                                       params={"type": "movie"}, headers=HEADERS, timeout=10)
@@ -1468,6 +1468,7 @@ if missing_slugs:
                         if results:
                             slug = results[0].get("movie", {}).get("ids", {}).get("slug", "")
                             if slug: tmdb_to_slug[str(tmdb_id)] = slug
+                    trakt_api_budget -= 1
                     time.sleep(0.15)
                 except Exception:
                     pass
@@ -1486,7 +1487,8 @@ if missing_slugs:
         json.dump(tmdb_cache, f, separators=(",", ":"))
     with open(tmdb_slug_cache_path, "w") as f:
         json.dump(tmdb_to_slug, f, separators=(",", ":"))
-    print(f"  Resolved {resolved}/{len(unique_missing)} slugs ({searched} TMDB searches, {len(tmdb_cache)} title cache, {len(tmdb_to_slug)} slug cache)")
+    trakt_api_used = 50 - trakt_api_budget
+    print(f"  Resolved {resolved}/{len(unique_missing)} slugs ({searched} TMDB searches, {trakt_api_used} Trakt lookups, {len(tmdb_to_slug)} slug cache)")
 
 # Enrich Letterboxd entries with language/country from Trakt
 meta_cache_path = "data/slug_meta_cache.json"
