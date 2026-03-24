@@ -291,7 +291,7 @@ body{overflow-x:hidden}
 <select id="gs" style="display:none"><option value="all">All</option><option value="life">Life</option><option value="movietv">Movies/TV</option><option value="movie">Movies</option><option value="show">Shows</option><option value="book">Books</option><option value="music">Music</option><option value="concert">Concerts</option><option value="podcast">Podcasts</option><option value="theater">Theater</option><option value="boardgame">Board Games</option><option value="sports">Sports</option><option value="game">Video Games</option><option value="health">Workouts</option></select>
 <select id="ys" style="display:none"><option value="all">All Time</option></select>
 <div style="position:relative"><button class="hbtn" onclick="_buildJumpMenu();var m=document.getElementById('jmp-menu');m.style.display=m.style.display==='block'?'none':'block'" title="Jump to section"><span style="display:block;transform:translateY(-1px)">☰</span></button><div id="jmp-menu" style="display:none;position:absolute;right:0;top:100%;margin-top:6px;background:var(--sf);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:6px 0;min-width:200px;max-height:70vh;overflow-y:auto;z-index:150;box-shadow:0 8px 30px rgba(0,0,0,.5)"></div></div>
-<button class="hbtn" onclick="openSportsAdd()" title="Add Game">🏟️</button>
+<button class="hbtn" onclick="_irisOpenSearch()" title="Search">🔍</button>
 <button class="hbtn" onclick="openUpNext()" title="Up Next">📺</button>
 <div style="position:relative"><button class="hbtn" id="iris-user-btn" onclick="_irisToggleUserMenu()" title="Account">👤</button><div id="iris-user-menu" style="display:none;position:absolute;right:0;top:100%;margin-top:6px;background:var(--sf);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:6px 0;min-width:180px;z-index:9999;box-shadow:0 8px 30px rgba(0,0,0,.5)"></div></div>
 </div>
@@ -472,40 +472,8 @@ body{overflow-x:hidden}
 <div class="cd"><h3><span class="i">🏋️</span>Workout Types</h3><div id="hw-types" style="height:280px"></div></div>
 <div class="cd"><h3><span class="i">📋</span>Recent Workouts</h3><div class="stb" id="hw-recent" style="font-size:12px;max-height:350px"></div></div>
 </div>
-<!-- Sports Add Event Overlay -->
-<div id="sp-overlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg);z-index:300;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;transition:transform .3s ease;will-change:transform">
-<div style="position:sticky;top:0;z-index:301;background:rgba(15,15,15,.97);backdrop-filter:blur(8px);padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:space-between">
-<button onclick="closeSportsAdd()" style="background:none;border:1px solid rgba(255,255,255,.1);color:var(--t2);border-radius:8px;padding:8px 14px;font-size:14px;cursor:pointer;min-height:44px;min-width:44px;display:flex;align-items:center;justify-content:center">←</button>
-<h2 style="font-size:18px;font-weight:700;margin:0" id="sp-ov-title"><span class="i">🏟️</span> Add Sports Event</h2>
-</div>
-<div style="max-width:700px;margin:0 auto;padding:16px">
-<div id="sp-ov-search">
-<input id="sp-team-input" type="text" placeholder="Search team name..." style="width:100%;padding:14px 16px;background:var(--sf);border:1px solid rgba(255,255,255,.15);border-radius:10px;color:var(--tx);font-size:16px;margin-bottom:12px;-webkit-appearance:none" oninput="_spLiveSearch(this.value)">
-<div id="sp-frequent-teams"></div>
-<div id="sp-team-results"></div>
-</div>
-<div id="sp-ov-events" style="display:none">
-<div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
-<button onclick="document.getElementById('sp-ov-search').style.display='';document.getElementById('sp-ov-events').style.display='none';document.getElementById('sp-ov-title').innerHTML='<span class=i>🏟️</span> Add Sports Event'" style="background:none;border:none;color:var(--sp);cursor:pointer;font-size:13px">← Teams</button>
-<select id="sp-ev-year" onchange="jumpToSportsYear(this.value)" style="padding:8px;background:var(--sf);border:1px solid rgba(255,255,255,.15);border-radius:6px;color:var(--tx);font-size:13px"></select>
-<input id="sp-ev-search" type="text" placeholder="Filter opponent, venue, date..." oninput="filterSportsEvents()" style="flex:1;padding:8px 12px;background:var(--sf);border:1px solid rgba(255,255,255,.15);border-radius:6px;color:var(--tx);font-size:13px">
-</div>
-<div id="sp-ev-list"></div>
-<div id="sp-ev-loading" style="text-align:center;padding:16px;color:var(--t2);font-size:12px"></div>
-</div>
-<div id="sp-ov-confirm" style="display:none">
-<button onclick="document.getElementById('sp-ov-events').style.display='';document.getElementById('sp-ov-confirm').style.display='none'" style="background:none;border:none;color:var(--sp);cursor:pointer;font-size:13px;margin-bottom:12px">← Events</button>
-<div id="sp-event-detail" style="margin-bottom:16px"></div>
-<p style="color:var(--t2);font-size:13px;margin-bottom:10px">How did you watch?</p>
-<div style="display:flex;gap:8px;margin-bottom:16px">
-<button class="vb sp-wt" data-v="live" onclick="document.querySelectorAll('.sp-wt').forEach(function(b){b.classList.remove('vb-on')});this.classList.add('vb-on')" style="flex:1;padding:12px;font-size:14px">🏟️ Live</button>
-<button class="vb sp-wt" data-v="tv" onclick="document.querySelectorAll('.sp-wt').forEach(function(b){b.classList.remove('vb-on')});this.classList.add('vb-on')" style="flex:1;padding:12px;font-size:14px">📺 TV</button>
-<button class="vb sp-wt" data-v="remote" onclick="document.querySelectorAll('.sp-wt').forEach(function(b){b.classList.remove('vb-on')});this.classList.add('vb-on')" style="flex:1;padding:12px;font-size:14px">📡 Remote</button>
-</div>
-<button onclick="saveSportsEvent()" style="width:100%;padding:12px;background:var(--sp);color:#fff;border:none;border-radius:8px;font-size:15px;cursor:pointer;font-weight:600">Save Event</button>
-</div>
-</div>
-</div>
+
+
 <div class="cd fw s-g" style="margin-top:14px">
 <h3><span class="i">📤</span>Import Data</h3>
 <p style="color:var(--t2);font-size:12px;margin-bottom:10px">Drop a CSV to update — auto-detects <b>Letterboxd</b> diary or <b>Mezzanine</b> theater diary.</p>
@@ -555,17 +523,58 @@ Drop GameTrack games.csv or <span style="color:#6366f1;text-decoration:underline
 </div>
 <div id="un-content"></div>
 </div>
-<!-- Search overlay: completely separate from Up Next -->
-<div id="un-search-ov" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg);z-index:9600;overflow-y:auto;-webkit-overflow-scrolling:touch">
-<div style="position:sticky;top:0;z-index:9601;background:rgba(15,15,15,.97);backdrop-filter:blur(8px);padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;gap:8px">
-<button onclick="_unSearchBack()" class="un-back" style="flex-shrink:0">←</button>
+<!-- Unified Search Overlay -->
+<div id="iris-search-ov" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg);z-index:9700;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain">
+<div style="position:sticky;top:0;z-index:9701;background:rgba(15,15,15,.97);backdrop-filter:blur(8px)">
+<div style="display:flex;align-items:center;gap:8px;padding:12px 16px">
+<button onclick="_irisSearchBack()" class="un-back" style="flex-shrink:0">←</button>
 <div style="flex:1;position:relative">
-<input type="text" id="un-search" class="un-search-input" placeholder="Search movies & shows…" autocomplete="off" autocorrect="off" spellcheck="false" style="padding-left:14px">
+<input type="text" id="iris-s-input" placeholder="Search movies & shows…" autocomplete="off" autocorrect="off" spellcheck="false" class="un-search-input" style="padding-left:14px">
 </div>
-<button id="un-search-clear" class="un-search-clear" onclick="_unSearchClear()" style="position:static;transform:none;display:none;flex-shrink:0;padding:8px;color:var(--t2);background:none;border:none;font-size:18px;cursor:pointer">✕</button>
+<button id="iris-s-clear" onclick="_irisSearchClear()" style="display:none;flex-shrink:0;padding:8px;color:var(--t2);background:none;border:none;font-size:18px;cursor:pointer">✕</button>
 </div>
+<div id="iris-s-tabs" style="display:flex;padding:0 16px;gap:0;border-bottom:1px solid rgba(255,255,255,.06)">
+<button id="iris-s-tab-media" onclick="_irisSetTab('media')" style="flex:1;padding:10px 0;background:none;border:none;border-bottom:2px solid var(--ac);color:var(--ac);font-size:13px;font-weight:700;cursor:pointer;transition:color .2s,border-color .2s">Movies & TV</button>
+<button id="iris-s-tab-sports" onclick="_irisSetTab('sports')" style="flex:1;padding:10px 0;background:none;border:none;border-bottom:2px solid transparent;color:var(--t2);font-size:13px;font-weight:600;cursor:pointer;transition:color .2s,border-color .2s">Sports</button>
+</div>
+</div>
+<!-- Movies & TV tab -->
+<div id="iris-s-media">
 <div id="un-search-results"></div>
 </div>
+<!-- Sports tab -->
+<div id="iris-s-sports" style="display:none">
+<div style="max-width:700px;margin:0 auto;padding:16px">
+<div id="sp-ov-search">
+<div id="sp-frequent-teams"></div>
+<div id="sp-team-results"></div>
+</div>
+<div id="sp-ov-events" style="display:none">
+<div id="sp-ev-team-header" style="font-size:18px;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:8px"><span class="i">🏟️</span> <span id="sp-ev-team-name"></span></div>
+<div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
+<button onclick="_irisSearchSportsBack()" style="background:none;border:none;color:var(--sp);cursor:pointer;font-size:13px">← Teams</button>
+<select id="sp-ev-year" onchange="jumpToSportsYear(this.value)" style="padding:8px;background:var(--sf);border:1px solid rgba(255,255,255,.15);border-radius:6px;color:var(--tx);font-size:13px"></select>
+<input id="sp-ev-search" type="text" placeholder="Filter opponent, venue, date..." oninput="filterSportsEvents()" style="flex:1;padding:8px 12px;background:var(--sf);border:1px solid rgba(255,255,255,.15);border-radius:6px;color:var(--tx);font-size:13px">
+</div>
+<div id="sp-ev-list"></div>
+<div id="sp-ev-loading" style="text-align:center;padding:16px;color:var(--t2);font-size:12px"></div>
+</div>
+<div id="sp-ov-confirm" style="display:none">
+<button onclick="_irisSearchEventsBack()" style="background:none;border:none;color:var(--sp);cursor:pointer;font-size:13px;margin-bottom:12px">← Events</button>
+<div id="sp-event-detail" style="margin-bottom:16px"></div>
+<p style="color:var(--t2);font-size:13px;margin-bottom:10px">How did you watch?</p>
+<div style="display:flex;gap:8px;margin-bottom:16px">
+<button class="vb sp-wt" data-v="live" onclick="document.querySelectorAll('.sp-wt').forEach(function(b){b.classList.remove('vb-on')});this.classList.add('vb-on')" style="flex:1;padding:12px;font-size:14px">🏟️ Live</button>
+<button class="vb sp-wt" data-v="tv" onclick="document.querySelectorAll('.sp-wt').forEach(function(b){b.classList.remove('vb-on')});this.classList.add('vb-on')" style="flex:1;padding:12px;font-size:14px">📺 TV</button>
+<button class="vb sp-wt" data-v="remote" onclick="document.querySelectorAll('.sp-wt').forEach(function(b){b.classList.remove('vb-on')});this.classList.add('vb-on')" style="flex:1;padding:12px;font-size:14px">📡 Remote</button>
+</div>
+<button onclick="saveSportsEvent()" style="width:100%;padding:12px;background:var(--sp);color:#fff;border:none;border-radius:8px;font-size:15px;cursor:pointer;font-weight:600">Save Event</button>
+</div>
+</div>
+</div>
+</div>
+
+
 <!-- Settings Overlay -->
 <div id="iris-settings-ov" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg);z-index:9800;overflow-y:auto;-webkit-overflow-scrolling:touch">
 <div style="max-width:600px;margin:0 auto;padding:16px 16px 80px">
@@ -3224,50 +3233,9 @@ function _spToast(msg,color){
 
 function _spDate(d){if(!d)return'';var p=d.split('-');if(p.length!==3)return d;return parseInt(p[1])+'/'+parseInt(p[2])+'/'+p[0].substring(2)}
 
-function openSportsAdd(){
-  var ov=document.getElementById('sp-overlay');
-  ov.style.display='';ov.style.transform='';
-  _lockBody();
-  document.getElementById('sp-ov-search').style.display='';
-  document.getElementById('sp-ov-events').style.display='none';
-  document.getElementById('sp-ov-confirm').style.display='none';
-  document.getElementById('sp-ov-title').innerHTML='<span class="i">🏟️</span> Add Sports Event';
-  document.getElementById('sp-team-input').value='';
-  document.getElementById('sp-team-results').innerHTML='';
-  // Show frequent teams (from existing events) — click goes straight to events
-  var freq={};SP.forEach(function(e){if(e.my_team){if(!freq[e.my_team])freq[e.my_team]={n:e.my_team,c:0,badge:''};freq[e.my_team].c++;if(!freq[e.my_team].badge){freq[e.my_team].badge=(e.my_team===e.home_team?e.home_badge:e.away_badge)||''}}});
-  var freqArr=Object.values(freq).sort(function(a,b){return b.c-a.c}).slice(0,6);
-  var fEl=document.getElementById('sp-frequent-teams');
-  if(freqArr.length){
-    var fh='<div style="margin-bottom:12px"><div style="font-size:11px;color:var(--t2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">Your Teams</div><div style="display:flex;flex-wrap:wrap;gap:8px">';
-    freqArr.forEach(function(t){fh+='<button onclick="quickLoadTeam(\''+t.n.replace(/'/g,"\\'")+'\')" style="display:flex;align-items:center;gap:6px;padding:10px 14px;background:var(--sf);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:var(--tx);font-size:13px;cursor:pointer;min-height:44px">'+(t.badge?'<img src="'+t.badge+'" style="width:20px;height:20px;object-fit:contain">':'')+t.n+' <span style="color:var(--t2)">('+t.c+')</span></button>'});
-    fh+='</div></div>';fEl.innerHTML=fh;
-  }else{fEl.innerHTML=''}
-  // Scroll-to-load on the overlay
-  ov.onscroll=function(){if(ov.scrollTop+ov.clientHeight>=ov.scrollHeight-400)loadMoreSportsEvents()};
-}
 
 // Live search: frequent teams at top + TheSportsDB results
-var _spSearchTimer=null;
-function _spLiveSearch(q){
-  clearTimeout(_spSearchTimer);
-  if(!q||q.length<2){document.getElementById('sp-team-results').innerHTML='';return}
-  _spSearchTimer=setTimeout(function(){searchSportsTeam()},400);
-}
 
-// Slide-to-dismiss for Add Event overlay
-(function(){
-  var ov=document.getElementById('sp-overlay');if(!ov)return;
-  var sx=0,sy=0,tracking=false,moved=false;
-  ov.addEventListener('touchstart',function(e){sx=e.touches[0].clientX;sy=e.touches[0].clientY;tracking=true;moved=false;ov.style.transition='none'},{passive:true});
-  ov.addEventListener('touchmove',function(e){if(!tracking)return;var dx=e.touches[0].clientX-sx,dy=Math.abs(e.touches[0].clientY-sy);if(!moved&&dy>20){tracking=false;return}if(dx>10){moved=true;ov.style.transform='translateX('+dx+'px)'}},{passive:true});
-  ov.addEventListener('touchend',function(){if(!tracking&&!moved)return;tracking=false;var dx=parseInt(ov.style.transform.replace(/[^0-9.-]/g,''))||0;ov.style.transition='transform .3s ease';if(dx>window.innerWidth*0.35){ov.style.transform='translateX(100%)';setTimeout(function(){ov.style.display='none';ov.style.transform='';_unlockBody()},320)}else{ov.style.transform=''}moved=false},{passive:true});
-})();
-
-function closeSportsAdd(){
-  document.getElementById('sp-overlay').style.display='none';
-  _unlockBody();
-}
 
 function quickLoadTeam(teamName){
   // Check if team is in pre-cached schedule — skip API call entirely
@@ -3288,24 +3256,12 @@ function quickLoadTeam(teamName){
   }).catch(function(){document.getElementById('sp-team-results').innerHTML='<div style="color:#ef4444;padding:10px">Failed to load — try searching</div>'});
 }
 
-function searchSportsTeam(){
-  var q=document.getElementById('sp-team-input').value.trim();if(!q)return;
-  var el=document.getElementById('sp-team-results');el.innerHTML='<div style="color:var(--t2);padding:10px">Searching...</div>';
-  fetch('https://www.thesportsdb.com/api/v1/json/3/searchteams.php?t='+encodeURIComponent(q)).then(function(r){return r.json()}).then(function(d){
-    var teams=d.teams||[];
-    if(!teams.length){el.innerHTML='<div style="color:var(--t2);padding:10px">No teams found. Try the full name (e.g. "Los Angeles Lakers")</div>';return}
-    var h='';teams.slice(0,8).forEach(function(t){
-      h+='<div onclick="loadTeamEvents(\''+t.idTeam+'\',\''+t.strTeam.replace(/'/g,"\\'")+'\',\''+(t.strTeamBadge||'').replace(/'/g,"\\'")+'\')" style="padding:14px 16px;margin-bottom:8px;background:var(--sf);border:1px solid rgba(255,255,255,.06);border-radius:10px;cursor:pointer;display:flex;align-items:center;gap:12px;min-height:56px;-webkit-tap-highlight-color:transparent;transition:background .15s" ontouchstart="this.style.background=\'#1e1e3a\'" ontouchend="this.style.background=\'var(--sf)\'">';
-      if(t.strTeamBadge)h+='<img src="'+t.strTeamBadge+'" style="width:32px;height:32px;object-fit:contain">';
-      h+='<div><div style="font-weight:600;font-size:15px">'+t.strTeam+'</div><div style="font-size:12px;color:var(--t2)">'+t.strSport+' · '+t.strLeague+'</div></div></div>';
-    });el.innerHTML=h;
-  }).catch(function(e){el.innerHTML='<div style="color:#ef4444;padding:10px">Search failed — <button onclick="searchSportsTeam()" style="background:none;border:none;color:var(--sp);cursor:pointer;font-size:13px;text-decoration:underline">retry</button></div>'});
-}
 
 function loadTeamEvents(teamId,teamName,teamBadge){
   document.getElementById('sp-ov-search').style.display='none';
+  _irisTeamSelected();
   document.getElementById('sp-ov-events').style.display='';
-  document.getElementById('sp-ov-title').innerHTML='<span class="i">🏟️</span> '+teamName;
+  var _teamNameEl=document.getElementById('sp-ev-team-name');if(_teamNameEl)_teamNameEl.textContent=teamName;
   window._spTeamId=teamId;window._spTeamName=teamName;window._spTeamBadge=teamBadge||'';
   window._spAllEvents=[];window._spSeasonIdx=0;window._spAwaySearched={};window._spRoundsDone={};
   var curYear=new Date().getFullYear();
@@ -4127,7 +4083,7 @@ function openOnThisDay(){
   var label=_llMonthNames[now.getMonth()]+' '+now.getDate();
   content.innerHTML='<div style="padding:12px 16px;max-width:600px;margin:0 auto;text-align:center"><div style="font-size:20px;font-weight:700;color:var(--ac)">📅 '+label+'</div><div style="font-size:13px;color:var(--t2);margin-top:4px">'+_llFeedDays.length+' year'+ (_llFeedDays.length!==1?'s':'')+' of history</div></div>';
   document.getElementById('ll-feed').style.display='';
-  document.getElementById('sp-overlay').style.display;
+  // sp-overlay removed (unified search)
   ch.forEach(function(c){try{c.dispatchAction({type:'hideTip'})}catch(e){}});
   _lockBody();
   // Update header title
@@ -4355,8 +4311,8 @@ function openUpNext(skipSync){
   if(!skipSync){
     _unCurrentView='home';_unNavStack=[];
     _unUpdateHeader();
-    var si=document.getElementById('un-search');if(si){si.value='';si.blur()}
-    document.getElementById('un-search-clear').style.display='none';
+    var si=document.getElementById('iris-s-input');if(si){si.value='';si.blur()}
+    document.getElementById('iris-s-clear').style.display='none';
     // Remove any lingering episode detail foreground
     var fg=document.getElementById('un-detail-fg');if(fg){fg.remove()}
   }
@@ -5679,9 +5635,9 @@ function _unHomeBtn(){
   var fg=document.getElementById('un-detail-fg');
   if(fg){fg.remove();document.getElementById('un-overlay').style.overflowY='auto';_crBase=null;_crAll=null}
   // If search overlay is open, navigate back through search stack first
-  var _sovH=document.getElementById('un-search-ov');
+  var _sovH=document.getElementById('iris-search-ov');
   if(_sovH&&_sovH.style.display!=='none'){
-    _unSearchBack();
+    _irisSearchBack();
     return;
   }
   if(_unCurrentView==='home'){
@@ -5691,24 +5647,213 @@ function _unHomeBtn(){
   }
 }
 
-// Search overlay: completely separate from Up Next
-function _unOpenSearchOverlay(){
-  var sov=document.getElementById('un-search-ov');
-  sov.style.display='';
-  var input=document.getElementById('un-search');
+
+// ═══════════════════════════════════════════════════════════════
+// UNIFIED SEARCH OVERLAY
+// ═══════════════════════════════════════════════════════════════
+var _irisActiveTab='media';
+var _irisSearchIsOpen=false;
+var _irisSportsView='teams'; // 'teams' | 'events' | 'confirm'
+
+function _irisOpenSearch(tab){
+  tab=tab||_irisLSGet('iris_search_tab')||'media';
+  var ov=document.getElementById('iris-search-ov');
+  ov.style.display='';ov.style.transform='';
+  _irisSearchIsOpen=true;
+  _lockBody();
+  _irisSetTab(tab,true);
+  var input=document.getElementById('iris-s-input');
   input.value='';
-  document.getElementById('un-search-clear').style.display='none';
-  input.focus();
-  // Load trending content into empty state
-  _unLoadTrending();
+  document.getElementById('iris-s-clear').style.display='none';
+  // Reset sports sub-views
+  _irisSportsView='teams';
+  document.getElementById('sp-ov-search').style.display='';
+  document.getElementById('sp-ov-events').style.display='none';
+  document.getElementById('sp-ov-confirm').style.display='none';
+  document.getElementById('sp-team-results').innerHTML='';
+  // Load default content
+  if(tab==='media'){_unLoadTrending()}
+  else{_irisLoadFrequentTeams()}
+  setTimeout(function(){input.focus()},100);
+  // Scroll-to-load for sports events
+  ov.onscroll=function(){if(_irisActiveTab==='sports'&&_irisSportsView==='events'){if(ov.scrollTop+ov.clientHeight>=ov.scrollHeight-400)loadMoreSportsEvents()}};
 }
+
+function _irisCloseSearch(){
+  var ov=document.getElementById('iris-search-ov');
+  ov.style.display='none';
+  _irisSearchIsOpen=false;
+  _unlockBody();
+  var input=document.getElementById('iris-s-input');
+  input.blur();input.value='';
+  document.getElementById('iris-s-clear').style.display='none';
+  document.getElementById('un-search-results').innerHTML='';
+  // Reset sports
+  _irisSportsView='teams';
+  document.getElementById('sp-ov-search').style.display='';
+  document.getElementById('sp-ov-events').style.display='none';
+  document.getElementById('sp-ov-confirm').style.display='none';
+  document.getElementById('sp-team-results').innerHTML='';
+  // Reset nav state
+  if(_unCurrentView!=='home'){_unCurrentView='home';_unNavStack=[];_unUpdateHeader()}
+}
+
+function _irisSetTab(tab,skipSearch){
+  _irisActiveTab=tab;
+  _irisLSSet('iris_search_tab',tab);
+  var mt=document.getElementById('iris-s-tab-media'),st=document.getElementById('iris-s-tab-sports');
+  var mc=document.getElementById('iris-s-media'),sc=document.getElementById('iris-s-sports');
+  var tabs=document.getElementById('iris-s-tabs');
+  if(tab==='media'){
+    mt.style.borderBottomColor='var(--ac)';mt.style.color='var(--ac)';mt.style.fontWeight='700';
+    st.style.borderBottomColor='transparent';st.style.color='var(--t2)';st.style.fontWeight='600';
+    mc.style.display='';sc.style.display='none';
+    tabs.style.display='flex';
+  }else{
+    st.style.borderBottomColor='var(--sp)';st.style.color='var(--sp)';st.style.fontWeight='700';
+    mt.style.borderBottomColor='transparent';mt.style.color='var(--t2)';mt.style.fontWeight='600';
+    sc.style.display='';mc.style.display='none';
+    // Hide tabs when in sports sub-views (schedule/confirm)
+    tabs.style.display=(_irisSportsView==='teams')?'flex':'none';
+  }
+  var input=document.getElementById('iris-s-input');
+  if(tab==='media'){
+    input.placeholder='Search movies & shows\u2026';
+    input.style.display='';
+  }else{
+    if(_irisSportsView==='teams'){input.placeholder='Search teams\u2026';input.style.display=''}
+    else{input.style.display='none'}
+  }
+  // Re-search with current query if switching tabs (and not initial open)
+  if(!skipSearch){
+    var q=input.value.trim();
+    if(tab==='media'){
+      if(q){if(_searchTimer)clearTimeout(_searchTimer);_unFilterQueue(q)}
+      else{_unLoadTrending()}
+    }else{
+      if(q&&_irisSportsView==='teams'){_irisSportsSearch(q)}
+      else if(!q&&_irisSportsView==='teams'){_irisLoadFrequentTeams()}
+    }
+  }
+}
+
+function _irisSearchBack(){
+  if(_irisActiveTab==='media'){
+    // Media: if on detail sub-page, go back through nav stack
+    if(_unCurrentView!=='home'&&_unNavStack.length){_unNavBack()}
+    else{_irisCloseSearch()}
+  }else{
+    // Sports: navigate back through sub-views
+    if(_irisSportsView==='confirm'){_irisSearchEventsBack()}
+    else if(_irisSportsView==='events'){_irisSearchSportsBack()}
+    else{_irisCloseSearch()}
+  }
+}
+
+function _irisSearchClear(){
+  var input=document.getElementById('iris-s-input');
+  input.value='';
+  document.getElementById('iris-s-clear').style.display='none';
+  if(_irisActiveTab==='media'){
+    document.getElementById('un-search-results').innerHTML='';
+    _unLoadTrending();
+  }else{
+    document.getElementById('sp-team-results').innerHTML='';
+    _irisLoadFrequentTeams();
+  }
+  input.focus();
+}
+
+function _irisSearchSportsBack(){
+  _irisSportsView='teams';
+  document.getElementById('sp-ov-events').style.display='none';
+  document.getElementById('sp-ov-search').style.display='';
+  var input=document.getElementById('iris-s-input');
+  input.style.display='';input.placeholder='Search teams\u2026';
+  document.getElementById('iris-s-tabs').style.display='flex';
+}
+
+function _irisSearchEventsBack(){
+  _irisSportsView='events';
+  document.getElementById('sp-ov-confirm').style.display='none';
+  document.getElementById('sp-ov-events').style.display='';
+}
+
+function _irisLoadFrequentTeams(){
+  var freq={};SP.forEach(function(e){if(e.my_team){if(!freq[e.my_team])freq[e.my_team]={n:e.my_team,c:0,badge:''};freq[e.my_team].c++;if(!freq[e.my_team].badge){freq[e.my_team].badge=(e.my_team===e.home_team?e.home_badge:e.away_badge)||''}}});
+  var freqArr=Object.values(freq).sort(function(a,b){return b.c-a.c}).slice(0,6);
+  var fEl=document.getElementById('sp-frequent-teams');
+  if(freqArr.length){
+    var fh='<div style="margin-bottom:12px"><div style="font-size:11px;color:var(--t2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">Your Teams</div><div style="display:flex;flex-wrap:wrap;gap:8px">';
+    freqArr.forEach(function(t){fh+='<button onclick="quickLoadTeam(\''+t.n.replace(/'/g,"\\'")+'\')" style="display:flex;align-items:center;gap:6px;padding:10px 14px;background:var(--sf);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:var(--tx);font-size:13px;cursor:pointer;min-height:44px">'+(t.badge?'<img src="'+t.badge+'" style="width:20px;height:20px;object-fit:contain">':'')+t.n+' <span style="color:var(--t2)">('+t.c+')</span></button>'});
+    fh+='</div></div>';fEl.innerHTML=fh;
+  }else{fEl.innerHTML='<div style="color:var(--t2);padding:20px;text-align:center;font-size:13px">Search for a team to add sports events</div>'}
+}
+
+function _irisSportsSearch(q){
+  if(!q||q.length<2){document.getElementById('sp-team-results').innerHTML='';_irisLoadFrequentTeams();return}
+  document.getElementById('sp-team-results').innerHTML='<div style="color:var(--t2);padding:10px">Searching...</div>';
+  fetch('https://www.thesportsdb.com/api/v1/json/3/searchteams.php?t='+encodeURIComponent(q)).then(function(r){return r.json()}).then(function(d){
+    var teams=d.teams||[];
+    var el=document.getElementById('sp-team-results');
+    if(!teams.length){el.innerHTML='<div style="color:var(--t2);padding:10px">No teams found. Try the full name (e.g. "Los Angeles Lakers")</div>';return}
+    var h='';teams.slice(0,8).forEach(function(t){
+      h+='<div onclick="loadTeamEvents(\''+t.idTeam+'\',\''+t.strTeam.replace(/'/g,"\\'")+'\',\''+(t.strTeamBadge||'').replace(/'/g,"\\'")+'\');_irisTeamSelected()" style="padding:14px 16px;margin-bottom:8px;background:var(--sf);border:1px solid rgba(255,255,255,.06);border-radius:10px;cursor:pointer;display:flex;align-items:center;gap:12px;min-height:56px;-webkit-tap-highlight-color:transparent;transition:background .15s" ontouchstart="this.style.background=\'#1e1e3a\'" ontouchend="this.style.background=\'var(--sf)\'">';
+      if(t.strTeamBadge)h+='<img src="'+t.strTeamBadge+'" style="width:32px;height:32px;object-fit:contain">';
+      h+='<div><div style="font-weight:600;font-size:15px">'+t.strTeam+'</div><div style="font-size:12px;color:var(--t2)">'+t.strSport+' \u00b7 '+t.strLeague+'</div></div></div>';
+    });el.innerHTML=h;
+  }).catch(function(){document.getElementById('sp-team-results').innerHTML='<div style="color:#ef4444;padding:10px">Search failed</div>'});
+}
+
+function _irisTeamSelected(){
+  _irisSportsView='events';
+  document.getElementById('iris-s-tabs').style.display='none';
+  var input=document.getElementById('iris-s-input');
+  input.style.display='none';
+}
+
+// Unified search input handler
+var _irisSearchTimer=null;
+(function(){
+  var input=document.getElementById('iris-s-input');
+  var clearBtn=document.getElementById('iris-s-clear');
+  if(!input)return;
+  input.addEventListener('input',function(){
+    var q=input.value.trim();
+    clearBtn.style.display=q?'block':'none';
+    if(_irisActiveTab==='media'){
+      if(_searchTimer)clearTimeout(_searchTimer);
+      if(!q){document.getElementById('un-search-results').innerHTML='';_unLoadTrending();return}
+      _searchTimer=setTimeout(function(){_unFilterQueue(q)},150);
+    }else if(_irisActiveTab==='sports'&&_irisSportsView==='teams'){
+      clearTimeout(_irisSearchTimer);
+      if(!q||q.length<2){document.getElementById('sp-team-results').innerHTML='';_irisLoadFrequentTeams();return}
+      _irisSearchTimer=setTimeout(function(){_irisSportsSearch(q)},400);
+    }
+  });
+  input.addEventListener('keydown',function(e){
+    if(e.key==='Enter'){
+      e.preventDefault();
+      var q=input.value.trim();
+      if(!q)return;
+      if(_irisActiveTab==='media'){
+        if(_searchTimer)clearTimeout(_searchTimer);
+        _unDoSearch(q);
+      }else if(_irisActiveTab==='sports'&&_irisSportsView==='teams'){
+        clearTimeout(_irisSearchTimer);
+        _irisSportsSearch(q);
+      }
+    }
+  });
+})();
+
 // Tap empty space in search = dismiss (if no query typed)
 document.addEventListener('click',function(e){
-  var sov=document.getElementById('un-search-ov');
-  if(!sov||sov.style.display==='none')return;
-  if(e.target===document.getElementById('un-search-results')||e.target===sov){
-    var q=(document.getElementById('un-search').value||'').trim();
-    if(!q)_unCloseSearchOverlay();
+  var ov=document.getElementById('iris-search-ov');
+  if(!ov||ov.style.display==='none')return;
+  if(e.target===document.getElementById('un-search-results')||e.target===ov){
+    var q=(document.getElementById('iris-s-input').value||'').trim();
+    if(!q&&_irisActiveTab==='media')_irisCloseSearch();
   }
 });
 
@@ -5721,7 +5866,6 @@ function _unLoadTrending(){
   var showsP=_traktGet('/shows/trending?extended=full&limit=15');
   var moviesP=_traktGet('/movies/trending?extended=full&limit=15');
   Promise.all([showsP,moviesP]).then(function(res){
-    // Merge shows + movies, sort by watcher count
     var all=[];
     (res[0]||[]).forEach(function(r){var s=r.show||{};all.push({type:'show',item:s,watchers:r.watchers||0,slug:(s.ids||{}).slug||'',tmdbId:(s.ids||{}).tmdb||0})});
     (res[1]||[]).forEach(function(r){var m=r.movie||{};all.push({type:'movie',item:m,watchers:r.watchers||0,slug:(m.ids||{}).slug||'',tmdbId:(m.ids||{}).tmdb||0})});
@@ -5738,7 +5882,6 @@ function _unLoadTrending(){
       if(rating)h+=' · ⭐ '+rating;
       h+=' · 👁 '+r.watchers;
       h+='</div></div><div class="un-sr-arrow">›</div></div>';
-      // Async poster
       if(r.tmdbId){var tk=(D.un||{}).tmdb_key||'';if(tk){(function(idx,type,tid){
         fetch('https://api.themoviedb.org/3/'+(type==='movie'?'movie':'tv')+'/'+tid+'?api_key='+tk).then(function(r2){return r2.json()}).then(function(d){
           if(d.poster_path){var ph=document.getElementById('trp-'+idx);if(ph){var img=document.createElement('img');img.className='un-sr-poster';img.src='https://image.tmdb.org/t/p/w185'+d.poster_path;img.loading='lazy';ph.parentNode.replaceChild(img,ph)}}
@@ -5748,49 +5891,75 @@ function _unLoadTrending(){
     h+='</div>';
     _trendingCache=h;
     var el2=document.getElementById('un-search-results');
-    if(el2&&!document.getElementById('un-search').value.trim())el2.innerHTML=h;
+    if(el2&&!document.getElementById('iris-s-input').value.trim())el2.innerHTML=h;
   }).catch(function(){
     var el2=document.getElementById('un-search-results');
     if(el2)el2.innerHTML='';
   });
 }
-// Search overlay ← button: back to search results on sub-pages, close on home
-function _unSearchBack(){
-  if(_unCurrentView!=='home'&&_unNavStack.length){
-    // On movie/show/season sub-page — navigate back through stack
-    _unNavBack();
-  }else{
-    // On search home screen — close search overlay
-    _unCloseSearchOverlay();
-  }
-}
-function _unCloseSearchOverlay(){
-  var sov=document.getElementById('un-search-ov');
-  var input=document.getElementById('un-search');
-  input.blur();
-  input.value='';
-  sov.style.display='none';
-  document.getElementById('un-search-results').innerHTML='';
-  // If we navigated to a show/movie/season, reset to home
-  if(_unCurrentView!=='home'){_unCurrentView='home';_unNavStack=[];_unUpdateHeader()}
-}
-function _unShowSearchOverlay(){var sov=document.getElementById('un-search-ov');if(sov)sov.style.display=''}
-function _unHideSearchOverlay(){/* no-op */}
 
-// Search input setup
+// Redirect old functions
+function _unOpenSearchOverlay(){_irisOpenSearch('media')}
+function _unCloseSearchOverlay(){_irisCloseSearch()}
+function _unShowSearchOverlay(){}
+function _unHideSearchOverlay(){}
+function openSportsAdd(){_irisOpenSearch('sports')}
+function closeSportsAdd(){_irisCloseSearch()}
+
+// Swipe-to-dismiss for unified search overlay
 (function(){
-  var input=document.getElementById('un-search');
-  var clearBtn=document.getElementById('un-search-clear');
-  if(!input)return;
-  input.addEventListener('input',function(){
-    var q=input.value.trim();
-    clearBtn.style.display=q?'block':'none';
-    if(_searchTimer)clearTimeout(_searchTimer);
-    if(!q){document.getElementById('un-search-results').innerHTML='';return}
-    _searchTimer=setTimeout(function(){_unFilterQueue(q)},150);
-  });
-  input.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();if(_searchTimer)clearTimeout(_searchTimer);var q=input.value.trim();if(q)_unDoSearch(q)}});
+  var sov=document.getElementById('iris-search-ov');if(!sov)return;
+  var scnt=document.getElementById('un-search-results');
+  var sx=0,sy=0,dir=null,moved=false,inScroll=false,isSubPage=false;
+  sov.addEventListener('touchstart',function(e){
+    sx=e.touches[0].clientX;sy=e.touches[0].clientY;dir=null;moved=false;
+    inScroll=!!e.target.closest('.un-cast-scroll');
+    isSubPage=(_irisActiveTab==='media'&&_unCurrentView!=='home');
+    if(!inScroll){
+      if(isSubPage&&scnt){scnt.style.transition='none'}
+      else{sov.style.transition='none'}
+    }
+  },{passive:true});
+  sov.addEventListener('touchmove',function(e){
+    if(inScroll)return;
+    var dx=e.touches[0].clientX-sx,dy=e.touches[0].clientY-sy;
+    if(!dir&&(Math.abs(dx)>12||Math.abs(dy)>12)){
+      dir=Math.abs(dx)>Math.abs(dy)?'h':'v';
+    }
+    if(dir==='h'&&dx>0){
+      moved=true;
+      if(isSubPage&&scnt){scnt.style.transform='translateX('+dx+'px)'}
+      else{sov.style.transform='translateX('+dx+'px)'}
+    }
+  },{passive:true});
+  sov.addEventListener('touchend',function(e){
+    if(inScroll){inScroll=false;dir=null;return}
+    var dx=e.changedTouches[0].clientX-sx;
+    if(dir==='h'&&dx>80){
+      if(isSubPage&&scnt){
+        scnt.style.transition='transform .25s ease';
+        scnt.style.transform='translateX(100%)';
+        setTimeout(function(){scnt.style.transition='none';scnt.style.transform='';_irisSearchBack()},260);
+      }else{
+        sov.style.transition='transform .25s ease';
+        sov.style.transform='translateX(100%)';
+        setTimeout(function(){sov.style.transition='';sov.style.transform='';_irisSearchBack()},260);
+      }
+    }else if(moved){
+      if(isSubPage&&scnt){
+        scnt.style.transition='transform .2s ease';
+        scnt.style.transform='';
+        setTimeout(function(){scnt.style.transition=''},220);
+      }else{
+        sov.style.transition='transform .2s ease';
+        sov.style.transform='';
+        setTimeout(function(){sov.style.transition=''},220);
+      }
+    }
+    dir=null;moved=false;
+  },{passive:true});
 })();
+
 
 // Filter the Up Next queue by text match (local, instant)
 function _unFilterQueue(query){
@@ -5844,9 +6013,9 @@ function _unFilterQueue(query){
 }
 
 function _unSearchClear(){
-  var input=document.getElementById('un-search');
+  var input=document.getElementById('iris-s-input');
   input.value='';
-  document.getElementById('un-search-clear').style.display='none';
+  document.getElementById('iris-s-clear').style.display='none';
   document.getElementById('un-search-results').innerHTML='';
   input.focus();
 }
@@ -5936,7 +6105,7 @@ function _unShowSearchResults(query,results){
 
 function _srSetFilter(f){
   _srFilter=f;
-  var input=document.getElementById('un-search');
+  var input=document.getElementById('iris-s-input');
   var q=input?input.value.trim():'';
   if(q&&_searchCache[q])_unShowSearchResults(q,_searchCache[q]);
 }
@@ -6154,7 +6323,7 @@ function _unNavBack(){
   var fg=document.getElementById('un-detail-fg');
   if(fg){_unDismissDetail();return}
   // If search bar is open but no search done, just close the search bar
-  if(document.getElementById('un-search-ov').style.display!=='none'&&_unCurrentView==='home'){
+  if(document.getElementById('iris-search-ov').style.display!=='none'&&_unCurrentView==='home'){
     _unCloseSearchOverlay();
     return;
   }
@@ -6167,19 +6336,19 @@ function _unNavBack(){
       _unNavStack=[];
     }else if(prev.view==='search'){
       // Return to search results — show search bar with query
-      var input=document.getElementById('un-search');
+      var input=document.getElementById('iris-s-input');
       var q=input?input.value.trim():'';
       if(q&&_searchCache[q])_unShowSearchResults(q,_searchCache[q]);
       else _unGoHome();
     }else if(prev.view==='watchlist'){
       // Return to watchlist view — close search overlay if open
-      var _sov=document.getElementById('un-search-ov');if(_sov)_sov.style.display='none';
+      var _sov=document.getElementById('iris-search-ov');if(_sov)_sov.style.display='none';
       _unCurrentView='watchlist';
       _unUpdateHeader();
       _wlRender();
     }else if(prev.view==='calendar'){
       // Return to calendar view — close search overlay if open
-      var _sov2=document.getElementById('un-search-ov');if(_sov2)_sov2.style.display='none';
+      var _sov2=document.getElementById('iris-search-ov');if(_sov2)_sov2.style.display='none';
       _unCurrentView='calendar';
       _unUpdateHeader();
       _calRender();
@@ -6217,9 +6386,9 @@ function _unGoHome(restoreScroll){
   _unNavStack=[];
   _unUpdateHeader();
   // Reset search bar to icon mode
-  var input=document.getElementById('un-search');
+  var input=document.getElementById('iris-s-input');
   if(input){input.value='';input.blur()}
-  document.getElementById('un-search-clear').style.display='none';
+  document.getElementById('iris-s-clear').style.display='none';
   _unScrollPos=restoreScroll||0;
   _unReturning=!!restoreScroll;
   _renderUpNext();
@@ -6820,7 +6989,7 @@ function _unOpenMovie(slug,tmdbId){
   el.innerHTML='<div class="un-loading">Loading movie…</div>';
   _unSetView('movie',{slug:slug,tmdbId:tmdbId});
   // Scroll the search overlay to top (not the Up Next queue behind it)
-  var _sov=document.getElementById('un-search-ov');if(_sov)_sov.scrollTop=0;
+  var _sov=document.getElementById('iris-search-ov');if(_sov)_sov.scrollTop=0;
   // Fetch movie details from Trakt
   _traktGet('/movies/'+encodeURIComponent(slug)+'?extended=full')
   .then(function(movie){
@@ -7020,7 +7189,7 @@ function _unOpenShow(slug,tmdbId){
   el.innerHTML='<div class="un-loading">Loading show…</div>';
   _unSetView('show',{slug:slug,tmdbId:tmdbId});
   // Scroll the search overlay to top (not the Up Next queue behind it)
-  var _sov=document.getElementById('un-search-ov');if(_sov)_sov.scrollTop=0;
+  var _sov=document.getElementById('iris-search-ov');if(_sov)_sov.scrollTop=0;
   // Fetch show details + seasons + progress in parallel
   var showP=_traktGet('/shows/'+encodeURIComponent(slug)+'?extended=full');
   var seasonsP=_traktGet('/shows/'+encodeURIComponent(slug)+'/seasons?extended=full');
@@ -7150,7 +7319,7 @@ function _unOpenSeason(slug,seasonNum,tmdbId){
   el.innerHTML='<div class="un-loading">Loading episodes…</div>';
   _unSetView('season',{slug:slug,season:seasonNum,tmdbId:tmdbId});
   // Scroll the search overlay to top (not the Up Next queue behind it)
-  var _sov=document.getElementById('un-search-ov');if(_sov)_sov.scrollTop=0;
+  var _sov=document.getElementById('iris-search-ov');if(_sov)_sov.scrollTop=0;
   var ck=slug+'|'+seasonNum;
   // Fetch episodes + watched progress in parallel
   var epsP=_traktGet('/shows/'+encodeURIComponent(slug)+'/seasons/'+seasonNum+'/episodes?extended=full');
@@ -7258,7 +7427,7 @@ function _unEpNavShow(slug,tmdbId){
   // Render show page directly (skip _unSetView to avoid double-push)
   var el=document.getElementById('un-search-results');
   el.innerHTML='<div class="un-loading">Loading show…</div>';
-  var _sov=document.getElementById('un-search-ov');if(_sov)_sov.scrollTop=0;
+  var _sov=document.getElementById('iris-search-ov');if(_sov)_sov.scrollTop=0;
   var showP=_traktGet('/shows/'+encodeURIComponent(slug)+'?extended=full');
   var seasonsP=_traktGet('/shows/'+encodeURIComponent(slug)+'/seasons?extended=full');
   var progP=(_irisGetTraktAuth().accessToken)?_traktGet('/shows/'+encodeURIComponent(slug)+'/progress/watched',true).catch(function(){return null}):Promise.resolve(null);
@@ -7278,7 +7447,7 @@ function _unEpNavSeason(slug,season,tmdbId){
   _unUpdateHeader();
   var el=document.getElementById('un-search-results');
   el.innerHTML='<div class="un-loading">Loading episodes…</div>';
-  var _sov=document.getElementById('un-search-ov');if(_sov)_sov.scrollTop=0;
+  var _sov=document.getElementById('iris-search-ov');if(_sov)_sov.scrollTop=0;
   var epsP=_traktGet('/shows/'+encodeURIComponent(slug)+'/seasons/'+season+'/episodes?extended=full');
   var cached=_showDataCache[slug];
   var progP=cached&&cached.progress?Promise.resolve(cached.progress):(_irisGetTraktAuth().accessToken?_traktGet('/shows/'+encodeURIComponent(slug)+'/progress/watched',true).catch(function(){return null}):Promise.resolve(null));
@@ -7388,7 +7557,7 @@ function closeUpNext(){
   _unNavStack=[];
   _unUpdateHeader();
   // Close search overlay if open
-  var sov=document.getElementById('un-search-ov');if(sov)sov.style.display='none';
+  var sov=document.getElementById('iris-search-ov');if(sov)sov.style.display='none';
   var ov=document.getElementById('un-overlay');
   _unScrollPos=ov.scrollTop;
   ov.style.transition='transform .3s ease';
@@ -7403,7 +7572,7 @@ function closeUpNext(){
   ov.addEventListener('touchstart',function(e){
     sx=e.touches[0].clientX;sy=e.touches[0].clientY;
     tracking=true;_dir=null;
-    var _searchOpen=document.getElementById('un-search-ov').style.display!=='none';
+    var _searchOpen=document.getElementById('iris-search-ov').style.display!=='none';
     _onSub=(_unCurrentView!=='home')||_searchOpen;
     // Calendar + watchlist: no swipe-back (conflicts with iOS Safari back gesture; use ← button)
     var _isScrollView=(_unCurrentView==='calendar'||_unCurrentView==='watchlist');
@@ -7457,7 +7626,7 @@ function closeUpNext(){
         _swCnt.style.transform='translateX(100%)';
         setTimeout(function(){
           _swCnt.style.transition='none';_swCnt.style.transform='';
-          if(document.getElementById('un-search-ov').style.display!=='none'&&_unCurrentView==='home'){_unCloseSearchOverlay()}
+          if(document.getElementById('iris-search-ov').style.display!=='none'&&_unCurrentView==='home'){_unCloseSearchOverlay()}
           else{_unNavBack()}
         },260);
       }else{
@@ -7468,7 +7637,7 @@ function closeUpNext(){
     }else if(_dir==='v'&&_onSub&&_swCnt){
       // Sub-page vertical: animate out up/down then nav back
       if(Math.abs(dy)>threshold){
-        var _searchOpenV=document.getElementById('un-search-ov').style.display!=='none'&&_unCurrentView==='home';
+        var _searchOpenV=document.getElementById('iris-search-ov').style.display!=='none'&&_unCurrentView==='home';
         var dir=dy>0?'100%':'-100%';
         _swCnt.style.transition='transform .25s ease';
         _swCnt.style.transform='translateY('+dir+')';
@@ -7484,69 +7653,14 @@ function closeUpNext(){
     }
   },{passive:true});
 })();
-// Swipe-to-dismiss search overlay
-// Sub-pages: slide #un-search-results content (overlay stays put, no dashboard bleed)
-// Search home: slide whole overlay to close
-// Ignores swipes inside horizontal scroll containers (cast, streaming)
-(function(){
-  var sov=document.getElementById('un-search-ov');if(!sov)return;
-  var scnt=document.getElementById('un-search-results');
-  var sx=0,sy=0,dir=null,moved=false,inScroll=false,isSubPage=false;
-  sov.addEventListener('touchstart',function(e){
-    sx=e.touches[0].clientX;sy=e.touches[0].clientY;dir=null;moved=false;
-    inScroll=!!e.target.closest('.un-cast-scroll');
-    isSubPage=(_unCurrentView!=='home');
-    if(!inScroll){
-      if(isSubPage&&scnt){scnt.style.transition='none'}
-      else{sov.style.transition='none'}
-    }
-  },{passive:true});
-  sov.addEventListener('touchmove',function(e){
-    if(inScroll)return;
-    var dx=e.touches[0].clientX-sx,dy=e.touches[0].clientY-sy;
-    if(!dir&&(Math.abs(dx)>12||Math.abs(dy)>12)){
-      dir=Math.abs(dx)>Math.abs(dy)?'h':'v';
-    }
-    if(dir==='h'&&dx>0){
-      moved=true;
-      if(isSubPage&&scnt){scnt.style.transform='translateX('+dx+'px)'}
-      else{sov.style.transform='translateX('+dx+'px)'}
-    }
-  },{passive:true});
-  sov.addEventListener('touchend',function(e){
-    if(inScroll){inScroll=false;dir=null;return}
-    var dx=e.changedTouches[0].clientX-sx;
-    if(dir==='h'&&dx>80){
-      if(isSubPage&&scnt){
-        scnt.style.transition='transform .25s ease';
-        scnt.style.transform='translateX(100%)';
-        setTimeout(function(){scnt.style.transition='none';scnt.style.transform='';_unSearchBack()},260);
-      }else{
-        sov.style.transition='transform .25s ease';
-        sov.style.transform='translateX(100%)';
-        setTimeout(function(){sov.style.transition='';sov.style.transform='';_unSearchBack()},260);
-      }
-    }else if(moved){
-      if(isSubPage&&scnt){
-        scnt.style.transition='transform .2s ease';
-        scnt.style.transform='';
-        setTimeout(function(){scnt.style.transition=''},220);
-      }else{
-        sov.style.transition='transform .2s ease';
-        sov.style.transform='';
-        setTimeout(function(){sov.style.transition=''},220);
-      }
-    }
-    dir=null;moved=false;
-  },{passive:true});
-})();
+
 
 function renderStatus(){
   var total_people=D.a.length+D.x.length;
   var hs_count=Object.keys(D.hs||{}).length;
   var ps_count=Object.keys(D.ps||{}).length;
   var el=document.getElementById('status');
-  el.innerHTML='<span>Actors: '+total_people+'</span><span>Headshots: '+hs_count+'</span><span>Posters: '+ps_count+'</span><span>Updated: __BUILD_TIME__</span><span>v63</span>';
+  el.innerHTML='<span>Actors: '+total_people+'</span><span>Headshots: '+hs_count+'</span><span>Posters: '+ps_count+'</span><span>Updated: __BUILD_TIME__</span><span>v64</span>';
 }
 
 function render(){
