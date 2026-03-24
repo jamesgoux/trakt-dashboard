@@ -2592,6 +2592,9 @@ with open("templates/dashboard.html") as f:
     template = f.read()
 html = template.replace("__DASHBOARD_DATA__", data_str)
 html = html.replace("__BUILD_TIME__", datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC"))
+# Supabase multi-user config (env vars, with empty fallback = embedded-only mode)
+html = html.replace("__SUPABASE_URL__", os.environ.get("SUPABASE_URL", ""))
+html = html.replace("__SUPABASE_ANON_KEY__", os.environ.get("SUPABASE_ANON_KEY", ""))
 with open("index.html", "w") as f:
     f.write(html)
 

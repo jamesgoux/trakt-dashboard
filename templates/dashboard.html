@@ -9,6 +9,7 @@
 <link rel="icon" type="image/svg+xml" href="iris-icon.svg">
 <title>Iris // jamesgoux</title>
 <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
 :root{--bg:#0f0f0f;--sf:#1a1a2e;--ac:#fb923c;--tx:#eee;--t2:#999;--gr:#4ade80;--bl:#14b8a6;--pu:#14b8a6;--or:#fb923c;--tv:#14b8a6;--mv:#fb923c;--mu:#15803d;--bk:#fbbf24;--cn:#3b82f6;--th:#a78bfa;--sp:#0ea5e9}
 *{margin:0;padding:0;box-sizing:border-box}
@@ -293,6 +294,7 @@ body{overflow-x:hidden}
 <button class="hbtn" id="refresh-btn" onclick="this.querySelector('.rf-icon').classList.add('hbtn-spin');this.style.color='var(--ac)';document.querySelector('.fbar').classList.add('fbar-pulse');setTimeout(function(){location.href=location.pathname+'?_='+Date.now()+(location.hash||'')},900)" title="Refresh"><span class="rf-icon" style="display:inline-block">↻</span></button>
 <button class="hbtn" onclick="openSportsAdd()" title="Add Game">🏟️</button>
 <button class="hbtn" onclick="openUpNext()" title="Up Next">📺</button>
+<div style="position:relative"><button class="hbtn" id="iris-user-btn" onclick="_irisToggleUserMenu()" title="Account">👤</button><div id="iris-user-menu" style="display:none;position:absolute;right:0;top:100%;margin-top:6px;background:var(--sf);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:6px 0;min-width:180px;z-index:9999;box-shadow:0 8px 30px rgba(0,0,0,.5)"></div></div>
 </div>
 </div>
 <!-- Filter Dialog -->
@@ -565,12 +567,204 @@ Drop GameTrack games.csv or <span style="color:#6366f1;text-decoration:underline
 </div>
 <div id="un-search-results"></div>
 </div>
+<!-- Auth Modal -->
+<div id="iris-auth-modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);z-index:9998;display:none;align-items:center;justify-content:center">
+<div style="background:var(--sf);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:28px;max-width:380px;width:90%;position:relative">
+<button onclick="_irisCloseAuth()" style="position:absolute;top:12px;right:14px;background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;padding:4px">✕</button>
+<div style="text-align:center;margin-bottom:20px">
+<svg viewBox="0 0 512 512" width="40" height="40" style="margin-bottom:8px"><defs><radialGradient id="iga" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#e94560"/><stop offset="45%" stop-color="#7c3aed"/><stop offset="100%" stop-color="#c4b5fd"/></radialGradient></defs><path d="M256 96C128 96 32 256 32 256s96 160 224 160 224-160 224-160S384 96 256 96z" fill="#c4b5fd"/><circle cx="256" cy="256" r="200" fill="url(#iga)"/><circle cx="256" cy="256" r="80" fill="#0f0f0f"/><circle cx="220" cy="220" r="28" fill="rgba(255,255,255,0.4)"/></svg>
+<div id="iris-auth-title" style="font-size:20px;font-weight:800;color:var(--ac)">Log in to Iris</div>
+</div>
+<div id="iris-auth-error" style="display:none;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.3);border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:12px;color:#ef4444"></div>
+<input id="iris-auth-email" type="email" placeholder="Email" autocomplete="email" style="width:100%;padding:12px 14px;background:var(--bg);border:1px solid rgba(255,255,255,.15);border-radius:10px;color:var(--tx);font-size:14px;margin-bottom:10px;box-sizing:border-box">
+<input id="iris-auth-pass" type="password" placeholder="Password" autocomplete="current-password" style="width:100%;padding:12px 14px;background:var(--bg);border:1px solid rgba(255,255,255,.15);border-radius:10px;color:var(--tx);font-size:14px;margin-bottom:10px;box-sizing:border-box" onkeydown="if(event.key==='Enter')_irisAuthSubmit()">
+<div id="iris-auth-username-row" style="display:none"><input id="iris-auth-username" type="text" placeholder="Username (public)" autocomplete="username" style="width:100%;padding:12px 14px;background:var(--bg);border:1px solid rgba(255,255,255,.15);border-radius:10px;color:var(--tx);font-size:14px;margin-bottom:10px;box-sizing:border-box"></div>
+<button id="iris-auth-submit" onclick="_irisAuthSubmit()" style="width:100%;padding:14px;background:var(--ac);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:14px">Log In</button>
+<div style="text-align:center;font-size:13px;color:var(--t2)"><span id="iris-auth-toggle-text">Don't have an account?</span> <a href="#" id="iris-auth-toggle" onclick="event.preventDefault();_irisToggleAuthMode()" style="color:var(--ac);text-decoration:none;font-weight:600">Sign Up</a></div>
+</div>
+</div>
 <script>
 var D=__DASHBOARD_DATA__;
 var HS=D.hs||{},TL=D.tl||[],SYD=D.syd||[],MYD=D.myd||[],SM=D.sm||{},LO=D.lg||{};
 var ch=[],cy='all',ct='all';
 var mob=window.innerWidth<768;
 var PS=D.ps||{};
+
+// ===== IRIS AUTH (Supabase) =====
+var _IRIS_SB_URL='__SUPABASE_URL__';
+var _IRIS_SB_ANON='__SUPABASE_ANON_KEY__';
+var _irisSB=null,_irisUser=null,_irisProfile=null,_irisAuthMode='login';
+var _irisTraktToken=null,_irisTraktClientId=null;
+
+// Init Supabase client (only if URL is configured)
+if(_IRIS_SB_URL&&_IRIS_SB_URL.indexOf('__')!==0&&typeof supabase!=='undefined'){
+  _irisSB=supabase.createClient(_IRIS_SB_URL,_IRIS_SB_ANON);
+  // Listen for auth state changes
+  _irisSB.auth.onAuthStateChange(function(event,session){
+    if(event==='SIGNED_IN'&&session){
+      _irisUser=session.user;
+      _irisLoadProfile();
+      _irisLoadTraktToken();
+      _irisUpdateUI();
+    }else if(event==='SIGNED_OUT'){
+      _irisUser=null;_irisProfile=null;_irisTraktToken=null;_irisTraktClientId=null;
+      _irisUpdateUI();
+    }
+  });
+  // Restore existing session
+  _irisSB.auth.getSession().then(function(res){
+    if(res.data.session){
+      _irisUser=res.data.session.user;
+      _irisLoadProfile();
+      _irisLoadTraktToken();
+      _irisUpdateUI();
+    }
+  });
+}
+
+// Load user profile from Supabase
+function _irisLoadProfile(){
+  if(!_irisSB||!_irisUser)return;
+  _irisSB.from('profiles').select('*').eq('id',_irisUser.id).single().then(function(res){
+    if(res.data){_irisProfile=res.data;_irisUpdateUI()}
+  });
+}
+
+// Load Trakt token from Supabase integrations
+function _irisLoadTraktToken(){
+  if(!_irisSB||!_irisUser)return;
+  _irisSB.from('integrations').select('config').eq('user_id',_irisUser.id).eq('service','trakt').single().then(function(res){
+    if(res.data&&res.data.config){
+      var cfg=res.data.config;
+      if(cfg.access_token)_irisTraktToken=cfg.access_token;
+      if(cfg.client_id)_irisTraktClientId=cfg.client_id;
+    }
+  });
+}
+
+// Get effective Trakt credentials (Supabase user → embedded fallback)
+function _irisGetTraktAuth(){
+  return{
+    clientId:_irisTraktClientId||D._tc||'',
+    accessToken:_irisTraktToken||D._tt||''
+  };
+}
+
+// Update header UI based on auth state
+function _irisUpdateUI(){
+  var btn=document.getElementById('iris-user-btn');
+  if(!btn)return;
+  if(_irisUser&&_irisProfile){
+    btn.textContent='';
+    btn.style.cssText='padding:0 10px;height:34px;background:var(--ac);border:none;border-radius:8px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;letter-spacing:.3px;display:flex;align-items:center';
+    btn.textContent=_irisProfile.username||_irisUser.email.split('@')[0];
+  }else if(_irisUser){
+    btn.textContent='···';
+  }else{
+    btn.textContent='👤';
+    btn.style.cssText='';
+    btn.className='hbtn';
+  }
+}
+
+// Toggle user menu dropdown
+function _irisToggleUserMenu(){
+  if(!_irisUser){_irisOpenAuth();return}
+  var menu=document.getElementById('iris-user-menu');
+  if(menu.style.display==='block'){menu.style.display='none';return}
+  var name=_irisProfile?_irisProfile.display_name||_irisProfile.username:'User';
+  menu.innerHTML='<div style="padding:10px 16px 8px;font-size:13px;font-weight:700;color:var(--tx);border-bottom:1px solid rgba(255,255,255,.08);margin-bottom:4px">'+name+'</div>'
+    +'<div style="padding:8px 16px;font-size:13px;color:var(--t2);cursor:pointer" onmouseover="this.style.color=\'var(--tx)\'" onmouseout="this.style.color=\'var(--t2)\'" onclick="_irisUserMenuAction(\'settings\')">⚙️ Settings</div>'
+    +'<div style="padding:8px 16px;font-size:13px;color:var(--t2);cursor:pointer" onmouseover="this.style.color=\'var(--tx)\'" onmouseout="this.style.color=\'var(--t2)\'" onclick="_irisUserMenuAction(\'logout\')">🚪 Log Out</div>';
+  menu.style.display='block';
+  // Close on outside click
+  setTimeout(function(){document.addEventListener('click',_irisCloseMenu,{once:true})},10);
+}
+function _irisCloseMenu(e){
+  var menu=document.getElementById('iris-user-menu');
+  if(menu)menu.style.display='none';
+}
+function _irisUserMenuAction(action){
+  document.getElementById('iris-user-menu').style.display='none';
+  if(action==='logout'){
+    _irisSB.auth.signOut();
+    _irisUser=null;_irisProfile=null;_irisTraktToken=null;_irisTraktClientId=null;
+    _irisUpdateUI();
+  }else if(action==='settings'){
+    // Phase 4 placeholder
+    alert('Settings coming in a future update!');
+  }
+}
+
+// Auth modal controls
+function _irisOpenAuth(){
+  _irisAuthMode='login';
+  _irisRenderAuthMode();
+  var m=document.getElementById('iris-auth-modal');
+  m.style.display='flex';
+  document.getElementById('iris-auth-email').focus();
+}
+function _irisCloseAuth(){
+  document.getElementById('iris-auth-modal').style.display='none';
+  document.getElementById('iris-auth-error').style.display='none';
+  document.getElementById('iris-auth-email').value='';
+  document.getElementById('iris-auth-pass').value='';
+  var u=document.getElementById('iris-auth-username');if(u)u.value='';
+}
+function _irisToggleAuthMode(){
+  _irisAuthMode=_irisAuthMode==='login'?'register':'login';
+  _irisRenderAuthMode();
+}
+function _irisRenderAuthMode(){
+  var isReg=_irisAuthMode==='register';
+  document.getElementById('iris-auth-title').textContent=isReg?'Create Account':'Log in to Iris';
+  document.getElementById('iris-auth-submit').textContent=isReg?'Create Account':'Log In';
+  document.getElementById('iris-auth-toggle-text').textContent=isReg?'Already have an account?':'Don\'t have an account?';
+  document.getElementById('iris-auth-toggle').textContent=isReg?'Log In':'Sign Up';
+  document.getElementById('iris-auth-username-row').style.display=isReg?'':'none';
+  document.getElementById('iris-auth-error').style.display='none';
+}
+function _irisAuthSubmit(){
+  var email=document.getElementById('iris-auth-email').value.trim();
+  var pass=document.getElementById('iris-auth-pass').value;
+  var errEl=document.getElementById('iris-auth-error');
+  var btn=document.getElementById('iris-auth-submit');
+  if(!email||!pass){errEl.textContent='Please enter email and password';errEl.style.display='';return}
+  btn.disabled=true;btn.textContent='···';errEl.style.display='none';
+  if(_irisAuthMode==='register'){
+    var username=document.getElementById('iris-auth-username').value.trim().toLowerCase().replace(/[^a-z0-9_-]/g,'');
+    if(!username){errEl.textContent='Please enter a username';errEl.style.display='';btn.disabled=false;_irisRenderAuthMode();return}
+    _irisSB.auth.signUp({email:email,password:pass,options:{data:{username:username}}}).then(function(res){
+      if(res.error){errEl.textContent=res.error.message;errEl.style.display='';btn.disabled=false;_irisRenderAuthMode();return}
+      // Create profile
+      _irisSB.from('profiles').insert({id:res.data.user.id,username:username,display_name:username,is_public:true}).then(function(){
+        _irisCloseAuth();
+      });
+    });
+  }else{
+    _irisSB.auth.signInWithPassword({email:email,password:pass}).then(function(res){
+      if(res.error){errEl.textContent=res.error.message;errEl.style.display='';btn.disabled=false;_irisRenderAuthMode();return}
+      _irisCloseAuth();
+    });
+  }
+}
+
+// Gate check: returns true if user is logged in, shows login prompt if not
+function _irisRequireAuth(action){
+  if(_irisUser)return true;
+  _irisOpenAuth();
+  return false;
+}
+
+// Toast helper for auth-gated actions
+function _irisAuthToast(msg){
+  var t=document.createElement('div');
+  t.style.cssText='position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:rgba(124,58,237,.95);color:#fff;padding:10px 20px;border-radius:10px;font-size:13px;font-weight:600;z-index:99999;pointer-events:none;transition:opacity .3s';
+  t.textContent=msg||'Log in to use this feature';
+  document.body.appendChild(t);
+  setTimeout(function(){t.style.opacity='0';setTimeout(function(){t.remove()},300)},2500);
+}
+
 // Lazy chart observer — defer init until visible
 var _lazyQ=[];var _lazyObs=new IntersectionObserver(function(entries){entries.forEach(function(e){if(e.isIntersecting){var idx=_lazyQ.findIndex(function(q){return q.el===e.target});if(idx>=0){var q=_lazyQ.splice(idx,1)[0];q.fn();_lazyObs.unobserve(e.target)}}})},{rootMargin:'200px'});
 function lazyChart(el,fn){if(!el)return;var rect=el.getBoundingClientRect();if(rect.top<window.innerHeight+200){fn()}else{_lazyQ.push({el:el,fn:fn});_lazyObs.observe(el)}}
@@ -2555,6 +2749,7 @@ function _lgColor(league){if(!league)return'#0ea5e9';for(var k in _lgColors){if(
 
 // Auto-commit sports.json to GitHub repo
 function _spCommitToRepo(){
+  if(!_irisRequireAuth('save sports events')){return}
   var pat=localStorage.getItem('iris_gh_pat');
   if(!pat){
     // Show clean one-time PAT prompt
@@ -4490,8 +4685,9 @@ function _crNavToEp(season,newEp){
 }
 
 function _traktSync(epTraktId,watchedAt,onDone){
-  var cid=D._tc,tok=D._tt;
-  if(!cid||!tok){console.warn('Trakt credentials not injected');if(onDone)onDone(false);return}
+  var auth=_irisGetTraktAuth();
+  var cid=auth.clientId,tok=auth.accessToken;
+  if(!cid||!tok){console.warn('Trakt credentials not available');if(onDone)onDone(false);return}
   var body=JSON.stringify({episodes:[{ids:{trakt:epTraktId},watched_at:watchedAt}]});
   fetch('https://api.trakt.tv/sync/history',{method:'POST',headers:{'Content-Type':'application/json','trakt-api-version':'2','trakt-api-key':cid,'Authorization':'Bearer '+tok},body:body})
   .then(function(r){if(!r.ok)throw new Error('Trakt '+r.status);return r.json()})
@@ -4758,6 +4954,7 @@ function _insertRecentCard(cardHtml){
 }
 
 function markWatchedAt(slug,season,episode,epTraktId,when){
+  if(!_irisRequireAuth('mark watched')){return}
   var key=slug+'|'+season+'|'+episode;
   var watchedAt=when==='now'?new Date().toISOString():when;
   if(!watchedAt){alert('Please select a date first');return}
@@ -4841,6 +5038,7 @@ function _animateQueueUpdate(a){
 }
 
 function markWatched(slug,season,episode,epTraktId,btn){
+  if(!_irisRequireAuth('mark watched')){return}
   var key=slug+'|'+season+'|'+episode;
   var card=btn.closest('.un-card');
   card.style.opacity='0.3';card.style.pointerEvents='none';
@@ -5063,8 +5261,9 @@ var _seasonEpDataCache={}; // slug|season -> episodes[]
 
 // Trakt API helper
 function _traktGet(path,needsAuth){
-  var hdr={'Content-Type':'application/json','trakt-api-version':'2','trakt-api-key':D._tc};
-  if(needsAuth&&D._tt)hdr['Authorization']='Bearer '+D._tt;
+  var auth=_irisGetTraktAuth();
+  var hdr={'Content-Type':'application/json','trakt-api-version':'2','trakt-api-key':auth.clientId};
+  if(needsAuth&&auth.accessToken)hdr['Authorization']='Bearer '+auth.accessToken;
   return fetch('https://api.trakt.tv'+path,{headers:hdr}).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json()});
 }
 
@@ -6390,7 +6589,9 @@ function _mvDpConfirm(){
   var when=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')+'T'+String(hour).padStart(2,'0')+':'+String(mIdx).padStart(2,'0');
   document.getElementById('un-dp-sheet').remove();
   // Mark movie as watched with custom date
-  var cid=D._tc,tok=D._tt;
+  if(!_irisRequireAuth('mark watched')){return}
+  var auth=_irisGetTraktAuth();
+  var cid=auth.clientId,tok=auth.accessToken;
   if(!cid||!tok){alert('Trakt credentials not available');return}
   var body=JSON.stringify({movies:[{ids:{trakt:_mvDpTraktId},watched_at:when}]});
   var btn=document.getElementById('un-mv-watch');
@@ -6416,7 +6617,7 @@ function _unOpenShow(slug,tmdbId){
   // Fetch show details + seasons + progress in parallel
   var showP=_traktGet('/shows/'+encodeURIComponent(slug)+'?extended=full');
   var seasonsP=_traktGet('/shows/'+encodeURIComponent(slug)+'/seasons?extended=full');
-  var progP=(D._tt)?_traktGet('/shows/'+encodeURIComponent(slug)+'/progress/watched',true).catch(function(){return null}):Promise.resolve(null);
+  var progP=(_irisGetTraktAuth().accessToken)?_traktGet('/shows/'+encodeURIComponent(slug)+'/progress/watched',true).catch(function(){return null}):Promise.resolve(null);
   Promise.all([showP,seasonsP,progP]).then(function(res){
     if(_unCurrentView!=='show')return;
     var show=res[0],seasons=res[1],progress=res[2];
@@ -6547,7 +6748,7 @@ function _unOpenSeason(slug,seasonNum,tmdbId){
   // Fetch episodes + watched progress in parallel
   var epsP=_traktGet('/shows/'+encodeURIComponent(slug)+'/seasons/'+seasonNum+'/episodes?extended=full');
   var cached=_showDataCache[slug];
-  var progP=cached&&cached.progress?Promise.resolve(cached.progress):(D._tt?_traktGet('/shows/'+encodeURIComponent(slug)+'/progress/watched',true).catch(function(){return null}):Promise.resolve(null));
+  var progP=cached&&cached.progress?Promise.resolve(cached.progress):(_irisGetTraktAuth().accessToken?_traktGet('/shows/'+encodeURIComponent(slug)+'/progress/watched',true).catch(function(){return null}):Promise.resolve(null));
   Promise.all([epsP,progP]).then(function(res){
     if(_unCurrentView!=='season')return;
     var episodes=res[0],progress=res[1];
@@ -6653,7 +6854,7 @@ function _unEpNavShow(slug,tmdbId){
   var _sov=document.getElementById('un-search-ov');if(_sov)_sov.scrollTop=0;
   var showP=_traktGet('/shows/'+encodeURIComponent(slug)+'?extended=full');
   var seasonsP=_traktGet('/shows/'+encodeURIComponent(slug)+'/seasons?extended=full');
-  var progP=(D._tt)?_traktGet('/shows/'+encodeURIComponent(slug)+'/progress/watched',true).catch(function(){return null}):Promise.resolve(null);
+  var progP=(_irisGetTraktAuth().accessToken)?_traktGet('/shows/'+encodeURIComponent(slug)+'/progress/watched',true).catch(function(){return null}):Promise.resolve(null);
   Promise.all([showP,seasonsP,progP]).then(function(res){
     if(_unCurrentView!=='show')return;
     _showDataCache[slug]={show:res[0],seasons:res[1],progress:res[2],tmdbId:tmdbId};
@@ -6673,7 +6874,7 @@ function _unEpNavSeason(slug,season,tmdbId){
   var _sov=document.getElementById('un-search-ov');if(_sov)_sov.scrollTop=0;
   var epsP=_traktGet('/shows/'+encodeURIComponent(slug)+'/seasons/'+season+'/episodes?extended=full');
   var cached=_showDataCache[slug];
-  var progP=cached&&cached.progress?Promise.resolve(cached.progress):(D._tt?_traktGet('/shows/'+encodeURIComponent(slug)+'/progress/watched',true).catch(function(){return null}):Promise.resolve(null));
+  var progP=cached&&cached.progress?Promise.resolve(cached.progress):(_irisGetTraktAuth().accessToken?_traktGet('/shows/'+encodeURIComponent(slug)+'/progress/watched',true).catch(function(){return null}):Promise.resolve(null));
   Promise.all([epsP,progP]).then(function(res){
     if(_unCurrentView!=='season')return;
     var ck=slug+'|'+season;_seasonEpDataCache[ck]=res[0];
@@ -6709,6 +6910,7 @@ function _unTapEpisode(slug,season,episode,tmdbId){
 
 function _unToggleEpWatched(ev,slug,season,episode,epTraktId,btn){
   ev.stopPropagation();
+  if(!_irisRequireAuth('toggle watched')){return}
   var isWatched=btn.classList.contains('watched');
   if(isWatched){
     // Remove watch
@@ -6937,7 +7139,7 @@ function renderStatus(){
   var hs_count=Object.keys(D.hs||{}).length;
   var ps_count=Object.keys(D.ps||{}).length;
   var el=document.getElementById('status');
-  el.innerHTML='<span>Actors: '+total_people+'</span><span>Headshots: '+hs_count+'</span><span>Posters: '+ps_count+'</span><span>Updated: __BUILD_TIME__</span><span>v59</span>';
+  el.innerHTML='<span>Actors: '+total_people+'</span><span>Headshots: '+hs_count+'</span><span>Posters: '+ps_count+'</span><span>Updated: __BUILD_TIME__</span><span>v60</span>';
 }
 
 function render(){
