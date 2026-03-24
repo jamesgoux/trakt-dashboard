@@ -589,6 +589,16 @@ Drop GameTrack games.csv or <span style="color:#6366f1;text-decoration:underline
 <div id="iris-settings-grid" style="display:grid;grid-template-columns:1fr;gap:8px"></div>
 </div>
 </div>
+<!-- Profile Overlay -->
+<div id="iris-profile-ov" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg);z-index:9850;overflow-y:auto;-webkit-overflow-scrolling:touch">
+<div style="max-width:500px;margin:0 auto;padding:16px 16px 80px">
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px">
+<div style="font-size:22px;font-weight:800;color:var(--ac)">👤 Profile</div>
+<button onclick="_irisCloseProfile()" style="background:none;border:none;color:var(--t2);font-size:22px;cursor:pointer;padding:8px">✕</button>
+</div>
+<div id="iris-profile-content"></div>
+</div>
+</div>
 <!-- Auth Modal -->
 <div id="iris-auth-modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);z-index:9998;align-items:center;justify-content:center">
 <div style="background:var(--sf);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:28px;max-width:380px;width:90%;position:relative">
@@ -757,6 +767,7 @@ function _irisToggleUserMenu(){
   if(menu.style.display==='block'){menu.style.display='none';return}
   var name=_irisProfile?_irisProfile.display_name||_irisProfile.username:'User';
   menu.innerHTML='<div style="padding:10px 16px 8px;font-size:13px;font-weight:700;color:var(--tx);border-bottom:1px solid rgba(255,255,255,.08);margin-bottom:4px">'+name+'</div>'
+    +'<div style="padding:8px 16px;font-size:13px;color:var(--t2);cursor:pointer" onmouseover="this.style.color=\'var(--tx)\'" onmouseout="this.style.color=\'var(--t2)\'" onclick="_irisUserMenuAction(\'profile\')">👤 Profile</div>'
     +'<div style="padding:8px 16px;font-size:13px;color:var(--t2);cursor:pointer" onmouseover="this.style.color=\'var(--tx)\'" onmouseout="this.style.color=\'var(--t2)\'" onclick="_irisUserMenuAction(\'settings\')">⚙️ Integrations</div>'
     +'<div style="padding:8px 16px;font-size:13px;color:var(--t2);cursor:pointer" onmouseover="this.style.color=\'var(--tx)\'" onmouseout="this.style.color=\'var(--t2)\'" onclick="_irisUserMenuAction(\'refresh\')">🔄 Refresh Data</div>'
     +'<div style="padding:8px 16px;font-size:13px;color:var(--t2);cursor:pointer" onmouseover="this.style.color=\'var(--tx)\'" onmouseout="this.style.color=\'var(--t2)\'" onclick="_irisUserMenuAction(\'logout\')">🚪 Log Out</div>';
@@ -774,6 +785,8 @@ function _irisUserMenuAction(action){
     _irisSB.auth.signOut();
     _irisUser=null;_irisProfile=null;_irisTraktToken=null;_irisTraktClientId=null;
     _irisUpdateUI();
+  }else if(action==='profile'){
+    _irisOpenProfile();
   }else if(action==='settings'){
     _irisOpenSettings();
   }else if(action==='refresh'){
@@ -941,6 +954,121 @@ function _irisOpenSettings(){
 function _irisCloseSettings(){
   document.getElementById('iris-settings-ov').style.display='none';
   _irisSettingsOpen=false;
+}
+
+// Profile overlay
+var _irisProfileOpen=false;
+var _irisTzList=['Pacific/Honolulu','America/Anchorage','America/Los_Angeles','America/Denver','America/Chicago','America/New_York','America/Halifax','America/Sao_Paulo','Atlantic/Reykjavik','Europe/London','Europe/Paris','Europe/Berlin','Europe/Helsinki','Europe/Moscow','Asia/Dubai','Asia/Kolkata','Asia/Bangkok','Asia/Shanghai','Asia/Tokyo','Asia/Seoul','Australia/Sydney','Australia/Perth','Pacific/Auckland'];
+
+function _irisOpenProfile(){
+  if(!_irisUser){_irisOpenAuth();return}
+  _irisProfileOpen=true;
+  document.getElementById('iris-profile-ov').style.display='';
+  _irisRenderProfile();
+}
+function _irisCloseProfile(){
+  document.getElementById('iris-profile-ov').style.display='none';
+  _irisProfileOpen=false;
+}
+function _irisRenderProfile(){
+  var el=document.getElementById('iris-profile-content');
+  if(!_irisProfile){el.innerHTML='<div style="text-align:center;color:var(--t2);padding:40px">Loading profile...</div>';return}
+  var p=_irisProfile;
+  var fld='style="width:100%;padding:10px 12px;background:var(--bg);border:1px solid rgba(255,255,255,.15);border-radius:8px;color:var(--tx);font-size:14px;box-sizing:border-box"';
+  var lbl='style="font-size:12px;font-weight:600;color:var(--t2);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px"';
+
+  var h='<div style="display:flex;align-items:center;gap:14px;margin-bottom:24px">'
+    +'<div style="width:56px;height:56px;background:var(--ac);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800;color:#fff">'+(p.username||'?')[0].toUpperCase()+'</div>'
+    +'<div><div style="font-size:18px;font-weight:700;color:var(--tx)">'+(p.display_name||p.username)+'</div>'
+    +'<div style="font-size:13px;color:var(--t2)">@'+p.username+'</div></div></div>';
+
+  // Profile fields
+  h+='<div style="background:var(--sf);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:20px;margin-bottom:16px">';
+  h+='<div style="font-size:14px;font-weight:700;color:var(--tx);margin-bottom:16px">Account</div>';
+
+  h+='<div style="margin-bottom:14px"><div '+lbl+'>Display Name</div>';
+  h+='<input id="iris-pf-display" type="text" value="'+((p.display_name||'').replace(/"/g,'&quot;'))+'" placeholder="Your name" '+fld+'></div>';
+
+  h+='<div style="margin-bottom:14px"><div '+lbl+'>Username</div>';
+  h+='<input id="iris-pf-username" type="text" value="'+((p.username||'').replace(/"/g,'&quot;'))+'" placeholder="username" '+fld+' pattern="[a-z0-9_-]+" title="Lowercase letters, numbers, hyphens, underscores">';
+  h+='<div style="font-size:11px;color:var(--t2);margin-top:3px">Lowercase, numbers, hyphens. This is your public URL.</div></div>';
+
+  h+='<div style="margin-bottom:14px"><div '+lbl+'>Email</div>';
+  h+='<div '+fld+' style="width:100%;padding:10px 12px;background:var(--bg);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:var(--t2);font-size:14px;box-sizing:border-box">'+(_irisUser.email||'')+'</div>';
+  h+='<div style="font-size:11px;color:var(--t2);margin-top:3px">Contact support to change email.</div></div>';
+
+  h+='<div style="margin-bottom:14px"><div '+lbl+'>Timezone</div>';
+  h+='<select id="iris-pf-tz" '+fld+'>';
+  _irisTzList.forEach(function(tz){h+='<option value="'+tz+'"'+(tz===p.timezone?' selected':'')+'>'+tz.replace(/_/g,' ')+'</option>'});
+  h+='</select></div>';
+
+  h+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">';
+  h+='<div><div '+lbl+' style="font-size:12px;font-weight:600;color:var(--t2);margin-bottom:2px;text-transform:uppercase;letter-spacing:.5px">Public Profile</div>';
+  h+='<div style="font-size:11px;color:var(--t2)">Others can view your dashboard</div></div>';
+  h+='<label style="position:relative;width:44px;height:24px;cursor:pointer"><input type="checkbox" id="iris-pf-public" '+(p.is_public?'checked':'')+' style="display:none"><div style="width:44px;height:24px;background:'+(p.is_public?'var(--ac)':'#333')+';border-radius:12px;transition:background .2s" onclick="var c=document.getElementById(\'iris-pf-public\');c.checked=!c.checked;this.style.background=c.checked?\'var(--ac)\':\'#333\';this.querySelector(\'div\').style.transform=c.checked?\'translateX(20px)\':\'translateX(0)\'"><div style="width:20px;height:20px;background:#fff;border-radius:50%;position:absolute;top:2px;left:2px;transition:transform .2s;transform:'+(p.is_public?'translateX(20px)':'translateX(0)')+'"></div></div></label></div>';
+
+  h+='<div id="iris-pf-msg" style="display:none;padding:8px 12px;border-radius:8px;font-size:12px;margin-top:14px"></div>';
+  h+='<button onclick="_irisSaveProfile()" style="width:100%;padding:12px;background:var(--ac);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;margin-top:14px">Save Changes</button>';
+  h+='</div>';
+
+  // Password section
+  h+='<div style="background:var(--sf);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:20px">';
+  h+='<div style="font-size:14px;font-weight:700;color:var(--tx);margin-bottom:16px">Change Password</div>';
+  h+='<div style="margin-bottom:14px"><div '+lbl+'>New Password</div>';
+  h+='<input id="iris-pf-newpw" type="password" placeholder="New password (min 6 chars)" autocomplete="new-password" '+fld+'></div>';
+  h+='<div style="margin-bottom:14px"><div '+lbl+'>Confirm Password</div>';
+  h+='<input id="iris-pf-confirmpw" type="password" placeholder="Confirm new password" autocomplete="new-password" '+fld+'></div>';
+  h+='<div id="iris-pf-pw-msg" style="display:none;padding:8px 12px;border-radius:8px;font-size:12px;margin-bottom:14px"></div>';
+  h+='<button onclick="_irisChangePassword()" style="width:100%;padding:12px;background:transparent;color:var(--ac);border:1px solid var(--ac);border-radius:8px;font-size:14px;font-weight:700;cursor:pointer">Update Password</button>';
+  h+='</div>';
+
+  el.innerHTML=h;
+}
+
+function _irisPfMsg(id,text,ok){
+  var el=document.getElementById(id);
+  el.style.display='';el.textContent=text;
+  el.style.background=ok?'rgba(74,222,128,.12)':'rgba(239,68,68,.12)';
+  el.style.color=ok?'#4ade80':'#ef4444';
+  el.style.border='1px solid '+(ok?'rgba(74,222,128,.25)':'rgba(239,68,68,.25)');
+  if(ok)setTimeout(function(){el.style.display='none'},3000);
+}
+
+function _irisSaveProfile(){
+  var display=document.getElementById('iris-pf-display').value.trim();
+  var username=document.getElementById('iris-pf-username').value.trim().toLowerCase().replace(/[^a-z0-9_-]/g,'');
+  var tz=document.getElementById('iris-pf-tz').value;
+  var pub=document.getElementById('iris-pf-public').checked;
+  if(!username||username.length<2){_irisPfMsg('iris-pf-msg','Username must be at least 2 characters',false);return}
+  if(!display){_irisPfMsg('iris-pf-msg','Display name cannot be empty',false);return}
+  // Check username uniqueness if changed
+  var doSave=function(){
+    _irisSB.from('profiles').update({display_name:display,username:username,timezone:tz,is_public:pub,updated_at:new Date().toISOString()}).eq('id',_irisUser.id).then(function(res){
+      if(res.error){_irisPfMsg('iris-pf-msg',res.error.message||'Save failed',false);return}
+      _irisProfile.display_name=display;_irisProfile.username=username;_irisProfile.timezone=tz;_irisProfile.is_public=pub;
+      _irisUpdateUI();_irisRenderSettingsProfile();_irisRenderProfile();
+      _irisPfMsg('iris-pf-msg','Profile updated!',true);
+    });
+  };
+  if(username!==_irisProfile.username){
+    _irisSB.from('profiles').select('id').eq('username',username).then(function(res){
+      if(res.data&&res.data.length>0){_irisPfMsg('iris-pf-msg','Username "'+username+'" is already taken',false);return}
+      doSave();
+    });
+  }else{doSave()}
+}
+
+function _irisChangePassword(){
+  var pw=document.getElementById('iris-pf-newpw').value;
+  var confirm=document.getElementById('iris-pf-confirmpw').value;
+  if(!pw||pw.length<6){_irisPfMsg('iris-pf-pw-msg','Password must be at least 6 characters',false);return}
+  if(pw!==confirm){_irisPfMsg('iris-pf-pw-msg','Passwords do not match',false);return}
+  _irisSB.auth.updateUser({password:pw}).then(function(res){
+    if(res.error){_irisPfMsg('iris-pf-pw-msg',res.error.message||'Failed to update password',false);return}
+    document.getElementById('iris-pf-newpw').value='';
+    document.getElementById('iris-pf-confirmpw').value='';
+    _irisPfMsg('iris-pf-pw-msg','Password updated!',true);
+  });
 }
 
 function _irisRenderSettingsProfile(){
