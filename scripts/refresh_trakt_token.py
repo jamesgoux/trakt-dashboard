@@ -9,11 +9,14 @@ Other scripts read the access token from this file.
 Trakt tokens expire every 7 days, so this runs every 2 hours in the enrichment workflow.
 """
 import os, json, sys, time, requests
+from user_config import load_user_config, get_service
+_ucfg = load_user_config()
+
 
 DATA_FILE = os.path.join(os.path.dirname(__file__), "..", "data", "trakt_auth.json")
 
-CLIENT_ID = os.environ.get("TRAKT_CLIENT_ID", "")
-CLIENT_SECRET = os.environ.get("TRAKT_CLIENT_SECRET", "")
+CLIENT_ID = get_service(_ucfg, "trakt", "client_id") or os.environ.get("TRAKT_CLIENT_ID", "")
+CLIENT_SECRET = get_service(_ucfg, "trakt", "client_secret") or os.environ.get("TRAKT_CLIENT_SECRET", "")
 
 # Try data file first (self-renewing), fall back to env var (bootstrap)
 refresh_token = ""
@@ -29,7 +32,7 @@ if os.path.exists(DATA_FILE):
         pass
 
 if not refresh_token:
-    refresh_token = os.environ.get("TRAKT_REFRESH_TOKEN", "")
+    refresh_token = get_service(_ucfg, "trakt", "refresh_token") or os.environ.get("TRAKT_REFRESH_TOKEN", "")
     if refresh_token:
         print("Using refresh token from TRAKT_REFRESH_TOKEN env var (bootstrap)")
 

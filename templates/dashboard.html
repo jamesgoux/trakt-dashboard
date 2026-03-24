@@ -742,6 +742,7 @@ function _irisToggleUserMenu(){
   var name=_irisProfile?_irisProfile.display_name||_irisProfile.username:'User';
   menu.innerHTML='<div style="padding:10px 16px 8px;font-size:13px;font-weight:700;color:var(--tx);border-bottom:1px solid rgba(255,255,255,.08);margin-bottom:4px">'+name+'</div>'
     +'<div style="padding:8px 16px;font-size:13px;color:var(--t2);cursor:pointer" onmouseover="this.style.color=\'var(--tx)\'" onmouseout="this.style.color=\'var(--t2)\'" onclick="_irisUserMenuAction(\'settings\')">⚙️ Integrations</div>'
+    +'<div style="padding:8px 16px;font-size:13px;color:var(--t2);cursor:pointer" onmouseover="this.style.color=\'var(--tx)\'" onmouseout="this.style.color=\'var(--t2)\'" onclick="_irisUserMenuAction(\'refresh\')">🔄 Refresh Data</div>'
     +'<div style="padding:8px 16px;font-size:13px;color:var(--t2);cursor:pointer" onmouseover="this.style.color=\'var(--tx)\'" onmouseout="this.style.color=\'var(--t2)\'" onclick="_irisUserMenuAction(\'logout\')">🚪 Log Out</div>';
   menu.style.display='block';
   // Close on outside click
@@ -759,6 +760,8 @@ function _irisUserMenuAction(action){
     _irisUpdateUI();
   }else if(action==='settings'){
     _irisOpenSettings();
+  }else if(action==='refresh'){
+    _irisRequestRefresh();
   }
 }
 
@@ -829,6 +832,15 @@ function _irisAuthToast(msg){
   t.textContent=msg||'Log in to use this feature';
   document.body.appendChild(t);
   setTimeout(function(){t.style.opacity='0';setTimeout(function(){t.remove()},300)},2500);
+}
+
+// Request data refresh
+function _irisRequestRefresh(){
+  if(!_irisSB||!_irisUser){_irisAuthToast('Log in to refresh');return}
+  _irisSB.from('profiles').update({refresh_requested_at:new Date().toISOString(),refresh_status:'pending'}).eq('id',_irisUser.id).then(function(res){
+    if(res.error){_irisAuthToast('Refresh request failed');return}
+    _irisAuthToast('Refresh queued! Data will update within ~15 minutes.');
+  });
 }
 
 // ===== IRIS SETTINGS =====

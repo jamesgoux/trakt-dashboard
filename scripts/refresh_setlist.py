@@ -6,8 +6,8 @@ Saves to data/setlist.json (merged incrementally).
 
 import os, json, time, requests
 
-API_KEY = os.environ.get("SETLIST_FM_API_KEY")
-USERNAME = os.environ.get("SETLIST_FM_USERNAME", os.environ.get("TRAKT_USERNAME", "jamesgoux"))
+API_KEY = get_service(_ucfg, "setlistfm", "api_key") or os.environ.get("SETLIST_FM_API_KEY")
+USERNAME = get_service(_ucfg, "setlistfm", "username") or os.environ.get("SETLIST_FM_USERNAME", get_service(_ucfg, "trakt", "username") or os.environ.get("TRAKT_USERNAME", "jamesgoux"))
 BASE = "https://api.setlist.fm/rest/1.0"
 
 if not API_KEY:
@@ -223,6 +223,9 @@ print(f"  Total: {len(concerts)} concerts (+{new_count} new)")
 
 # Stats
 from collections import Counter
+from user_config import load_user_config, get_service
+_ucfg = load_user_config()
+
 artists = Counter(c["artist"] for c in concerts)
 venues = Counter(c["venue"] for c in concerts)
 years = Counter(c["year"] for c in concerts)

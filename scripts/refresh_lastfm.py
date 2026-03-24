@@ -8,9 +8,12 @@ import json, os, sys, time
 import urllib.request
 from datetime import datetime
 from collections import defaultdict
+from user_config import load_user_config, get_service
+_ucfg = load_user_config()
 
-LASTFM_API_KEY = os.environ.get("LASTFM_API_KEY", "")
-LASTFM_USER = os.environ.get("LASTFM_USER", "")
+
+LASTFM_API_KEY = get_service(_ucfg, "lastfm", "api_key") or os.environ.get("LASTFM_API_KEY", "")
+LASTFM_USER = get_service(_ucfg, "lastfm", "username") or os.environ.get("LASTFM_USER", "")
 if not LASTFM_API_KEY or not LASTFM_USER:
     print("Set LASTFM_API_KEY and LASTFM_USER environment variables")
     sys.exit(0)

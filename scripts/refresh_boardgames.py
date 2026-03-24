@@ -5,13 +5,16 @@ Requires BGG_PASSWORD (and optionally BGG_USERNAME) environment variables.
 Outputs data/boardgames.json for the dashboard.
 """
 import os, sys, json, time, xml.etree.ElementTree as ET
+from user_config import load_user_config, get_service
+_ucfg = load_user_config()
+
 try:
     import requests
 except ImportError:
     print("ERROR: requests not installed"); sys.exit(1)
 
-USERNAME = os.environ.get('BGG_USERNAME', 'jamesgoux')
-PASSWORD = os.environ.get('BGG_PASSWORD', '')
+USERNAME = get_service(_ucfg, "bgg", "username") or os.environ.get("BGG_USERNAME", 'jamesgoux')
+PASSWORD = get_service(_ucfg, "bgg", "password") or os.environ.get("BGG_PASSWORD", '')
 BASE = 'https://boardgamegeek.com'
 API = 'https://boardgamegeek.com/xmlapi2'
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'data', 'boardgames.json')
