@@ -24,28 +24,40 @@ except ImportError:
 
 
 def _load_from_supabase(username):
-    """Load user config from Supabase integrations table."""
+    """Load user config from Supabase integrations table.
+
+    Uses the get_decrypted_integrations() RPC to retrieve credentials
+    with sensitive fields decrypted server-side. Falls back to direct
+    table read if the RPC is not available (pre-migration).
+    """
     client = get_admin_client()
-    
+
     # Resolve username → user_id
     profiles = client.select("profiles", {"username": f"eq.{username}", "select": "id,timezone"})
     if not profiles:
         return None, None
-    
+
     user_id = profiles[0]["id"]
     timezone = profiles[0].get("timezone", "America/Los_Angeles")
-    
-    # Fetch all integrations for this user
-    integrations = client.select("integrations", {
-        "user_id": f"eq.{user_id}",
-        "select": "service,config,is_enabled"
-    })
-    
+
+    # Fetch all integrations with decrypted credentials via RPC
+    try:
+        integrations = client.rpc("get_decrypted_integrations", {"p_user_id": user_id})
+        print(f"  [user_config] Using encrypted credential storage (decrypted via RPC)")
+    except Exception as e:
+        # Fallback: direct table read (pre-migration or RPC not available)
+        print(f"  [user_config] RPC unavailable ({e}), falling back to direct read")
+        integrations = client.select("integrations", {
+            "user_id": f"eq.{user_id}",
+            "select": "service,config,is_enabled"
+        })
+        integrations = [i for i in integrations if i.get("is_enabled")]
+
     config = {"_user_id": user_id, "_username": username, "_timezone": timezone}
     for integ in integrations:
-        if integ["is_enabled"]:
+        if integ.get("is_enabled", True):
             config[integ["service"]] = integ["config"] or {}
-    
+
     return config, user_id
 
 
