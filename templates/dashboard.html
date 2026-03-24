@@ -280,10 +280,10 @@ body{overflow-x:hidden}
 <div id="iris-loader" class="iris-loader">
 <svg viewBox="0 0 512 512" width="80" height="80"><defs><radialGradient id="igl" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#e94560"/><stop offset="45%" stop-color="#7c3aed"/><stop offset="100%" stop-color="#c4b5fd"/></radialGradient></defs><path d="M256 96C128 96 32 256 32 256s96 160 224 160 224-160 224-160S384 96 256 96z" fill="#c4b5fd"/><circle cx="256" cy="256" r="200" fill="url(#igl)"/><circle cx="256" cy="256" r="80" fill="#0f0f0f"/><circle cx="220" cy="220" r="28" fill="rgba(255,255,255,0.4)"/><circle cx="280" cy="240" r="12" fill="rgba(255,255,255,0.2)"/></svg>
 <div style="font-size:24px;font-weight:800;color:var(--ac)">iris</div>
-<div style="font-size:13px;color:var(--t2);margin-top:4px">// jamesgoux</div>
+<div id="iris-loader-user" style="font-size:13px;color:var(--t2);margin-top:4px">// jamesgoux</div>
 </div>
 <div class="fbar">
-<h1><svg class="iris-logo" viewBox="0 0 512 512" width="28" height="28" style="vertical-align:middle;margin-right:6px"><defs><radialGradient id="ig" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#e94560"/><stop offset="45%" stop-color="#7c3aed"/><stop offset="100%" stop-color="#c4b5fd"/></radialGradient></defs><path d="M256 96C128 96 32 256 32 256s96 160 224 160 224-160 224-160S384 96 256 96z" fill="#c4b5fd"/><circle cx="256" cy="256" r="200" fill="url(#ig)"/><circle cx="256" cy="256" r="80" fill="#0f0f0f"/><circle cx="220" cy="220" r="28" fill="rgba(255,255,255,0.4)"/><circle cx="280" cy="240" r="12" fill="rgba(255,255,255,0.2)"/></svg><span style="color:var(--ac);font-weight:800">iris</span> <span style="color:var(--t2);font-weight:400">// jamesgoux</span></h1>
+<h1><svg class="iris-logo" viewBox="0 0 512 512" width="28" height="28" style="vertical-align:middle;margin-right:6px"><defs><radialGradient id="ig" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#e94560"/><stop offset="45%" stop-color="#7c3aed"/><stop offset="100%" stop-color="#c4b5fd"/></radialGradient></defs><path d="M256 96C128 96 32 256 32 256s96 160 224 160 224-160 224-160S384 96 256 96z" fill="#c4b5fd"/><circle cx="256" cy="256" r="200" fill="url(#ig)"/><circle cx="256" cy="256" r="80" fill="#0f0f0f"/><circle cx="220" cy="220" r="28" fill="rgba(255,255,255,0.4)"/><circle cx="280" cy="240" r="12" fill="rgba(255,255,255,0.2)"/></svg><span style="color:var(--ac);font-weight:800">iris</span> <span id="iris-hdr-user" style="color:var(--t2);font-weight:400">// jamesgoux</span></h1>
 <div class="fctrls">
 <svg class="iris-logo-mob" viewBox="0 0 512 512" width="24" height="24" style="display:none;vertical-align:middle;flex-shrink:0"><defs><radialGradient id="igm" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#e94560"/><stop offset="45%" stop-color="#7c3aed"/><stop offset="100%" stop-color="#c4b5fd"/></radialGradient></defs><path d="M256 96C128 96 32 256 32 256s96 160 224 160 224-160 224-160S384 96 256 96z" fill="#c4b5fd"/><circle cx="256" cy="256" r="200" fill="url(#igm)"/><circle cx="256" cy="256" r="80" fill="#0f0f0f"/><circle cx="220" cy="220" r="28" fill="rgba(255,255,255,0.4)"/></svg>
 <button id="filter-btn" onclick="openFilterDialog()" style="flex:1;min-width:0;padding:0 10px;background:var(--sf);border:1px solid rgba(255,255,255,.15);border-radius:8px;color:var(--tx);font-size:12px;cursor:pointer;font-weight:600;height:44px;display:flex;align-items:center;justify-content:center;white-space:nowrap;overflow:hidden">2026 🧬 Life</button>
@@ -584,11 +584,66 @@ Drop GameTrack games.csv or <span style="color:#6366f1;text-decoration:underline
 </div>
 </div>
 <script>
-var D=__DASHBOARD_DATA__;
-var HS=D.hs||{},TL=D.tl||[],SYD=D.syd||[],MYD=D.myd||[],SM=D.sm||{},LO=D.lg||{};
+// Embedded data (jamesgoux — zero-latency for primary user)
+var _irisEmbeddedData=__DASHBOARD_DATA__;
+var _IRIS_EMBEDDED_USER='__IRIS_EMBEDDED_USER__';
+
+// Dynamic data loading: ?user=X loads from Supabase, default = embedded
+var D=_irisEmbeddedData;
+var _irisViewingUser=_IRIS_EMBEDDED_USER;
+var _irisDataSource='embedded'; // 'embedded' or 'api'
+
+// Derived globals (re-initialized after dynamic load)
+function _irisInitDerived(){
+  HS=D.hs||{};TL=D.tl||[];SYD=D.syd||[];MYD=D.myd||[];SM=D.sm||{};LO=D.lg||{};PS=D.ps||{};
+}
+var HS={},TL=[],SYD=[],MYD=[],SM={},LO={},PS={};
+_irisInitDerived();
 var ch=[],cy='all',ct='all';
 var mob=window.innerWidth<768;
-var PS=D.ps||{};
+
+// Update UI to reflect which user's data is being viewed
+function _irisSetViewingUser(username){
+  _irisViewingUser=username||_IRIS_EMBEDDED_USER;
+  var hdr=document.getElementById('iris-hdr-user');
+  if(hdr)hdr.textContent='// '+_irisViewingUser;
+  var loader=document.getElementById('iris-loader-user');
+  if(loader)loader.textContent='// '+_irisViewingUser;
+}
+
+// Fetch another user's data from Supabase
+function _irisFetchUserData(username){
+  if(!_irisSB){return Promise.reject(new Error('Supabase not configured'))}
+  _irisSetViewingUser(username);
+  // Show loading state
+  var loader=document.getElementById('iris-loader');
+  if(loader){loader.style.display='flex';loader.querySelector('div:last-child')||0;
+    var msg=loader.querySelector('#iris-loader-user');
+    if(msg)msg.textContent='// loading '+username+'…';
+  }
+  // Resolve username → user_id via public profiles
+  return fetch(_IRIS_SB_URL+'/rest/v1/profiles?username=eq.'+encodeURIComponent(username)+'&select=id,username,display_name,timezone&is_public=eq.true',{
+    headers:{'apikey':_IRIS_SB_ANON,'Authorization':'Bearer '+_IRIS_SB_ANON}
+  })
+  .then(function(r){if(!r.ok)throw new Error('Profile lookup failed');return r.json()})
+  .then(function(profiles){
+    if(!profiles.length)throw new Error('User not found: '+username);
+    var uid=profiles[0].id;
+    // Fetch data blob from public Storage
+    return fetch(_IRIS_SB_URL+'/storage/v1/object/public/user-data/'+uid+'/dashboard.json');
+  })
+  .then(function(r){
+    if(!r.ok)throw new Error('Data not available for '+username);
+    return r.json();
+  })
+  .then(function(data){
+    D=data;
+    _irisDataSource='api';
+    _irisInitDerived();
+    _irisSetViewingUser(username);
+    return data;
+  });
+}
 
 // ===== IRIS AUTH (Supabase) =====
 var _IRIS_SB_URL='__SUPABASE_URL__';
@@ -7139,7 +7194,7 @@ function renderStatus(){
   var hs_count=Object.keys(D.hs||{}).length;
   var ps_count=Object.keys(D.ps||{}).length;
   var el=document.getElementById('status');
-  el.innerHTML='<span>Actors: '+total_people+'</span><span>Headshots: '+hs_count+'</span><span>Posters: '+ps_count+'</span><span>Updated: __BUILD_TIME__</span><span>v60</span>';
+  el.innerHTML='<span>Actors: '+total_people+'</span><span>Headshots: '+hs_count+'</span><span>Posters: '+ps_count+'</span><span>Updated: __BUILD_TIME__</span><span>v61</span>';
 }
 
 function render(){
@@ -7235,7 +7290,49 @@ window.addEventListener('resize',function(){
   },{passive:true});
 })();
 window.addEventListener('hashchange',function(){readHash();render()});
-render();
+
+// ===== IRIS BOOTSTRAP: ?user=X dynamic loading =====
+(function(){
+  var params=new URLSearchParams(window.location.search);
+  var requestedUser=params.get('user');
+
+  // Case 1: No ?user param, or matches embedded user → use embedded data (instant)
+  if(!requestedUser||requestedUser===_IRIS_EMBEDDED_USER||(_IRIS_EMBEDDED_USER.indexOf('__')===0&&!requestedUser)){
+    _irisSetViewingUser(_IRIS_EMBEDDED_USER.indexOf('__')===0?'jamesgoux':_IRIS_EMBEDDED_USER);
+    render();
+    return;
+  }
+
+  // Case 2: Different user requested → fetch from Supabase
+  if(!_irisSB){
+    // Supabase not configured — fall back to embedded
+    console.warn('Iris: Supabase not configured, using embedded data');
+    _irisSetViewingUser(_IRIS_EMBEDDED_USER.indexOf('__')===0?'jamesgoux':_IRIS_EMBEDDED_USER);
+    render();
+    return;
+  }
+
+  // Fetch the requested user's data
+  _irisFetchUserData(requestedUser)
+    .then(function(){
+      render();
+    })
+    .catch(function(err){
+      console.error('Iris: Failed to load user data:',err);
+      // Show error in loader
+      var loader=document.getElementById('iris-loader');
+      if(loader){
+        var msg=loader.querySelector('#iris-loader-user');
+        if(msg){msg.textContent='User "'+requestedUser+'" not found';msg.style.color='#ef4444'}
+        // Add button to load default
+        var btn=document.createElement('button');
+        btn.textContent='Load default dashboard';
+        btn.style.cssText='margin-top:16px;padding:10px 20px;background:var(--ac);color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer;font-weight:600';
+        btn.onclick=function(){window.location.search=''};
+        msg.parentNode.appendChild(btn);
+      }
+    });
+})();
 
 // CSV Importer
 (function(){
