@@ -4831,7 +4831,7 @@ function _unPrefetch(base,epNum){
 
 function _unBuildPanel(show){
   var slug2=show.slug.replace(/'/g,"\\'");
-  var h='<div class="un-detail" style="display:flex;flex-direction:column;min-height:100%;padding:0 16px;background:var(--sf);border-radius:12px 12px 0 0">';
+  var h='<div class="un-detail" style="display:flex;flex-direction:column;min-height:100vh;padding:0 16px;background:var(--sf);border-radius:12px 12px 0 0">';
   // Nav bar
   h+='<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0">';
   h+='<button onclick="_unDismissDetail()" style="background:rgba(255,255,255,.08);border:none;color:var(--tx);border-radius:8px;padding:10px 16px;font-size:14px;cursor:pointer;min-height:44px">↑ Back</button>';
@@ -4866,12 +4866,12 @@ function _unBuildPanel(show){
   if(show.ep_aired)h+='<button onclick="markWatchedAt(\''+slug2+'\','+show.season+','+show.episode+','+(show.ep_trakt_id||0)+',\''+show.ep_aired+'\')" style="flex:1;padding:14px 8px;background:#0e7490;color:#fff;border:none;border-radius:10px;font-size:13px;cursor:pointer;font-weight:600;min-height:48px">Air Date</button>';
   h+='<button onclick="markWatchedAt(\''+slug2+'\','+show.season+','+show.episode+','+(show.ep_trakt_id||0)+',\'now\')" style="flex:1;padding:14px 8px;background:var(--tv);color:#fff;border:none;border-radius:10px;font-size:13px;cursor:pointer;font-weight:600;min-height:48px">Just Now</button>';
   h+='</div>';
+  // Watch history — right below buttons
+  h+='<div id="un-ep-history-'+show.season+'-'+show.episode+'" class="un-ep-hist" style="margin-bottom:16px"></div>';
   // Synopsis
   if(show.ep_overview)h+='<p style="font-size:13px;color:var(--t2);line-height:1.6;margin:0 0 16px">'+show.ep_overview+'</p>';
   // Cast for this episode
-  h+='<div id="un-ep-cast-'+show.season+'-'+show.episode+'" style="margin-bottom:12px"></div>';
-  // Watch history container
-  h+='<div id="un-ep-history-'+show.season+'-'+show.episode+'" class="un-ep-hist" style="margin-bottom:16px;padding-bottom:60px"></div>';
+  h+='<div id="un-ep-cast-'+show.season+'-'+show.episode+'" style="margin-bottom:12px;padding-bottom:60px"></div>';
   h+='</div>';
   return h;
 }
@@ -5005,10 +5005,10 @@ function _unRenderDetail(allShows,idx){
   var ov=document.getElementById('un-overlay');
   var prev=_unMakeEp(show,show.episode-1);
   var next=_unMakeEp(show,show.episode+1);
-  var h='<div class="un-carousel-wrap" style="max-width:none;margin:0;height:100%;border-radius:0;border:none;background:var(--bg,#0f0f0f)"><div class="un-carousel" id="un-car" style="height:100%">';
-  h+='<div class="un-carousel-panel" style="height:100%;padding:0">'+_unBuildPanel(prev)+'</div>';
-  h+='<div class="un-carousel-panel" style="height:100%;padding:0">'+_unBuildPanel(show)+'</div>';
-  h+='<div class="un-carousel-panel" style="height:100%;padding:0">'+_unBuildPanel(next)+'</div>';
+  var h='<div class="un-carousel-wrap" style="max-width:none;margin:0;border-radius:0;border:none;background:var(--bg,#0f0f0f)"><div class="un-carousel" id="un-car">';
+  h+='<div class="un-carousel-panel" style="padding:0">'+_unBuildPanel(prev)+'</div>';
+  h+='<div class="un-carousel-panel" style="padding:0">'+_unBuildPanel(show)+'</div>';
+  h+='<div class="un-carousel-panel" style="padding:0">'+_unBuildPanel(next)+'</div>';
   h+='</div></div>';
   // Append detail to OVERLAY (covers header + content, true full-screen)
   var el=document.getElementById('un-content');
