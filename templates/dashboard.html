@@ -840,21 +840,22 @@ function _irisAuthSubmit(){
   var btn=document.getElementById('iris-auth-submit');
   if(!email||!pass){errEl.textContent='Please enter email and password';errEl.style.display='';return}
   btn.disabled=true;btn.textContent='···';errEl.style.display='none';
+  function _authErr(msg){errEl.textContent=msg;errEl.style.display='';btn.disabled=false;_irisRenderAuthMode()}
+  if(!_irisSB){_authErr('Supabase not initialized — try refreshing');return}
   if(_irisAuthMode==='register'){
     var username=document.getElementById('iris-auth-username').value.trim().toLowerCase().replace(/[^a-z0-9_-]/g,'');
-    if(!username){errEl.textContent='Please enter a username';errEl.style.display='';btn.disabled=false;_irisRenderAuthMode();return}
+    if(!username){_authErr('Please enter a username');return}
     _irisSB.auth.signUp({email:email,password:pass,options:{data:{username:username}}}).then(function(res){
-      if(res.error){errEl.textContent=res.error.message;errEl.style.display='';btn.disabled=false;_irisRenderAuthMode();return}
-      // Create profile
+      if(res.error){_authErr(res.error.message);return}
       _irisSB.from('profiles').insert({id:res.data.user.id,username:username,display_name:username,is_public:true}).then(function(){
         _irisCloseAuth();
-      });
-    });
+      }).catch(function(e){_authErr('Profile creation failed: '+(e.message||e))});
+    }).catch(function(e){_authErr('Sign up failed: '+(e.message||e))});
   }else{
     _irisSB.auth.signInWithPassword({email:email,password:pass}).then(function(res){
-      if(res.error){errEl.textContent=res.error.message;errEl.style.display='';btn.disabled=false;_irisRenderAuthMode();return}
+      if(res.error){_authErr(res.error.message);return}
       _irisCloseAuth();
-    });
+    }).catch(function(e){_authErr('Login failed: '+(e.message||e))});
   }
 }
 
