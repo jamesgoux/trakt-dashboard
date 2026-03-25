@@ -610,9 +610,9 @@ Drop GameTrack games.csv or <span style="color:#6366f1;text-decoration:underline
 <form id="iris-auth-form" onsubmit="event.preventDefault();_irisAuthSubmit()" method="post" action="#">
 <input id="iris-auth-email" name="email" type="email" placeholder="Email" autocomplete="email" style="width:100%;padding:12px 14px;background:var(--bg);border:1px solid rgba(255,255,255,.15);border-radius:10px;color:var(--tx);font-size:14px;margin-bottom:10px;box-sizing:border-box">
 <input id="iris-auth-pass" name="password" type="password" placeholder="Password" autocomplete="current-password" style="width:100%;padding:12px 14px;background:var(--bg);border:1px solid rgba(255,255,255,.15);border-radius:10px;color:var(--tx);font-size:14px;margin-bottom:10px;box-sizing:border-box">
-<div id="iris-auth-username-row" style="display:none"><input id="iris-auth-username" name="username" type="text" placeholder="Username (public)" autocomplete="username" disabled style="width:100%;padding:12px 14px;background:var(--bg);border:1px solid rgba(255,255,255,.15);border-radius:10px;color:var(--tx);font-size:14px;margin-bottom:10px;box-sizing:border-box"></div>
 <button id="iris-auth-submit" type="submit" style="width:100%;padding:14px;background:var(--ac);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:14px">Log In</button>
 </form>
+<div id="iris-auth-username-row" style="display:none;margin-top:-14px;margin-bottom:14px"><input id="iris-auth-username" type="text" placeholder="Username (public)" autocomplete="off" style="width:100%;padding:12px 14px;background:var(--bg);border:1px solid rgba(255,255,255,.15);border-radius:10px;color:var(--tx);font-size:14px;box-sizing:border-box"></div>
 <div style="text-align:center;font-size:13px;color:var(--t2)"><span id="iris-auth-toggle-text">Don't have an account?</span> <a href="#" id="iris-auth-toggle" onclick="event.preventDefault();_irisToggleAuthMode()" style="color:var(--ac);text-decoration:none;font-weight:600">Sign Up</a></div>
 </div>
 </div>
@@ -818,8 +818,18 @@ function _irisRenderAuthMode(){
   document.getElementById('iris-auth-submit').textContent=isReg?'Create Account':'Log In';
   document.getElementById('iris-auth-toggle-text').textContent=isReg?'Already have an account?':'Don\'t have an account?';
   document.getElementById('iris-auth-toggle').textContent=isReg?'Log In':'Sign Up';
-  document.getElementById('iris-auth-username-row').style.display=isReg?'':'none';
-  document.getElementById('iris-auth-username').disabled=!isReg;
+  var uRow=document.getElementById('iris-auth-username-row');
+  var form=document.getElementById('iris-auth-form');
+  var submitBtn=document.getElementById('iris-auth-submit');
+  if(isReg){
+    // Move username INTO form (between password and submit) for signup
+    form.insertBefore(uRow,submitBtn);
+    uRow.style.display='';uRow.style.marginTop='';uRow.style.marginBottom='';
+  }else{
+    // Move username OUT of form so 1Password only sees email+password
+    form.parentElement.insertBefore(uRow,form.nextSibling);
+    uRow.style.display='none';
+  }
   document.getElementById('iris-auth-pass').autocomplete=isReg?'new-password':'current-password';
   document.getElementById('iris-auth-error').style.display='none';
 }
