@@ -718,12 +718,12 @@ function _irisLoadProfile(){
   });
 }
 
-// Load Trakt token from Supabase integrations
+// Load Trakt token from Supabase integrations (decrypted via RPC)
 function _irisLoadTraktToken(){
   if(!_irisSB||!_irisUser)return;
-  _irisSB.from('integrations').select('config').eq('user_id',_irisUser.id).eq('service','trakt').single().then(function(res){
-    if(res.data&&res.data.config){
-      var cfg=res.data.config;
+  _irisSB.rpc('get_my_integration',{p_service:'trakt'}).then(function(res){
+    if(res.data){
+      var cfg=res.data;
       if(cfg.access_token)_irisTraktToken=cfg.access_token;
       if(cfg.client_id)_irisTraktClientId=cfg.client_id;
     }
