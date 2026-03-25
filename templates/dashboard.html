@@ -4455,6 +4455,7 @@ function openUpNext(skipSync){
     ov.style.display='';
     _unEverOpened=true;
     ov.style.visibility='hidden';ov.style.transition='none';ov.style.transform='translateX(100%)';
+    _rwSuppressScroll();
     requestAnimationFrame(function(){
       var anchor=document.getElementById('un-default-scroll');
       if(anchor){var hdrH=ov.firstElementChild?ov.firstElementChild.offsetHeight:70;var anchorTop=anchor.getBoundingClientRect().top-ov.getBoundingClientRect().top+ov.scrollTop;ov.scrollTop=Math.max(0,anchorTop-hdrH)}
@@ -4582,20 +4583,26 @@ function _applyExternalWatches(entries){
   });
 }
 // Recently Watched virtual scroll: show 10, reveal 10 more on scroll up
-var _rwCards=null,_rwShown=0,_rwTotal=0,_rwBusy=false;
+var _rwCards=null,_rwShown=0,_rwTotal=0,_rwBusy=false,_rwSuppress=false;
+function _rwUpdateBadge(){
+  var b=document.getElementById('un-rw-count');
+  if(b)b.textContent=(!_rwCards||_rwShown>=_rwTotal)?'':'showing '+_rwShown+' of '+_rwTotal;
+}
+function _rwSuppressScroll(){_rwSuppress=true;requestAnimationFrame(function(){requestAnimationFrame(function(){_rwSuppress=false})})}
 function _setupRWVirtualScroll(ov){
   var grid=document.getElementById('un-rw-grid');
-  if(!grid){_rwCards=null;return}
+  if(!grid){_rwCards=null;_rwUpdateBadge();return}
   _rwCards=Array.from(grid.children);
   _rwTotal=_rwCards.length;
   _rwShown=Math.min(10,_rwTotal);
-  if(_rwShown>=_rwTotal)return;
+  if(_rwShown>=_rwTotal){_rwUpdateBadge();return}
   for(var i=0;i<_rwTotal-_rwShown;i++)_rwCards[i].style.display='none';
+  _rwUpdateBadge();
   // Set up scroll listener once
   if(!ov._rwListener){
     ov._rwListener=true;
     ov.addEventListener('scroll',function(){
-      if(_rwBusy||!_rwCards||_rwShown>=_rwTotal)return;
+      if(_rwBusy||_rwSuppress||!_rwCards||_rwShown>=_rwTotal)return;
       var firstVisIdx=-1;
       for(var j=0;j<_rwTotal;j++){if(_rwCards[j].style.display!=='none'){firstVisIdx=j;break}}
       if(firstVisIdx<=0)return;
@@ -4611,7 +4618,9 @@ function _setupRWVirtualScroll(ov){
         ov.scrollTop+=(topAfter-topBefore);
         _rwShown+=batch;
         ov.style.overflowY='auto';
-        _rwBusy=false;
+        _rwUpdateBadge();
+        // Debounce: stay busy for 2 frames to prevent cascade from scrollTop adjustment
+        requestAnimationFrame(function(){requestAnimationFrame(function(){_rwBusy=false})});
       }
     },{passive:true});
   }
@@ -4675,7 +4684,7 @@ function _renderUpNext(prerender){
 
   var recentFiltered=recent.filter(function(s){return !_isRemoved(s.slug,s.season,s.episode,s.watched_at)});
   if(recentFiltered.length){
-    h+='<div class="un-section">\ud83d\udd50 Recently Watched</div><div class="un-grid" id="un-rw-grid">';
+    h+='<div class="un-section">\ud83d\udd50 Recently Watched <span id="un-rw-count" style="font-size:11px;opacity:.45;font-weight:400"></span></div><div class="un-grid" id="un-rw-grid">';
     recentFiltered.slice().reverse().forEach(function(s){h+=card(s,true)});
     h+='</div>';
   }
@@ -4712,11 +4721,12 @@ function _renderUpNext(prerender){
     // Instant content swap, preserve scroll
     _unReturning=false;
     ov.style.transition='none';ov.style.transform='';ov.style.visibility='';
-    var sp=_unScrollPos;requestAnimationFrame(function(){ov.scrollTop=sp});
+    var sp=_unScrollPos;_rwSuppressScroll();requestAnimationFrame(function(){ov.scrollTop=sp});
   }else if(!_unEverOpened){
     // First open this session — scroll to New Episodes, slide in from right
     _unEverOpened=true;
     ov.style.visibility='hidden';ov.style.transition='none';ov.style.transform='translateX(100%)';
+    _rwSuppressScroll();
     requestAnimationFrame(function(){
       // Scroll to New Episodes anchor, accounting for sticky header height
       var anchor=document.getElementById('un-default-scroll');
@@ -4728,7 +4738,7 @@ function _renderUpNext(prerender){
   }else{
     // Subsequent opens — restore last scroll position, slide in from right
     ov.style.visibility='hidden';ov.style.transition='none';ov.style.transform='translateX(100%)';
-    var _sp=_unScrollPos;
+    var _sp=_unScrollPos;_rwSuppressScroll();
     requestAnimationFrame(function(){ov.scrollTop=_sp;ov.style.visibility='';ov.style.transition='transform .3s ease';requestAnimationFrame(function(){ov.style.transform=''})});
   }
   _lockBody();
