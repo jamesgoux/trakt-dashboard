@@ -4106,7 +4106,7 @@ function deleteSportsEvent(id){
 }
 
 // Lifeline Full Feed
-var _llFeedDays=[];var _llFeedIdx=0;var _llFeedBatch=15;
+var _llFeedDays=[];var _llFeedIdx=0;var _llFeedBatch=15;var _llOnThisDay=false;
 var _llTypeInfo={ep:{icon:'📺',color:'#0a7d7d',label:'Episodes'},mv:{icon:'🎞️',color:'#c97530',label:'Movies'},sc:{icon:'🎧',color:'#15803d',label:'Scrobbles'},bk:{icon:'📚',color:'#c99a1e',label:'Books'},co:{icon:'🎸',color:'#3068c5',label:'Concerts'},th:{icon:'🎭',color:'#8670c8',label:'Theater'},pc:{icon:'🎙️',color:'#c03636',label:'Podcasts'},wk:{icon:'🏃',color:'#1db954',label:'Workouts'},sp:{icon:'🏟️',color:'#0ea5e9',label:'Sports'},bg:{icon:'🎲',color:'#ec4899',label:'Board Games'},gt:{icon:'🎮',color:'#6366f1',label:'Video Games'}};
 var _llDayNames=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 var _llMonthNames=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -4197,6 +4197,7 @@ function openLifelineFeed(){
 }
 
 function openOnThisDay(){
+  _llOnThisDay=true;
   var ll=D.ll||{};
   var now=new Date();
   var mmdd='-'+(now.getMonth()+1<10?'0':'')+(now.getMonth()+1)+'-'+(now.getDate()<10?'0':'')+now.getDate();
@@ -4230,6 +4231,7 @@ function openOnThisDay(){
 }
 
 function closeLifelineFeed(){
+  _llOnThisDay=false;
   document.getElementById('ll-feed').style.display='none';
   document.getElementById('ll-feed').style.transform='';
   // Restore header + filters for next open
@@ -4271,7 +4273,9 @@ function _llRenderBatch(){
   for(var i=_llFeedIdx;i<end;i++){
     var day=_llFeedDays[i];var v=ll[day];if(!v)continue;
     var div=document.createElement('div');div.className='ll-day';
-    var hdr='<div class="ll-day-hdr">'+_llFormatDate(day)+'</div>';
+    var agoTag='';
+    if(_llOnThisDay){var _yr=parseInt(day.substring(0,4));var _ago=new Date().getFullYear()-_yr;agoTag=' <span style="font-weight:500;color:var(--ac);opacity:.7;font-size:11px;margin-left:6px">'+_ago+' yr'+(_ago!==1?'s':'')+' ago</span>'}
+    var hdr='<div class="ll-day-hdr">'+_llFormatDate(day)+agoTag+'</div>';
     var body='';
     var evts=v.e||[];
     if(evts.length){
