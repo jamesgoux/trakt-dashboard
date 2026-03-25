@@ -610,7 +610,7 @@ Drop GameTrack games.csv or <span style="color:#6366f1;text-decoration:underline
 <form id="iris-auth-form" onsubmit="event.preventDefault();_irisAuthSubmit()" method="post" action="#">
 <input id="iris-auth-email" name="email" type="email" placeholder="Email" autocomplete="email" style="width:100%;padding:12px 14px;background:var(--bg);border:1px solid rgba(255,255,255,.15);border-radius:10px;color:var(--tx);font-size:14px;margin-bottom:10px;box-sizing:border-box">
 <input id="iris-auth-pass" name="password" type="password" placeholder="Password" autocomplete="current-password" style="width:100%;padding:12px 14px;background:var(--bg);border:1px solid rgba(255,255,255,.15);border-radius:10px;color:var(--tx);font-size:14px;margin-bottom:10px;box-sizing:border-box">
-<div id="iris-auth-username-row" style="display:none"><input id="iris-auth-username" name="username" type="text" placeholder="Username (public)" autocomplete="username" style="width:100%;padding:12px 14px;background:var(--bg);border:1px solid rgba(255,255,255,.15);border-radius:10px;color:var(--tx);font-size:14px;margin-bottom:10px;box-sizing:border-box"></div>
+<div id="iris-auth-username-row" style="display:none"><input id="iris-auth-username" name="username" type="text" placeholder="Username (public)" autocomplete="username" disabled style="width:100%;padding:12px 14px;background:var(--bg);border:1px solid rgba(255,255,255,.15);border-radius:10px;color:var(--tx);font-size:14px;margin-bottom:10px;box-sizing:border-box"></div>
 <button id="iris-auth-submit" type="submit" style="width:100%;padding:14px;background:var(--ac);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:14px">Log In</button>
 </form>
 <div style="text-align:center;font-size:13px;color:var(--t2)"><span id="iris-auth-toggle-text">Don't have an account?</span> <a href="#" id="iris-auth-toggle" onclick="event.preventDefault();_irisToggleAuthMode()" style="color:var(--ac);text-decoration:none;font-weight:600">Sign Up</a></div>
@@ -819,6 +819,8 @@ function _irisRenderAuthMode(){
   document.getElementById('iris-auth-toggle-text').textContent=isReg?'Already have an account?':'Don\'t have an account?';
   document.getElementById('iris-auth-toggle').textContent=isReg?'Log In':'Sign Up';
   document.getElementById('iris-auth-username-row').style.display=isReg?'':'none';
+  document.getElementById('iris-auth-username').disabled=!isReg;
+  document.getElementById('iris-auth-pass').autocomplete=isReg?'new-password':'current-password';
   document.getElementById('iris-auth-error').style.display='none';
 }
 function _irisAuthSubmit(){
@@ -1062,11 +1064,18 @@ function _irisChangePassword(){
   var confirm=document.getElementById('iris-pf-confirmpw').value;
   if(!pw||pw.length<6){_irisPfMsg('iris-pf-pw-msg','Password must be at least 6 characters',false);return}
   if(pw!==confirm){_irisPfMsg('iris-pf-pw-msg','Passwords do not match',false);return}
+  if(!_irisSB||!_irisUser){_irisPfMsg('iris-pf-pw-msg','Not authenticated — please log in again',false);return}
+  _irisPfMsg('iris-pf-pw-msg','Updating…',true);
   _irisSB.auth.updateUser({password:pw}).then(function(res){
     if(res.error){_irisPfMsg('iris-pf-pw-msg',res.error.message||'Failed to update password',false);return}
-    document.getElementById('iris-pf-newpw').value='';
-    document.getElementById('iris-pf-confirmpw').value='';
-    _irisPfMsg('iris-pf-pw-msg','Password updated!',true);
+    // Refresh session so new password is fully active
+    return _irisSB.auth.refreshSession().then(function(){
+      document.getElementById('iris-pf-newpw').value='';
+      document.getElementById('iris-pf-confirmpw').value='';
+      _irisPfMsg('iris-pf-pw-msg','Password updated! Update it in your password manager too.',true);
+    });
+  }).catch(function(e){
+    _irisPfMsg('iris-pf-pw-msg','Network error: '+(e.message||'try again'),false);
   });
 }
 
