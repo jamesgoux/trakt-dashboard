@@ -687,9 +687,9 @@ var _irisTraktToken=null,_irisTraktClientId=null;
 // Init Supabase client (only if URL is configured)
 if(_IRIS_SB_URL&&_IRIS_SB_URL.indexOf('__')!==0&&typeof supabase!=='undefined'){
   _irisSB=supabase.createClient(_IRIS_SB_URL,_IRIS_SB_ANON);
-  // Listen for auth state changes
+  // Listen for auth state changes (all relevant events)
   _irisSB.auth.onAuthStateChange(function(event,session){
-    if(event==='SIGNED_IN'&&session){
+    if(session&&(event==='SIGNED_IN'||event==='TOKEN_REFRESHED'||event==='INITIAL_SESSION')){
       _irisUser=session.user;
       _irisLoadProfile();
       _irisLoadTraktToken();
@@ -706,6 +706,30 @@ if(_IRIS_SB_URL&&_IRIS_SB_URL.indexOf('__')!==0&&typeof supabase!=='undefined'){
       _irisLoadProfile();
       _irisLoadTraktToken();
       _irisUpdateUI();
+    }
+  });
+  // Re-validate session when app returns to foreground (iOS PWA, tab switch)
+  document.addEventListener('visibilitychange',function(){
+    if(document.visibilityState==='visible'&&_irisSB){
+      _irisSB.auth.getSession().then(function(res){
+        if(res.data.session){
+          // Session valid — ensure UI is up to date
+          if(!_irisUser||_irisUser.id!==res.data.session.user.id){
+            _irisUser=res.data.session.user;
+            _irisLoadProfile();
+            _irisLoadTraktToken();
+            _irisUpdateUI();
+          }
+        }else if(_irisUser){
+          // Session gone — try refresh, if that fails sign out cleanly
+          _irisSB.auth.refreshSession().then(function(r2){
+            if(r2.error||!r2.data.session){
+              _irisUser=null;_irisProfile=null;_irisTraktToken=null;_irisTraktClientId=null;
+              _irisUpdateUI();
+            }
+          });
+        }
+      });
     }
   });
 }
