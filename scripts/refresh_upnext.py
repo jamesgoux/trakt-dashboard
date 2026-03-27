@@ -262,7 +262,8 @@ def run():
     rest = sorted([r for r in results if not r["is_new"]], key=lambda x: x.get("last_watched", ""), reverse=True)
 
     # Merge with previous data to preserve shows lost to API failures
-    # But skip shows that are 100% complete (stale from previous state)
+    # But only if the show still exists in the user's watched list on Trakt
+    # (if it's gone from watched entirely, the user removed it — don't preserve)
     prev_shows = []
     if os.path.exists("data/up_next.json"):
         try:
@@ -272,10 +273,16 @@ def run():
         except Exception:
             pass
     current_slugs = set(r["slug"] for r in results)
+    watched_slugs = set(s.get("show", {}).get("ids", {}).get("slug", "") for s in watched)
     preserved = 0
     skipped_complete = 0
+    skipped_removed = 0
     for ps in prev_shows:
         if ps.get("slug") and ps["slug"] not in current_slugs:
+            # Don't preserve shows the user removed from their watch history
+            if ps["slug"] not in watched_slugs:
+                skipped_removed += 1
+                continue
             # Don't preserve shows that are actually complete — they were
             # skipped by the current run for a reason (100% caught up)
             at = ps.get("aired_total", 0)
@@ -290,6 +297,8 @@ def run():
         new_items = sorted([r for r in results if r.get("is_new")], key=lambda x: x.get("last_watched", ""), reverse=True)
         rest = sorted([r for r in results if not r.get("is_new")], key=lambda x: x.get("last_watched", ""), reverse=True)
         print(f"  Preserved {preserved} shows from previous data (API failures)")
+    if skipped_removed:
+        print(f"  Dropped {skipped_removed} previously-preserved shows (removed from Trakt history)")
     if skipped_complete:
         print(f"  Dropped {skipped_complete} previously-preserved shows (now 100% complete)")
 
