@@ -1664,8 +1664,8 @@ if(ct==='show'){if(s===0)return;sortVal=s}
 var cg=_personGain(p);
 items.push({p:p,m:m,s:s,tot:m+s,sv:sortVal,cg:cg})});
 items.sort(function(a,b){return b.sv-a.sv});
-// Dense ranking: tied counts share a rank, next rank increments by 1
-var _dRank=0,_dPrev=null;items.forEach(function(item){if(item.sv!==_dPrev){_dRank++;_dPrev=item.sv}item.rk=_dRank});
+// Competition ranking: ties share a rank, next rank = position (skips)
+var _dPrev=null;items.forEach(function(item,i){if(item.sv!==_dPrev){_dPrev=item.sv;item.rk=i+1}else{item.rk=items[i-1].rk}});
 var hasAnyGain=items.some(function(item){return item.cg>0});
 var newBtn=tb.closest('.cd').querySelector('.ptbl-new-btn');
 if(newBtn)newBtn.style.display=hasAnyGain?'':'none';
