@@ -1086,20 +1086,34 @@ function _compRenderShowTags(slug){
   names.forEach(function(name){
     var on=current.indexOf(name)>=0;
     var col=_compColor(name);
-    h+='<button onclick="_compToggleShow(\''+slug.replace(/'/g,"\\'")+'\',\''+name.replace(/'/g,"\\'")+'\')" style="padding:4px 12px;border-radius:14px;font-size:11px;font-weight:600;border:1px solid '+(on?col:'rgba(255,255,255,.1)')+';cursor:pointer;background:'+(on?col+'55':'transparent')+';color:'+(on?'#fff':'var(--t2)')+';text-shadow:'+(on?'0 1px 2px rgba(0,0,0,.4)':'none')+';transition:all .15s">'+name+'</button>';
+    h+='<button data-comp="'+name.replace(/"/g,'&quot;')+'" onclick="_compToggleShow(\''+slug.replace(/'/g,"\\'")+'\',\''+name.replace(/'/g,"\\'")+'\')" style="padding:5px 14px;border-radius:14px;font-size:12px;font-weight:600;border:2px solid '+(on?col:'rgba(255,255,255,.12)')+';cursor:pointer;background:'+(on?col:'rgba(255,255,255,.04)')+';color:'+(on?'#fff':'var(--t2)')+';text-shadow:'+(on?'0 1px 3px rgba(0,0,0,.5)':'none')+';transition:transform .15s,background .15s;-webkit-tap-highlight-color:transparent">'+name+'</button>';
   });
-  h+='<button onclick="_compShowEditor({isNew:true,slug:\''+slug.replace(/'/g,"\\'")+'\'})" style="padding:4px 10px;border-radius:14px;font-size:11px;border:1px dashed rgba(255,255,255,.15);cursor:pointer;background:transparent;color:var(--t2)">+ Add</button>';
+  h+='<button onclick="_compShowEditor({isNew:true,slug:\''+slug.replace(/'/g,"\\'")+'\'})" style="padding:5px 12px;border-radius:14px;font-size:12px;border:2px dashed rgba(255,255,255,.15);cursor:pointer;background:transparent;color:var(--t2);-webkit-tap-highlight-color:transparent">+ Add</button>';
   h+='</div>';
   return h;
 }
 function _compToggleShow(slug,name){
   var current=_compForSlug(slug);
   var idx=current.indexOf(name);
+  var adding=idx<0;
   if(idx>=0)current.splice(idx,1);else current.push(name);
   _compSetForSlug(slug,current);
+  // Re-render all companion tag containers
   var tags=_compRenderShowTags(slug);
   var el=document.getElementById('un-comp-tags');if(el)el.innerHTML=tags;
   var el2=document.getElementById('un-ep-comp-tags');if(el2)el2.innerHTML=tags;
+  // Flash the toggled button for tactile feedback
+  var containers=[el,el2];
+  containers.forEach(function(ct){
+    if(!ct)return;
+    var btns=ct.querySelectorAll('button[data-comp]');
+    btns.forEach(function(btn){
+      if(btn.dataset.comp===name){
+        btn.style.transform='scale(1.15)';
+        setTimeout(function(){btn.style.transform=''},200);
+      }
+    });
+  });
   _compRenderFilter();
   _compUpdateCards(slug);
 }
