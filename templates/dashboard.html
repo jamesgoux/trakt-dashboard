@@ -7208,8 +7208,17 @@ function _unOpenMovie(slug,tmdbId){
   _unSetView('movie',{slug:slug,tmdbId:tmdbId});
   // Scroll the search overlay to top (not the Up Next queue behind it)
   var _sov=document.getElementById('iris-search-ov');if(_sov)_sov.scrollTop=0;
-  // Fetch movie details from Trakt
+  // Fetch movie details from Trakt (slug first, TMDB ID fallback on 404)
   _traktGet('/movies/'+encodeURIComponent(slug)+'?extended=full')
+  .catch(function(e){
+    if(tmdbId){
+      return _traktGet('/search/tmdb/'+tmdbId+'?type=movie').then(function(res){
+        if(res&&res.length&&res[0].movie){slug=res[0].movie.ids.slug;return _traktGet('/movies/'+encodeURIComponent(slug)+'?extended=full')}
+        throw e;
+      });
+    }
+    throw e;
+  })
   .then(function(movie){
     if(_unCurrentView!=='movie')return;
     var h='<div class="un-movie-detail">';
@@ -7408,11 +7417,23 @@ function _unOpenShow(slug,tmdbId){
   _unSetView('show',{slug:slug,tmdbId:tmdbId});
   // Scroll the search overlay to top (not the Up Next queue behind it)
   var _sov=document.getElementById('iris-search-ov');if(_sov)_sov.scrollTop=0;
-  // Fetch show details + seasons + progress in parallel
-  var showP=_traktGet('/shows/'+encodeURIComponent(slug)+'?extended=full');
-  var seasonsP=_traktGet('/shows/'+encodeURIComponent(slug)+'/seasons?extended=full');
-  var progP=(_irisGetTraktAuth().accessToken)?_traktGet('/shows/'+encodeURIComponent(slug)+'/progress/watched',true).catch(function(){return null}):Promise.resolve(null);
-  Promise.all([showP,seasonsP,progP]).then(function(res){
+  // Resolve Trakt slug (direct lookup, TMDB ID fallback on 404)
+  var resolveSlug=_traktGet('/shows/'+encodeURIComponent(slug)+'?extended=full').then(function(show){return{slug:slug,show:show}})
+  .catch(function(e){
+    if(tmdbId){
+      return _traktGet('/search/tmdb/'+tmdbId+'?type=show').then(function(res){
+        if(res&&res.length&&res[0].show){var ts=res[0].show.ids.slug;return _traktGet('/shows/'+encodeURIComponent(ts)+'?extended=full').then(function(show){slug=ts;return{slug:ts,show:show}})}
+        throw e;
+      });
+    }
+    throw e;
+  });
+  resolveSlug.then(function(resolved){
+    slug=resolved.slug;
+    var seasonsP=_traktGet('/shows/'+encodeURIComponent(slug)+'/seasons?extended=full');
+    var progP=(_irisGetTraktAuth().accessToken)?_traktGet('/shows/'+encodeURIComponent(slug)+'/progress/watched',true).catch(function(){return null}):Promise.resolve(null);
+    return Promise.all([Promise.resolve(resolved.show),seasonsP,progP]);
+  }).then(function(res){
     if(_unCurrentView!=='show')return;
     var show=res[0],seasons=res[1],progress=res[2];
     _showDataCache[slug]={show:show,seasons:seasons,progress:progress,tmdbId:tmdbId};
