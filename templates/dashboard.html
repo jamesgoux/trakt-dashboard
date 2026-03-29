@@ -365,6 +365,10 @@ body{overflow-x:hidden}
 <div class="g2 med-s" data-med="all movietv movie">
 <div id="sec-bo" class="cd fw s-m"><h3><span class="i">💰</span>Box Office <span class="vtog" style="float:right"><button class="vb vb-on bo-tog" data-v="adj" onclick="window._boMode='adj';document.querySelectorAll('.bo-tog').forEach(function(b){b.classList.toggle('vb-on',b.dataset.v==='adj')});renderBoxOffice()">Adjusted</button><button class="vb bo-tog" data-v="dom" onclick="window._boMode='dom';document.querySelectorAll('.bo-tog').forEach(function(b){b.classList.toggle('vb-on',b.dataset.v==='dom')});renderBoxOffice()">Domestic</button><button class="vb bo-tog" data-v="ww" onclick="window._boMode='ww';document.querySelectorAll('.bo-tog').forEach(function(b){b.classList.toggle('vb-on',b.dataset.v==='ww')});renderBoxOffice()">Worldwide</button></span></h3><div id="boc" style="height:360px"></div></div>
 </div>
+<!-- BUDGET -->
+<div class="g2 med-s" data-med="all movietv movie">
+<div id="sec-bud" class="cd fw s-m"><h3><span class="i">🏦</span>Budget</h3><div id="budc" style="height:360px"></div></div>
+</div>
 <!-- RATINGS: movie row then TV row -->
 <div class="g3 med-s" data-med="all movietv movie">
 <div id="sec-ratings" class="cd s-m"><h3><span class="i">⭐</span>My Movie Ratings (Letterboxd)</h3><div id="lbc" style="height:280px"></div></div>
@@ -1926,80 +1930,151 @@ function _boFmt(v){if(!v)return'';if(v>=1e9)return'$'+(v/1e9).toFixed(2)+'B';if(
 // Render box office HTML for a movie detail page (by slug)
 function _boDetailHtml(slug,yr){
   var bol=D.bol||{};var bo=bol[slug];if(!bo)return'';
-  var dom=bo.d||0,ww=bo.w||0;
+  var dom=bo.d||0,ww=bo.w||0,bud=bo.b||0;
   var adj=dom;var c=CPI[yr];if(c)adj=Math.round(dom*(CPI_2026/c));
   var h='<div style="display:flex;gap:12px;margin-bottom:12px;padding:10px 14px;background:rgba(251,146,60,.08);border:1px solid rgba(251,146,60,.15);border-radius:10px;flex-wrap:wrap">';
   h+='<div style="font-size:11px;color:var(--t2)">💰 Box Office</div>';
+  if(bud){h+='<div style="font-size:12px"><span style="color:var(--t2)">Budget</span> <span style="color:#10b981;font-weight:600">'+_boFmt(bud)+'</span></div>'}
   if(dom){h+='<div style="font-size:12px"><span style="color:var(--t2)">Domestic</span> <span style="color:#fb923c;font-weight:600">'+_boFmt(dom)+'</span></div>'}
   if(ww){h+='<div style="font-size:12px"><span style="color:var(--t2)">Worldwide</span> <span style="color:#fb923c;font-weight:600">'+_boFmt(ww)+'</span></div>'}
   if(dom&&adj!==dom){h+='<div style="font-size:12px"><span style="color:var(--t2)">Adjusted</span> <span style="color:#fbbf24;font-weight:600">'+_boFmt(adj)+'</span></div>'}
   h+='</div>';return h;
 }
-// Box office buckets: [min, max, label]
+// Box office & budget buckets: [min, max, label]
 var BO_BUCKETS=[[0,1e6,'<$1M'],[1e6,5e6,'$1-5M'],[5e6,10e6,'$5-10M'],[10e6,25e6,'$10-25M'],[25e6,50e6,'$25-50M'],[50e6,75e6,'$50-75M'],[75e6,100e6,'$75-100M'],[100e6,150e6,'$100-150M'],[150e6,200e6,'$150-200M'],[200e6,300e6,'$200-300M'],[300e6,400e6,'$300-400M'],[400e6,500e6,'$400-500M'],[500e6,1e9,'$500M-1B'],[1e9,1e12,'$1B+']];
+var BUD_BUCKETS=[[0,5e6,'<$5M'],[5e6,10e6,'$5-10M'],[10e6,25e6,'$10-25M'],[25e6,50e6,'$25-50M'],[50e6,75e6,'$50-75M'],[75e6,100e6,'$75-100M'],[100e6,150e6,'$100-150M'],[150e6,200e6,'$150-200M'],[200e6,1e12,'$200M+']];
+var BO_COLORS=['#fef9c3','#fef08a','#fde047','#facc15','#eab308','#ca8a04','#a16207','#854d0e','#fb923c','#f97316','#ea580c','#c2410c','#9a3412','#7c2d12'];
+var BUD_COLORS=['#d1fae5','#a7f3d0','#6ee7b7','#34d399','#10b981','#059669','#047857','#065f46','#064e3b'];
 window._boMode='adj';
-function renderBoxOffice(){
-var el=document.getElementById('boc');if(!el||!D.bo||!D.bo.length)return;
-// Dispose previous instance if any
-if(el._chart){try{el._chart.dispose();var ci=ch.indexOf(el._chart);if(ci>=0)ch.splice(ci,1)}catch(e){}el._chart=null}
-var mode=window._boMode||'adj';
-// Filter by year if needed
-var items=D.bo;
-if(cy!=='all'){items=items.filter(function(m){return String(m.yr)===cy})}
-if(!items.length){el.innerHTML='<div style="color:var(--t2);text-align:center;padding:40px;font-size:12px">No box office data for this period</div>';return}
-// Compute values based on mode
-var vals=items.map(function(m){
-  var v=0;
-  if(mode==='dom')v=m.dom||0;
-  else if(mode==='ww')v=m.ww||0;
-  else{v=m.dom||0;var c=CPI[m.yr];if(c)v=v*(CPI_2026/c)}
-  return{t:m.t,yr:m.yr,v:v}
-}).filter(function(m){return m.v>0});
-if(!vals.length){el.innerHTML='<div style="color:var(--t2);text-align:center;padding:40px;font-size:12px">No data</div>';return}
-// Bucket the values
-var counts=BO_BUCKETS.map(function(){return{c:0,movies:[]}});
-vals.forEach(function(m){
-  for(var i=0;i<BO_BUCKETS.length;i++){
-    if(m.v>=BO_BUCKETS[i][0]&&m.v<BO_BUCKETS[i][1]){counts[i].c++;counts[i].movies.push(m);break}
-  }
-});
-var labels=BO_BUCKETS.map(function(b){return b[2]});
-var data=counts.map(function(b){return b.c});
-// Check if year-filtered: use stacked area chart by year, else bar chart
-if(cy!=='all'){
-  // Single year: bar chart
-  var _boChart=echarts.init(el);
-  _boChart.setOption({
-    tooltip:{trigger:'axis',axisPointer:{type:'shadow'},formatter:function(p){
-      var idx=p[0].dataIndex;var ms=counts[idx].movies;
-      var h='<b>'+labels[idx]+'</b>: '+p[0].value+' movie'+(p[0].value!==1?'s':'');
-      ms.sort(function(a,b){return b.v-a.v});
-      ms.slice(0,8).forEach(function(m){h+='<br><span style="color:#999">'+m.t+'</span> $'+(m.v/1e6).toFixed(1)+'M'});
-      if(ms.length>8)h+='<br><span style="color:#666">+'+(ms.length-8)+' more</span>';
-      return h}},
-    grid:{left:50,right:16,top:10,bottom:60},
-    xAxis:{type:'category',data:labels,axisLabel:{rotate:45,fontSize:10,color:'#999'},axisLine:{lineStyle:{color:'#333'}}},
-    yAxis:{type:'value',axisLabel:{fontSize:10,color:'#666'},splitLine:{lineStyle:{color:'rgba(255,255,255,.06)'}},axisLine:{show:false}},
-    series:[{type:'bar',data:data,itemStyle:{color:'#fb923c',borderRadius:[3,3,0,0]},barMaxWidth:40}]
-  });
-}else{
-  // All-time bar chart
-  var _boChart=echarts.init(el);
-  _boChart.setOption({
-    tooltip:{trigger:'axis',axisPointer:{type:'shadow'},formatter:function(p){
-      var idx=p[0].dataIndex;var ms=counts[idx].movies;
-      var h='<b>'+labels[idx]+'</b>: '+p[0].value+' movie'+(p[0].value!==1?'s':'');
-      ms.sort(function(a,b){return b.v-a.v});
-      ms.slice(0,8).forEach(function(m){h+='<br><span style="color:#999">'+m.t+' ('+m.yr+')</span> $'+(m.v/1e6).toFixed(1)+'M'});
-      if(ms.length>8)h+='<br><span style="color:#666">+'+(ms.length-8)+' more</span>';
-      return h}},
-    grid:{left:50,right:16,top:10,bottom:60},
-    xAxis:{type:'category',data:labels,axisLabel:{rotate:45,fontSize:10,color:'#999'},axisLine:{lineStyle:{color:'#333'}}},
-    yAxis:{type:'value',axisLabel:{fontSize:10,color:'#666'},splitLine:{lineStyle:{color:'rgba(255,255,255,.06)'}},axisLine:{show:false}},
-    series:[{type:'bar',data:data,itemStyle:{color:'#fb923c',borderRadius:[3,3,0,0]},barMaxWidth:40}]
-  });
+// Shared: show click detail below chart element
+function _bucketDetail(parentEl,label,movies,fmtVal){
+  var ex=parentEl.querySelector('.chart-detail');
+  if(ex){ex.remove();if(ex.dataset.val===label)return}
+  if(!movies.length)return;
+  var d=document.createElement('div');d.className='chart-detail';d.dataset.val=label;
+  movies.sort(function(a,b){return b.v-a.v});
+  var h='<span class="cd-close" onclick="this.parentElement.remove()">✕</span><b>'+label+' ('+movies.length+')</b>';
+  movies.slice(0,30).forEach(function(m){
+    h+='<div class="cd-item"><span><span class="badge b-m">movie</span> '+m.t+'</span><span class="nm nm-a">'+fmtVal(m.v)+'</span></div>'});
+  if(movies.length>30)h+='<div style="color:var(--t2);font-size:11px;padding:4px 0">+'+(movies.length-30)+' more</div>';
+  d.innerHTML=h;parentEl.appendChild(d);
 }
-el._chart=_boChart;ch.push(_boChart);
+// Shared: render a bucket chart (box office or budget)
+// buckets: array of [min,max,label], colors: array of hex, items: D.bo filtered
+// valFn(item)->number, fmtVal(v)->string, elId: chart element id, parentId: section id
+function _renderBucketChart(buckets,colors,items,valFn,fmtVal,elId,parentId){
+  var el=document.getElementById(elId);var sec=document.getElementById(parentId);
+  if(!el)return;
+  if(el._chart){try{el._chart.dispose();var ci=ch.indexOf(el._chart);if(ci>=0)ch.splice(ci,1)}catch(e){}el._chart=null}
+  // Remove any lingering detail rows
+  if(sec){var oldD=sec.querySelector('.chart-detail');if(oldD)oldD.remove()}
+  if(!items.length){el.innerHTML='<div style="color:var(--t2);text-align:center;padding:40px;font-size:12px">No data for this period</div>';return}
+  var labels=buckets.map(function(b){return b[2]});
+  if(cy!=='all'){
+    // YEAR FILTER: bar chart with click-to-detail
+    var vals=items.filter(function(m){return m.wy&&m.wy.indexOf(cy)>=0}).map(function(m){return{t:m.t,yr:m.yr,v:valFn(m)}}).filter(function(m){return m.v>0});
+    if(!vals.length){el.innerHTML='<div style="color:var(--t2);text-align:center;padding:40px;font-size:12px">No data for '+cy+'</div>';return}
+    var counts=buckets.map(function(){return{c:0,movies:[]}});
+    vals.forEach(function(m){for(var i=0;i<buckets.length;i++){if(m.v>=buckets[i][0]&&m.v<buckets[i][1]){counts[i].c++;counts[i].movies.push(m);break}}});
+    var data=counts.map(function(b){return b.c});
+    var _c=echarts.init(el);
+    _c.setOption({
+      tooltip:{trigger:'axis',axisPointer:{type:'shadow'},formatter:function(p){
+        var idx=p[0].dataIndex;var ms=counts[idx].movies;
+        var h='<b>'+labels[idx]+'</b>: '+p[0].value+' movie'+(p[0].value!==1?'s':'');
+        ms.sort(function(a,b){return b.v-a.v});
+        ms.slice(0,5).forEach(function(m){h+='<br><span style="color:#999">'+m.t+'</span> '+fmtVal(m.v)});
+        if(ms.length>5)h+='<br><span style="color:#666">+'+(ms.length-5)+' more</span>';
+        return h}},
+      grid:{left:50,right:16,top:10,bottom:60},
+      xAxis:{type:'category',data:labels,axisLabel:{rotate:45,fontSize:10,color:'#999'},axisLine:{lineStyle:{color:'#333'}}},
+      yAxis:{type:'value',axisLabel:{fontSize:10,color:'#666'},splitLine:{lineStyle:{color:'rgba(255,255,255,.06)'}},axisLine:{show:false}},
+      series:[{type:'bar',data:data,itemStyle:{color:colors[Math.floor(colors.length/2)],borderRadius:[3,3,0,0]},barMaxWidth:40}]
+    });
+    _c.on('click',function(p){var idx=p.dataIndex;_bucketDetail(sec,labels[idx],counts[idx].movies,fmtVal)});
+    el._chart=_c;ch.push(_c);
+  }else{
+    // ALL-TIME: stacked 100% area chart by watch year
+    // Collect all watch years
+    var yrSet={};items.forEach(function(m){(m.wy||[]).forEach(function(y){yrSet[y]=true})});
+    var years=Object.keys(yrSet).sort();
+    if(years.length<2){
+      // Not enough years for area chart, fall back to bar
+      var vals2=items.map(function(m){return{t:m.t,yr:m.yr,v:valFn(m)}}).filter(function(m){return m.v>0});
+      var counts2=buckets.map(function(){return{c:0,movies:[]}});
+      vals2.forEach(function(m){for(var i=0;i<buckets.length;i++){if(m.v>=buckets[i][0]&&m.v<buckets[i][1]){counts2[i].c++;counts2[i].movies.push(m);break}}});
+      var _c2=echarts.init(el);
+      _c2.setOption({
+        tooltip:{trigger:'axis',axisPointer:{type:'shadow'}},
+        grid:{left:50,right:16,top:10,bottom:60},
+        xAxis:{type:'category',data:labels,axisLabel:{rotate:45,fontSize:10,color:'#999'},axisLine:{lineStyle:{color:'#333'}}},
+        yAxis:{type:'value',axisLabel:{fontSize:10,color:'#666'},splitLine:{lineStyle:{color:'rgba(255,255,255,.06)'}},axisLine:{show:false}},
+        series:[{type:'bar',data:counts2.map(function(b){return b.c}),itemStyle:{color:colors[Math.floor(colors.length/2)],borderRadius:[3,3,0,0]},barMaxWidth:40}]
+      });
+      _c2.on('click',function(p){_bucketDetail(sec,labels[p.dataIndex],counts2[p.dataIndex].movies,fmtVal)});
+      el._chart=_c2;ch.push(_c2);
+      return;
+    }
+    // Build year×bucket matrix
+    var matrix=years.map(function(y){
+      var row=buckets.map(function(){return 0});
+      items.forEach(function(m){
+        if(!m.wy||m.wy.indexOf(y)<0)return;
+        var v=valFn(m);if(v<=0)return;
+        for(var i=0;i<buckets.length;i++){if(v>=buckets[i][0]&&v<buckets[i][1]){row[i]++;break}}
+      });
+      return row;
+    });
+    // Normalize to percentages
+    var pctMatrix=matrix.map(function(row){
+      var tot=row.reduce(function(s,v){return s+v},0);
+      return row.map(function(v){return tot>0?Math.round(v/tot*1000)/10:0});
+    });
+    // Build series (one per bucket, largest at bottom)
+    var series=[];
+    for(var bi=0;bi<buckets.length;bi++){
+      (function(idx){
+        series.push({name:labels[idx],type:'line',stack:'pct',areaStyle:{opacity:0.7},
+          data:pctMatrix.map(function(row){return row[idx]}),
+          smooth:true,lineStyle:{width:0},itemStyle:{color:colors[idx]},emphasis:{focus:'series'}});
+      })(bi);
+    }
+    var _c3=echarts.init(el);
+    _c3.setOption({
+      tooltip:{trigger:'axis',axisPointer:{type:'cross'},...tt,formatter:function(params){
+        var h='<b>'+params[0].axisValue+'</b><br/>';
+        params.forEach(function(p){if(p.value>0)h+=p.marker+' '+p.seriesName+': '+p.value+'%<br/>'});
+        return h}},
+      legend:{data:labels,top:0,textStyle:{color:'#999',fontSize:9},type:'plain'},
+      grid:{left:50,right:20,top:buckets.length>10?90:70,bottom:30},
+      xAxis:{type:'category',data:years,axisLabel:{color:'#666'},axisLine:{lineStyle:{color:'#333'}},boundaryGap:false},
+      yAxis:{type:'value',axisLabel:{color:'#666',formatter:function(v){return v+'%'}},splitLine:{lineStyle:{color:'#222'}},max:100,min:0},
+      series:series
+    });
+    el._chart=_c3;ch.push(_c3);
+  }
+}
+function renderBoxOffice(){
+  var mode=window._boMode||'adj';
+  var sec=document.getElementById('sec-bo');
+  if(!D.bo||!D.bo.length){if(sec)sec.style.display='none';return}
+  if(sec)sec.style.display='';
+  var valFn=function(m){
+    if(mode==='dom')return m.dom||0;
+    if(mode==='ww')return m.ww||0;
+    var v=m.dom||0;var c=CPI[m.yr];if(c)v=v*(CPI_2026/c);return v;
+  };
+  var fmtVal=function(v){return _boFmt(v)};
+  _renderBucketChart(BO_BUCKETS,BO_COLORS,D.bo,valFn,fmtVal,'boc','sec-bo');
+}
+function renderBudget(){
+  var sec=document.getElementById('sec-bud');
+  var items=(D.bo||[]).filter(function(m){return m.bud>0});
+  if(!items.length){if(sec)sec.style.display='none';return}
+  if(sec)sec.style.display='';
+  var valFn=function(m){return m.bud||0};
+  var fmtVal=function(v){return _boFmt(v)};
+  _renderBucketChart(BUD_BUCKETS,BUD_COLORS,items,valFn,fmtVal,'budc','sec-bud');
 }
 
 function movieCharts(animate){
@@ -8133,7 +8208,7 @@ function _doRender(){ch.forEach(function(c){try{c.dispose()}catch(e){}});ch=[];
   stats();renderLifeline();baseCharts();renderPosters();
   // Batch 1: people tables + movies (skip if life mode — not shown)
   requestAnimationFrame(function(){
-    if(ct!=='life'){ptbl('atb',D.a);ptbl('xtb',D.x);ptbl('dtb',D.d||[]);ptbl('wtb',D.w||[]);renderCrewGrid();movieCharts();renderBoxOffice();renderLetterboxd()}
+    if(ct!=='life'){ptbl('atb',D.a);ptbl('xtb',D.x);ptbl('dtb',D.d||[]);ptbl('wtb',D.w||[]);renderCrewGrid();movieCharts();renderBoxOffice();renderBudget();renderLetterboxd()}
     // Batch 2: type-specific sections (skip entirely in life mode)
     if(ct!=='life'){
       setTimeout(function(){renderGoodreads();renderLastfm()},0);

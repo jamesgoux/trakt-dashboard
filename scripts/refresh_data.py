@@ -1224,13 +1224,14 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
 
     # Box office data: array for chart + slug-keyed lookup for movie pages
     bo_data = []
-    bo_lookup = {}  # {slug: {d: domestic, w: worldwide}} — compact for inline display
+    bo_lookup = {}  # {slug: {d: domestic, w: worldwide, b: budget}}
     if os.path.exists("data/box_office.json"):
         with open("data/box_office.json") as f:
             bo_raw = json.load(f)
         for slug, info in bo_raw.items():
             dom = info.get("bom_domestic", 0)
             ww = info.get("bom_worldwide", 0)
+            bud = info.get("bom_budget", 0) or 0
             if not dom and not ww:
                 continue
             meta = slug_meta.get(slug, {})
@@ -1238,10 +1239,20 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
             yr = meta.get("yr", 0)
             if not yr and info.get("release_date"):
                 yr = int(info["release_date"][:4])
-            bo_data.append({"t": title, "yr": yr, "dom": dom, "ww": ww})
-            bo_lookup[slug] = {"d": dom, "w": ww}
+            wy = sorted(slug_watch_years.get(slug, set()))
+            item = {"t": title, "yr": yr, "dom": dom, "ww": ww}
+            if wy:
+                item["wy"] = wy
+            if bud:
+                item["bud"] = bud
+            bo_data.append(item)
+            lk = {"d": dom, "w": ww}
+            if bud:
+                lk["b"] = bud
+            bo_lookup[slug] = lk
         bo_data.sort(key=lambda x: x.get("ww", 0), reverse=True)
-        print(f"  Box office: {len(bo_data)} movies with BOM data, {len(bo_lookup)} lookup entries")
+        bo_with_bud = sum(1 for b in bo_data if b.get("bud"))
+        print(f"  Box office: {len(bo_data)} movies, {bo_with_bud} with budget, {len(bo_lookup)} lookup entries")
 
     return {
         "a": a_out,
