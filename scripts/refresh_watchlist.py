@@ -158,7 +158,8 @@ def fetch_trakt_watchlist():
 
 
 def search_tmdb_movie(title, year=None):
-    """Search TMDB for a movie by title + year to get TMDB ID."""
+    """Search TMDB for a movie by title + year to get TMDB ID.
+    Retries without year if year-specific search returns no results."""
     if not TMDB_API_KEY or not title:
         return None
     try:
@@ -172,8 +173,17 @@ def search_tmdb_movie(title, year=None):
         results = d.get("results", [])
         if results:
             return results[0].get("id")
-    except Exception:
-        pass
+        # Retry without year filter if year-specific search failed
+        if year:
+            url2 = f"https://api.themoviedb.org/3/search/movie?api_key={TMDB_API_KEY}&query={q}"
+            req2 = urllib.request.Request(url2, headers={"Accept": "application/json"})
+            resp2 = urllib.request.urlopen(req2, timeout=5)
+            d2 = json.loads(resp2.read())
+            results2 = d2.get("results", [])
+            if results2:
+                return results2[0].get("id")
+    except Exception as e:
+        print(f"    TMDB search error for '{title}' ({year}): {e}")
     return None
 
 
@@ -362,7 +372,7 @@ def run():
         tid = lb.get("tmdb_id")
 
         # If no TMDB ID from cache, search TMDB by title+year (budgeted)
-        if not tid and lb_searched < 50:
+        if not tid and lb_searched < 300:
             tid = search_tmdb_movie(lb["title"], lb.get("year"))
             if tid:
                 lb["tmdb_id"] = tid
