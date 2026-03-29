@@ -709,6 +709,7 @@ if(_IRIS_SB_URL&&_IRIS_SB_URL.indexOf('__')!==0&&typeof supabase!=='undefined'){
       _irisUser=session.user;
       _irisLoadProfile();
       _irisLoadTraktToken();
+      _compLoadFromSupabase();
       _irisUpdateUI();
     }else if(event==='SIGNED_OUT'){
       _irisUser=null;_irisProfile=null;_irisTraktToken=null;_irisTraktClientId=null;
@@ -721,6 +722,7 @@ if(_IRIS_SB_URL&&_IRIS_SB_URL.indexOf('__')!==0&&typeof supabase!=='undefined'){
       _irisUser=res.data.session.user;
       _irisLoadProfile();
       _irisLoadTraktToken();
+      _compLoadFromSupabase();
       _irisUpdateUI();
     }
   });
@@ -977,12 +979,12 @@ function _compSaveNames(names){_irisLSSet('companion_names',JSON.stringify(names
 function _compColors(){try{return JSON.parse(_irisLSGet('companion_colors','{}'))}catch(e){return{}}}
 function _compSaveColors(data){_irisLSSet('companion_colors',JSON.stringify(data))}
 function _compForSlug(slug){return (_compGetAll()[slug]||[])}
-function _compSetForSlug(slug,names){var d=_compGetAll();if(names.length)d[slug]=names;else delete d[slug];_compSave(d)}
+function _compSetForSlug(slug,names){var d=_compGetAll();if(names.length)d[slug]=names;else delete d[slug];_compSave(d);_compSyncToSupabase()}
 function _compColor(name){var cc=_compColors();if(cc[name])return cc[name];var names=_compNames();var idx=names.indexOf(name);return _COMP_DEFAULTS[idx%_COMP_DEFAULTS.length]}
-function _compSetColor(name,hex){var cc=_compColors();cc[name]=hex;_compSaveColors(cc)}
-function _compAddName(name){var names=_compNames();if(names.indexOf(name)<0){names.push(name);_compSaveNames(names)}return names}
-function _compRemoveName(name){var names=_compNames().filter(function(n){return n!==name});_compSaveNames(names);var d=_compGetAll();Object.keys(d).forEach(function(slug){d[slug]=d[slug].filter(function(n){return n!==name});if(!d[slug].length)delete d[slug]});_compSave(d);var cc=_compColors();delete cc[name];_compSaveColors(cc);return names}
-function _compRenameName(oldName,newName){var names=_compNames();var idx=names.indexOf(oldName);if(idx>=0)names[idx]=newName;_compSaveNames(names);var d=_compGetAll();Object.keys(d).forEach(function(slug){var i2=d[slug].indexOf(oldName);if(i2>=0)d[slug][i2]=newName});_compSave(d);var cc=_compColors();if(cc[oldName]){cc[newName]=cc[oldName];delete cc[oldName];_compSaveColors(cc)}}
+function _compSetColor(name,hex){var cc=_compColors();cc[name]=hex;_compSaveColors(cc);_compSyncToSupabase()}
+function _compAddName(name){var names=_compNames();if(names.indexOf(name)<0){names.push(name);_compSaveNames(names);_compSyncToSupabase()}return names}
+function _compRemoveName(name){var names=_compNames().filter(function(n){return n!==name});_compSaveNames(names);var d=_compGetAll();Object.keys(d).forEach(function(slug){d[slug]=d[slug].filter(function(n){return n!==name});if(!d[slug].length)delete d[slug]});_compSave(d);var cc=_compColors();delete cc[name];_compSaveColors(cc);_compSyncToSupabase();return names}
+function _compRenameName(oldName,newName){var names=_compNames();var idx=names.indexOf(oldName);if(idx>=0)names[idx]=newName;_compSaveNames(names);var d=_compGetAll();Object.keys(d).forEach(function(slug){var i2=d[slug].indexOf(oldName);if(i2>=0)d[slug][i2]=newName});_compSave(d);var cc=_compColors();if(cc[oldName]){cc[newName]=cc[oldName];delete cc[oldName];_compSaveColors(cc)};_compSyncToSupabase()}
 window._compFilter=null;
 window._compEditorSlug=null; // slug context for editor (null=filter bar edit)
 
@@ -991,7 +993,10 @@ function _compShowEditor(opts){
   // opts: {name, color, slug, isNew, onSave(name,color), onDelete()}
   var existing=document.getElementById('comp-editor');if(existing)existing.remove();
   var ov=document.createElement('div');ov.id='comp-editor';
-  ov.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.6);z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px';
+  // Append inside un-overlay when it's visible to avoid will-change:transform stacking context issues on mobile Safari
+  var unOv=document.getElementById('un-overlay');
+  var insideOverlay=unOv&&unOv.style.display!=='none';
+  ov.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.6);z-index:'+(insideOverlay?'99999':'10000')+';display:flex;align-items:center;justify-content:center;padding:20px;will-change:transform';
   ov.onclick=function(e){if(e.target===ov)ov.remove()};
   var selColor=opts.color||_COMP_DEFAULTS[_compNames().length%_COMP_DEFAULTS.length];
   var h='<div style="background:#1a1a2e;border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:20px;width:100%;max-width:320px" onclick="event.stopPropagation()">';
@@ -1010,10 +1015,10 @@ function _compShowEditor(opts){
   h+='<button onclick="_compEdSave()" style="padding:10px 20px;border-radius:10px;border:none;background:var(--tv);color:#fff;font-size:13px;font-weight:600;cursor:pointer">Save</button>';
   h+='</div></div>';
   ov.innerHTML=h;
-  document.body.appendChild(ov);
+  if(insideOverlay){unOv.appendChild(ov)}else{document.body.appendChild(ov)}
   window._compEdColor=selColor;
   window._compEdOpts=opts;
-  setTimeout(function(){document.getElementById('comp-ed-name').focus()},100);
+  setTimeout(function(){var inp=document.getElementById('comp-ed-name');if(inp)inp.focus()},100);
 }
 function _compEdPickColor(c){
   window._compEdColor=c;
@@ -1125,6 +1130,69 @@ function _compUpdateCards(slug){
       var col=_compColor(comps[0]);
       card.style.background='linear-gradient(135deg,'+col+'18 0%,var(--sf) 60%)';
     }else{card.style.background=''}
+  });
+}
+
+// === COMPANION SUPABASE SYNC ===
+// Persist companion data to user_preferences table for cross-device durability
+var _compSyncTimer=null;
+function _compSyncToSupabase(){
+  if(!_irisSB||!_irisUser)return;
+  // Debounce: wait 500ms after last mutation before syncing
+  if(_compSyncTimer)clearTimeout(_compSyncTimer);
+  _compSyncTimer=setTimeout(function(){
+    var payload={
+      names:_compNames(),
+      colors:_compColors(),
+      tags:_compGetAll()
+    };
+    _irisSB.from('user_preferences').upsert({
+      user_id:_irisUser.id,
+      key:'companions',
+      value:payload
+    },{onConflict:'user_id,key'}).then(function(res){
+      if(res.error)console.warn('Companion sync failed:',res.error.message);
+    });
+  },500);
+}
+function _compLoadFromSupabase(){
+  if(!_irisSB||!_irisUser)return;
+  _irisSB.from('user_preferences').select('value').eq('user_id',_irisUser.id).eq('key','companions').single().then(function(res){
+    if(res.error||!res.data)return;
+    var remote=res.data.value;
+    if(!remote)return;
+    // Merge: Supabase is source of truth, but preserve any localStorage-only entries
+    var localNames=_compNames();
+    var localColors=_compColors();
+    var localTags=_compGetAll();
+    var remoteNames=remote.names||[];
+    var remoteColors=remote.colors||{};
+    var remoteTags=remote.tags||{};
+    // If remote has data and local is empty, remote wins entirely
+    // If both have data, merge (remote as base, add local-only entries)
+    var mergedNames=remoteNames.slice();
+    localNames.forEach(function(n){if(mergedNames.indexOf(n)<0)mergedNames.push(n)});
+    var mergedColors={};
+    Object.keys(remoteColors).forEach(function(k){mergedColors[k]=remoteColors[k]});
+    Object.keys(localColors).forEach(function(k){if(!mergedColors[k])mergedColors[k]=localColors[k]});
+    var mergedTags={};
+    Object.keys(remoteTags).forEach(function(k){mergedTags[k]=remoteTags[k]});
+    Object.keys(localTags).forEach(function(k){
+      if(!mergedTags[k])mergedTags[k]=localTags[k];
+      else{
+        // Merge arrays: combine unique names
+        var combined=mergedTags[k].slice();
+        localTags[k].forEach(function(n){if(combined.indexOf(n)<0)combined.push(n)});
+        mergedTags[k]=combined;
+      }
+    });
+    // Save merged data to localStorage
+    _compSaveNames(mergedNames);
+    _compSaveColors(mergedColors);
+    _compSave(mergedTags);
+    // Re-render UI if Up Next is visible
+    _compRenderFilter();
+    _renderUpNext();
   });
 }
 
