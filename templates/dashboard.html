@@ -531,6 +531,7 @@ Drop GameTrack games.csv or <span style="color:#6366f1;text-decoration:underline
 <button onclick="_unOpenCalendar()" class="un-back" id="un-cal-btn" style="flex-shrink:0;font-size:16px">📅</button>
 <button onclick="_unOpenSearchOverlay()" class="un-back" id="un-search-btn" style="flex-shrink:0;font-size:16px">🔍</button>
 </div>
+<div id="un-comp-filter" style="display:none;padding:6px 0 2px;overflow-x:auto;white-space:nowrap;-webkit-overflow-scrolling:touch"></div>
 </div>
 <div id="un-content"></div>
 </div>
@@ -958,6 +959,79 @@ function _irisLSSet(key,value){
 }
 function _irisLSRemove(key){
   localStorage.removeItem(_irisLSKey(key));
+}
+
+// === COMPANION TAGGING ===
+// Storage: iris_companions = {slug: [name, ...]}
+// iris_companion_names = ["Isabel","Melanie","Gemma","Solo"]
+var _COMP_COLORS=['#e94560','#7c3aed','#0ea5e9','#f59e0b','#10b981','#ec4899','#6366f1','#84cc16'];
+function _compGetAll(){try{return JSON.parse(_irisLSGet('companions','{}'))}catch(e){return{}}}
+function _compSave(data){_irisLSSet('companions',JSON.stringify(data))}
+function _compNames(){try{return JSON.parse(_irisLSGet('companion_names','[]'))}catch(e){return[]}}
+function _compSaveNames(names){_irisLSSet('companion_names',JSON.stringify(names))}
+function _compForSlug(slug){return (_compGetAll()[slug]||[])}
+function _compSetForSlug(slug,names){var d=_compGetAll();if(names.length)d[slug]=names;else delete d[slug];_compSave(d)}
+function _compColor(name){var names=_compNames();var idx=names.indexOf(name);return _COMP_COLORS[idx%_COMP_COLORS.length]}
+function _compAddName(name){var names=_compNames();if(names.indexOf(name)<0){names.push(name);_compSaveNames(names)}return names}
+function _compRemoveName(name){var names=_compNames().filter(function(n){return n!==name});_compSaveNames(names);var d=_compGetAll();Object.keys(d).forEach(function(slug){d[slug]=d[slug].filter(function(n){return n!==name});if(!d[slug].length)delete d[slug]});_compSave(d);return names}
+function _compRenameName(oldName,newName){var names=_compNames();var idx=names.indexOf(oldName);if(idx>=0)names[idx]=newName;_compSaveNames(names);var d=_compGetAll();Object.keys(d).forEach(function(slug){var i2=d[slug].indexOf(oldName);if(i2>=0)d[slug][i2]=newName});_compSave(d)}
+window._compFilter=null; // null=show all, string=filter to this companion
+
+function _compRenderFilter(){
+  var el=document.getElementById('un-comp-filter');if(!el)return;
+  var names=_compNames();
+  if(!names.length){el.style.display='none';return}
+  el.style.display='';
+  var h='<button onclick="_compSetFilter(null)" style="display:inline-block;padding:4px 12px;margin:0 3px;border-radius:14px;font-size:11px;font-weight:600;border:1px solid rgba(255,255,255,.15);cursor:pointer;background:'+(window._compFilter===null?'rgba(255,255,255,.15)':'transparent')+';color:'+(window._compFilter===null?'#fff':'var(--t2)')+'">All</button>';
+  names.forEach(function(name){
+    var active=window._compFilter===name;
+    var col=_compColor(name);
+    h+='<button onclick="_compSetFilter(\''+name.replace(/'/g,"\\'")+'\')" style="display:inline-block;padding:4px 12px;margin:0 3px;border-radius:14px;font-size:11px;font-weight:600;border:1px solid '+(active?col:'rgba(255,255,255,.12)')+';cursor:pointer;background:'+(active?col+'33':'transparent')+';color:'+(active?col:'var(--t2)')+'">'+name+'</button>';
+  });
+  el.innerHTML=h;
+}
+function _compSetFilter(name){
+  window._compFilter=name;
+  _compRenderFilter();
+  _renderUpNext();
+}
+// Render companion chips on show page (below genres, above overview)
+function _compRenderShowTags(slug){
+  var names=_compNames();var current=_compForSlug(slug);
+  var h='<div style="padding:0 16px;max-width:600px;margin:0 auto 8px;display:flex;flex-wrap:wrap;gap:6px;align-items:center">';
+  h+='<span style="font-size:11px;color:var(--t2);margin-right:2px">Watching with:</span>';
+  names.forEach(function(name){
+    var on=current.indexOf(name)>=0;
+    var col=_compColor(name);
+    h+='<button onclick="_compToggleShow(\''+slug.replace(/'/g,"\\'")+'\',\''+name.replace(/'/g,"\\'")+'\')" style="padding:4px 12px;border-radius:14px;font-size:11px;font-weight:600;border:1px solid '+(on?col:'rgba(255,255,255,.1)')+';cursor:pointer;background:'+(on?col+'33':'transparent')+';color:'+(on?col:'var(--t2)')+';transition:all .15s">'+name+'</button>';
+  });
+  h+='<button onclick="_compAddNew(\''+slug.replace(/'/g,"\\'")+'\')" style="padding:4px 10px;border-radius:14px;font-size:11px;border:1px dashed rgba(255,255,255,.15);cursor:pointer;background:transparent;color:var(--t2)">+ Add</button>';
+  h+='</div>';
+  return h;
+}
+function _compToggleShow(slug,name){
+  var current=_compForSlug(slug);
+  var idx=current.indexOf(name);
+  if(idx>=0)current.splice(idx,1);else current.push(name);
+  _compSetForSlug(slug,current);
+  // Re-render companion tags wherever visible
+  var tags=_compRenderShowTags(slug);
+  var el=document.getElementById('un-comp-tags');if(el)el.innerHTML=tags;
+  var el2=document.getElementById('un-ep-comp-tags');if(el2)el2.innerHTML=tags;
+  _compRenderFilter();
+}
+function _compAddNew(slug){
+  var name=prompt('New companion name:');
+  if(!name||!name.trim())return;
+  name=name.trim();
+  _compAddName(name);
+  // Auto-tag this show
+  var current=_compForSlug(slug);
+  if(current.indexOf(name)<0){current.push(name);_compSetForSlug(slug,current)}
+  var tags=_compRenderShowTags(slug);
+  var el=document.getElementById('un-comp-tags');if(el)el.innerHTML=tags;
+  var el2=document.getElementById('un-ep-comp-tags');if(el2)el2.innerHTML=tags;
+  _compRenderFilter();
 }
 
 // Request data refresh
@@ -4784,6 +4858,7 @@ function _setupRWVirtualScroll(ov){
   }
 }
 function _renderUpNext(prerender){
+  _compRenderFilter();
   var ud=_unData();
   var recent=ud.recent||[];
   var recentSet={};recent.forEach(function(r){recentSet[r.slug+'|'+r.season+'|'+r.episode]=true});
@@ -4792,6 +4867,12 @@ function _renderUpNext(prerender){
     if(s.aired_total&&s.completed>=s.aired_total)return false;
     return true;
   });
+  // Companion filter: if active, only show series tagged with that companion
+  var _compAll=_compGetAll();
+  if(window._compFilter){
+    shows=shows.filter(function(s){var c=_compAll[s.slug];return c&&c.indexOf(window._compFilter)>=0});
+    recent=recent.filter(function(s){var c=_compAll[s.slug];return c&&c.indexOf(window._compFilter)>=0});
+  }
   var el=document.getElementById('un-content');
   var oldFg=document.getElementById('un-detail-fg');if(oldFg){oldFg.remove();document.getElementById('un-overlay').style.overflowY='auto'}
   if(!shows.length&&!recent.length){el.innerHTML='<div style="text-align:center;padding:60px;color:var(--t2)"><div style="font-size:40px;margin-bottom:12px">📺</div><div style="font-size:16px;margin-bottom:8px">No Up Next data yet</div><div style="font-size:12px;max-width:400px;margin:0 auto">Trigger a refresh from the <a href="https://github.com/jamesgoux/iris-stats/actions" style="color:var(--sp)">Actions tab</a>.</div></div>';if(prerender)return;document.getElementById('un-overlay').style.display='';_lockBody();return}
@@ -4812,6 +4893,9 @@ function _renderUpNext(prerender){
     c+='<div style="display:flex;align-items:center;gap:6px"><div class="un-show" style="flex:1;min-width:0">'+s.show+'</div>';
     if(!isRecent&&s.stream&&s.stream.length){c+='<div class="un-stream">';s.stream.forEach(function(st){c+='<img src="'+st.i+'" title="'+st.n+'" loading="lazy">'});c+='</div>'}
     c+='</div>';
+    // Companion dots
+    var _sc=_compAll[s.slug];
+    if(_sc&&_sc.length){c+='<div style="display:flex;gap:3px;margin:2px 0">';_sc.forEach(function(cn){c+='<span style="font-size:9px;padding:1px 6px;border-radius:8px;background:'+_compColor(cn)+'22;color:'+_compColor(cn)+';border:1px solid '+_compColor(cn)+'44">'+cn+'</span>'});c+='</div>'}
     c+='<div class="un-ep">S'+String(s.season).padStart(2,'0')+'E'+String(s.episode).padStart(2,'0');
     if(s.ep_title)c+=' — '+s.ep_title;
     c+='</div>';
@@ -4995,6 +5079,8 @@ function _unBuildPanel(show){
   h+='</div>';
   // Runtime
   if(show.ep_runtime)h+='<div style="font-size:12px;color:var(--t2);margin-bottom:10px">⏱ '+_unFmtMin(show.ep_runtime)+'</div>';
+  // Companion tags (inline on episode detail)
+  h+='<div id="un-ep-comp-tags" style="margin-bottom:10px">'+_compRenderShowTags(show.slug)+'</div>';
   // Watch buttons — above synopsis
   h+='<div style="display:flex;gap:8px;margin-bottom:16px">';
   h+='<button onclick="_unShowDatePicker(\''+slug2+'\','+show.season+','+show.episode+','+(show.ep_trakt_id||0)+')" style="flex:1;padding:14px 8px;background:#0e7490;color:#fff;border:none;border-radius:10px;font-size:13px;cursor:pointer;font-weight:600;min-height:48px">Other Date</button>';
@@ -7559,6 +7645,8 @@ function _unRenderShowPage(slug,show,seasons,progress,tmdbId){
     });
     h+='</div>';
   }
+  // Companion tags
+  h+='<div id="un-comp-tags">'+_compRenderShowTags(slug)+'</div>';
   if(show.overview){
     h+='<div class="un-show-overview" id="un-sh-overview">'+show.overview+'</div>';
     h+='<div class="un-show-more" onclick="var o=document.getElementById(\'un-sh-overview\');o.classList.toggle(\'expanded\');this.textContent=o.classList.contains(\'expanded\')?\'Show less\':\'Show more\'">Show more</div>';
