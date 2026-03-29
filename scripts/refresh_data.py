@@ -128,6 +128,34 @@ def fetch_cast_and_studios(entries):
     people = defaultdict(lambda: {"name": "", "gender": None, "titles": set()})
     directors = defaultdict(lambda: {"name": "", "titles": set()})
     writers = defaultdict(lambda: {"name": "", "titles": set()})
+    # Additional crew roles (simple name→titles tracking for grid display)
+    CREW_ROLES = {
+        "Producer": "producers", "Executive Producer": "exec_producers",
+        "Co-Director": "co_directors",
+        "Story": "story", "Original Story": "original_writers", "Characters": "original_writers",
+        "Novel": "original_writers", "Comic Book": "original_writers",
+        "Casting": "casting", "Casting Director": "casting",
+        "Editor": "editors",
+        "Director of Photography": "cinematography",
+        "First Assistant Director": "asst_directors", "Second Assistant Director": "asst_directors",
+        "Additional Directing": "add_directing", "Second Unit Director": "add_directing",
+        "Gaffer": "lighting", "Best Boy Electric": "lighting", "Lighting Director": "lighting",
+        "Camera Operator": "camera_operators", "Steadicam Operator": "camera_operators",
+        "Additional Photography": "add_photography", "Second Unit Director of Photography": "add_photography",
+        "Production Designer": "production_design", "Production Design": "production_design",
+        "Art Director": "art_direction", "Art Direction": "art_direction",
+    }
+    other_crew = {role: defaultdict(lambda: {"name": "", "titles": set()}) for role in set(CREW_ROLES.values())}
+    # Load existing other_crew data (merge for incremental runs)
+    if os.path.exists("data/other_crew.json"):
+        with open("data/other_crew.json") as f:
+            existing_oc = json.load(f)
+        for role, ppl in existing_oc.items():
+            if role in other_crew:
+                for pid, info in ppl.items():
+                    other_crew[role][pid]["name"] = info["name"]
+                    other_crew[role][pid]["titles"] = set(info.get("titles", []))
+        print(f"  Loaded {sum(len(v) for v in existing_oc.values())} existing other crew")
     # Load existing crew data
     for crew_file, crew_dict in [("data/directors.json", directors), ("data/writers.json", writers)]:
         if os.path.exists(crew_file):
@@ -159,6 +187,11 @@ def fetch_cast_and_studios(entries):
         with open("data/tmdb_credits_done.json") as f:
             tmdb_credits_done = set(json.load(f))
         print(f"  Loaded {len(tmdb_credits_done)} TMDB credits-done slugs")
+    # Bootstrap crew extraction: if other_crew.json doesn't exist yet, we need to
+    # re-fetch ALL TMDB credits to extract the new crew roles. One-time cost (~2 min).
+    if not os.path.exists("data/other_crew.json") and tmdb_credits_done:
+        print(f"  ⚡ Bootstrapping crew extraction: clearing {len(tmdb_credits_done)} credits-done to re-fetch")
+        tmdb_credits_done = set()
     all_slugs = [(s, "shows") for s in show_slugs] + [(s, "movies") for s in movie_slugs]
     # Sort by recency: recently watched titles first so new content gets processed before budget runs out
     slug_recency = {}
@@ -195,7 +228,7 @@ def fetch_cast_and_studios(entries):
                             g = c.get("gender", 0)
                             if g in (1, 2): people[pid]["gender"] = g
                             people[pid]["titles"].add(slug)
-                        # Crew: directors + writers
+                        # Crew: directors + writers + other roles
                         for c in data.get("crew", []):
                             name = c.get("name", "")
                             if not name: continue
@@ -209,6 +242,11 @@ def fetch_cast_and_studios(entries):
                             elif dept == "Writing" and job in ("Writer", "Screenplay", "Author", "Original Story", "Story", "Novel"):
                                 writers[pid]["name"] = name
                                 writers[pid]["titles"].add(slug)
+                            # Additional crew roles for grid display
+                            role_key = CREW_ROLES.get(job)
+                            if role_key:
+                                other_crew[role_key][pid]["name"] = name
+                                other_crew[role_key][pid]["titles"].add(slug)
                         fetched = True; tmdb_ok += 1; tmdb_credits_done.add(slug)
                 except Exception as e:
                     pass
@@ -389,12 +427,21 @@ def fetch_cast_and_studios(entries):
     crew_ep_out = {}
     for cpid, shows in crew_ep_credits.items():
         crew_ep_out[cpid] = {slug: sorted([list(t) for t in eps]) for slug, eps in shows.items()}
-    return people_out, slug_studios, dir_out, wr_out, crew_ep_out
+    # Build other_crew output: {role: {pid: {name, titles: [...]}}}
+    other_crew_out = {}
+    for role, ppl in other_crew.items():
+        other_crew_out[role] = {pid: {"name": info["name"], "titles": list(info["titles"])} for pid, info in ppl.items() if len(info["titles"]) >= 2}
+    with open("data/other_crew.json", "w") as f:
+        json.dump(other_crew_out, f, separators=(',', ':'))
+    total_oc = sum(len(v) for v in other_crew_out.values())
+    print(f"  Other crew: {len(other_crew_out)} roles, {total_oc} people (min 2 titles)")
+    return people_out, slug_studios, dir_out, wr_out, crew_ep_out, other_crew_out
 
-def build_data(entries, people, headshots, posters, slug_studios, directors_raw, writers_raw, crew_ep_credits=None, season_cache=None, slug_tmdb=None):
+def build_data(entries, people, headshots, posters, slug_studios, directors_raw, writers_raw, crew_ep_credits=None, season_cache=None, slug_tmdb=None, other_crew_raw=None):
     if crew_ep_credits is None: crew_ep_credits = {}
     if season_cache is None: season_cache = {}
     if slug_tmdb is None: slug_tmdb = {}
+    if other_crew_raw is None: other_crew_raw = {}
     # Build episode watch dates from entries (for green highlight per-person checks)
     ep_watch_date = {}
     for e in entries:
@@ -1125,10 +1172,66 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
     table_names = set(p["n"] for p in a_out + x_out + dir_list + wr_list)
     hs_trimmed = {n: url for n, url in headshots.items() if n in table_names}
     print(f"  Headshots: {len(hs_trimmed)} included, {len(headshots) - len(hs_trimmed)} trimmed (1-title people)")
+
+    # Build compact crew grid data: {role: [{n, c}, ...]} — top 20 per role, sorted desc
+    crw_grid = []
+    ROLE_LABELS = {
+        "producers": "Producers", "exec_producers": "Exec. Producers",
+        "co_directors": "Co-Directors", "story": "Story", "original_writers": "Original Writers",
+        "casting": "Casting", "editors": "Editors", "cinematography": "Cinematography",
+        "asst_directors": "Asst. Directors", "add_directing": "Add. Directing",
+        "lighting": "Lighting", "camera_operators": "Camera Operators",
+        "add_photography": "Add. Photography", "production_design": "Production Design",
+        "art_direction": "Art Direction",
+    }
+    # Order to match the screenshot grid layout
+    ROLE_ORDER = [
+        "co_directors", "producers", "original_writers", "story",
+        "casting", "editors", "cinematography", "lighting",
+        "asst_directors", "add_directing", "exec_producers", "camera_operators",
+        "add_photography", "production_design", "art_direction",
+    ]
+    for role_key in ROLE_ORDER:
+        ppl = other_crew_raw.get(role_key, {})
+        if not ppl:
+            continue
+        items = []
+        for pid, info in ppl.items():
+            n_titles = len(info.get("titles", []))
+            if n_titles >= 2:
+                items.append({"n": info["name"], "c": n_titles})
+        items.sort(key=lambda x: x["c"], reverse=True)
+        if items:
+            crw_grid.append({"label": ROLE_LABELS.get(role_key, role_key), "items": items[:20]})
+    crw_total = sum(len(v["items"]) for v in crw_grid)
+    print(f"  Crew grid: {len(crw_grid)} roles, {crw_total} entries (top 20 each)")
+
+    # Box office data: compact array [{t, yr, dom, ww}] for dashboard chart
+    bo_data = []
+    if os.path.exists("data/box_office.json"):
+        with open("data/box_office.json") as f:
+            bo_raw = json.load(f)
+        for slug, info in bo_raw.items():
+            dom = info.get("bom_domestic", 0)
+            ww = info.get("bom_worldwide", 0)
+            if not dom and not ww:
+                continue
+            # Get title + year from slug_meta or entries
+            meta = slug_meta.get(slug, {})
+            title = meta.get("t", slug)
+            yr = meta.get("yr", 0)
+            if not yr and info.get("release_date"):
+                yr = int(info["release_date"][:4])
+            bo_data.append({"t": title, "yr": yr, "dom": dom, "ww": ww})
+        bo_data.sort(key=lambda x: x.get("ww", 0), reverse=True)
+        print(f"  Box office: {len(bo_data)} movies with BOM data")
+
     return {
         "a": a_out,
         "x": x_out,
         "d": dir_list, "w": wr_list,
+        "crw": crw_grid,
+        "bo": bo_data,
         "tl": tl, "hs": hs_trimmed, "ps": posters, "sm": slug_meta,
         "syd": [{"n": i["name"], "net": i["net"],
                  "yd": {y: {"e": d["e"], "m": d["m"]} for y, d in i["yd"].items()}}
@@ -1538,7 +1641,7 @@ os.makedirs("data", exist_ok=True)
 # TMDB season cache makes this fast (no redundant API calls); ensures newly-watched
 # episodes are credited to actors/crew immediately, not just on FULL_REFRESH
 print("\n[2/3] Fetching cast + studios + crew...")
-people, slug_studios, directors_raw, writers_raw, crew_ep_credits = fetch_cast_and_studios(entries)
+people, slug_studios, directors_raw, writers_raw, crew_ep_credits, other_crew_raw = fetch_cast_and_studios(entries)
 with open("data/people.json", "w") as f:
     json.dump(people, f, separators=(',', ':'))
 with open("data/crew_episodes.json", "w") as f:
@@ -1659,7 +1762,7 @@ _slug_tmdb = {}
 for e in entries:
     if e.get("trakt_slug") and e.get("tmdb_id"):
         _slug_tmdb[e["trakt_slug"]] = (str(e["tmdb_id"]), e["type"] != "movie")
-data = build_data(entries, people, hs, ps, slug_studios, directors_raw, writers_raw, crew_ep_credits, _sc_cache, _slug_tmdb)
+data = build_data(entries, people, hs, ps, slug_studios, directors_raw, writers_raw, crew_ep_credits, _sc_cache, _slug_tmdb, other_crew_raw)
 data["lg"] = logos  # studio/network logos
 
 # Letterboxd data: match to Trakt entries via TMDB ID, build rating distribution + tag cloud
