@@ -426,7 +426,7 @@ def run():
             enrich_cache[item["tmdb_id"]] = item
 
     tmdb_fetched = 0
-    TMDB_BUDGET = 150  # max new TMDB lookups per run
+    TMDB_BUDGET = 300  # max new TMDB lookups per run (cached after first pass)
 
     for key, m in movies_by_tmdb.items():
         tid = m.get("tmdb_id")
@@ -464,7 +464,7 @@ def run():
             slug = m.get("slug", "")
             if slug and slug in posters:
                 m["poster"] = posters[slug]
-            elif tmdb_fetched < 50:
+            elif tmdb_fetched < TMDB_BUDGET:
                 tmdb_data = fetch_tmdb_movie(m["tmdb_id"])
                 if tmdb_data.get("poster"):
                     m["poster"] = tmdb_data["poster"]
