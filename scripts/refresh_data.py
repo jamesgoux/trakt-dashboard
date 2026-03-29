@@ -104,8 +104,8 @@ def fetch_cast_and_studios(entries):
     show_slugs = set(); movie_slugs = set()
     slug_tmdb = {}  # slug -> (tmdb_id, is_show)
     # Build set of show slugs watched in last 7 days (for targeted crew re-fetch)
-    from datetime import datetime, timedelta
-    _cutoff_7d = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
+    from datetime import datetime, timedelta, timezone
+    _cutoff_7d = (datetime.now(timezone.utc) - timedelta(days=7)).strftime("%Y-%m-%d")
     _recent_slugs_7d = set(e["trakt_slug"] for e in entries if e.get("trakt_slug") and e["type"] != "movie" and e.get("watched_at", "")[:10] >= _cutoff_7d)
     # Build show → seasons → episodes map from user's watch history
     show_episodes = defaultdict(lambda: defaultdict(set))  # slug -> season -> set of episode nums
@@ -501,9 +501,9 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
     # Movies: new if watched in last 7 days and NOT a rewatch
     # Shows: new for this person if ALL their episodes were watched in last 7 days
     #   (i.e. none of their specific episodes were watched before the 7-day window)
-    from datetime import datetime, timedelta
-    cutoff_date = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
-    cur_year = datetime.now().strftime("%Y")
+    from datetime import datetime, timedelta, timezone
+    cutoff_date = (datetime.now(timezone.utc) - timedelta(days=7)).strftime("%Y-%m-%d")
+    cur_year = datetime.now(timezone.utc).strftime("%Y")
 
     # Movies: recent vs older
     recent_movies = set()
