@@ -1664,9 +1664,9 @@ if(ct==='show'){if(s===0)return;sortVal=s}
 var cg=_personGain(p);
 // Compute total episode appearances (movies=1 each, shows=eps count)
 var epTot=m;if(p.eps&&p.ti){p.ti.forEach(function(i){var t=TL[i];if(!t||t.type==='movie')return;if(p.eps[t.sl]){var ec=cy==='all'?(p.eps[t.sl].t||1):((p.eps[t.sl].y||{})[cy]||0);epTot+=ec}})}else{epTot=m+s}
-items.push({p:p,m:m,s:s,tot:m+s,sv:sortVal,cg:cg,ep:epTot})});
-// Sort: title count DESC, then episode depth DESC as tiebreaker
-items.sort(function(a,b){if(b.sv!==a.sv)return b.sv-a.sv;return b.ep-a.ep});
+items.push({p:p,m:m,s:s,tot:m+s,sv:sortVal,cg:cg,ep:epTot,_i:items.length})});
+// Sort: title count DESC, same-split episode depth DESC, stable index fallback
+items.sort(function(a,b){if(b.sv!==a.sv)return b.sv-a.sv;if(a.m===b.m&&a.s===b.s)return b.ep-a.ep;return a._i-b._i});
 // Competition ranking: ties share a rank, next rank = position (skips)
 var _dPrev=null;items.forEach(function(item,i){if(item.sv!==_dPrev){_dPrev=item.sv;item.rk=i+1}else{item.rk=items[i-1].rk}});
 var hasAnyGain=items.some(function(item){return item.cg>0});
