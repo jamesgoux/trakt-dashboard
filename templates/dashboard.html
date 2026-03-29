@@ -1777,21 +1777,28 @@ h+='</table></td>';dr.innerHTML=h;tr.after(dr)};tb.appendChild(tr)})}
 
 function renderCrewGrid(){
 var el=document.getElementById('crw-grid');var sec=document.getElementById('sec-crw-grid');
-if(!el||!sec)return;
-// Crew data is all-time only — hide when year filter is active
-if(cy!=='all'||!D.crw||!D.crw.length){sec.style.display='none';return}
-sec.style.display='';
-var h='';
+if(!el||!sec||!D.crw||!D.crw.length){if(sec)sec.style.display='none';return}
+var isYr=cy!=='all';
+var h='',anyRole=false;
 D.crw.forEach(function(role){
   if(!role.items||!role.items.length)return;
-  var top=role.items.slice(0,20);
-  h+='<div class="crw-role"><h4>'+role.label+' <span style="font-weight:400;color:#666">('+role.items.length+')</span></h4><div class="crw-list">';
+  var filtered;
+  if(isYr){
+    filtered=role.items.map(function(it){return{n:it.n,c:(it.cy&&it.cy[cy])||0}}).filter(function(it){return it.c>0});
+    filtered.sort(function(a,b){return b.c-a.c});
+  }else{filtered=role.items}
+  if(!filtered.length)return;
+  anyRole=true;
+  var top=filtered.slice(0,20);
+  h+='<div class="crw-role"><h4>'+role.label+' <span style="font-weight:400;color:#666">('+filtered.length+')</span></h4><div class="crw-list">';
   top.forEach(function(it){
     h+='<div class="crw-item"><span class="crw-n">'+it.n+'</span><span class="crw-c">'+it.c+'</span></div>';
   });
   h+='</div></div>';
 });
-el.innerHTML=h||'<div style="color:var(--t2);font-size:12px;padding:10px">No crew data available</div>';
+if(!anyRole){sec.style.display='none';return}
+sec.style.display='';
+el.innerHTML=h;
 }
 
 function renderLifeline(){

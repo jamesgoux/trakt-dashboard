@@ -449,6 +449,13 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
             wa = e.get("watched_at", "")
             if wa and len(wa) >= 10:
                 ep_watch_date[(e["trakt_slug"], int(e["season"]), int(e["episode_number"]))] = wa[:10]
+    # Slug → set of watch years (for crew year filtering)
+    slug_watch_years = defaultdict(set)
+    for e in entries:
+        s = e.get("trakt_slug", "")
+        wa = e.get("watched_at", "")
+        if s and wa and len(wa) >= 4:
+            slug_watch_years[s].add(wa[:4])
     # Per-slug metadata for clickable charts
     slug_meta = {}
     for e in entries:
@@ -1197,9 +1204,18 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
             continue
         items = []
         for pid, info in ppl.items():
-            n_titles = len(info.get("titles", []))
+            titles = info.get("titles", [])
+            n_titles = len(titles)
             if n_titles >= 2:
-                items.append({"n": info["name"], "c": n_titles})
+                # Count titles per watch year
+                cy_counts = defaultdict(int)
+                for t_slug in titles:
+                    for yr in slug_watch_years.get(t_slug, set()):
+                        cy_counts[yr] += 1
+                item = {"n": info["name"], "c": n_titles}
+                if cy_counts:
+                    item["cy"] = dict(cy_counts)
+                items.append(item)
         items.sort(key=lambda x: x["c"], reverse=True)
         if items:
             crw_grid.append({"label": ROLE_LABELS.get(role_key, role_key), "items": items[:20]})
