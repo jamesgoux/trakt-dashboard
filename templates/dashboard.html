@@ -6308,7 +6308,6 @@ function _unLoadTrending(){
       h+='<div class="un-sr-meta"><span class="un-sr-badge un-sr-badge-'+r.type+'">'+(isMovie?'Movie':'Show')+'</span> '+year;
       if(rating)h+=' · ⭐ '+rating;
       h+=' · 👁 '+r.watchers;
-      if(isMovie&&D.bol&&D.bol[r.slug]){var _tb=D.bol[r.slug];if(_tb.w)h+=' · <span style="color:#fb923c">💰 '+_boFmt(_tb.w)+'</span>'}
       h+='</div></div><div class="un-sr-arrow">›</div></div>';
       if(r.tmdbId){var tk=(D.un||{}).tmdb_key||'';if(tk){(function(idx,type,tid){
         fetch('https://api.themoviedb.org/3/'+(type==='movie'?'movie':'tv')+'/'+tid+'?api_key='+tk).then(function(r2){return r2.json()}).then(function(d){
@@ -6485,7 +6484,6 @@ function _unShowSearchResults(query,results){
     if(year)h+=' '+year;
     if(rating)h+=' · ⭐ '+rating;
     if(runtime)h+=' · '+runtime;
-    if(isMovie&&D.bol&&D.bol[slug]){var _sb=D.bol[slug];if(_sb.w)h+=' · <span style="color:#fb923c">💰 '+_boFmt(_sb.w)+'</span>'}
     h+='</div>';
     if(genres)h+='<div class="un-sr-meta" style="margin-top:2px">'+genres+'</div>';
     h+='</div>';
@@ -6928,7 +6926,6 @@ function _wlRender(){
     if(item.year)h+='<span>'+item.year+'</span>';
     if(item.rating)h+='<span>⭐ '+item.rating+'</span>';
     if(rt)h+='<span class="un-wl-runtime">🕐 '+_fmtRuntime(rt)+'</span>';
-    if(isMovie&&D.bol&&D.bol[slug]){var _wb=D.bol[slug];if(_wb.w)h+='<span style="color:#fb923c">💰 '+_boFmt(_wb.w)+'</span>'}
     if(!isMovie&&item.aired_episodes)h+='<span>'+item.aired_episodes+' eps</span>';
     if(!isMovie&&item.status){
       var stc=item.status==='returning series'?'var(--tv)':item.status==='ended'?'var(--t2)':'#fbbf24';
