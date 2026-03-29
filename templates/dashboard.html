@@ -7813,9 +7813,8 @@ function closeUpNext(){
     tracking=true;_dir=null;
     var _searchOpen=document.getElementById('iris-search-ov').style.display!=='none';
     _onSub=(_unCurrentView!=='home')||_searchOpen;
-    // Calendar + watchlist: no swipe-back (conflicts with iOS Safari back gesture; use ← button)
-    var _isScrollView=(_unCurrentView==='calendar'||_unCurrentView==='watchlist');
-    _swCnt=_searchOpen?document.getElementById('un-search-results'):null;
+    // For sub-views: search overlay uses search results, watchlist/calendar slide the overlay itself
+    _swCnt=_searchOpen?document.getElementById('un-search-results'):(_onSub?ov:null);
     _atTop=ov.scrollTop<5;
     _atBot=ov.scrollHeight-ov.scrollTop-ov.clientHeight<5;
     if(!_onSub)ov.style.transition='none';
@@ -7828,8 +7827,6 @@ function closeUpNext(){
     if(!_dir&&(adx>10||ady>10)){
       if(_onSub){
         // Sub-page: horizontal (right) swipe-back or vertical dismiss
-        // Calendar + watchlist: no horizontal swipe (let iOS handle it), vertical scroll only
-        if(_isScrollView){_dir='none';tracking=false;return}
         if(adx>ady&&dx>0){_dir='h'}
         else if(ady>adx&&dy>0&&_atTop){_dir='v'}
         else if(ady>adx&&dy<0&&_atBot){_dir='v'}
