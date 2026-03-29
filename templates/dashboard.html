@@ -6132,8 +6132,8 @@ function _unLoadTrending(){
 // Redirect old functions
 function _unOpenSearchOverlay(){_irisOpenSearch('media')}
 function _unCloseSearchOverlay(){_irisCloseSearch()}
-function _unShowSearchOverlay(){}
-function _unHideSearchOverlay(){}
+function _unShowSearchOverlay(){var ov=document.getElementById('iris-search-ov');if(ov.style.display==='none'){ov.style.display='';ov.style.transform='';_irisSearchIsOpen=true;_irisSetTab('media',true)}}
+function _unHideSearchOverlay(){var ov=document.getElementById('iris-search-ov');if(ov.style.display!=='none'){ov.style.display='none';_irisSearchIsOpen=false}}
 function openSportsAdd(){_irisOpenSearch('sports')}
 function closeSportsAdd(){_irisCloseSearch()}
 
@@ -6573,13 +6573,13 @@ function _unNavBack(){
       else _unGoHome();
     }else if(prev.view==='watchlist'){
       // Return to watchlist view — close search overlay if open
-      var _sov=document.getElementById('iris-search-ov');if(_sov)_sov.style.display='none';
+      _unHideSearchOverlay();
       _unCurrentView='watchlist';
       _unUpdateHeader();
       _wlRender();
     }else if(prev.view==='calendar'){
       // Return to calendar view — close search overlay if open
-      var _sov2=document.getElementById('iris-search-ov');if(_sov2)_sov2.style.display='none';
+      _unHideSearchOverlay();
       _unCurrentView='calendar';
       _unUpdateHeader();
       _calRender();
