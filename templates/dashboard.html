@@ -77,7 +77,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
 .chart-detail .cd-item:last-child{border:none}
 .chart-detail .cd-close{float:right;cursor:pointer;color:var(--t2);font-size:14px}
 .chart-detail.ll-detail .cd-item{justify-content:flex-start;gap:6px}
-.crw-role{margin-bottom:14px}.crw-role h4{font-size:11px;color:var(--t2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;font-weight:500}.crw-list{display:grid;grid-template-columns:repeat(4,1fr);gap:2px 20px}.crw-item{display:flex;justify-content:space-between;align-items:center;padding:3px 0;font-size:12px;border-bottom:1px solid rgba(255,255,255,.03)}.crw-item .crw-n{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0}.crw-item .crw-c{color:var(--t2);font-weight:600;font-variant-numeric:tabular-nums;margin-left:6px;flex-shrink:0}
+#crw-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px 24px}.crw-role{margin-bottom:2px}.crw-role h4{font-size:11px;color:var(--t2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;font-weight:500}.crw-list{display:grid;grid-template-columns:repeat(2,1fr);gap:2px 20px}.crw-item{display:flex;justify-content:space-between;align-items:center;padding:3px 0;font-size:12px;border-bottom:1px solid rgba(255,255,255,.03)}.crw-item .crw-n{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0}.crw-item .crw-c{color:var(--t2);font-weight:600;font-variant-numeric:tabular-nums;margin-left:6px;flex-shrink:0}
 .status{text-align:center;padding:20px;color:var(--t2);font-size:11px;border-top:1px solid rgba(255,255,255,.04);margin-top:20px}
 .status span{margin:0 10px}
 .ll-day{margin-bottom:24px}.ll-day-hdr{font-size:13px;font-weight:700;color:var(--t2);padding:8px 0 8px 54px;border-bottom:1px solid rgba(255,255,255,.06);margin-bottom:0;position:sticky;top:56px;background:var(--bg);z-index:2}
@@ -275,6 +275,7 @@ body{overflow-x:hidden}
 #filter-btn{flex:1}
 .fbtn select{font-size:13px;padding:0 8px;line-height:44px;height:44px}
 .hbtn{min-height:44px;padding:8px 12px;font-size:20px}
+#crw-grid{grid-template-columns:1fr}
 .crw-list{grid-template-columns:repeat(2,1fr)}
 }
 .iris-loader{position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity .5s ease;pointer-events:auto}
@@ -341,7 +342,7 @@ body{overflow-x:hidden}
 </div>
 <!-- CREW GRID (additional roles - no headshots) -->
 <div class="g2 med-s" data-med="all movietv movie show">
-<div class="cd fw" id="sec-crw-grid"><h3><span class="i">🎥</span>Crew</h3><div id="crw-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px 24px"></div></div>
+<div class="cd fw" id="sec-crw-grid"><h3><span class="i">🎥</span>Crew</h3><div id="crw-grid"></div></div>
 </div>
 <!-- TOP SHOWS POSTERS -->
 <div class="g2 med-s" data-med="all movietv show">
@@ -1775,11 +1776,14 @@ _tItems.forEach(function(it){h+='<tr'+(it.grn?' style="background:rgba(74,222,12
 h+='</table></td>';dr.innerHTML=h;tr.after(dr)};tb.appendChild(tr)})}
 
 function renderCrewGrid(){
-var el=document.getElementById('crw-grid');if(!el||!D.crw||!D.crw.length)return;
+var el=document.getElementById('crw-grid');var sec=document.getElementById('sec-crw-grid');
+if(!el||!sec)return;
+// Crew data is all-time only — hide when year filter is active
+if(cy!=='all'||!D.crw||!D.crw.length){sec.style.display='none';return}
+sec.style.display='';
 var h='';
 D.crw.forEach(function(role){
   if(!role.items||!role.items.length)return;
-  // Crew counts are all-time totals (no per-year breakdown)
   var top=role.items.slice(0,20);
   h+='<div class="crw-role"><h4>'+role.label+' <span style="font-weight:400;color:#666">('+role.items.length+')</span></h4><div class="crw-list">';
   top.forEach(function(it){
