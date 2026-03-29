@@ -1206,8 +1206,9 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
     crw_total = sum(len(v["items"]) for v in crw_grid)
     print(f"  Crew grid: {len(crw_grid)} roles, {crw_total} entries (top 20 each)")
 
-    # Box office data: compact array [{t, yr, dom, ww}] for dashboard chart
+    # Box office data: array for chart + slug-keyed lookup for movie pages
     bo_data = []
+    bo_lookup = {}  # {slug: {d: domestic, w: worldwide}} — compact for inline display
     if os.path.exists("data/box_office.json"):
         with open("data/box_office.json") as f:
             bo_raw = json.load(f)
@@ -1216,15 +1217,15 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
             ww = info.get("bom_worldwide", 0)
             if not dom and not ww:
                 continue
-            # Get title + year from slug_meta or entries
             meta = slug_meta.get(slug, {})
             title = meta.get("t", slug)
             yr = meta.get("yr", 0)
             if not yr and info.get("release_date"):
                 yr = int(info["release_date"][:4])
             bo_data.append({"t": title, "yr": yr, "dom": dom, "ww": ww})
+            bo_lookup[slug] = {"d": dom, "w": ww}
         bo_data.sort(key=lambda x: x.get("ww", 0), reverse=True)
-        print(f"  Box office: {len(bo_data)} movies with BOM data")
+        print(f"  Box office: {len(bo_data)} movies with BOM data, {len(bo_lookup)} lookup entries")
 
     return {
         "a": a_out,
@@ -1232,6 +1233,7 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
         "d": dir_list, "w": wr_list,
         "crw": crw_grid,
         "bo": bo_data,
+        "bol": bo_lookup,
         "tl": tl, "hs": hs_trimmed, "ps": posters, "sm": slug_meta,
         "syd": [{"n": i["name"], "net": i["net"],
                  "yd": {y: {"e": d["e"], "m": d["m"]} for y, d in i["yd"].items()}}

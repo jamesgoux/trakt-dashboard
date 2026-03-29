@@ -531,6 +531,7 @@ Drop GameTrack games.csv or <span style="color:#6366f1;text-decoration:underline
 <button onclick="_unOpenCalendar()" class="un-back" id="un-cal-btn" style="flex-shrink:0;font-size:16px">📅</button>
 <button onclick="_unOpenSearchOverlay()" class="un-back" id="un-search-btn" style="flex-shrink:0;font-size:16px">🔍</button>
 </div>
+<div id="un-comp-filter" style="display:none;padding:6px 0 2px;overflow-x:auto;white-space:nowrap;-webkit-overflow-scrolling:touch"></div>
 </div>
 <div id="un-content"></div>
 </div>
@@ -958,6 +959,79 @@ function _irisLSSet(key,value){
 }
 function _irisLSRemove(key){
   localStorage.removeItem(_irisLSKey(key));
+}
+
+// === COMPANION TAGGING ===
+// Storage: iris_companions = {slug: [name, ...]}
+// iris_companion_names = ["Isabel","Melanie","Gemma","Solo"]
+var _COMP_COLORS=['#e94560','#7c3aed','#0ea5e9','#f59e0b','#10b981','#ec4899','#6366f1','#84cc16'];
+function _compGetAll(){try{return JSON.parse(_irisLSGet('companions','{}'))}catch(e){return{}}}
+function _compSave(data){_irisLSSet('companions',JSON.stringify(data))}
+function _compNames(){try{return JSON.parse(_irisLSGet('companion_names','[]'))}catch(e){return[]}}
+function _compSaveNames(names){_irisLSSet('companion_names',JSON.stringify(names))}
+function _compForSlug(slug){return (_compGetAll()[slug]||[])}
+function _compSetForSlug(slug,names){var d=_compGetAll();if(names.length)d[slug]=names;else delete d[slug];_compSave(d)}
+function _compColor(name){var names=_compNames();var idx=names.indexOf(name);return _COMP_COLORS[idx%_COMP_COLORS.length]}
+function _compAddName(name){var names=_compNames();if(names.indexOf(name)<0){names.push(name);_compSaveNames(names)}return names}
+function _compRemoveName(name){var names=_compNames().filter(function(n){return n!==name});_compSaveNames(names);var d=_compGetAll();Object.keys(d).forEach(function(slug){d[slug]=d[slug].filter(function(n){return n!==name});if(!d[slug].length)delete d[slug]});_compSave(d);return names}
+function _compRenameName(oldName,newName){var names=_compNames();var idx=names.indexOf(oldName);if(idx>=0)names[idx]=newName;_compSaveNames(names);var d=_compGetAll();Object.keys(d).forEach(function(slug){var i2=d[slug].indexOf(oldName);if(i2>=0)d[slug][i2]=newName});_compSave(d)}
+window._compFilter=null; // null=show all, string=filter to this companion
+
+function _compRenderFilter(){
+  var el=document.getElementById('un-comp-filter');if(!el)return;
+  var names=_compNames();
+  if(!names.length){el.style.display='none';return}
+  el.style.display='';
+  var h='<button onclick="_compSetFilter(null)" style="display:inline-block;padding:4px 12px;margin:0 3px;border-radius:14px;font-size:11px;font-weight:600;border:1px solid rgba(255,255,255,.15);cursor:pointer;background:'+(window._compFilter===null?'rgba(255,255,255,.15)':'transparent')+';color:'+(window._compFilter===null?'#fff':'var(--t2)')+'">All</button>';
+  names.forEach(function(name){
+    var active=window._compFilter===name;
+    var col=_compColor(name);
+    h+='<button onclick="_compSetFilter(\''+name.replace(/'/g,"\\'")+'\')" style="display:inline-block;padding:4px 12px;margin:0 3px;border-radius:14px;font-size:11px;font-weight:600;border:1px solid '+(active?col:'rgba(255,255,255,.12)')+';cursor:pointer;background:'+(active?col+'33':'transparent')+';color:'+(active?col:'var(--t2)')+'">'+name+'</button>';
+  });
+  el.innerHTML=h;
+}
+function _compSetFilter(name){
+  window._compFilter=name;
+  _compRenderFilter();
+  _renderUpNext();
+}
+// Render companion chips on show page (below genres, above overview)
+function _compRenderShowTags(slug){
+  var names=_compNames();var current=_compForSlug(slug);
+  var h='<div style="padding:0 16px;max-width:600px;margin:0 auto 8px;display:flex;flex-wrap:wrap;gap:6px;align-items:center">';
+  h+='<span style="font-size:11px;color:var(--t2);margin-right:2px">Watching with:</span>';
+  names.forEach(function(name){
+    var on=current.indexOf(name)>=0;
+    var col=_compColor(name);
+    h+='<button onclick="_compToggleShow(\''+slug.replace(/'/g,"\\'")+'\',\''+name.replace(/'/g,"\\'")+'\')" style="padding:4px 12px;border-radius:14px;font-size:11px;font-weight:600;border:1px solid '+(on?col:'rgba(255,255,255,.1)')+';cursor:pointer;background:'+(on?col+'33':'transparent')+';color:'+(on?col:'var(--t2)')+';transition:all .15s">'+name+'</button>';
+  });
+  h+='<button onclick="_compAddNew(\''+slug.replace(/'/g,"\\'")+'\')" style="padding:4px 10px;border-radius:14px;font-size:11px;border:1px dashed rgba(255,255,255,.15);cursor:pointer;background:transparent;color:var(--t2)">+ Add</button>';
+  h+='</div>';
+  return h;
+}
+function _compToggleShow(slug,name){
+  var current=_compForSlug(slug);
+  var idx=current.indexOf(name);
+  if(idx>=0)current.splice(idx,1);else current.push(name);
+  _compSetForSlug(slug,current);
+  // Re-render companion tags wherever visible
+  var tags=_compRenderShowTags(slug);
+  var el=document.getElementById('un-comp-tags');if(el)el.innerHTML=tags;
+  var el2=document.getElementById('un-ep-comp-tags');if(el2)el2.innerHTML=tags;
+  _compRenderFilter();
+}
+function _compAddNew(slug){
+  var name=prompt('New companion name:');
+  if(!name||!name.trim())return;
+  name=name.trim();
+  _compAddName(name);
+  // Auto-tag this show
+  var current=_compForSlug(slug);
+  if(current.indexOf(name)<0){current.push(name);_compSetForSlug(slug,current)}
+  var tags=_compRenderShowTags(slug);
+  var el=document.getElementById('un-comp-tags');if(el)el.innerHTML=tags;
+  var el2=document.getElementById('un-ep-comp-tags');if(el2)el2.innerHTML=tags;
+  _compRenderFilter();
 }
 
 // Request data refresh
@@ -1836,6 +1910,20 @@ function renderLifeline(){
 // CPI-U annual averages for inflation adjustment (source: BLS, 2026 estimated)
 var CPI={1920:20.0,1921:17.9,1922:16.8,1923:17.1,1924:17.1,1925:17.5,1926:17.7,1927:17.4,1928:17.2,1929:17.2,1930:16.7,1931:15.2,1932:13.6,1933:12.9,1934:13.4,1935:13.7,1936:13.9,1937:14.4,1938:14.1,1939:13.9,1940:14.0,1941:14.7,1942:16.3,1943:17.3,1944:17.6,1945:18.0,1946:19.5,1947:22.3,1948:24.0,1949:23.8,1950:24.1,1951:26.0,1952:26.6,1953:26.8,1954:26.9,1955:26.8,1956:27.2,1957:28.1,1958:28.9,1959:29.2,1960:29.6,1961:29.9,1962:30.3,1963:30.6,1964:31.0,1965:31.5,1966:32.5,1967:33.4,1968:34.8,1969:36.7,1970:38.8,1971:40.5,1972:41.8,1973:44.4,1974:49.3,1975:53.8,1976:56.9,1977:60.6,1978:65.2,1979:72.6,1980:82.4,1981:90.9,1982:96.5,1983:99.6,1984:103.9,1985:107.6,1986:109.6,1987:113.6,1988:118.3,1989:124.0,1990:130.7,1991:136.2,1992:140.3,1993:144.5,1994:148.2,1995:152.4,1996:156.9,1997:160.5,1998:163.0,1999:166.6,2000:172.2,2001:177.1,2002:179.9,2003:184.0,2004:188.9,2005:195.3,2006:201.6,2007:207.3,2008:215.3,2009:214.5,2010:218.1,2011:224.9,2012:229.6,2013:233.0,2014:236.7,2015:237.0,2016:240.0,2017:245.1,2018:251.1,2019:255.7,2020:258.8,2021:271.0,2022:292.7,2023:304.7,2024:314.2,2025:320.0,2026:326.0};
 var CPI_2026=326.0;
+// Format dollar amount: 1234567 → "$1.2M", 1234567890 → "$1.23B"
+function _boFmt(v){if(!v)return'';if(v>=1e9)return'$'+(v/1e9).toFixed(2)+'B';if(v>=1e6)return'$'+(v/1e6).toFixed(1)+'M';if(v>=1e3)return'$'+(v/1e3).toFixed(0)+'K';return'$'+v}
+// Render box office HTML for a movie detail page (by slug)
+function _boDetailHtml(slug,yr){
+  var bol=D.bol||{};var bo=bol[slug];if(!bo)return'';
+  var dom=bo.d||0,ww=bo.w||0;
+  var adj=dom;var c=CPI[yr];if(c)adj=Math.round(dom*(CPI_2026/c));
+  var h='<div style="display:flex;gap:12px;margin-bottom:12px;padding:10px 14px;background:rgba(251,146,60,.08);border:1px solid rgba(251,146,60,.15);border-radius:10px;flex-wrap:wrap">';
+  h+='<div style="font-size:11px;color:var(--t2)">💰 Box Office</div>';
+  if(dom){h+='<div style="font-size:12px"><span style="color:var(--t2)">Domestic</span> <span style="color:#fb923c;font-weight:600">'+_boFmt(dom)+'</span></div>'}
+  if(ww){h+='<div style="font-size:12px"><span style="color:var(--t2)">Worldwide</span> <span style="color:#fb923c;font-weight:600">'+_boFmt(ww)+'</span></div>'}
+  if(dom&&adj!==dom){h+='<div style="font-size:12px"><span style="color:var(--t2)">Adjusted</span> <span style="color:#fbbf24;font-weight:600">'+_boFmt(adj)+'</span></div>'}
+  h+='</div>';return h;
+}
 // Box office buckets: [min, max, label]
 var BO_BUCKETS=[[0,1e6,'<$1M'],[1e6,5e6,'$1-5M'],[5e6,10e6,'$5-10M'],[10e6,25e6,'$10-25M'],[25e6,50e6,'$25-50M'],[50e6,75e6,'$50-75M'],[75e6,100e6,'$75-100M'],[100e6,150e6,'$100-150M'],[150e6,200e6,'$150-200M'],[200e6,300e6,'$200-300M'],[300e6,400e6,'$300-400M'],[400e6,500e6,'$400-500M'],[500e6,1e9,'$500M-1B'],[1e9,1e12,'$1B+']];
 window._boMode='adj';
@@ -4784,6 +4872,7 @@ function _setupRWVirtualScroll(ov){
   }
 }
 function _renderUpNext(prerender){
+  _compRenderFilter();
   var ud=_unData();
   var recent=ud.recent||[];
   var recentSet={};recent.forEach(function(r){recentSet[r.slug+'|'+r.season+'|'+r.episode]=true});
@@ -4792,6 +4881,12 @@ function _renderUpNext(prerender){
     if(s.aired_total&&s.completed>=s.aired_total)return false;
     return true;
   });
+  // Companion filter: if active, only show series tagged with that companion
+  var _compAll=_compGetAll();
+  if(window._compFilter){
+    shows=shows.filter(function(s){var c=_compAll[s.slug];return c&&c.indexOf(window._compFilter)>=0});
+    recent=recent.filter(function(s){var c=_compAll[s.slug];return c&&c.indexOf(window._compFilter)>=0});
+  }
   var el=document.getElementById('un-content');
   var oldFg=document.getElementById('un-detail-fg');if(oldFg){oldFg.remove();document.getElementById('un-overlay').style.overflowY='auto'}
   if(!shows.length&&!recent.length){el.innerHTML='<div style="text-align:center;padding:60px;color:var(--t2)"><div style="font-size:40px;margin-bottom:12px">📺</div><div style="font-size:16px;margin-bottom:8px">No Up Next data yet</div><div style="font-size:12px;max-width:400px;margin:0 auto">Trigger a refresh from the <a href="https://github.com/jamesgoux/iris-stats/actions" style="color:var(--sp)">Actions tab</a>.</div></div>';if(prerender)return;document.getElementById('un-overlay').style.display='';_lockBody();return}
@@ -4812,6 +4907,9 @@ function _renderUpNext(prerender){
     c+='<div style="display:flex;align-items:center;gap:6px"><div class="un-show" style="flex:1;min-width:0">'+s.show+'</div>';
     if(!isRecent&&s.stream&&s.stream.length){c+='<div class="un-stream">';s.stream.forEach(function(st){c+='<img src="'+st.i+'" title="'+st.n+'" loading="lazy">'});c+='</div>'}
     c+='</div>';
+    // Companion dots
+    var _sc=_compAll[s.slug];
+    if(_sc&&_sc.length){c+='<div style="display:flex;gap:3px;margin:2px 0">';_sc.forEach(function(cn){c+='<span style="font-size:9px;padding:1px 6px;border-radius:8px;background:'+_compColor(cn)+'22;color:'+_compColor(cn)+';border:1px solid '+_compColor(cn)+'44">'+cn+'</span>'});c+='</div>'}
     c+='<div class="un-ep">S'+String(s.season).padStart(2,'0')+'E'+String(s.episode).padStart(2,'0');
     if(s.ep_title)c+=' — '+s.ep_title;
     c+='</div>';
@@ -4995,6 +5093,8 @@ function _unBuildPanel(show){
   h+='</div>';
   // Runtime
   if(show.ep_runtime)h+='<div style="font-size:12px;color:var(--t2);margin-bottom:10px">⏱ '+_unFmtMin(show.ep_runtime)+'</div>';
+  // Companion tags (inline on episode detail)
+  h+='<div id="un-ep-comp-tags" style="margin-bottom:10px">'+_compRenderShowTags(show.slug)+'</div>';
   // Watch buttons — above synopsis
   h+='<div style="display:flex;gap:8px;margin-bottom:16px">';
   h+='<button onclick="_unShowDatePicker(\''+slug2+'\','+show.season+','+show.episode+','+(show.ep_trakt_id||0)+')" style="flex:1;padding:14px 8px;background:#0e7490;color:#fff;border:none;border-radius:10px;font-size:13px;cursor:pointer;font-weight:600;min-height:48px">Other Date</button>';
@@ -7334,6 +7434,8 @@ function _unOpenMovie(slug,tmdbId){
       });
       h+='</div>';
     }
+    // Box office
+    h+=_boDetailHtml(slug,movie.year||0);
     // Watch buttons — above synopsis
     var _mvReleaseDate=movie.released||'';
     h+='<div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:nowrap">';
@@ -7559,6 +7661,8 @@ function _unRenderShowPage(slug,show,seasons,progress,tmdbId){
     });
     h+='</div>';
   }
+  // Companion tags
+  h+='<div id="un-comp-tags">'+_compRenderShowTags(slug)+'</div>';
   if(show.overview){
     h+='<div class="un-show-overview" id="un-sh-overview">'+show.overview+'</div>';
     h+='<div class="un-show-more" onclick="var o=document.getElementById(\'un-sh-overview\');o.classList.toggle(\'expanded\');this.textContent=o.classList.contains(\'expanded\')?\'Show less\':\'Show more\'">Show more</div>';
