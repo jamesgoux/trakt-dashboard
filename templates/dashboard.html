@@ -991,7 +991,10 @@ function _compRenderFilter(){
   names.forEach(function(name){
     var active=window._compFilter===name;
     var col=_compColor(name);
-    h+='<button onclick="_compSetFilter(\''+name.replace(/'/g,"\\'")+'\')" style="display:inline-block;padding:4px 12px;margin:0 3px;border-radius:14px;font-size:11px;font-weight:600;border:1px solid '+(active?col:'rgba(255,255,255,.12)')+';cursor:pointer;background:'+(active?col+'33':'transparent')+';color:'+(active?col:'var(--t2)')+'">'+name+'</button>';
+    h+='<span style="display:inline-flex;align-items:center;margin:0 2px">';
+    h+='<button onclick="_compSetFilter(\''+name.replace(/'/g,"\\'")+'\')" style="padding:4px 12px;border-radius:14px 0 0 14px;font-size:11px;font-weight:600;border:1px solid '+(active?col:'rgba(255,255,255,.12)')+';border-right:none;cursor:pointer;background:'+(active?col+'44':'transparent')+';color:'+(active?col:'var(--t2)')+'">'+name+'</button>';
+    h+='<button onclick="event.stopPropagation();_compEditName(\''+name.replace(/'/g,"\\'")+'\')" style="padding:4px 6px;border-radius:0 14px 14px 0;font-size:9px;border:1px solid '+(active?col:'rgba(255,255,255,.12)')+';border-left:1px solid '+(active?col+'44':'rgba(255,255,255,.06)')+';cursor:pointer;background:'+(active?col+'22':'transparent')+';color:var(--t2)">✏️</button>';
+    h+='</span>';
   });
   el.innerHTML=h;
 }
@@ -1008,7 +1011,7 @@ function _compRenderShowTags(slug){
   names.forEach(function(name){
     var on=current.indexOf(name)>=0;
     var col=_compColor(name);
-    h+='<button onclick="_compToggleShow(\''+slug.replace(/'/g,"\\'")+'\',\''+name.replace(/'/g,"\\'")+'\')" style="padding:4px 12px;border-radius:14px;font-size:11px;font-weight:600;border:1px solid '+(on?col:'rgba(255,255,255,.1)')+';cursor:pointer;background:'+(on?col+'33':'transparent')+';color:'+(on?col:'var(--t2)')+';transition:all .15s">'+name+'</button>';
+    h+='<button onclick="_compToggleShow(\''+slug.replace(/'/g,"\\'")+'\',\''+name.replace(/'/g,"\\'")+'\')" style="padding:4px 12px;border-radius:14px;font-size:11px;font-weight:600;border:1px solid '+(on?col:'rgba(255,255,255,.1)')+';cursor:pointer;background:'+(on?col+'55':'transparent')+';color:'+(on?'#fff':'var(--t2)')+';text-shadow:'+(on?'0 1px 2px rgba(0,0,0,.4)':'none')+';transition:all .15s">'+name+'</button>';
   });
   h+='<button onclick="_compAddNew(\''+slug.replace(/'/g,"\\'")+'\')" style="padding:4px 10px;border-radius:14px;font-size:11px;border:1px dashed rgba(255,255,255,.15);cursor:pointer;background:transparent;color:var(--t2)">+ Add</button>';
   h+='</div>';
@@ -1024,6 +1027,8 @@ function _compToggleShow(slug,name){
   var el=document.getElementById('un-comp-tags');if(el)el.innerHTML=tags;
   var el2=document.getElementById('un-ep-comp-tags');if(el2)el2.innerHTML=tags;
   _compRenderFilter();
+  // Live-update the card behind this detail view
+  _compUpdateCards(slug);
 }
 function _compAddNew(slug){
   var name=prompt('New companion name:');
@@ -1037,6 +1042,38 @@ function _compAddNew(slug){
   var el=document.getElementById('un-comp-tags');if(el)el.innerHTML=tags;
   var el2=document.getElementById('un-ep-comp-tags');if(el2)el2.innerHTML=tags;
   _compRenderFilter();
+  _compUpdateCards(slug);
+}
+// Live-update card pills + background for a slug
+function _compUpdateCards(slug){
+  var comps=_compForSlug(slug);
+  document.querySelectorAll('.un-card[data-slug="'+slug+'"]').forEach(function(card){
+    // Update background tint
+    if(comps.length){
+      var col=_compColor(comps[0]);
+      card.style.background='linear-gradient(135deg,'+col+'18 0%,var(--sf) 60%)';
+    }else{card.style.background=''}
+    // Update pills
+    var pillWrap=card.querySelector('.comp-pills');
+    if(pillWrap){
+      if(comps.length){
+        var ph='';comps.forEach(function(cn){ph+=_compPill(cn)});
+        pillWrap.innerHTML=ph;
+      }else{pillWrap.innerHTML=''}
+    }
+  });
+}
+function _compEditName(oldName){
+  var newName=prompt('Rename "'+oldName+'" to:',oldName);
+  if(!newName||!newName.trim()||newName.trim()===oldName)return;
+  _compRenameName(oldName,newName.trim());
+  _compRenderFilter();
+  _renderUpNext();
+}
+// Build a single companion pill HTML
+function _compPill(name){
+  var col=_compColor(name);
+  return '<span style="font-size:9px;padding:1px 6px;border-radius:8px;background:'+col+'55;color:#fff;border:1px solid '+col+'66;text-shadow:0 1px 2px rgba(0,0,0,.4)">'+name+'</span>';
 }
 
 // Request data refresh
@@ -4986,16 +5023,17 @@ function _renderUpNext(prerender){
     var pct=s.aired_total?Math.round(s.completed/s.aired_total*100):0;
     var poster=s.poster;
     if(!poster){var match=ud.shows.find(function(x){return x.slug===s.slug});if(match)poster=match.poster}
-    var c='<div class="un-card un-card-tap" data-slug="'+s.slug+'" data-s="'+s.season+'" data-e="'+s.episode+'" data-eid="'+(s.ep_trakt_id||0)+'" data-tmdb="'+(s.tmdb_id||'')+'" onclick="showEpDetail(this)">';
+    var _sc=_compAll[s.slug];
+    var _cardBg=(_sc&&_sc.length)?'linear-gradient(135deg,'+_compColor(_sc[0])+'18 0%,var(--sf) 60%)':'';
+    var c='<div class="un-card un-card-tap" data-slug="'+s.slug+'" data-s="'+s.season+'" data-e="'+s.episode+'" data-eid="'+(s.ep_trakt_id||0)+'" data-tmdb="'+(s.tmdb_id||'')+'" onclick="showEpDetail(this)"'+(_cardBg?' style="background:'+_cardBg+'"':'')+'>';
     if(poster)c+='<img class="un-poster" src="'+poster+'" loading="lazy" onerror="this.style.display=\'none\'" alt="">';
     else c+='<div class="un-poster-ph">📺</div>';
     c+='<div class="un-info">';
     c+='<div style="display:flex;align-items:center;gap:6px"><div class="un-show" style="flex:1;min-width:0">'+s.show+'</div>';
     if(!isRecent&&s.stream&&s.stream.length){c+='<div class="un-stream">';s.stream.forEach(function(st){c+='<img src="'+st.i+'" title="'+st.n+'" loading="lazy">'});c+='</div>'}
     c+='</div>';
-    // Companion dots
-    var _sc=_compAll[s.slug];
-    if(_sc&&_sc.length){c+='<div style="display:flex;gap:3px;margin:2px 0">';_sc.forEach(function(cn){c+='<span style="font-size:9px;padding:1px 6px;border-radius:8px;background:'+_compColor(cn)+'22;color:'+_compColor(cn)+';border:1px solid '+_compColor(cn)+'44">'+cn+'</span>'});c+='</div>'}
+    // Companion pills
+    if(_sc&&_sc.length){c+='<div class="comp-pills" style="display:flex;gap:3px;margin:2px 0">';_sc.forEach(function(cn){c+=_compPill(cn)});c+='</div>'}
     c+='<div class="un-ep">S'+String(s.season).padStart(2,'0')+'E'+String(s.episode).padStart(2,'0');
     if(s.ep_title)c+=' — '+s.ep_title;
     c+='</div>';
