@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
-"""Fetch box office (revenue) data from TMDB for all movies in the watch history.
+"""Fetch box office data from TMDB for all movies in the watch history.
 
 Uses tmdb_trakt_cache.json to map Trakt slugs → TMDB IDs,
-then fetches /movie/{id} for revenue + release_date.
+then fetches /movie/{id} for revenue, release_date, budget, imdb_id.
 
-Saves to data/box_office.json: {trakt_slug: {revenue, release_date, tmdb_id}}
+Saves to data/box_office.json: {trakt_slug: {revenue, release_date, budget, imdb_id}}
 
 Rate limit: TMDB allows ~40 req/10sec. We batch with small delays.
 Caches results — only fetches movies not already in box_office.json.
+Also re-fetches entries missing imdb_id (needed for BOM scrape).
 """
 import json, os, sys, time
 import requests
@@ -27,7 +28,7 @@ else:
     sys.exit(1)
 
 def fetch_movie(tmdb_id):
-    """Fetch movie details from TMDB. Returns {revenue, release_date} or None."""
+    """Fetch movie details from TMDB. Returns {revenue, release_date, budget, imdb_id} or None."""
     url = f"{TMDB_BASE}/movie/{tmdb_id}"
     params = {**AUTH_PARAMS}
     try:
@@ -43,6 +44,7 @@ def fetch_movie(tmdb_id):
             "revenue": d.get("revenue", 0),
             "release_date": d.get("release_date", ""),
             "budget": d.get("budget", 0),
+            "imdb_id": d.get("imdb_id", ""),
         }
     except Exception as e:
         print(f"  Error fetching {tmdb_id}: {e}")
@@ -73,9 +75,16 @@ def main():
     else:
         bo = {}
 
-    # Fetch missing
-    to_fetch = [s for s in movie_slugs if s not in bo and s in slug_to_tmdb]
-    print(f"To fetch: {len(to_fetch)}")
+    # Fetch: new movies + movies missing imdb_id
+    to_fetch = []
+    for s in movie_slugs:
+        if s not in slug_to_tmdb:
+            continue
+        if s not in bo:
+            to_fetch.append(s)
+        elif not bo[s].get("imdb_id"):
+            to_fetch.append(s)
+    print(f"To fetch: {len(to_fetch)} (new + missing imdb_id)")
 
     fetched = 0
     errors = 0
@@ -83,7 +92,10 @@ def main():
         tmdb_id = slug_to_tmdb[slug]
         result = fetch_movie(tmdb_id)
         if result:
-            bo[slug] = result
+            if slug in bo:
+                bo[slug].update(result)  # Merge with existing data
+            else:
+                bo[slug] = result
             fetched += 1
         else:
             errors += 1
@@ -101,7 +113,9 @@ def main():
 
     # Quick stats
     with_revenue = sum(1 for v in bo.values() if v.get("revenue", 0) > 0)
+    with_imdb = sum(1 for v in bo.values() if v.get("imdb_id"))
     print(f"Movies with revenue data: {with_revenue}/{len(bo)}")
+    print(f"Movies with IMDB ID: {with_imdb}/{len(bo)}")
 
 if __name__ == "__main__":
     main()
