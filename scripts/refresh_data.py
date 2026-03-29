@@ -1534,35 +1534,15 @@ if meta_applied:
 
 os.makedirs("data", exist_ok=True)
 
-# Cast+studios: only on full refresh (FULL_REFRESH=1) or when no people.json exists
-do_cast = is_full or not os.path.exists("data/people.json")
-if do_cast:
-    print("\n[2/3] Fetching cast + studios + crew...")
-    people, slug_studios, directors_raw, writers_raw, crew_ep_credits = fetch_cast_and_studios(entries)
-    with open("data/people.json", "w") as f:
-        json.dump(people, f, separators=(',', ':'))
-    with open("data/crew_episodes.json", "w") as f:
-        json.dump(crew_ep_credits, f, separators=(',', ':'))
-else:
-    print("\n[2/3] Using cached cast + studios + crew (set FULL_REFRESH=1 to re-fetch)")
-    with open("data/people.json") as f:
-        people = json.load(f)
-    slug_studios = {}
-    if os.path.exists("data/studios.json"):
-        with open("data/studios.json") as f:
-            raw = json.load(f)
-        for k, v in raw.items():
-            slug_studios[k] = v if isinstance(v, list) else [v]
-    directors_raw = {}
-    if os.path.exists("data/directors.json"):
-        with open("data/directors.json") as f: directors_raw = json.load(f)
-    writers_raw = {}
-    if os.path.exists("data/writers.json"):
-        with open("data/writers.json") as f: writers_raw = json.load(f)
-    crew_ep_credits = {}
-    if os.path.exists("data/crew_episodes.json"):
-        with open("data/crew_episodes.json") as f:
-            crew_ep_credits = json.load(f)
+# Cast+studios: always rebuild from season_credits cache + current entries
+# TMDB season cache makes this fast (no redundant API calls); ensures newly-watched
+# episodes are credited to actors/crew immediately, not just on FULL_REFRESH
+print("\n[2/3] Fetching cast + studios + crew...")
+people, slug_studios, directors_raw, writers_raw, crew_ep_credits = fetch_cast_and_studios(entries)
+with open("data/people.json", "w") as f:
+    json.dump(people, f, separators=(',', ':'))
+with open("data/crew_episodes.json", "w") as f:
+    json.dump(crew_ep_credits, f, separators=(',', ':'))
 
 # Save entry slugs with last watched year for headshot priority
 slug_recency = {}
