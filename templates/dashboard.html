@@ -6141,15 +6141,15 @@ function closeSportsAdd(){_irisCloseSearch()}
 (function(){
   var sov=document.getElementById('iris-search-ov');if(!sov)return;
   var scnt=document.getElementById('un-search-results');
-  var sx=0,sy=0,dir=null,moved=false,inScroll=false,isSubPage=false;
+  var sx=0,sy=0,dir=null,moved=false,inScroll=false,isSubPage=false,slideTarget=null;
   sov.addEventListener('touchstart',function(e){
     sx=e.touches[0].clientX;sy=e.touches[0].clientY;dir=null;moved=false;
     inScroll=!!e.target.closest('.un-cast-scroll');
     isSubPage=(_irisActiveTab==='media'&&_unCurrentView!=='home');
-    if(!inScroll){
-      if(isSubPage&&scnt){scnt.style.transition='none'}
-      else{sov.style.transition='none'}
-    }
+    // If back target is watchlist/calendar, slide entire overlay to reveal content underneath
+    var backToUnder=isSubPage&&_unNavStack.length&&(_unNavStack[_unNavStack.length-1].view==='watchlist'||_unNavStack[_unNavStack.length-1].view==='calendar');
+    slideTarget=(isSubPage&&!backToUnder&&scnt)?scnt:sov;
+    if(!inScroll){slideTarget.style.transition='none'}
   },{passive:true});
   sov.addEventListener('touchmove',function(e){
     if(inScroll)return;
@@ -6159,33 +6159,20 @@ function closeSportsAdd(){_irisCloseSearch()}
     }
     if(dir==='h'&&dx>0){
       moved=true;
-      if(isSubPage&&scnt){scnt.style.transform='translateX('+dx+'px)'}
-      else{sov.style.transform='translateX('+dx+'px)'}
+      slideTarget.style.transform='translateX('+dx+'px)';
     }
   },{passive:true});
   sov.addEventListener('touchend',function(e){
     if(inScroll){inScroll=false;dir=null;return}
     var dx=e.changedTouches[0].clientX-sx;
     if(dir==='h'&&dx>80){
-      if(isSubPage&&scnt){
-        scnt.style.transition='transform .25s ease';
-        scnt.style.transform='translateX(100%)';
-        setTimeout(function(){scnt.style.transition='none';scnt.style.transform='';_irisSearchBack()},260);
-      }else{
-        sov.style.transition='transform .25s ease';
-        sov.style.transform='translateX(100%)';
-        setTimeout(function(){sov.style.transition='';sov.style.transform='';_irisSearchBack()},260);
-      }
+      slideTarget.style.transition='transform .25s ease';
+      slideTarget.style.transform='translateX(100%)';
+      setTimeout(function(){slideTarget.style.transition='none';slideTarget.style.transform='';_irisSearchBack()},260);
     }else if(moved){
-      if(isSubPage&&scnt){
-        scnt.style.transition='transform .2s ease';
-        scnt.style.transform='';
-        setTimeout(function(){scnt.style.transition=''},220);
-      }else{
-        sov.style.transition='transform .2s ease';
-        sov.style.transform='';
-        setTimeout(function(){sov.style.transition=''},220);
-      }
+      slideTarget.style.transition='transform .2s ease';
+      slideTarget.style.transform='';
+      setTimeout(function(){slideTarget.style.transition=''},220);
     }
     dir=null;moved=false;
   },{passive:true});
