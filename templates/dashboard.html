@@ -967,20 +967,95 @@ function _irisLSRemove(key){
 }
 
 // === COMPANION TAGGING ===
-// Storage: iris_companions = {slug: [name, ...]}
-// iris_companion_names = ["Isabel","Melanie","Gemma","Solo"]
-var _COMP_COLORS=['#e94560','#7c3aed','#0ea5e9','#f59e0b','#10b981','#ec4899','#6366f1','#84cc16'];
+// Storage: iris_companions = {slug: [name, ...]}, iris_companion_names = [...], iris_companion_colors = {name: "#hex"}
+var _COMP_DEFAULTS=['#e94560','#7c3aed','#0ea5e9','#f59e0b','#10b981','#ec4899','#6366f1','#84cc16'];
+var _COMP_SWATCHES=['#e94560','#ef4444','#f97316','#f59e0b','#eab308','#84cc16','#10b981','#14b8a6','#0ea5e9','#3b82f6','#6366f1','#7c3aed','#a855f7','#ec4899','#f472b6','#78716c'];
 function _compGetAll(){try{return JSON.parse(_irisLSGet('companions','{}'))}catch(e){return{}}}
 function _compSave(data){_irisLSSet('companions',JSON.stringify(data))}
 function _compNames(){try{return JSON.parse(_irisLSGet('companion_names','[]'))}catch(e){return[]}}
 function _compSaveNames(names){_irisLSSet('companion_names',JSON.stringify(names))}
+function _compColors(){try{return JSON.parse(_irisLSGet('companion_colors','{}'))}catch(e){return{}}}
+function _compSaveColors(data){_irisLSSet('companion_colors',JSON.stringify(data))}
 function _compForSlug(slug){return (_compGetAll()[slug]||[])}
 function _compSetForSlug(slug,names){var d=_compGetAll();if(names.length)d[slug]=names;else delete d[slug];_compSave(d)}
-function _compColor(name){var names=_compNames();var idx=names.indexOf(name);return _COMP_COLORS[idx%_COMP_COLORS.length]}
+function _compColor(name){var cc=_compColors();if(cc[name])return cc[name];var names=_compNames();var idx=names.indexOf(name);return _COMP_DEFAULTS[idx%_COMP_DEFAULTS.length]}
+function _compSetColor(name,hex){var cc=_compColors();cc[name]=hex;_compSaveColors(cc)}
 function _compAddName(name){var names=_compNames();if(names.indexOf(name)<0){names.push(name);_compSaveNames(names)}return names}
-function _compRemoveName(name){var names=_compNames().filter(function(n){return n!==name});_compSaveNames(names);var d=_compGetAll();Object.keys(d).forEach(function(slug){d[slug]=d[slug].filter(function(n){return n!==name});if(!d[slug].length)delete d[slug]});_compSave(d);return names}
-function _compRenameName(oldName,newName){var names=_compNames();var idx=names.indexOf(oldName);if(idx>=0)names[idx]=newName;_compSaveNames(names);var d=_compGetAll();Object.keys(d).forEach(function(slug){var i2=d[slug].indexOf(oldName);if(i2>=0)d[slug][i2]=newName});_compSave(d)}
-window._compFilter=null; // null=show all, string=filter to this companion
+function _compRemoveName(name){var names=_compNames().filter(function(n){return n!==name});_compSaveNames(names);var d=_compGetAll();Object.keys(d).forEach(function(slug){d[slug]=d[slug].filter(function(n){return n!==name});if(!d[slug].length)delete d[slug]});_compSave(d);var cc=_compColors();delete cc[name];_compSaveColors(cc);return names}
+function _compRenameName(oldName,newName){var names=_compNames();var idx=names.indexOf(oldName);if(idx>=0)names[idx]=newName;_compSaveNames(names);var d=_compGetAll();Object.keys(d).forEach(function(slug){var i2=d[slug].indexOf(oldName);if(i2>=0)d[slug][i2]=newName});_compSave(d);var cc=_compColors();if(cc[oldName]){cc[newName]=cc[oldName];delete cc[oldName];_compSaveColors(cc)}}
+window._compFilter=null;
+window._compEditorSlug=null; // slug context for editor (null=filter bar edit)
+
+// Companion editor dialog (create or edit)
+function _compShowEditor(opts){
+  // opts: {name, color, slug, isNew, onSave(name,color), onDelete()}
+  var existing=document.getElementById('comp-editor');if(existing)existing.remove();
+  var ov=document.createElement('div');ov.id='comp-editor';
+  ov.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.6);z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px';
+  ov.onclick=function(e){if(e.target===ov)ov.remove()};
+  var selColor=opts.color||_COMP_DEFAULTS[_compNames().length%_COMP_DEFAULTS.length];
+  var h='<div style="background:#1a1a2e;border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:20px;width:100%;max-width:320px" onclick="event.stopPropagation()">';
+  h+='<div style="font-size:14px;font-weight:600;color:#fff;margin-bottom:14px">'+(opts.isNew?'New Companion':'Edit Companion')+'</div>';
+  h+='<input id="comp-ed-name" type="text" value="'+(opts.name||'').replace(/"/g,'&quot;')+'" placeholder="Name (emojis welcome!)" style="width:100%;box-sizing:border-box;padding:10px 14px;border-radius:10px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.06);color:#fff;font-size:14px;margin-bottom:14px;outline:none" autofocus>';
+  h+='<div style="font-size:11px;color:var(--t2);margin-bottom:8px">Color</div>';
+  h+='<div id="comp-ed-swatches" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px">';
+  _COMP_SWATCHES.forEach(function(c){
+    h+='<div onclick="_compEdPickColor(\''+c+'\')" data-c="'+c+'" style="width:32px;height:32px;border-radius:50%;background:'+c+';cursor:pointer;border:3px solid '+(c===selColor?'#fff':'transparent')+';transition:border .15s"></div>';
+  });
+  h+='</div>';
+  h+='<div style="display:flex;gap:8px">';
+  if(!opts.isNew){h+='<button onclick="_compEdDelete()" style="padding:10px 16px;border-radius:10px;border:1px solid rgba(239,68,68,.3);background:rgba(239,68,68,.1);color:#ef4444;font-size:13px;cursor:pointer">Delete</button>'}
+  h+='<div style="flex:1"></div>';
+  h+='<button onclick="document.getElementById(\'comp-editor\').remove()" style="padding:10px 16px;border-radius:10px;border:1px solid rgba(255,255,255,.1);background:transparent;color:var(--t2);font-size:13px;cursor:pointer">Cancel</button>';
+  h+='<button onclick="_compEdSave()" style="padding:10px 20px;border-radius:10px;border:none;background:var(--tv);color:#fff;font-size:13px;font-weight:600;cursor:pointer">Save</button>';
+  h+='</div></div>';
+  ov.innerHTML=h;
+  document.body.appendChild(ov);
+  window._compEdColor=selColor;
+  window._compEdOpts=opts;
+  setTimeout(function(){document.getElementById('comp-ed-name').focus()},100);
+}
+function _compEdPickColor(c){
+  window._compEdColor=c;
+  document.querySelectorAll('#comp-ed-swatches div').forEach(function(d){d.style.border='3px solid '+(d.dataset.c===c?'#fff':'transparent')});
+}
+function _compEdSave(){
+  var name=(document.getElementById('comp-ed-name').value||'').trim();
+  if(!name)return;
+  var opts=window._compEdOpts;
+  var color=window._compEdColor;
+  if(opts.isNew){
+    _compAddName(name);
+    _compSetColor(name,color);
+    if(opts.slug){var cur=_compForSlug(opts.slug);if(cur.indexOf(name)<0){cur.push(name);_compSetForSlug(opts.slug,cur)}}
+  }else{
+    if(name!==opts.name)_compRenameName(opts.name,name);
+    _compSetColor(name,color);
+  }
+  document.getElementById('comp-editor').remove();
+  _compRenderFilter();
+  if(opts.slug){
+    var tags=_compRenderShowTags(opts.slug);
+    var el=document.getElementById('un-comp-tags');if(el)el.innerHTML=tags;
+    var el2=document.getElementById('un-ep-comp-tags');if(el2)el2.innerHTML=tags;
+    _compUpdateCards(opts.slug);
+  }
+  _renderUpNext();
+}
+function _compEdDelete(){
+  var opts=window._compEdOpts;
+  if(!confirm('Remove "'+opts.name+'" and untag all shows?'))return;
+  _compRemoveName(opts.name);
+  document.getElementById('comp-editor').remove();
+  if(window._compFilter===opts.name)window._compFilter=null;
+  _compRenderFilter();
+  if(opts.slug){
+    var tags=_compRenderShowTags(opts.slug);
+    var el=document.getElementById('un-comp-tags');if(el)el.innerHTML=tags;
+    var el2=document.getElementById('un-ep-comp-tags');if(el2)el2.innerHTML=tags;
+  }
+  _renderUpNext();
+}
 
 function _compRenderFilter(){
   var el=document.getElementById('un-comp-filter');if(!el)return;
@@ -992,8 +1067,8 @@ function _compRenderFilter(){
     var active=window._compFilter===name;
     var col=_compColor(name);
     h+='<span style="display:inline-flex;align-items:center;margin:0 2px">';
-    h+='<button onclick="_compSetFilter(\''+name.replace(/'/g,"\\'")+'\')" style="padding:4px 12px;border-radius:14px 0 0 14px;font-size:11px;font-weight:600;border:1px solid '+(active?col:'rgba(255,255,255,.12)')+';border-right:none;cursor:pointer;background:'+(active?col+'44':'transparent')+';color:'+(active?col:'var(--t2)')+'">'+name+'</button>';
-    h+='<button onclick="event.stopPropagation();_compEditName(\''+name.replace(/'/g,"\\'")+'\')" style="padding:4px 6px;border-radius:0 14px 14px 0;font-size:9px;border:1px solid '+(active?col:'rgba(255,255,255,.12)')+';border-left:1px solid '+(active?col+'44':'rgba(255,255,255,.06)')+';cursor:pointer;background:'+(active?col+'22':'transparent')+';color:var(--t2)">✏️</button>';
+    h+='<button onclick="_compSetFilter(\''+name.replace(/'/g,"\\'")+'\')" style="padding:4px 12px;border-radius:14px 0 0 14px;font-size:11px;font-weight:600;border:1px solid '+(active?col:'rgba(255,255,255,.12)')+';border-right:none;cursor:pointer;background:'+(active?col+'55':'transparent')+';color:'+(active?'#fff':'var(--t2)')+';text-shadow:'+(active?'0 1px 2px rgba(0,0,0,.3)':'none')+'">'+name+'</button>';
+    h+='<button onclick="event.stopPropagation();_compShowEditor({name:\''+name.replace(/'/g,"\\'")+'\',color:_compColor(\''+name.replace(/'/g,"\\'")+'\'),isNew:false})" style="padding:4px 6px;border-radius:0 14px 14px 0;font-size:9px;border:1px solid '+(active?col:'rgba(255,255,255,.12)')+';border-left:1px solid '+(active?col+'44':'rgba(255,255,255,.06)')+';cursor:pointer;background:'+(active?col+'33':'transparent')+';color:var(--t2)">✏️</button>';
     h+='</span>';
   });
   el.innerHTML=h;
@@ -1003,7 +1078,7 @@ function _compSetFilter(name){
   _compRenderFilter();
   _renderUpNext();
 }
-// Render companion chips on show page (below genres, above overview)
+// Render companion chips on show page
 function _compRenderShowTags(slug){
   var names=_compNames();var current=_compForSlug(slug);
   var h='<div style="padding:0 16px;max-width:600px;margin:0 auto 8px;display:flex;flex-wrap:wrap;gap:6px;align-items:center">';
@@ -1013,7 +1088,7 @@ function _compRenderShowTags(slug){
     var col=_compColor(name);
     h+='<button onclick="_compToggleShow(\''+slug.replace(/'/g,"\\'")+'\',\''+name.replace(/'/g,"\\'")+'\')" style="padding:4px 12px;border-radius:14px;font-size:11px;font-weight:600;border:1px solid '+(on?col:'rgba(255,255,255,.1)')+';cursor:pointer;background:'+(on?col+'55':'transparent')+';color:'+(on?'#fff':'var(--t2)')+';text-shadow:'+(on?'0 1px 2px rgba(0,0,0,.4)':'none')+';transition:all .15s">'+name+'</button>';
   });
-  h+='<button onclick="_compAddNew(\''+slug.replace(/'/g,"\\'")+'\')" style="padding:4px 10px;border-radius:14px;font-size:11px;border:1px dashed rgba(255,255,255,.15);cursor:pointer;background:transparent;color:var(--t2)">+ Add</button>';
+  h+='<button onclick="_compShowEditor({isNew:true,slug:\''+slug.replace(/'/g,"\\'")+'\'})" style="padding:4px 10px;border-radius:14px;font-size:11px;border:1px dashed rgba(255,255,255,.15);cursor:pointer;background:transparent;color:var(--t2)">+ Add</button>';
   h+='</div>';
   return h;
 }
@@ -1022,58 +1097,21 @@ function _compToggleShow(slug,name){
   var idx=current.indexOf(name);
   if(idx>=0)current.splice(idx,1);else current.push(name);
   _compSetForSlug(slug,current);
-  // Re-render companion tags wherever visible
-  var tags=_compRenderShowTags(slug);
-  var el=document.getElementById('un-comp-tags');if(el)el.innerHTML=tags;
-  var el2=document.getElementById('un-ep-comp-tags');if(el2)el2.innerHTML=tags;
-  _compRenderFilter();
-  // Live-update the card behind this detail view
-  _compUpdateCards(slug);
-}
-function _compAddNew(slug){
-  var name=prompt('New companion name:');
-  if(!name||!name.trim())return;
-  name=name.trim();
-  _compAddName(name);
-  // Auto-tag this show
-  var current=_compForSlug(slug);
-  if(current.indexOf(name)<0){current.push(name);_compSetForSlug(slug,current)}
   var tags=_compRenderShowTags(slug);
   var el=document.getElementById('un-comp-tags');if(el)el.innerHTML=tags;
   var el2=document.getElementById('un-ep-comp-tags');if(el2)el2.innerHTML=tags;
   _compRenderFilter();
   _compUpdateCards(slug);
 }
-// Live-update card pills + background for a slug
+// Live-update card backgrounds for a slug (no pills — background tint only)
 function _compUpdateCards(slug){
   var comps=_compForSlug(slug);
   document.querySelectorAll('.un-card[data-slug="'+slug+'"]').forEach(function(card){
-    // Update background tint
     if(comps.length){
       var col=_compColor(comps[0]);
       card.style.background='linear-gradient(135deg,'+col+'18 0%,var(--sf) 60%)';
     }else{card.style.background=''}
-    // Update pills
-    var pillWrap=card.querySelector('.comp-pills');
-    if(pillWrap){
-      if(comps.length){
-        var ph='';comps.forEach(function(cn){ph+=_compPill(cn)});
-        pillWrap.innerHTML=ph;
-      }else{pillWrap.innerHTML=''}
-    }
   });
-}
-function _compEditName(oldName){
-  var newName=prompt('Rename "'+oldName+'" to:',oldName);
-  if(!newName||!newName.trim()||newName.trim()===oldName)return;
-  _compRenameName(oldName,newName.trim());
-  _compRenderFilter();
-  _renderUpNext();
-}
-// Build a single companion pill HTML
-function _compPill(name){
-  var col=_compColor(name);
-  return '<span style="font-size:9px;padding:1px 6px;border-radius:8px;background:'+col+'55;color:#fff;border:1px solid '+col+'66;text-shadow:0 1px 2px rgba(0,0,0,.4)">'+name+'</span>';
 }
 
 // Request data refresh
@@ -5032,8 +5070,7 @@ function _renderUpNext(prerender){
     c+='<div style="display:flex;align-items:center;gap:6px"><div class="un-show" style="flex:1;min-width:0">'+s.show+'</div>';
     if(!isRecent&&s.stream&&s.stream.length){c+='<div class="un-stream">';s.stream.forEach(function(st){c+='<img src="'+st.i+'" title="'+st.n+'" loading="lazy">'});c+='</div>'}
     c+='</div>';
-    // Companion pills
-    if(_sc&&_sc.length){c+='<div class="comp-pills" style="display:flex;gap:3px;margin:2px 0">';_sc.forEach(function(cn){c+=_compPill(cn)});c+='</div>'}
+    // Companion indicator is the card background tint (no pills)
     c+='<div class="un-ep">S'+String(s.season).padStart(2,'0')+'E'+String(s.episode).padStart(2,'0');
     if(s.ep_title)c+=' — '+s.ep_title;
     c+='</div>';
