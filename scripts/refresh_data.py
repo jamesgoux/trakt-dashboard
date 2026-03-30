@@ -1374,21 +1374,29 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
                 _crw_by_name[name] = {"name": name, "titles": ep_slugs,
                                        "eps": pid_eps_data}
         items = []
+        _diag_ep_verified = 0
+        _diag_series_level = 0
         for name, minfo in _crw_by_name.items():
             titles = minfo["titles"]
             person_role_eps = minfo["eps"]
             counted_titles = []
+            ep_verified_shows = set()  # Shows verified at episode level (safe for per-year)
             mc = sc = 0
             for t_slug in titles:
                 if t_slug in _crw_show_slugs:
-                    # Show: episode-level filtering (softer than actors — many crew only have show-level credits)
-                    if t_slug in _shows_with_sc and t_slug in _watched_eps:
-                        if t_slug in person_role_eps:
-                            # Has per-episode data: only count if credited on a watched episode
-                            pe = set((ep[0], ep[1]) for ep in person_role_eps[t_slug])
-                            if not (pe & _watched_eps[t_slug]):
-                                continue  # Person's episodes weren't watched
-                        # No episode data: person is credited at show level, count as 1 title
+                    # Show: check if we can verify at episode level
+                    if (t_slug in _shows_with_sc and t_slug in _watched_eps
+                            and t_slug in person_role_eps):
+                        pe = set((ep[0], ep[1]) for ep in person_role_eps[t_slug])
+                        if pe & _watched_eps[t_slug]:
+                            # Episode-verified: counts for all-time AND per-year
+                            ep_verified_shows.add(t_slug)
+                            _diag_ep_verified += 1
+                        else:
+                            continue  # Person's episodes weren't watched — skip entirely
+                    else:
+                        _diag_series_level += 1
+                    # Series-level (unverified) shows count for all-time total only
                     counted_titles.append(t_slug)
                     sc += 1
                 else:
@@ -1397,10 +1405,12 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
                     mc += 1
             n_titles = len(counted_titles)
             if n_titles >= 2:
-                # Per-year counts: shows use episode watch years, movies use slug_watch_years
+                # Per-year counts: only episode-verified shows + movies get year assignment
                 cy_counts = defaultdict(int)
                 cy_titles = defaultdict(list)
                 for t_slug in counted_titles:
+                    if t_slug in _crw_show_slugs and t_slug not in ep_verified_shows:
+                        continue  # Series-level show: don't assign to any specific year
                     if t_slug in person_role_eps:
                         # Show with episode data: each show counts once per year (dedup by year)
                         show_years = set()
@@ -1411,7 +1421,7 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
                             cy_counts[yr] += 1
                             cy_titles[yr].append(t_slug)
                     else:
-                        # Movie or show without episode data: use slug_watch_years
+                        # Movie: use slug_watch_years
                         for yr in slug_watch_years.get(t_slug, set()):
                             cy_counts[yr] += 1
                             cy_titles[yr].append(t_slug)
@@ -1421,6 +1431,12 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
                     item["tsy"] = {yr: sl for yr, sl in cy_titles.items()}
                 items.append(item)
         items.sort(key=lambda x: x["c"], reverse=True)
+        if role_key in ("editors", "cinematography", "stunts", "exec_producers"):
+            print(f"    🔍 Crew grid [{role_key}]: {len(_crw_by_name)} people → {len(items)} qualify (2+ titles)")
+            print(f"       Shows: ep_verified={_diag_ep_verified}, series_level={_diag_series_level}")
+            if items:
+                for _di in items[:3]:
+                    print(f"       Top: {_di['n']} ({_di['c']} titles, cy={_di.get('cy',{})})")
         if items:
             role_entry = {"label": ROLE_LABELS.get(role_key, role_key), "items": items[:20]}
             # Per-year top lists: built from ALL items (not just top 20)
