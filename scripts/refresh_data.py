@@ -552,9 +552,30 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
         _sl = _tmdb_to_slug.get(_tid, "")
         if _sl: _shows_with_sc.add(_sl)
     ism = lambda g: g in (2, 'male'); isf = lambda g: g in (1, 'female')
-    pd = []
+    # Merge people with same name (TMDB vs Trakt use different PIDs)
+    _people_by_name = {}
     for pid, info in people.items():
         if not ism(info["gender"]) and not isf(info["gender"]): continue
+        name = info["name"]
+        if name in _people_by_name:
+            p = _people_by_name[name]
+            for t in info["titles"]:
+                if t not in p["titles"]: p["titles"].append(t)
+            # Merge episode credits
+            for slug, eps in info.get("eps", {}).items():
+                if slug not in p["eps"]:
+                    p["eps"][slug] = eps
+                else:
+                    existing = set((e[0], e[1]) for e in p["eps"][slug])
+                    for ep in eps:
+                        if (ep[0], ep[1]) not in existing:
+                            p["eps"][slug].append(ep)
+        else:
+            _people_by_name[name] = {"name": name, "gender": info["gender"],
+                                      "titles": list(info["titles"]),
+                                      "eps": {s: list(e) for s, e in info.get("eps", {}).items()}}
+    pd = []
+    for name, info in _people_by_name.items():
         tis = []; mc = sc = 0
         max_recency = 0
         person_eps = info.get("eps", {})  # show_slug -> [[s,e,yr],[s,e,yr],...]
@@ -594,32 +615,28 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
 
     # Green highlights: pre-compute gains for "all" and current year only
     # Per-person logic using actual episode watch dates:
-    # Movies: new if watched in last 7 days and NOT a rewatch
-    # Shows: new for this person if ALL their episodes were watched in last 7 days
-    #   (i.e. none of their specific episodes were watched before the 7-day window)
+    # Movies: recently watched in last 7 days (including rewatches — matches client-side green dot)
+    # Shows: recently watched if ALL their episodes were watched in last 7 days
     from datetime import datetime, timedelta, timezone
     cutoff_date = (datetime.now(timezone.utc) - timedelta(days=7)).strftime("%Y-%m-%d")
     cur_year = datetime.now(timezone.utc).strftime("%Y")
 
-    # Movies: recent vs older
+    # Movies recently watched (including rewatches)
     recent_movies = set()
-    older_movies = set()
     # Shows watched recently (for quick pre-filter)
     recent_show_slugs = set()
     for e in entries:
         d = e.get("watched_at", "")[:10]
         if not d: continue
         if e["type"] == "movie":
-            title = e.get("title", "")
-            if d >= cutoff_date: recent_movies.add(title)
-            else: older_movies.add(title)
+            if d >= cutoff_date: recent_movies.add(e.get("title", ""))
         elif e.get("trakt_slug") and d >= cutoff_date:
             recent_show_slugs.add(e["trakt_slug"])
 
-    # Map TL movie indices that are new
+    # Map TL movie indices that were recently watched (including rewatches)
     tl_new_movie = set()
     for idx, t in enumerate(tl):
-        if t["type"] == "movie" and t["t"] in recent_movies and t["t"] not in older_movies:
+        if t["type"] == "movie" and t["t"] in recent_movies:
             tl_new_movie.add(idx)
 
     # Pre-compute: which TL indices are for recently-watched shows?
@@ -1105,8 +1122,18 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
 
     # Build director/writer lists with title indices
     def build_crew(crew_raw):
-        cl = []
+        # Merge entries with same name (TMDB vs Trakt use different PIDs)
+        by_name = {}
         for pid, info in crew_raw.items():
+            name = info["name"]
+            if name in by_name:
+                existing = by_name[name]["titles"]
+                for t in info["titles"]:
+                    if t not in existing: existing.append(t)
+            else:
+                by_name[name] = {"name": name, "titles": list(info["titles"])}
+        cl = []
+        for name, info in by_name.items():
             tis = []; mc = sc = 0
             max_rec = 0
             cpid = _slugify(info["name"])
@@ -1252,10 +1279,30 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
         role_ep = other_crew_ep.get(role_key, {})
         if not ppl:
             continue
-        items = []
+        # Merge entries with same name (TMDB vs Trakt PIDs)
+        _crw_by_name = {}
         for pid, info in ppl.items():
-            titles = info.get("titles", [])
-            person_role_eps = role_ep.get(pid, {})
+            name = info["name"]
+            pid_eps = role_ep.get(pid, {})
+            if name in _crw_by_name:
+                bn = _crw_by_name[name]
+                for t in info.get("titles", []):
+                    if t not in bn["titles"]: bn["titles"].append(t)
+                for slug, eps in pid_eps.items():
+                    if slug not in bn["eps"]:
+                        bn["eps"][slug] = eps
+                    else:
+                        existing = set((e[0], e[1]) for e in bn["eps"][slug])
+                        for ep in eps:
+                            if (ep[0], ep[1]) not in existing:
+                                bn["eps"][slug].append(ep)
+            else:
+                _crw_by_name[name] = {"name": name, "titles": list(info.get("titles", [])),
+                                       "eps": {s: list(e) for s, e in pid_eps.items()}}
+        items = []
+        for name, minfo in _crw_by_name.items():
+            titles = minfo["titles"]
+            person_role_eps = minfo["eps"]
             counted_titles = []
             mc = sc = 0
             for t_slug in titles:
@@ -1293,7 +1340,7 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
                         for yr in slug_watch_years.get(t_slug, set()):
                             cy_counts[yr] += 1
                             cy_titles[yr].append(t_slug)
-                item = {"n": info["name"], "c": n_titles}
+                item = {"n": minfo["name"], "c": n_titles}
                 if cy_counts:
                     item["cy"] = dict(cy_counts)
                     item["tsy"] = {yr: sl for yr, sl in cy_titles.items()}
