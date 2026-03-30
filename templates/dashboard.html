@@ -1009,8 +1009,8 @@ function _compUpdateAllCards(){
     card.style.background='';
     var wb=card.querySelector('.un-watch-btn');
     if(wb){
-      if(t){wb.style.background=t.color;wb.style.color='#fff'}
-      else{wb.style.background='';wb.style.color=''}
+      if(t){wb.style.background=t.color+'40';wb.style.color=t.color;wb.style.borderLeft='1px solid '+t.color+'30'}
+      else{wb.style.background='';wb.style.color='';wb.style.borderLeft=''}
     }
   });
 }
@@ -1215,8 +1215,8 @@ function _compUpdateCards(slug){
     card.style.background='';
     var wb=card.querySelector('.un-watch-btn');
     if(wb){
-      if(comps.length){var col=_compColor(comps[0]);wb.style.background=col;wb.style.color='#fff'}
-      else{wb.style.background='';wb.style.color=''}
+      if(comps.length){var col=_compColor(comps[0]);wb.style.background=col+'40';wb.style.color=col;wb.style.borderLeft='1px solid '+col+'30'}
+      else{wb.style.background='';wb.style.color='';wb.style.borderLeft=''}
     }
   });
 }
@@ -5248,7 +5248,7 @@ function _renderUpNext(prerender){
       c+='<div class="un-prog-text"><span>'+(s.ep_runtime?_unFmtMin(s.ep_runtime):'')+'</span><span>'+(s.eps_left||0)+' eps · '+_unFmtMin(s.remaining_min)+'</span></div>';
       c+='</div></div>';
       if(s.is_new)c+='<div class="un-new">New</div>';
-      var _wbStyle=_tm?'background:'+_tm.color+';color:#fff':'';
+      var _wbStyle=_tm?'background:'+_tm.color+'40;color:'+_tm.color+';border-left:1px solid '+_tm.color+'30':'';
       c+='<button onclick="event.stopPropagation();markWatched(\''+s.slug.replace(/'/g,"\\'")+'\','+s.season+','+s.episode+','+(s.ep_trakt_id||0)+',this)" class="un-watch-btn"'+(_wbStyle?' style="'+_wbStyle+'"':'')+' title="Mark watched">✓</button>';
     }else{
       var wa=s.watched_at?s.watched_at.substring(0,10):'';
