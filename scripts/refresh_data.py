@@ -1242,14 +1242,17 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
             titles = info.get("titles", [])
             n_titles = len(titles)
             if n_titles >= 2:
-                # Count titles per watch year
+                # Count titles per watch year + collect slugs per year
                 cy_counts = defaultdict(int)
+                cy_titles = defaultdict(list)
                 for t_slug in titles:
                     for yr in slug_watch_years.get(t_slug, set()):
                         cy_counts[yr] += 1
-                item = {"n": info["name"], "c": n_titles, "ts": list(titles)[:15]}
+                        cy_titles[yr].append(t_slug)
+                item = {"n": info["name"], "c": n_titles}
                 if cy_counts:
                     item["cy"] = dict(cy_counts)
+                    item["tsy"] = {yr: sl for yr, sl in cy_titles.items()}
                 items.append(item)
         items.sort(key=lambda x: x["c"], reverse=True)
         if items:
