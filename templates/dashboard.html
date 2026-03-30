@@ -990,6 +990,7 @@ window._compEditorSlug=null; // slug context for editor (null=filter bar edit)
 
 // Up Next sort mode: 'default' | 'pct' (% complete) | 'time' (time remaining)
 var _unSortMode='default';
+var _unScrollToSorted=false;
 var _UN_SORTS=[
   {id:'default',label:'Default',icon:'📋'},
   {id:'pct',label:'% Complete',icon:'📊'},
@@ -1018,17 +1019,8 @@ function _unSetSort(mode){
   document.getElementById('un-sort-picker').remove();
   _unSortMode=mode;
   _compRenderFilter();
+  _unScrollToSorted=true;
   _renderUpNext();
-  // Scroll to the sorted section (skip recently watched)
-  requestAnimationFrame(function(){
-    var anchor=document.getElementById('un-default-scroll');
-    var ov=document.getElementById('un-overlay');
-    if(anchor&&ov){
-      var hdrH=ov.firstElementChild?ov.firstElementChild.offsetHeight:70;
-      var anchorTop=anchor.getBoundingClientRect().top-ov.getBoundingClientRect().top+ov.scrollTop;
-      ov.scrollTo({top:Math.max(0,anchorTop-hdrH),behavior:'smooth'});
-    }
-  });
 }
 
 // Tint map: precomputed {slug: {color, names}} for instant card rendering
@@ -5366,10 +5358,20 @@ function _renderUpNext(prerender){
   var alreadyOpen=ov.style.display!=='none'&&ov.style.visibility!=='hidden';
   ov.style.display='';
   if(_unReturning||alreadyOpen){
-    // Instant content swap, preserve scroll
+    // Instant content swap, preserve scroll (or scroll to sorted section if sort just changed)
     _unReturning=false;
     ov.style.transition='none';ov.style.transform='';ov.style.visibility='';
-    var sp=_unScrollPos;_rwSuppressScroll();requestAnimationFrame(function(){ov.scrollTop=sp});
+    if(_unScrollToSorted){
+      _unScrollToSorted=false;
+      _rwSuppressScroll();
+      requestAnimationFrame(function(){
+        var anchor=document.getElementById('un-default-scroll');
+        if(anchor){var hdrH=ov.firstElementChild?ov.firstElementChild.offsetHeight:70;var anchorTop=anchor.getBoundingClientRect().top-ov.getBoundingClientRect().top+ov.scrollTop;ov.scrollTop=Math.max(0,anchorTop-hdrH)}
+        else ov.scrollTop=0;
+      });
+    }else{
+      var sp=_unScrollPos;_rwSuppressScroll();requestAnimationFrame(function(){ov.scrollTop=sp});
+    }
   }else if(!_unEverOpened){
     // First open this session — scroll to New Episodes, slide in from right
     _unEverOpened=true;
