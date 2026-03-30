@@ -1210,11 +1210,13 @@ function _compSetFilter(name){
   // If on a sub-page, go back to home view first so filter applies to card grid
   if(_unCurrentView!=='home'){_unCurrentView='home';_unNavStack=[];_renderUpNext();_unUpdateHeader()}
   _compApplyFilter();
-  // Scroll to first visible section after filtering
+  // Scroll to default anchor (past Recently Watched, same as normal open)
   var ov=document.getElementById('un-overlay');
   if(ov){
     _rwSuppressScroll();
-    ov.scrollTop=0;
+    var anchor=document.getElementById('un-default-scroll');
+    if(anchor){var hdrH=ov.firstElementChild?ov.firstElementChild.offsetHeight:70;var anchorTop=anchor.getBoundingClientRect().top-ov.getBoundingClientRect().top+ov.scrollTop;ov.scrollTop=Math.max(0,anchorTop-hdrH)}
+    else ov.scrollTop=0;
   }
 }
 // Render companion chips on show page
