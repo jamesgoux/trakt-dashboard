@@ -405,6 +405,10 @@ body{overflow-x:hidden}
 <div id="sec-how" class="cd s-m"><h3><span class="i">👥</span>Watched With</h3><div id="pplc" style="height:280px"></div></div>
 <div class="cd s-m"><h3><span class="i">🏠</span>Where I Watch <span class="vtog" style="float:right"><button class="vb vb-on lb-loc" data-v="simple">Home/Theater</button><button class="vb lb-loc" data-v="detail">All Locations</button></span></h3><div id="locc" style="height:280px"></div></div>
 </div>
+<!-- COMPANION EPISODES -->
+<div class="g2 med-s" data-med="all movietv show" id="comp-eps-wrap" style="display:none">
+<div class="cd fw s-m"><h3><span class="i">🎬</span>Episodes by Companion</h3><div id="comp-eps-chart" style="height:300px"></div></div>
+</div>
 <div class="g2 med-s" data-med="all movietv movie show">
 <div class="cd s-m"><h3><span class="i">📺</span>Streaming Services</h3><div id="strc" style="height:280px"></div></div>
 <div class="cd s-m"><h3><span class="i">📱</span>Devices &amp; Formats</h3><div id="devc" style="height:280px"></div></div>
@@ -1204,6 +1208,23 @@ function _compSetFilter(name){
   window._compFilter=(window._compFilter===name)?null:name;
   _compRenderFilter();
   _compApplyFilter();
+  // Scroll snap to first visible section (same behavior as sort picker)
+  var ov=document.getElementById('un-overlay');
+  if(ov){
+    _rwSuppressScroll();
+    requestAnimationFrame(function(){
+      // Find first visible section header after filtering
+      var firstVisible=null;
+      ov.querySelectorAll('.un-section').forEach(function(sec){
+        if(!firstVisible&&sec.style.display!=='none')firstVisible=sec;
+      });
+      if(firstVisible){
+        var hdrH=ov.firstElementChild?ov.firstElementChild.offsetHeight:70;
+        var anchorTop=firstVisible.getBoundingClientRect().top-ov.getBoundingClientRect().top+ov.scrollTop;
+        ov.scrollTop=Math.max(0,anchorTop-hdrH);
+      }else ov.scrollTop=0;
+    });
+  }
 }
 // Render companion chips on show page
 function _compRenderShowTags(slug){
@@ -3398,6 +3419,96 @@ function renderLetterboxd(){
       }
     };
   });
+}
+
+// Companion episodes chart: bar (all-time YoY) / pie (single year)
+// Counts episodes watched per companion, assuming all eps of a series
+// were watched with the companion(s) tagged for that series.
+function renderCompEps(){
+  var wrap=document.getElementById('comp-eps-wrap');
+  var el=document.getElementById('comp-eps-chart');
+  if(!wrap||!el)return;
+  var compAll=_compGetAll();
+  if(!Object.keys(compAll).length){wrap.style.display='none';return}
+  // Build show_title → slug map from TL (shows only)
+  var titleSlug={};
+  TL.forEach(function(t){if(t.type!=='movie'&&t.sl)titleSlug[t.t]=t.sl});
+  // Tally episodes per companion per year from D.c.r
+  var compYears={};// {name: {year: count}}
+  var compTotal={};// {name: total}
+  var allYears={};
+  (D.c.r||[]).forEach(function(r){
+    if(r.type!=='episode'||!r.yr)return;
+    var slug=titleSlug[r.title];
+    if(!slug)return;
+    var names=compAll[slug];
+    if(!names||!names.length)return;
+    allYears[r.yr]=true;
+    names.forEach(function(name){
+      if(!compYears[name])compYears[name]={};
+      compYears[name][r.yr]=(compYears[name][r.yr]||0)+1;
+      compTotal[name]=(compTotal[name]||0)+1;
+    });
+  });
+  // Also scan full entries if D.c.r is truncated (only ~200 recent)
+  // Use SYD (show year data) for comprehensive counts
+  SYD.forEach(function(s){
+    var slug=titleSlug[s.n];
+    if(!slug)return;
+    var names=compAll[slug];
+    if(!names||!names.length)return;
+    Object.keys(s.yd||{}).forEach(function(yr){
+      var eps=s.yd[yr].e||0;
+      if(!eps)return;
+      allYears[yr]=true;
+      names.forEach(function(name){
+        if(!compYears[name])compYears[name]={};
+        compYears[name][yr]=eps;// SYD has accurate full counts
+        compTotal[name]=0;// Will recompute below
+      });
+    });
+  });
+  // Recompute totals from SYD-corrected per-year data
+  Object.keys(compYears).forEach(function(name){
+    var t=0;Object.values(compYears[name]).forEach(function(c){t+=c});
+    compTotal[name]=t;
+  });
+  if(!Object.keys(compTotal).length){wrap.style.display='none';return}
+  wrap.style.display='';
+  // Sort companions by total episodes
+  var sorted=Object.keys(compTotal).sort(function(a,b){return compTotal[b]-compTotal[a]});
+  var years=Object.keys(allYears).sort();
+  // Use companion colors
+  var colors=sorted.map(function(name){return _compColor(name)});
+  try{echarts.getInstanceByDom(el).dispose()}catch(e){}
+  var tc=echarts.init(el);
+  if(cy!=='all'){
+    // Pie chart for single year
+    var yd=[];
+    sorted.forEach(function(name,i){
+      var c=(compYears[name]||{})[cy]||0;
+      if(c)yd.push({value:c,name:name,itemStyle:{color:colors[i]}});
+    });
+    if(!yd.length){el.innerHTML='<div style="text-align:center;color:var(--t2);padding:40px">No companion data for '+cy+'</div>';return}
+    tc.setOption({tooltip:{trigger:'item',backgroundColor:'rgba(20,20,35,.95)',borderColor:'rgba(255,255,255,.08)',textStyle:{color:'#eee',fontSize:12},formatter:'{b}: {c} eps ({d}%)'},
+      series:[{type:'pie',radius:['35%','70%'],center:['50%','55%'],data:yd,
+        label:{color:'#ccc',fontSize:10,formatter:'{b}\n{d}%'},
+        emphasis:{itemStyle:{shadowBlur:10}}}]});
+  }else{
+    // Stacked bar chart year-over-year
+    var series=sorted.map(function(name,i){
+      return{name:name,type:'bar',stack:'t',
+        data:years.map(function(y){return(compYears[name]||{})[y]||0}),
+        itemStyle:{color:colors[i]},barMaxWidth:12};
+    });
+    tc.setOption({tooltip:{trigger:'axis',backgroundColor:'rgba(20,20,35,.95)',borderColor:'rgba(255,255,255,.08)',textStyle:{color:'#eee',fontSize:12}},
+      legend:{data:sorted,top:0,textStyle:{color:'#999',fontSize:9},type:'plain'},
+      grid:{left:40,right:10,top:50,bottom:24},
+      xAxis:{type:'category',data:years,axisLabel:{color:'#666',fontSize:10},axisLine:{lineStyle:{color:'#333'}}},
+      yAxis:{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},
+      series:series});
+  }
+  ch.push(tc);
 }
 
 function renderRatings(){
@@ -6119,13 +6230,15 @@ function _removeEpDone(btn,row,slug,season,ep,ud){
         if(!cwGrid){sections.forEach(function(sec){if(sec.textContent.indexOf('New Episodes')>=0)cwGrid=sec.nextElementSibling})}
         if(cwGrid){
           var tmp=document.createElement('div');tmp.innerHTML=qh;var qc=tmp.firstElementChild;
-          var w2=document.createElement('div');
-          w2.style.cssText='max-height:0;overflow:hidden;transition:max-height .25s ease-out';
-          qc.style.cssText='opacity:0;transform:scale(0.95);transition:opacity .18s ease .13s,transform .18s ease .13s';
-          w2.appendChild(qc);cwGrid.insertBefore(w2,cwGrid.firstChild);
+          // Scroll-compensated insert (no height animation shift)
+          var _ov=document.getElementById('un-overlay');
+          var _refB=cwGrid.getBoundingClientRect().top;
+          qc.style.cssText='opacity:0;transform:scale(0.97);transition:opacity .2s ease,transform .2s ease';
+          cwGrid.insertBefore(qc,cwGrid.firstChild);
+          if(_ov){var _refA=cwGrid.getBoundingClientRect().top;var _sh=_refA-_refB;if(_sh!==0)_ov.scrollTop+=_sh}
           requestAnimationFrame(function(){requestAnimationFrame(function(){
-            w2.style.maxHeight='150px';qc.style.opacity='1';qc.style.transform='scale(1)';
-            setTimeout(function(){w2.style.cssText='';qc.style.cssText='';if(w2.parentNode){w2.parentNode.insertBefore(qc,w2);w2.remove()}},450);
+            qc.style.opacity='1';qc.style.transform='scale(1)';
+            setTimeout(function(){qc.style.cssText=''},300);
           })});
         }
       }
@@ -6149,39 +6262,43 @@ function _injectRecentWatch(slug,season,episode,watchedAt){
   unData.recent.unshift({show:title,slug:slug,season:season,episode:episode,ep_title:showData?showData.ep_title:'',watched_at:watchedAt,ep_id:showData?showData.ep_trakt_id:0,ep_aired:showData?showData.ep_aired:''});
 }
 
-// Shared: insert a recently watched card with slide-down + fade-in animation
+// Shared: insert a recently watched card with scroll compensation
+// Recently watched grows upward (out of view) so queue tiles below don't shift
 function _insertRecentCard(cardHtml){
   var el=document.getElementById('un-content');if(!el)return null;
+  var ov=document.getElementById('un-overlay');
   var sections=el.querySelectorAll('.un-section');
-  var recentGrid=null;var newEpsSec=null;
+  var recentGrid=null;var recentHdr=null;var newEpsSec=null;
   sections.forEach(function(sec){
-    if(sec.textContent.indexOf('Recently Watched')>=0)recentGrid=sec.nextElementSibling;
+    if(sec.textContent.indexOf('Recently Watched')>=0){recentHdr=sec;recentGrid=sec.nextElementSibling}
     if(sec.id==='un-default-scroll')newEpsSec=sec;
   });
   var tmp=document.createElement('div');tmp.innerHTML=cardHtml;
   var card=tmp.firstElementChild;
-  var wrap=document.createElement('div');
-  wrap.style.cssText='max-height:0;overflow:hidden;transition:max-height .25s ease-out';
-  card.style.cssText='opacity:0;transform:scale(0.95);transition:opacity .18s ease .13s,transform .18s ease .13s';
-  wrap.appendChild(card);
+  // Measure scroll position of a reference element below the insertion point
+  var refEl=newEpsSec||null;
+  var refTopBefore=refEl?refEl.getBoundingClientRect().top:0;
   if(recentGrid){
-    recentGrid.appendChild(wrap);
+    recentGrid.appendChild(card);
   }else if(newEpsSec){
     var hdr=document.createElement('div');hdr.className='un-section';hdr.textContent='\ud83d\udd50 Recently Watched';
-    hdr.style.cssText='opacity:0;transition:opacity .18s';
     var grid=document.createElement('div');grid.className='un-grid';
-    grid.appendChild(wrap);
+    grid.appendChild(card);
     newEpsSec.parentElement.insertBefore(grid,newEpsSec);
     newEpsSec.parentElement.insertBefore(hdr,grid);
-    requestAnimationFrame(function(){hdr.style.opacity='1'});
+    recentHdr=hdr;
   }
+  // Scroll compensate: keep queue tiles in the same visual position
+  if(ov&&refEl){
+    var refTopAfter=refEl.getBoundingClientRect().top;
+    var shift=refTopAfter-refTopBefore;
+    if(shift>0)ov.scrollTop+=shift;
+  }
+  // Subtle fade-in only (no height animation that shifts content)
+  card.style.cssText='opacity:0;transform:scale(0.97);transition:opacity .2s ease,transform .2s ease';
   requestAnimationFrame(function(){requestAnimationFrame(function(){
-    wrap.style.maxHeight='150px';
     card.style.opacity='1';card.style.transform='scale(1)';
-    setTimeout(function(){
-      wrap.style.cssText='';card.style.cssText='';
-      if(wrap.parentNode){wrap.parentNode.insertBefore(card,wrap);wrap.remove()}
-    },450);
+    setTimeout(function(){card.style.cssText=''},300);
   })});
   return card;
 }
@@ -8567,7 +8684,7 @@ function _doRender(){ch.forEach(function(c){try{c.dispose()}catch(e){}});ch=[];
   stats();renderLifeline();baseCharts();renderPosters();
   // Batch 1: people tables + movies (skip if life mode — not shown)
   requestAnimationFrame(function(){
-    if(ct!=='life'){ptbl('atb',D.a);ptbl('xtb',D.x);ptbl('dtb',D.d||[]);ptbl('wtb',D.w||[]);renderCrewGrid();movieCharts();renderBoxOffice();renderBudget();renderLetterboxd()}
+    if(ct!=='life'){ptbl('atb',D.a);ptbl('xtb',D.x);ptbl('dtb',D.d||[]);ptbl('wtb',D.w||[]);renderCrewGrid();movieCharts();renderBoxOffice();renderBudget();renderLetterboxd();renderCompEps()}
     // Batch 2: type-specific sections (skip entirely in life mode)
     if(ct!=='life'){
       setTimeout(function(){renderGoodreads();renderLastfm()},0);
