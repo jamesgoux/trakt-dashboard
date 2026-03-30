@@ -2081,11 +2081,11 @@ D.crw.forEach(function(role){
   h+='<div class="crw-role"><h4>'+role.label+' <span style="font-weight:400;color:#666">('+filtered.length+')</span></h4><div class="crw-list">';
   top.forEach(function(it,idx){
     var uid=role.label.replace(/\W/g,'')+'_'+idx;
-    h+='<div class="crw-item"><div class="crw-row" onclick="var t=document.getElementById(\'crwt_'+uid+'\');if(t)t.classList.toggle(\'open\')">';
-    h+='<span class="crw-n">'+it.n+'</span><span class="crw-c">'+it.c+'</span></div>';
-    // Title list (hidden, toggles on click)
     var titles=it.ts||[];
-    if(titles.length){
+    var hasTitles=titles.length>0;
+    h+='<div class="crw-item"><div class="crw-row'+(hasTitles?' crw-has-titles':'')+'" onclick="var t=document.getElementById(\'crwt_'+uid+'\');if(t)t.classList.toggle(\'open\')">';
+    h+='<span class="crw-n">'+it.n+'</span><span class="crw-c">'+it.c+'</span></div>';
+    if(hasTitles){
       h+='<div class="crw-titles" id="crwt_'+uid+'">';
       titles.forEach(function(slug){
         var sm=D.sm&&D.sm[slug];

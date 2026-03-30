@@ -144,6 +144,26 @@ def fetch_cast_and_studios(entries):
         "Additional Photography": "add_photography", "Second Unit Director of Photography": "add_photography",
         "Production Designer": "production_design", "Production Design": "production_design",
         "Art Director": "art_direction", "Art Direction": "art_direction",
+        # Composers & Music
+        "Original Music Composer": "composers", "Music": "composers", "Music Supervisor": "composers",
+        # Sound
+        "Sound Designer": "sound", "Sound Editor": "sound", "Supervising Sound Editor": "sound",
+        "Sound Re-Recording Mixer": "sound", "Sound Mixer": "sound", "Boom Operator": "sound",
+        "Foley Artist": "sound",
+        # Visual Effects
+        "Visual Effects Supervisor": "vfx", "Visual Effects Producer": "vfx", "Visual Effects": "vfx",
+        # Stunts
+        "Stunt Coordinator": "stunts", "Stunts": "stunts",
+        # Costume Design
+        "Costume Designer": "costume_design", "Costume Design": "costume_design",
+        # Set Decoration
+        "Set Decorator": "set_decoration", "Set Decoration": "set_decoration",
+        # Makeup & Hair
+        "Makeup Artist": "makeup", "Makeup Department Head": "makeup",
+        "Hair Department Head": "makeup", "Special Effects Makeup Artist": "makeup",
+        "Key Makeup Artist": "makeup",
+        # Title Design
+        "Title Designer": "title_design",
     }
     other_crew = {role: defaultdict(lambda: {"name": "", "titles": set()}) for role in set(CREW_ROLES.values())}
     # Load existing other_crew data (merge for incremental runs)
@@ -187,9 +207,18 @@ def fetch_cast_and_studios(entries):
         with open("data/tmdb_credits_done.json") as f:
             tmdb_credits_done = set(json.load(f))
         print(f"  Loaded {len(tmdb_credits_done)} TMDB credits-done slugs")
-    # Bootstrap crew extraction: if other_crew.json doesn't exist yet, we need to
-    # re-fetch ALL TMDB credits to extract the new crew roles. One-time cost (~2 min).
-    if not os.path.exists("data/other_crew.json") and tmdb_credits_done:
+    # Bootstrap crew extraction: if other_crew.json doesn't exist or is missing new roles,
+    # re-fetch ALL TMDB credits to extract crew roles. One-time cost (~2 min).
+    _all_role_keys = set(CREW_ROLES.values())
+    _need_refetch = not os.path.exists("data/other_crew.json")
+    if not _need_refetch and os.path.exists("data/other_crew.json"):
+        with open("data/other_crew.json") as f:
+            _existing_roles = set(json.load(f).keys())
+        _missing_roles = _all_role_keys - _existing_roles
+        if _missing_roles:
+            _need_refetch = True
+            print(f"  ⚡ New crew roles detected: {_missing_roles}")
+    if _need_refetch and tmdb_credits_done:
         print(f"  ⚡ Bootstrapping crew extraction: clearing {len(tmdb_credits_done)} credits-done to re-fetch")
         tmdb_credits_done = set()
     all_slugs = [(s, "shows") for s in show_slugs] + [(s, "movies") for s in movie_slugs]
@@ -1190,13 +1219,19 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
         "lighting": "Lighting", "camera_operators": "Camera Operators",
         "add_photography": "Add. Photography", "production_design": "Production Design",
         "art_direction": "Art Direction",
+        "composers": "Composers", "sound": "Sound", "vfx": "Visual Effects",
+        "stunts": "Stunts", "costume_design": "Costume Design",
+        "set_decoration": "Set Decoration", "makeup": "Makeup & Hair",
+        "title_design": "Title Design",
     }
     # Order to match the screenshot grid layout
     ROLE_ORDER = [
         "co_directors", "producers", "original_writers", "story",
-        "casting", "editors", "cinematography", "lighting",
-        "asst_directors", "add_directing", "exec_producers", "camera_operators",
-        "add_photography", "production_design", "art_direction",
+        "casting", "editors", "cinematography", "composers",
+        "lighting", "sound", "exec_producers", "vfx",
+        "camera_operators", "stunts", "asst_directors", "costume_design",
+        "add_directing", "set_decoration", "add_photography", "makeup",
+        "production_design", "title_design", "art_direction",
     ]
     for role_key in ROLE_ORDER:
         ppl = other_crew_raw.get(role_key, {})
