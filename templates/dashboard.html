@@ -110,7 +110,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
 .un-prog-text{position:absolute;top:0;left:0;right:0;height:100%;display:flex;align-items:center;justify-content:space-between;padding:0 8px;font-size:13px;color:rgba(255,255,255,.85);font-weight:600;pointer-events:none}
 .un-new{position:absolute;top:0;left:0;background:#ef4444;color:#fff;font-size:9px;font-weight:700;padding:3px 7px;border-radius:0 0 6px 0;text-transform:uppercase;letter-spacing:.5px;z-index:1}
 .un-section{padding:8px 16px;max-width:1200px;margin:0 auto;font-size:12px;font-weight:600;color:var(--t2);text-transform:uppercase;letter-spacing:.5px}
-.un-watch-btn{position:absolute;top:0;right:0;width:48px;height:100%;border-radius:0 10px 10px 0;background:rgba(20,184,166,.06);border:none;border-left:1px solid rgba(255,255,255,.04);color:var(--tv);font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;-webkit-tap-highlight-color:transparent}
+.un-watch-btn{position:absolute;top:0;right:0;width:48px;height:100%;border-radius:0 10px 10px 0;background:var(--sf);border:none;border-left:1px solid rgba(255,255,255,.04);color:var(--tv);font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;-webkit-tap-highlight-color:transparent}
 .un-watch-btn:active{background:var(--tv);color:#fff}
 .un-del-btn{position:absolute;top:0;right:0;width:48px;height:100%;border-radius:0 10px 10px 0;background:rgba(239,68,68,.04);border:none;border-left:1px solid rgba(255,255,255,.04);color:#ef4444;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;-webkit-tap-highlight-color:transparent}
 .un-del-btn:active{background:#ef4444;color:#fff}
@@ -988,15 +988,70 @@ function _compRenameName(oldName,newName){var names=_compNames();var idx=names.i
 window._compFilter=null;
 window._compEditorSlug=null; // slug context for editor (null=filter bar edit)
 
+// Tint map: precomputed {slug: {color, names}} for instant card rendering
+var _compTintMap={};
+function _compBuildTintMap(){
+  _compTintMap={};
+  var all=_compGetAll();
+  Object.keys(all).forEach(function(slug){
+    var names=all[slug];
+    if(names.length)_compTintMap[slug]={color:_compColor(names[0]),names:names};
+  });
+}
+_compBuildTintMap(); // Build immediately from localStorage (instant, no async)
+
+// Update all visible Up Next card backgrounds from tint map (no re-render)
+function _compUpdateAllCards(){
+  _compBuildTintMap();
+  document.querySelectorAll('.un-card[data-slug]').forEach(function(card){
+    var slug=card.dataset.slug;
+    var t=_compTintMap[slug];
+    if(t){
+      card.style.background='linear-gradient(135deg,'+t.color+'44 0%,'+t.color+'18 50%,var(--sf) 78%)';
+    }else{card.style.background=''}
+  });
+}
+
+// Show/hide cards by companion filter without re-rendering (preserves scroll + detail)
+function _compApplyFilter(){
+  var compAll=_compGetAll();
+  var filter=window._compFilter;
+  var sections=document.querySelectorAll('#un-content .un-section');
+  var grids=document.querySelectorAll('#un-content .un-grid');
+  // Show/hide individual cards
+  document.querySelectorAll('#un-content .un-card[data-slug]').forEach(function(card){
+    if(!filter){card.style.display='';return}
+    var slug=card.dataset.slug;
+    var c=compAll[slug];
+    card.style.display=(c&&c.indexOf(filter)>=0)?'':'none';
+  });
+  // Update section counts and hide empty sections
+  grids.forEach(function(grid){
+    var visible=grid.querySelectorAll('.un-card[data-slug]:not([style*="display: none"]),.un-card[data-slug]:not([style*="display:none"])');
+    // Count actually visible cards (display not none)
+    var count=0;
+    grid.querySelectorAll('.un-card[data-slug]').forEach(function(c){if(c.style.display!=='none')count++});
+    var sec=grid.previousElementSibling;
+    if(sec&&sec.classList.contains('un-section')){
+      sec.style.display=count?'':'none';
+      // Update count in section header
+      var txt=sec.textContent;
+      var m=txt.match(/^(.+?)\s*\(\d+\)$/);
+      if(m)sec.innerHTML=sec.innerHTML.replace(/\(\d+\)/,'('+count+')');
+    }
+    grid.style.display=count?'':'none';
+  });
+}
+
 // Companion editor dialog (create or edit)
 function _compShowEditor(opts){
   // opts: {name, color, slug, isNew, onSave(name,color), onDelete()}
   var existing=document.getElementById('comp-editor');if(existing)existing.remove();
   var ov=document.createElement('div');ov.id='comp-editor';
-  // Append inside un-overlay when it's visible to avoid will-change:transform stacking context issues on mobile Safari
-  var unOv=document.getElementById('un-overlay');
-  var insideOverlay=unOv&&unOv.style.display!=='none';
-  ov.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.6);z-index:'+(insideOverlay?'99999':'10000')+';display:flex;align-items:center;justify-content:center;padding:20px;will-change:transform';
+  // Always on document.body at highest z-index — fully decoupled from scroll containers
+  // This avoids will-change:transform stacking context issues on mobile Safari
+  // and prevents lazy-load scroll adjustments from pushing editor out of view
+  ov.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.6);z-index:100000;display:flex;align-items:center;justify-content:center;padding:20px';
   ov.onclick=function(e){if(e.target===ov)ov.remove()};
   var selColor=opts.color||_COMP_DEFAULTS[_compNames().length%_COMP_DEFAULTS.length];
   var h='<div style="background:#1a1a2e;border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:20px;width:100%;max-width:320px" onclick="event.stopPropagation()">';
@@ -1015,7 +1070,7 @@ function _compShowEditor(opts){
   h+='<button onclick="_compEdSave()" style="padding:10px 20px;border-radius:10px;border:none;background:var(--tv);color:#fff;font-size:13px;font-weight:600;cursor:pointer">Save</button>';
   h+='</div></div>';
   ov.innerHTML=h;
-  if(insideOverlay){unOv.appendChild(ov)}else{document.body.appendChild(ov)}
+  document.body.appendChild(ov);
   window._compEdColor=selColor;
   window._compEdOpts=opts;
   setTimeout(function(){var inp=document.getElementById('comp-ed-name');if(inp)inp.focus()},100);
@@ -1039,14 +1094,17 @@ function _compEdSave(){
     _compSetColor(name,color);
   }
   document.getElementById('comp-editor').remove();
+  // If companion filter was active and companion renamed, follow the rename
+  if(window._compFilter&&opts.name&&name!==opts.name&&window._compFilter===opts.name)window._compFilter=name;
   _compRenderFilter();
   if(opts.slug){
     var tags=_compRenderShowTags(opts.slug);
     var el=document.getElementById('un-comp-tags');if(el)el.innerHTML=tags;
     document.querySelectorAll('.un-ep-comp-tags').forEach(function(el2){el2.innerHTML=tags});
-    _compUpdateCards(opts.slug);
   }
-  _renderUpNext();
+  // Targeted updates — no full re-render, preserves scroll + detail state
+  _compUpdateAllCards();
+  _compApplyFilter();
 }
 function _compEdDelete(){
   var opts=window._compEdOpts;
@@ -1060,7 +1118,9 @@ function _compEdDelete(){
     var el=document.getElementById('un-comp-tags');if(el)el.innerHTML=tags;
     document.querySelectorAll('.un-ep-comp-tags').forEach(function(el2){el2.innerHTML=tags});
   }
-  _renderUpNext();
+  // Targeted updates — no full re-render
+  _compUpdateAllCards();
+  _compApplyFilter();
 }
 
 function _compRenderFilter(){
@@ -1072,17 +1132,38 @@ function _compRenderFilter(){
   names.forEach(function(name){
     var active=window._compFilter===name;
     var col=_compColor(name);
-    h+='<span style="display:inline-flex;align-items:center;margin:0 2px">';
-    h+='<button onclick="_compSetFilter(\''+name.replace(/'/g,"\\'")+'\')" style="padding:4px 12px;border-radius:14px 0 0 14px;font-size:11px;font-weight:600;border:1px solid '+(active?col:'rgba(255,255,255,.12)')+';border-right:none;cursor:pointer;background:'+(active?col+'55':'transparent')+';color:'+(active?'#fff':'var(--t2)')+';text-shadow:'+(active?'0 1px 2px rgba(0,0,0,.3)':'none')+'">'+name+'</button>';
-    h+='<button onclick="event.stopPropagation();_compShowEditor({name:\''+name.replace(/'/g,"\\'")+'\',color:_compColor(\''+name.replace(/'/g,"\\'")+'\'),isNew:false})" style="padding:4px 6px;border-radius:0 14px 14px 0;font-size:9px;border:1px solid '+(active?col:'rgba(255,255,255,.12)')+';border-left:1px solid '+(active?col+'44':'rgba(255,255,255,.06)')+';cursor:pointer;background:'+(active?col+'33':'transparent')+';color:var(--t2)">✏️</button>';
-    h+='</span>';
+    h+='<button onclick="_compSetFilter(\''+name.replace(/'/g,"\\'")+'\')" style="display:inline-block;padding:4px 12px;margin:0 3px;border-radius:14px;font-size:11px;font-weight:600;border:1px solid '+(active?col:'rgba(255,255,255,.12)')+';cursor:pointer;background:'+(active?col+'55':'transparent')+';color:'+(active?'#fff':'var(--t2)')+';text-shadow:'+(active?'0 1px 2px rgba(0,0,0,.3)':'none')+'">'+name+'</button>';
   });
+  // Single ✏️ button → opens companion picker
+  h+='<button onclick="_compOpenPicker()" style="display:inline-block;padding:4px 8px;margin:0 3px;border-radius:14px;font-size:11px;border:1px solid rgba(255,255,255,.1);cursor:pointer;background:transparent;color:var(--t2)">✏️</button>';
   el.innerHTML=h;
+}
+// Companion picker: shows all companions to choose which to edit, plus + New
+function _compOpenPicker(){
+  var existing=document.getElementById('comp-picker');if(existing)existing.remove();
+  var pk=document.createElement('div');pk.id='comp-picker';
+  pk.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.6);z-index:100000;display:flex;align-items:center;justify-content:center;padding:20px';
+  pk.onclick=function(e){if(e.target===pk)pk.remove()};
+  var names=_compNames();
+  var h='<div style="background:#1a1a2e;border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:20px;width:100%;max-width:320px" onclick="event.stopPropagation()">';
+  h+='<div style="font-size:14px;font-weight:600;color:#fff;margin-bottom:14px">Edit Companions</div>';
+  names.forEach(function(name){
+    var col=_compColor(name);
+    h+='<button onclick="document.getElementById(\'comp-picker\').remove();_compShowEditor({name:\''+name.replace(/'/g,"\\'")+'\',color:\''+col+'\',isNew:false})" style="display:flex;align-items:center;gap:10px;width:100%;padding:12px 14px;margin-bottom:6px;border-radius:10px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.04);cursor:pointer;text-align:left">';
+    h+='<div style="width:24px;height:24px;border-radius:50%;background:'+col+';flex-shrink:0"></div>';
+    h+='<span style="color:#fff;font-size:14px;font-weight:500">'+name+'</span>';
+    h+='<span style="margin-left:auto;color:var(--t2);font-size:12px">✏️</span>';
+    h+='</button>';
+  });
+  h+='<button onclick="document.getElementById(\'comp-picker\').remove();_compShowEditor({isNew:true})" style="display:flex;align-items:center;gap:10px;width:100%;padding:12px 14px;border-radius:10px;border:2px dashed rgba(255,255,255,.15);background:transparent;cursor:pointer;text-align:left;color:var(--t2);font-size:14px">+ New Companion</button>';
+  h+='</div>';
+  pk.innerHTML=h;
+  document.body.appendChild(pk);
 }
 function _compSetFilter(name){
   window._compFilter=name;
   _compRenderFilter();
-  _renderUpNext();
+  _compApplyFilter();
 }
 // Render companion chips on show page
 function _compRenderShowTags(slug){
@@ -1130,7 +1211,7 @@ function _compUpdateCards(slug){
   document.querySelectorAll('.un-card[data-slug="'+slug+'"]').forEach(function(card){
     if(comps.length){
       var col=_compColor(comps[0]);
-      card.style.background='linear-gradient(135deg,'+col+'55 0%,'+col+'20 60%,var(--sf) 100%)';
+      card.style.background='linear-gradient(135deg,'+col+'44 0%,'+col+'18 50%,var(--sf) 78%)';
     }else{card.style.background=''}
   });
 }
@@ -1192,6 +1273,8 @@ function _compLoadFromSupabase(){
     _compSaveNames(mergedNames);
     _compSaveColors(mergedColors);
     _compSave(mergedTags);
+    // Rebuild tint map from merged data and update any pre-rendered cards in-place
+    _compUpdateAllCards();
     _compRenderFilter();
   });
 }
@@ -5125,6 +5208,7 @@ function _renderUpNext(prerender){
     return true;
   });
   // Companion filter: if active, only show series tagged with that companion
+  _compBuildTintMap();
   var _compAll=_compGetAll();
   if(window._compFilter){
     shows=shows.filter(function(s){var c=_compAll[s.slug];return c&&c.indexOf(window._compFilter)>=0});
@@ -5143,9 +5227,8 @@ function _renderUpNext(prerender){
     var pct=s.aired_total?Math.round(s.completed/s.aired_total*100):0;
     var poster=s.poster;
     if(!poster){var match=ud.shows.find(function(x){return x.slug===s.slug});if(match)poster=match.poster}
-    var _sc=_compAll[s.slug];
-    var _compCol=(_sc&&_sc.length)?_compColor(_sc[0]):'';
-    var _cardStyle=_compCol?'background:linear-gradient(135deg,'+_compCol+'55 0%,'+_compCol+'20 60%,var(--sf) 100%)':'';
+    var _tm=_compTintMap[s.slug];
+    var _cardStyle=_tm?'background:linear-gradient(135deg,'+_tm.color+'44 0%,'+_tm.color+'18 50%,var(--sf) 78%)':'';
     var c='<div class="un-card un-card-tap" data-slug="'+s.slug+'" data-s="'+s.season+'" data-e="'+s.episode+'" data-eid="'+(s.ep_trakt_id||0)+'" data-tmdb="'+(s.tmdb_id||'')+'" onclick="showEpDetail(this)"'+(_cardStyle?' style="'+_cardStyle+'"':'')+'>';
     if(poster)c+='<img class="un-poster" src="'+poster+'" loading="lazy" onerror="this.style.display=\'none\'" alt="">';
     else c+='<div class="un-poster-ph">📺</div>';
