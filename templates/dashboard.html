@@ -1211,12 +1211,22 @@ function _compSetFilter(name){
   if(_unCurrentView!=='home'){_unCurrentView='home';_unNavStack=[];_renderUpNext();_unUpdateHeader()}
   _compApplyFilter();
   // Scroll to default anchor (past Recently Watched, same as normal open)
+  // rAF ensures layout changes from _compApplyFilter are flushed before measuring
   var ov=document.getElementById('un-overlay');
   if(ov){
     _rwSuppressScroll();
-    var anchor=document.getElementById('un-default-scroll');
-    if(anchor){var hdrH=ov.firstElementChild?ov.firstElementChild.offsetHeight:70;var anchorTop=anchor.getBoundingClientRect().top-ov.getBoundingClientRect().top+ov.scrollTop;ov.scrollTop=Math.max(0,anchorTop-hdrH)}
-    else ov.scrollTop=0;
+    requestAnimationFrame(function(){
+      var anchor=document.getElementById('un-default-scroll');
+      if(anchor&&anchor.offsetParent!==null){
+        var hdrH=ov.firstElementChild?ov.firstElementChild.offsetHeight:70;
+        var anchorTop=anchor.getBoundingClientRect().top-ov.getBoundingClientRect().top+ov.scrollTop;
+        ov.scrollTop=Math.max(0,anchorTop-hdrH);
+      } else {
+        // Anchor hidden or missing — find first visible section
+        var secs=ov.querySelectorAll('#un-content .un-section');
+        for(var i=0;i<secs.length;i++){if(secs[i].offsetParent!==null){var hdrH=ov.firstElementChild?ov.firstElementChild.offsetHeight:70;var ft=secs[i].getBoundingClientRect().top-ov.getBoundingClientRect().top+ov.scrollTop;ov.scrollTop=Math.max(0,ft-hdrH);break}}
+      }
+    });
   }
 }
 // Render companion chips on show page
