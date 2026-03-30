@@ -1122,14 +1122,15 @@ function _compToggleShow(slug,name){
   _compRenderFilter();
   _compUpdateCards(slug);
 }
-// Live-update card backgrounds for a slug (no pills — background tint only)
+// Live-update card backgrounds for a slug (tint + left accent border)
 function _compUpdateCards(slug){
   var comps=_compForSlug(slug);
   document.querySelectorAll('.un-card[data-slug="'+slug+'"]').forEach(function(card){
     if(comps.length){
       var col=_compColor(comps[0]);
-      card.style.background='linear-gradient(135deg,'+col+'18 0%,var(--sf) 60%)';
-    }else{card.style.background=''}
+      card.style.background='linear-gradient(135deg,'+col+'30 0%,'+col+'10 50%,var(--sf) 100%)';
+      card.style.borderLeft='3px solid '+col;
+    }else{card.style.background='';card.style.borderLeft=''}
   });
 }
 
@@ -5144,8 +5145,9 @@ function _renderUpNext(prerender){
     var poster=s.poster;
     if(!poster){var match=ud.shows.find(function(x){return x.slug===s.slug});if(match)poster=match.poster}
     var _sc=_compAll[s.slug];
-    var _cardBg=(_sc&&_sc.length)?'linear-gradient(135deg,'+_compColor(_sc[0])+'18 0%,var(--sf) 60%)':'';
-    var c='<div class="un-card un-card-tap" data-slug="'+s.slug+'" data-s="'+s.season+'" data-e="'+s.episode+'" data-eid="'+(s.ep_trakt_id||0)+'" data-tmdb="'+(s.tmdb_id||'')+'" onclick="showEpDetail(this)"'+(_cardBg?' style="background:'+_cardBg+'"':'')+'>';
+    var _compCol=(_sc&&_sc.length)?_compColor(_sc[0]):'';
+    var _cardStyle=_compCol?'background:linear-gradient(135deg,'+_compCol+'30 0%,'+_compCol+'10 50%,var(--sf) 100%);border-left:3px solid '+_compCol:'';
+    var c='<div class="un-card un-card-tap" data-slug="'+s.slug+'" data-s="'+s.season+'" data-e="'+s.episode+'" data-eid="'+(s.ep_trakt_id||0)+'" data-tmdb="'+(s.tmdb_id||'')+'" onclick="showEpDetail(this)"'+(_cardStyle?' style="'+_cardStyle+'"':'')+'>';
     if(poster)c+='<img class="un-poster" src="'+poster+'" loading="lazy" onerror="this.style.display=\'none\'" alt="">';
     else c+='<div class="un-poster-ph">📺</div>';
     c+='<div class="un-info">';
