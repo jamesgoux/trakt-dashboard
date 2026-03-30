@@ -1164,7 +1164,8 @@ function _compOpenPicker(){
   document.body.appendChild(pk);
 }
 function _compSetFilter(name){
-  window._compFilter=name;
+  // Toggle off if tapping the already-active filter
+  window._compFilter=(window._compFilter===name)?null:name;
   _compRenderFilter();
   _compApplyFilter();
 }
@@ -8345,6 +8346,8 @@ function closeUpNext(){
   var sx=0,sy=0,tracking=false,_dir=null,_onSub=false,_atTop=false,_atBot=false;
   var _swCnt=null;
   ov.addEventListener('touchstart',function(e){
+    // Don't intercept swipes that start inside horizontally-scrollable containers
+    if(e.target.closest('#un-comp-filter,.un-cast-scroll,.un-stream')){tracking=false;return}
     sx=e.touches[0].clientX;sy=e.touches[0].clientY;
     tracking=true;_dir=null;
     var _searchOpen=document.getElementById('iris-search-ov').style.display!=='none';
