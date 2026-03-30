@@ -1339,6 +1339,8 @@ function _compLoadFromSupabase(){
     // Rebuild tint map from merged data and update any pre-rendered cards in-place
     _compUpdateAllCards();
     _compRenderFilter();
+    // Re-render companion episodes chart with fresh Supabase data
+    if(typeof renderCompEps==='function')renderCompEps();
   });
 }
 
@@ -3424,73 +3426,64 @@ function renderLetterboxd(){
 // Companion episodes chart: bar (all-time YoY) / pie (single year)
 // Counts episodes watched per companion, assuming all eps of a series
 // were watched with the companion(s) tagged for that series.
+// Companion data comes from localStorage (synced from Supabase on login).
 function renderCompEps(){
   var wrap=document.getElementById('comp-eps-wrap');
   var el=document.getElementById('comp-eps-chart');
   if(!wrap||!el)return;
-  var compAll=_compGetAll();
-  if(!Object.keys(compAll).length){wrap.style.display='none';return}
-  // Build show_title → slug map from TL (shows only)
-  var titleSlug={};
-  TL.forEach(function(t){if(t.type!=='movie'&&t.sl)titleSlug[t.t]=t.sl});
-  // Tally episodes per companion per year from D.c.r
+  var compAll=_compGetAll();// {slug: [name1, name2]}
+  var slugs=Object.keys(compAll);
+  if(!slugs.length){wrap.style.display='none';return}
+  // Build slug → show title map from TL
+  var slugTitle={};
+  TL.forEach(function(t){if(t.type!=='movie'&&t.sl)slugTitle[t.sl]=t.t});
+  // Build show title → SYD entry map
+  var sydByTitle={};
+  SYD.forEach(function(s){sydByTitle[s.n]=s});
+  // Tally episodes per companion per year using SYD (complete data)
   var compYears={};// {name: {year: count}}
   var compTotal={};// {name: total}
   var allYears={};
-  (D.c.r||[]).forEach(function(r){
-    if(r.type!=='episode'||!r.yr)return;
-    var slug=titleSlug[r.title];
-    if(!slug)return;
+  var compShows={};// {name: [{title, slug, year, eps}]} for click detail
+  slugs.forEach(function(slug){
     var names=compAll[slug];
     if(!names||!names.length)return;
-    allYears[r.yr]=true;
-    names.forEach(function(name){
-      if(!compYears[name])compYears[name]={};
-      compYears[name][r.yr]=(compYears[name][r.yr]||0)+1;
-      compTotal[name]=(compTotal[name]||0)+1;
-    });
-  });
-  // Also scan full entries if D.c.r is truncated (only ~200 recent)
-  // Use SYD (show year data) for comprehensive counts
-  SYD.forEach(function(s){
-    var slug=titleSlug[s.n];
-    if(!slug)return;
-    var names=compAll[slug];
-    if(!names||!names.length)return;
-    Object.keys(s.yd||{}).forEach(function(yr){
-      var eps=s.yd[yr].e||0;
+    var title=slugTitle[slug];
+    if(!title)return;
+    var syd=sydByTitle[title];
+    if(!syd||!syd.yd)return;
+    Object.keys(syd.yd).forEach(function(yr){
+      var eps=syd.yd[yr].e||0;
       if(!eps)return;
       allYears[yr]=true;
       names.forEach(function(name){
         if(!compYears[name])compYears[name]={};
-        compYears[name][yr]=eps;// SYD has accurate full counts
-        compTotal[name]=0;// Will recompute below
+        compYears[name][yr]=(compYears[name][yr]||0)+eps;
+        compTotal[name]=(compTotal[name]||0)+eps;
+        if(!compShows[name])compShows[name]=[];
+        compShows[name].push({t:title,sl:slug,yr:yr,e:eps});
       });
     });
-  });
-  // Recompute totals from SYD-corrected per-year data
-  Object.keys(compYears).forEach(function(name){
-    var t=0;Object.values(compYears[name]).forEach(function(c){t+=c});
-    compTotal[name]=t;
   });
   if(!Object.keys(compTotal).length){wrap.style.display='none';return}
   wrap.style.display='';
   // Sort companions by total episodes
   var sorted=Object.keys(compTotal).sort(function(a,b){return compTotal[b]-compTotal[a]});
   var years=Object.keys(allYears).sort();
-  // Use companion colors
   var colors=sorted.map(function(name){return _compColor(name)});
   try{echarts.getInstanceByDom(el).dispose()}catch(e){}
   var tc=echarts.init(el);
+  var mob=window.innerWidth<600;
+  var tt={backgroundColor:'rgba(20,20,35,.95)',borderColor:'rgba(255,255,255,.08)',textStyle:{color:'#eee',fontSize:12}};
   if(cy!=='all'){
     // Pie chart for single year
     var yd=[];
     sorted.forEach(function(name,i){
       var c=(compYears[name]||{})[cy]||0;
-      if(c)yd.push({value:c,name:name,itemStyle:{color:colors[i]}});
+      if(c)yd.push({value:c,name:name+' ('+c+')',itemStyle:{color:colors[i]}});
     });
-    if(!yd.length){el.innerHTML='<div style="text-align:center;color:var(--t2);padding:40px">No companion data for '+cy+'</div>';return}
-    tc.setOption({tooltip:{trigger:'item',backgroundColor:'rgba(20,20,35,.95)',borderColor:'rgba(255,255,255,.08)',textStyle:{color:'#eee',fontSize:12},formatter:'{b}: {c} eps ({d}%)'},
+    if(!yd.length){el.innerHTML='<div style="text-align:center;color:var(--t2);padding:40px">No companion episode data for '+cy+'</div>';return}
+    tc.setOption({tooltip:{trigger:'item',...tt,formatter:'{b}: {d}%'},
       series:[{type:'pie',radius:['35%','70%'],center:['50%','55%'],data:yd,
         label:{color:'#ccc',fontSize:10,formatter:'{b}\n{d}%'},
         emphasis:{itemStyle:{shadowBlur:10}}}]});
@@ -3501,13 +3494,35 @@ function renderCompEps(){
         data:years.map(function(y){return(compYears[name]||{})[y]||0}),
         itemStyle:{color:colors[i]},barMaxWidth:12};
     });
-    tc.setOption({tooltip:{trigger:'axis',backgroundColor:'rgba(20,20,35,.95)',borderColor:'rgba(255,255,255,.08)',textStyle:{color:'#eee',fontSize:12}},
+    tc.setOption({tooltip:{trigger:'axis',...tt},
       legend:{data:sorted,top:0,textStyle:{color:'#999',fontSize:9},type:'plain'},
       grid:{left:40,right:10,top:50,bottom:24},
       xAxis:{type:'category',data:years,axisLabel:{color:'#666',fontSize:10},axisLine:{lineStyle:{color:'#333'}}},
       yAxis:{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},
       series:series});
   }
+  // Click to show shows for a companion (filtered by year)
+  tc.on('click',function(p){
+    var name=p.name||'';
+    // Pie labels include count suffix — strip it
+    name=name.replace(/\s*\(\d+\)$/,'');
+    var shows=compShows[name]||[];
+    if(cy!=='all')shows=shows.filter(function(s){return s.yr===cy});
+    // Deduplicate by show title, summing episodes
+    var byTitle={};
+    shows.forEach(function(s){
+      if(!byTitle[s.t])byTitle[s.t]={t:s.t,e:0};
+      byTitle[s.t].e+=s.e;
+    });
+    var list=Object.values(byTitle).sort(function(a,b){return b.e-a.e});
+    if(!list.length)return;
+    var ex=el.parentElement.querySelector('.chart-detail');
+    if(ex){ex.remove();if(ex.dataset.val===name)return}
+    var div=document.createElement('div');div.className='chart-detail';div.dataset.val=name;
+    var h='<span class="cd-close" onclick="this.parentElement.remove()">✕</span><b>'+name+' — '+list.reduce(function(s,x){return s+x.e},0)+' episodes</b>';
+    list.forEach(function(s){h+='<div class="cd-item"><span>'+s.t+'</span><span class="nm nm-o">'+s.e+' eps</span></div>'});
+    div.innerHTML=h;el.parentElement.appendChild(div);
+  });
   ch.push(tc);
 }
 
