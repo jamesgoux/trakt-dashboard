@@ -404,12 +404,12 @@ body{overflow-x:hidden}
 <div class="g2 med-s" data-med="all movietv movie show">
 <div id="sec-vy" class="cd fw s-t"><h3><span class="i">📅</span>Content Release Years</h3><div class="vtog" style="margin:-6px 0 8px 0"><button class="vb vb-on vy-tog" data-v="year">Year</button><button class="vb vy-tog" data-v="decade">Decade</button><button class="vb vy-tog" data-v="pie">New vs Old</button></div><div id="vyc" style="height:300px"></div></div>
 </div>
-<!-- HOW I WATCH (own section) -->
-<div class="g2 med-s" data-med="all movietv movie show">
+<!-- HOW I WATCH (Letterboxd tags — movie-only data) -->
+<div class="g2 med-s" data-med="all movietv movie">
 <div id="sec-how" class="cd s-m"><h3><span class="i">👥</span>Watched With</h3><div id="pplc" style="height:280px"></div></div>
 <div class="cd s-m"><h3><span class="i">🏠</span>Where I Watch <span class="vtog" style="float:right"><button class="vb vb-on lb-loc" data-v="simple">Home/Theater</button><button class="vb lb-loc" data-v="detail">All Locations</button></span></h3><div id="locc" style="height:280px"></div></div>
 </div>
-<div class="g2 med-s" data-med="all movietv movie show">
+<div class="g2 med-s" data-med="all movietv movie">
 <div class="cd s-m"><h3><span class="i">📺</span>Streaming Services</h3><div id="strc" style="height:280px"></div></div>
 <div class="cd s-m"><h3><span class="i">📱</span>Devices &amp; Formats</h3><div id="devc" style="height:280px"></div></div>
 </div>
@@ -3434,6 +3434,8 @@ function renderCompEps(){
   var wrap=document.getElementById('comp-eps-wrap');
   var el=document.getElementById('comp-eps-chart');
   if(!wrap||!el)return;
+  // TV-only section: hide on movie-only filter
+  if(ct==='movie'){wrap.style.display='none';return}
   var compAll=_compGetAll();// {slug: [name1, name2]}
   var slugs=Object.keys(compAll);
   if(!slugs.length){wrap.style.display='none';return}
