@@ -2046,8 +2046,11 @@ if(ct==='show'){if(s===0)return;sortVal=s}
 // Use pipeline-computed green highlights (per-episode accuracy)
 var cg=_personGain(p);
 // Tie-breaker score: billing-weighted movies (top=5,co-lead=4,supporting=3,minor=2,cameo=1) + episodes×1
+// Only count titles active in the selected year (skip unwatched titles for year views)
 var epTot=0;var bw=p.bw||null;
 if(p.ti){p.ti.forEach(function(idx,j){var t=TL[idx];if(!t)return;
+  var eb=cy==='all'?t.eby:fby(t.eby);var active=cy==='all'||sm(eb)>0;
+  if(!active)return;
   if(t.type==='movie'){epTot+=(bw&&bw[j])?bw[j]:3}
   else if(p.eps&&t.sl&&p.eps[t.sl]){var ec=cy==='all'?(p.eps[t.sl].t||1):((p.eps[t.sl].y||{})[cy]||0);epTot+=ec}
   else{epTot+=(bw&&bw[j])?bw[j]:3}
