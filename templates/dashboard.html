@@ -1207,8 +1207,10 @@ function _compSetFilter(name){
   // Toggle off if tapping the already-active filter
   window._compFilter=(window._compFilter===name)?null:name;
   _compRenderFilter();
+  // If on a sub-page, go back to home view first so filter applies to card grid
+  if(_unCurrentView!=='home'){_unCurrentView='home';_unNavStack=[];_renderUpNext();_unUpdateHeader()}
   _compApplyFilter();
-  // Scroll to top of content (first visible section sits just below sticky header)
+  // Scroll to first visible section after filtering
   var ov=document.getElementById('un-overlay');
   if(ov){
     _rwSuppressScroll();
