@@ -596,12 +596,13 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
                                       "titles": list(info["titles"]),
                                       "eps": {s: list(e) for s, e in info.get("eps", {}).items()},
                                       "billing": dict(info.get("billing", {}))}
-    # Billing order → tiebreaker weight
+    # Billing order → tiebreaker weight (5-tier)
     def _billing_weight(order):
-        if order <= 2: return 6   # Lead (top 3 billed)
-        if order <= 9: return 4   # Supporting
-        if order <= 99: return 2  # Minor / bit part
-        return 1                  # Guest star only (order 100+ offset)
+        if order == 0: return 5    # Top billed
+        if order <= 2: return 4    # Co-lead (2nd/3rd billed)
+        if order <= 9: return 3    # Supporting
+        if order <= 99: return 2   # Minor / bit part
+        return 1                   # Cameo / guest star only (order 100+ offset)
 
     pd = []
     for name, info in _people_by_name.items():
@@ -630,8 +631,8 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
                 bws.append(_billing_weight(person_billing.get(ts, 999)))
         if mc + sc >= 2:
             entry = {"n": info["name"], "g": "m" if ism(info["gender"]) else "f", "m": mc, "s": sc, "tt": mc+sc, "ti": tis, "_rec": max_recency}
-            # Billing weights: only include if not all default (saves bandwidth)
-            if any(w != 2 for w in bws):
+            # Billing weights: only include if not all default (3=supporting fallback)
+            if any(w != 3 for w in bws):
                 entry["bw"] = bws
             # Add episode credits as year-counts: {slug: {year: count}} — compact for bandwidth
             if person_eps:
