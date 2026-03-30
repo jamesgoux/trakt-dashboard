@@ -226,6 +226,16 @@ def fetch_cast_and_studios(entries):
     if _need_refetch and tmdb_credits_done:
         print(f"  ⚡ Bootstrapping crew extraction: clearing {len(tmdb_credits_done)} credits-done to re-fetch")
         tmdb_credits_done = set()
+    # Billing order backfill: identify slugs that have no billing data in people.json
+    # These need TMDB re-fetch even if credits were previously fetched (before billing feature)
+    _slugs_with_billing = set()
+    for _pid, _pinfo in people.items():
+        for _bslug in _pinfo.get("billing", {}).keys():
+            _slugs_with_billing.add(_bslug)
+    _bo_missing = tmdb_credits_done - _slugs_with_billing
+    if _bo_missing:
+        print(f"  ⚡ Billing order backfill: {len(_bo_missing)} slugs need re-fetch (of {len(tmdb_credits_done)} done)")
+        tmdb_credits_done -= _bo_missing
     all_slugs = [(s, "shows") for s in show_slugs] + [(s, "movies") for s in movie_slugs]
     # Sort by recency: recently watched titles first so new content gets processed before budget runs out
     slug_recency = {}
