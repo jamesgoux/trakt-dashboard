@@ -125,7 +125,7 @@ def fetch_cast_and_studios(entries):
                     ep_watch_year[(e["trakt_slug"], sn, en)] = wa[:4]
                     ep_watch_date[(e["trakt_slug"], sn, en)] = wa[:10]
     # MERGE with existing people data so we never lose actors
-    people = defaultdict(lambda: {"name": "", "gender": None, "titles": set()})
+    people = defaultdict(lambda: {"name": "", "gender": None, "titles": set(), "billing": {}})
     directors = defaultdict(lambda: {"name": "", "titles": set()})
     writers = defaultdict(lambda: {"name": "", "titles": set()})
     # Additional crew roles (simple name→titles tracking for grid display)
@@ -191,6 +191,10 @@ def fetch_cast_and_studios(entries):
             people[pid]["name"] = info["name"]
             people[pid]["gender"] = info["gender"]
             people[pid]["titles"] = set(info.get("titles", []))
+            # Load existing billing data (merge: keep best order per slug)
+            for slug, order in info.get("billing", {}).items():
+                if slug not in people[pid]["billing"] or order < people[pid]["billing"][slug]:
+                    people[pid]["billing"][slug] = order
         print(f"  Loaded {len(existing)} existing people (merging)")
     # Merge with existing studios too
     slug_studios = {}
@@ -258,6 +262,10 @@ def fetch_cast_and_studios(entries):
                             g = c.get("gender", 0)
                             if g in (1, 2): people[pid]["gender"] = g
                             people[pid]["titles"].add(slug)
+                            # Store billing order (keep best/lowest per slug)
+                            order = c.get("order", 999)
+                            if slug not in people[pid]["billing"] or order < people[pid]["billing"][slug]:
+                                people[pid]["billing"][slug] = order
                         # Crew: directors + writers + other roles
                         for c in data.get("crew", []):
                             name = c.get("name", "")
@@ -326,7 +334,7 @@ def fetch_cast_and_studios(entries):
             print(f"  ⚠️ Trakt budget reached ({trakt_calls} calls) — skipping remaining Trakt calls, TMDB continues")
         if done % 50 == 0:
             print(f"  cast+studios: {done}/{total} (skipped {skipped}, TMDB: {tmdb_ok}, Trakt: {trakt_fallback}, Trakt calls: {trakt_calls}/{trakt_budget})")
-            _p = {pid: {"name": i["name"], "gender": i["gender"], "titles": list(i["titles"])} for pid, i in people.items()}
+            _p = {pid: {"name": i["name"], "gender": i["gender"], "titles": list(i["titles"]), "billing": i.get("billing", {})} for pid, i in people.items()}
             with open("data/people.json", "w") as f: json.dump(_p, f, separators=(',', ':'))
             with open("data/studios.json", "w") as f: json.dump(slug_studios, f, separators=(',', ':'))
             with open("data/tmdb_credits_done.json", "w") as f: json.dump(sorted(tmdb_credits_done), f, separators=(',', ':'))
@@ -359,8 +367,8 @@ def fetch_cast_and_studios(entries):
             tmdb_id, _ = tmdb_info
             for season_num, ep_nums in seasons.items():
                 cache_key = f"{tmdb_id}|{season_num}"
-                # Use cache if available AND has expanded crew data (_ac flag)
-                if cache_key in season_cache and season_cache[cache_key].get("_ac"):
+                # Use cache if available AND has expanded crew data (_ac) AND billing order (_bo)
+                if cache_key in season_cache and season_cache[cache_key].get("_ac") and season_cache[cache_key].get("_bo"):
                     sdata = season_cache[cache_key]
                     cached_count += 1
                 else:
@@ -372,10 +380,10 @@ def fetch_cast_and_studios(entries):
                         sdata = sr.json()
                         # Cache: store cast/guest_stars + per-episode crew (all CREW_ROLES jobs)
                         season_cache[cache_key] = {
-                            "_ac": True,
-                            "credits": {"cast": [{"name": c.get("name",""), "gender": c.get("gender",0)} for c in sdata.get("credits",{}).get("cast",[])]},
+                            "_ac": True, "_bo": True,
+                            "credits": {"cast": [{"name": c.get("name",""), "gender": c.get("gender",0), "o": c.get("order",999)} for c in sdata.get("credits",{}).get("cast",[])]},
                             "episodes": [{"episode_number": ep.get("episode_number"),
-                                          "guest_stars": [{"name": gs.get("name",""), "gender": gs.get("gender",0)} for gs in ep.get("guest_stars",[])],
+                                          "guest_stars": [{"name": gs.get("name",""), "gender": gs.get("gender",0), "o": gs.get("order",999)} for gs in ep.get("guest_stars",[])],
                                           "crew": [{"name": cr.get("name",""), "job": cr.get("job","")} for cr in ep.get("crew",[]) if cr.get("job") in _CACHE_CREW_JOBS]
                                          } for ep in sdata.get("episodes",[])]
                         }
@@ -402,6 +410,10 @@ def fetch_cast_and_studios(entries):
                         people[pid]["name"] = c.get("name", "")
                         g = c.get("gender", 0)
                         if g in (1, 2): people[pid]["gender"] = g
+                    # Billing: season regular order (keep best)
+                    order = c.get("o", c.get("order", 999))
+                    if slug not in people[pid]["billing"] or order < people[pid]["billing"][slug]:
+                        people[pid]["billing"][slug] = order
                 for ep_data in sdata.get("episodes", []):
                     ep_num = ep_data.get("episode_number")
                     if ep_num not in ep_nums: continue
@@ -417,6 +429,11 @@ def fetch_cast_and_studios(entries):
                             g = gs.get("gender", 0)
                             if g in (1, 2): people[pid]["gender"] = g
                             people[pid]["titles"].add(slug)
+                        # Billing: guest stars get order + 100 offset (regulars always outrank)
+                        gs_order = gs.get("o", gs.get("order", 999))
+                        adj_order = min(gs_order + 100, 999)
+                        if slug not in people[pid]["billing"] or adj_order < people[pid]["billing"][slug]:
+                            people[pid]["billing"][slug] = adj_order
                     # Per-episode crew (directors/writers + all crew roles)
                     for cr in ep_data.get("crew", []):
                         cname = cr.get("name", "")
@@ -438,7 +455,7 @@ def fetch_cast_and_studios(entries):
     for pid, shows in ep_credits.items():
         ep_credits_out[pid] = {slug: sorted([list(t) for t in eps]) for slug, eps in shows.items()}
 
-    people_out = {pid: {"name": i["name"], "gender": i["gender"], "titles": list(i["titles"])} for pid, i in people.items()}
+    people_out = {pid: {"name": i["name"], "gender": i["gender"], "titles": list(i["titles"]), "billing": i.get("billing", {})} for pid, i in people.items()}
     # Add ep_credits to people_out
     for pid in people_out:
         if pid in ep_credits_out:
@@ -570,14 +587,27 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
                     for ep in eps:
                         if (ep[0], ep[1]) not in existing:
                             p["eps"][slug].append(ep)
+            # Merge billing (keep best/lowest order per slug)
+            for slug, order in info.get("billing", {}).items():
+                if slug not in p["billing"] or order < p["billing"][slug]:
+                    p["billing"][slug] = order
         else:
             _people_by_name[name] = {"name": name, "gender": info["gender"],
                                       "titles": list(info["titles"]),
-                                      "eps": {s: list(e) for s, e in info.get("eps", {}).items()}}
+                                      "eps": {s: list(e) for s, e in info.get("eps", {}).items()},
+                                      "billing": dict(info.get("billing", {}))}
+    # Billing order → tiebreaker weight
+    def _billing_weight(order):
+        if order <= 2: return 6   # Lead (top 3 billed)
+        if order <= 9: return 4   # Supporting
+        if order <= 99: return 2  # Minor / bit part
+        return 1                  # Guest star only (order 100+ offset)
+
     pd = []
     for name, info in _people_by_name.items():
-        tis = []; mc = sc = 0
+        tis = []; bws = []; mc = sc = 0
         max_recency = 0
+        person_billing = info.get("billing", {})
         person_eps = info.get("eps", {})  # show_slug -> [[s,e,yr],[s,e,yr],...]
         for ts in info["titles"]:
             rec = slug_recency.get(ts, 0)
@@ -585,6 +615,7 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
             mk = "movie:" + ts
             if mk in ti:
                 tis.append(ti[mk]); mc += 1
+                bws.append(_billing_weight(person_billing.get(ts, 999)))
             sk = "show:" + ts
             if sk in ti:
                 # If season credits exist for this show, filter by watched episodes
@@ -596,8 +627,12 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
                         continue  # Person wasn't in any watched episode
                 tis.append(ti[sk])
                 sc += 1
+                bws.append(_billing_weight(person_billing.get(ts, 999)))
         if mc + sc >= 2:
             entry = {"n": info["name"], "g": "m" if ism(info["gender"]) else "f", "m": mc, "s": sc, "tt": mc+sc, "ti": tis, "_rec": max_recency}
+            # Billing weights: only include if not all default (saves bandwidth)
+            if any(w != 2 for w in bws):
+                entry["bw"] = bws
             # Add episode credits as year-counts: {slug: {year: count}} — compact for bandwidth
             if person_eps:
                 eps_yc = {}

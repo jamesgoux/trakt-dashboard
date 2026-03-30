@@ -2056,8 +2056,13 @@ if(ct==='movie'){if(m===0)return;sortVal=m}
 if(ct==='show'){if(s===0)return;sortVal=s}
 // Use pipeline-computed green highlights (per-episode accuracy)
 var cg=_personGain(p);
-// Tie-breaker score: movies=4pts each, episodes=1pt each (only affects sort within same rank)
-var epTot=m*4;if(p.eps&&p.ti){p.ti.forEach(function(i){var t=TL[i];if(!t||t.type==='movie')return;if(p.eps[t.sl]){var ec=cy==='all'?(p.eps[t.sl].t||1):((p.eps[t.sl].y||{})[cy]||0);epTot+=ec}})}else{epTot=m*4+s}
+// Tie-breaker score: billing-weighted movies (lead=6,supporting=4,minor=2) + episodes×1
+var epTot=0;var bw=p.bw||null;
+if(p.ti){p.ti.forEach(function(idx,j){var t=TL[idx];if(!t)return;
+  if(t.type==='movie'){epTot+=(bw&&bw[j])?bw[j]:4}
+  else if(p.eps&&t.sl&&p.eps[t.sl]){var ec=cy==='all'?(p.eps[t.sl].t||1):((p.eps[t.sl].y||{})[cy]||0);epTot+=ec}
+  else{epTot+=(bw&&bw[j])?bw[j]:2}
+})}else{epTot=m*4+s}
 items.push({p:p,m:m,s:s,tot:m+s,sv:sortVal,cg:cg,ep:epTot,_i:items.length})});
 // Sort: title count DESC, tie-break by weighted score (movies×4 + episodes) DESC, stable fallback
 items.sort(function(a,b){if(b.sv!==a.sv)return b.sv-a.sv;if(b.ep!==a.ep)return b.ep-a.ep;return a._i-b._i});
