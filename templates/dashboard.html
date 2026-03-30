@@ -1025,6 +1025,7 @@ function _compEdPickColor(c){
   document.querySelectorAll('#comp-ed-swatches div').forEach(function(d){d.style.border='3px solid '+(d.dataset.c===c?'#fff':'transparent')});
 }
 function _compEdSave(){
+  _compGuardStart();
   var name=(document.getElementById('comp-ed-name').value||'').trim();
   if(!name)return;
   var opts=window._compEdOpts;
@@ -1098,6 +1099,7 @@ function _compRenderShowTags(slug){
   return h;
 }
 function _compToggleShow(slug,name){
+  _compGuardStart();
   var current=_compForSlug(slug);
   var idx=current.indexOf(name);
   var adding=idx<0;
@@ -1119,8 +1121,17 @@ function _compToggleShow(slug,name){
       }
     });
   });
+  // Toast confirmation
+  var col=_compColor(name);
+  _compToast((adding?'✓ Tagged ':'✕ Untagged ')+name,col);
   _compRenderFilter();
   _compUpdateCards(slug);
+}
+function _compToast(msg,col){
+  var t=document.createElement('div');
+  t.style.cssText='position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:'+col+';color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;font-weight:600;z-index:999999;pointer-events:none;opacity:1;transition:opacity .4s;text-shadow:0 1px 3px rgba(0,0,0,.4);box-shadow:0 4px 12px rgba(0,0,0,.3)';
+  t.textContent=msg;document.body.appendChild(t);
+  setTimeout(function(){t.style.opacity='0';setTimeout(function(){t.remove()},500)},1200);
 }
 // Live-update card backgrounds for a slug (tint + left accent border)
 function _compUpdateCards(slug){
@@ -5588,6 +5599,9 @@ function _unRenderDetail(allShows,idx){
 }
 var _epHistVer=0;
 
+// Guard: prevent TMDB re-renders from destroying DOM during companion interactions
+var _compInteracting=false;
+function _compGuardStart(){_compInteracting=true;clearTimeout(window._compGuardTmr);window._compGuardTmr=setTimeout(function(){_compInteracting=false},1500)}
 function _unPrefetchAndUpdate(base,epNum){
   if(epNum<1||!base.tmdb_id)return;
   var k=_epCacheKey(base.tmdb_id,base.season,epNum);
@@ -5600,6 +5614,8 @@ function _unPrefetchAndUpdate(base,epNum){
       if(d.status_code)return;
       _epCache[k]={ep_title:d.name||'',ep_overview:(d.overview||'').substring(0,500),ep_still:d.still_path?'https://image.tmdb.org/t/p/w780'+d.still_path:'',ep_aired:d.air_date||'',ep_runtime:d.runtime||base.ep_runtime};
       // Re-render if still viewing this show (and detail fg is still open)
+      // Skip if companion interaction is in progress (prevents DOM destruction mid-tap on iOS)
+      if(_compInteracting)return;
       if(_crBase&&_crBase.slug===base.slug&&_crAll&&document.getElementById('un-detail-fg')){
         var ns=_unMakeEp(_crBase,_crEp);
         var ts=_crAll.slice();ts[_crIdx]=ns;
