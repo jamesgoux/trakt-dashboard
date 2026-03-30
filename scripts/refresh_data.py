@@ -1256,9 +1256,24 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
                 items.append(item)
         items.sort(key=lambda x: x["c"], reverse=True)
         if items:
-            crw_grid.append({"label": ROLE_LABELS.get(role_key, role_key), "items": items[:20]})
+            role_entry = {"label": ROLE_LABELS.get(role_key, role_key), "items": items[:20]}
+            # Per-year top lists: built from ALL items (not just top 20)
+            # so year-filtered views include people relevant to that year
+            yi = defaultdict(list)
+            for it in items:
+                for yr, yc in (it.get("cy") or {}).items():
+                    if yc > 1:
+                        yi[yr].append(it)
+            yi_out = {}
+            for yr, yr_items in yi.items():
+                yr_sorted = sorted(yr_items, key=lambda x: (x.get("cy") or {}).get(yr, 0), reverse=True)[:20]
+                yi_out[yr] = yr_sorted
+            if yi_out:
+                role_entry["yi"] = yi_out
+            crw_grid.append(role_entry)
     crw_total = sum(len(v["items"]) for v in crw_grid)
-    print(f"  Crew grid: {len(crw_grid)} roles, {crw_total} entries (top 20 each)")
+    crw_yi_total = sum(sum(len(v) for v in r.get("yi", {}).values()) for r in crw_grid)
+    print(f"  Crew grid: {len(crw_grid)} roles, {crw_total} all-time + {crw_yi_total} per-year entries")
 
     # Box office data: array for chart + slug-keyed lookup for movie pages
     bo_data = []

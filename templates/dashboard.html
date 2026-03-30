@@ -2076,7 +2076,12 @@ var h='',anyRole=false;
 D.crw.forEach(function(role){
   if(!role.items||!role.items.length)return;
   var filtered;
-  if(isYr){
+  if(isYr&&role.yi&&role.yi[cy]){
+    // Use dedicated per-year list (includes people not in all-time top 20)
+    filtered=role.yi[cy].map(function(it){return{n:it.n,c:(it.cy&&it.cy[cy])||0,tsy:it.tsy}});
+    filtered.sort(function(a,b){return b.c-a.c});
+  }else if(isYr){
+    // Fallback: filter all-time items by year (old data without yi)
     filtered=role.items.map(function(it){return{n:it.n,c:(it.cy&&it.cy[cy])||0,tsy:it.tsy}}).filter(function(it){return it.c>1});
     filtered.sort(function(a,b){return b.c-a.c});
   }else{
