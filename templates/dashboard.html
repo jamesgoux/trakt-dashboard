@@ -1007,7 +1007,7 @@ function _compUpdateAllCards(){
     var slug=card.dataset.slug;
     var t=_compTintMap[slug];
     if(t){
-      card.style.background='linear-gradient(135deg,'+t.color+'44 0%,'+t.color+'18 50%,var(--sf) 78%)';
+      card.style.background=t.color+'30';
     }else{card.style.background=''}
   });
 }
@@ -1211,7 +1211,7 @@ function _compUpdateCards(slug){
   document.querySelectorAll('.un-card[data-slug="'+slug+'"]').forEach(function(card){
     if(comps.length){
       var col=_compColor(comps[0]);
-      card.style.background='linear-gradient(135deg,'+col+'44 0%,'+col+'18 50%,var(--sf) 78%)';
+      card.style.background=col+'30';
     }else{card.style.background=''}
   });
 }
@@ -5228,7 +5228,7 @@ function _renderUpNext(prerender){
     var poster=s.poster;
     if(!poster){var match=ud.shows.find(function(x){return x.slug===s.slug});if(match)poster=match.poster}
     var _tm=_compTintMap[s.slug];
-    var _cardStyle=_tm?'background:linear-gradient(135deg,'+_tm.color+'44 0%,'+_tm.color+'18 50%,var(--sf) 78%)':'';
+    var _cardStyle=_tm?'background:'+_tm.color+'30':'';
     var c='<div class="un-card un-card-tap" data-slug="'+s.slug+'" data-s="'+s.season+'" data-e="'+s.episode+'" data-eid="'+(s.ep_trakt_id||0)+'" data-tmdb="'+(s.tmdb_id||'')+'" onclick="showEpDetail(this)"'+(_cardStyle?' style="'+_cardStyle+'"':'')+'>';
     if(poster)c+='<img class="un-poster" src="'+poster+'" loading="lazy" onerror="this.style.display=\'none\'" alt="">';
     else c+='<div class="un-poster-ph">📺</div>';
