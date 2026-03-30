@@ -1121,27 +1121,17 @@ function _compToggleShow(slug,name){
       }
     });
   });
-  // Toast confirmation
-  var col=_compColor(name);
-  _compToast((adding?'✓ Tagged ':'✕ Untagged ')+name,col);
   _compRenderFilter();
   _compUpdateCards(slug);
 }
-function _compToast(msg,col){
-  var t=document.createElement('div');
-  t.style.cssText='position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:'+col+';color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;font-weight:600;z-index:999999;pointer-events:none;opacity:1;transition:opacity .4s;text-shadow:0 1px 3px rgba(0,0,0,.4);box-shadow:0 4px 12px rgba(0,0,0,.3)';
-  t.textContent=msg;document.body.appendChild(t);
-  setTimeout(function(){t.style.opacity='0';setTimeout(function(){t.remove()},500)},1200);
-}
-// Live-update card backgrounds for a slug (tint + left accent border)
+// Live-update card backgrounds for a slug (background tint only)
 function _compUpdateCards(slug){
   var comps=_compForSlug(slug);
   document.querySelectorAll('.un-card[data-slug="'+slug+'"]').forEach(function(card){
     if(comps.length){
       var col=_compColor(comps[0]);
-      card.style.background='linear-gradient(135deg,'+col+'30 0%,'+col+'10 50%,var(--sf) 100%)';
-      card.style.borderLeft='3px solid '+col;
-    }else{card.style.background='';card.style.borderLeft=''}
+      card.style.background='linear-gradient(135deg,'+col+'55 0%,'+col+'20 60%,var(--sf) 100%)';
+    }else{card.style.background=''}
   });
 }
 
@@ -1198,13 +1188,11 @@ function _compLoadFromSupabase(){
         mergedTags[k]=combined;
       }
     });
-    // Save merged data to localStorage
+    // Save merged data to localStorage (silently — no re-render to avoid blink/scroll reset)
     _compSaveNames(mergedNames);
     _compSaveColors(mergedColors);
     _compSave(mergedTags);
-    // Re-render UI if Up Next is visible
     _compRenderFilter();
-    _renderUpNext();
   });
 }
 
@@ -5157,7 +5145,7 @@ function _renderUpNext(prerender){
     if(!poster){var match=ud.shows.find(function(x){return x.slug===s.slug});if(match)poster=match.poster}
     var _sc=_compAll[s.slug];
     var _compCol=(_sc&&_sc.length)?_compColor(_sc[0]):'';
-    var _cardStyle=_compCol?'background:linear-gradient(135deg,'+_compCol+'30 0%,'+_compCol+'10 50%,var(--sf) 100%);border-left:3px solid '+_compCol:'';
+    var _cardStyle=_compCol?'background:linear-gradient(135deg,'+_compCol+'55 0%,'+_compCol+'20 60%,var(--sf) 100%)':'';
     var c='<div class="un-card un-card-tap" data-slug="'+s.slug+'" data-s="'+s.season+'" data-e="'+s.episode+'" data-eid="'+(s.ep_trakt_id||0)+'" data-tmdb="'+(s.tmdb_id||'')+'" onclick="showEpDetail(this)"'+(_cardStyle?' style="'+_cardStyle+'"':'')+'>';
     if(poster)c+='<img class="un-poster" src="'+poster+'" loading="lazy" onerror="this.style.display=\'none\'" alt="">';
     else c+='<div class="un-poster-ph">📺</div>';
