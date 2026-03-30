@@ -341,7 +341,7 @@ body{overflow-x:hidden}
 </div>
 <!-- CREW GRID (additional roles - no headshots) -->
 <div class="g2 med-s" data-med="all movietv movie show">
-<div class="cd fw" id="sec-crw-grid"><h3><span class="i">🎥</span>Crew</h3><div id="crw-grid"></div></div>
+<div class="cd fw s-a" id="sec-crw-grid"><h3><span class="i">🎥</span>Crew</h3><div id="crw-grid"></div></div>
 </div>
 <!-- TOP SHOWS POSTERS -->
 <div class="g2 med-s" data-med="all movietv show">
@@ -355,6 +355,10 @@ body{overflow-x:hidden}
 <div class="g2 med-s" data-med="all movietv show">
 <div id="sec-ttw" class="cd s-s"><h3><span class="i">⏱️</span>Time to Watch</h3><div id="ttwc" style="height:400px"></div></div>
 <div class="cd s-s"><h3><span class="i">📚</span>Catch-Up Shows <span class="vtog" style="float:right"><button class="vb vb-on cup-tog" data-v="long" onclick="window._cupMode='long';document.querySelectorAll('.cup-tog').forEach(function(b){b.classList.toggle('vb-on',b.dataset.v==='long')});renderCatchup()">Longest</button><button class="vb cup-tog" data-v="short" onclick="window._cupMode='short';document.querySelectorAll('.cup-tog').forEach(function(b){b.classList.toggle('vb-on',b.dataset.v==='short')});renderCatchup()">Shortest</button></span></h3><div id="cupc" style="height:400px"></div></div>
+</div>
+<!-- COMPANION EPISODES -->
+<div class="g2 med-s" data-med="all movietv show" id="comp-eps-wrap" style="display:none">
+<div class="cd fw s-s"><h3><span class="i">🎬</span>Episodes by Companion</h3><div id="comp-eps-chart" style="height:300px"></div></div>
 </div>
 <!-- MOVIES -->
 <div class="g2 med-s" data-med="all movietv movie">
@@ -404,10 +408,6 @@ body{overflow-x:hidden}
 <div class="g2 med-s" data-med="all movietv movie show">
 <div id="sec-how" class="cd s-m"><h3><span class="i">👥</span>Watched With</h3><div id="pplc" style="height:280px"></div></div>
 <div class="cd s-m"><h3><span class="i">🏠</span>Where I Watch <span class="vtog" style="float:right"><button class="vb vb-on lb-loc" data-v="simple">Home/Theater</button><button class="vb lb-loc" data-v="detail">All Locations</button></span></h3><div id="locc" style="height:280px"></div></div>
-</div>
-<!-- COMPANION EPISODES -->
-<div class="g2 med-s" data-med="all movietv show" id="comp-eps-wrap" style="display:none">
-<div class="cd fw s-m"><h3><span class="i">🎬</span>Episodes by Companion</h3><div id="comp-eps-chart" style="height:300px"></div></div>
 </div>
 <div class="g2 med-s" data-med="all movietv movie show">
 <div class="cd s-m"><h3><span class="i">📺</span>Streaming Services</h3><div id="strc" style="height:280px"></div></div>
@@ -2089,35 +2089,42 @@ function renderCrewGrid(){
 var el=document.getElementById('crw-grid');var sec=document.getElementById('sec-crw-grid');
 if(!el||!sec||!D.crw||!D.crw.length){if(sec)sec.style.display='none';return}
 var isYr=cy!=='all';
+// Type filter: ct='movie' → movies only, ct='show' → shows only, else all
+var typeFilter=(ct==='movie'||ct==='show')?ct:null;
+function _crwSlugOk(slug){if(!typeFilter)return true;var sm=D.sm&&D.sm[slug];return sm&&sm.type===typeFilter}
 var h='',anyRole=false;
 D.crw.forEach(function(role){
   if(!role.items||!role.items.length)return;
-  var filtered;
+  var src;
   if(isYr&&role.yi&&role.yi[cy]){
-    // Use dedicated per-year list (includes people not in all-time top 20)
-    filtered=role.yi[cy].map(function(it){return{n:it.n,c:(it.cy&&it.cy[cy])||0,tsy:it.tsy}});
-    filtered.sort(function(a,b){return b.c-a.c});
+    src=role.yi[cy];
   }else if(isYr){
-    // Fallback: filter all-time items by year (old data without yi)
-    filtered=role.items.map(function(it){return{n:it.n,c:(it.cy&&it.cy[cy])||0,tsy:it.tsy}}).filter(function(it){return it.c>1});
-    filtered.sort(function(a,b){return b.c-a.c});
+    src=role.items;
   }else{
-    filtered=role.items.filter(function(it){return it.c>1});
+    src=role.items;
   }
+  // Build filtered list: recount titles matching type filter
+  var filtered=[];
+  src.forEach(function(it){
+    // Collect title slugs for the current view (year + type)
+    var allSlugs=[];
+    if(it.tsy){
+      if(isYr){allSlugs=it.tsy[cy]||[]}
+      else{var seen={};Object.keys(it.tsy).forEach(function(y){(it.tsy[y]||[]).forEach(function(s){if(!seen[s]){seen[s]=1;allSlugs.push(s)}})});}
+    }else if(it.ts){allSlugs=it.ts}
+    var typeSlugs=typeFilter?allSlugs.filter(_crwSlugOk):allSlugs;
+    var count=typeFilter?typeSlugs.length:(isYr?((it.cy&&it.cy[cy])||0):it.c);
+    if(count<2)return;
+    filtered.push({n:it.n,c:count,slugs:typeSlugs,tsy:it.tsy,ts:it.ts});
+  });
+  filtered.sort(function(a,b){return b.c-a.c});
   if(!filtered.length)return;
   anyRole=true;
   var top=filtered.slice(0,20);
   h+='<div class="crw-role"><h4>'+role.label+' <span style="font-weight:400;color:#666">('+filtered.length+')</span></h4><div class="crw-list">';
   top.forEach(function(it,idx){
     var uid=role.label.replace(/\W/g,'')+'_'+idx;
-    // Get titles for current filter: year-specific (tsy) or flat fallback (ts)
-    var titles=[];
-    if(it.tsy){
-      if(isYr){titles=it.tsy[cy]||[]}
-      else{var seen={};Object.keys(it.tsy).forEach(function(y){(it.tsy[y]||[]).forEach(function(s){if(!seen[s]){seen[s]=1;titles.push(s)}})});}
-    }else if(it.ts){
-      titles=it.ts;
-    }
+    var titles=typeFilter?it.slugs:it.slugs;
     var hasTitles=titles.length>0;
     h+='<div class="crw-item"><div class="crw-row'+(hasTitles?' crw-has-titles':'')+'" onclick="_crwToggle(\'crwt_'+uid+'\')">';
     h+='<span class="crw-n">'+it.n+'</span><span class="crw-c">'+it.c+'</span></div>';
