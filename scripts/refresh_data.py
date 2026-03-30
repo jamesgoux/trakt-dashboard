@@ -1381,13 +1381,14 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
             mc = sc = 0
             for t_slug in titles:
                 if t_slug in _crw_show_slugs:
-                    # Show: episode-level filtering (same logic as actors)
+                    # Show: episode-level filtering (softer than actors — many crew only have show-level credits)
                     if t_slug in _shows_with_sc and t_slug in _watched_eps:
-                        if t_slug not in person_role_eps:
-                            continue  # Season data exists but person not credited on any watched episode
-                        pe = set((ep[0], ep[1]) for ep in person_role_eps[t_slug])
-                        if not (pe & _watched_eps[t_slug]):
-                            continue  # Person's episodes weren't watched
+                        if t_slug in person_role_eps:
+                            # Has per-episode data: only count if credited on a watched episode
+                            pe = set((ep[0], ep[1]) for ep in person_role_eps[t_slug])
+                            if not (pe & _watched_eps[t_slug]):
+                                continue  # Person's episodes weren't watched
+                        # No episode data: person is credited at show level, count as 1 title
                     counted_titles.append(t_slug)
                     sc += 1
                 else:
