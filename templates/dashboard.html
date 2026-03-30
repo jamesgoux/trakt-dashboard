@@ -1208,22 +1208,11 @@ function _compSetFilter(name){
   window._compFilter=(window._compFilter===name)?null:name;
   _compRenderFilter();
   _compApplyFilter();
-  // Scroll snap to first visible section (same behavior as sort picker)
+  // Scroll to top of content (first visible section sits just below sticky header)
   var ov=document.getElementById('un-overlay');
   if(ov){
     _rwSuppressScroll();
-    requestAnimationFrame(function(){
-      // Find first visible section header after filtering
-      var firstVisible=null;
-      ov.querySelectorAll('.un-section').forEach(function(sec){
-        if(!firstVisible&&sec.style.display!=='none')firstVisible=sec;
-      });
-      if(firstVisible){
-        var hdrH=ov.firstElementChild?ov.firstElementChild.offsetHeight:70;
-        var anchorTop=firstVisible.getBoundingClientRect().top-ov.getBoundingClientRect().top+ov.scrollTop;
-        ov.scrollTop=Math.max(0,anchorTop-hdrH);
-      }else ov.scrollTop=0;
-    });
+    ov.scrollTop=0;
   }
 }
 // Render companion chips on show page
@@ -3438,7 +3427,7 @@ function renderCompEps(){
   var compAll=_compGetAll();// {slug: [name1, name2]}
   var slugs=Object.keys(compAll);
   if(!slugs.length){wrap.style.display='none';return}
-  // Build slug → show title map from TL
+  // Build slug → show title map from TL (shows only)
   var slugTitle={};
   TL.forEach(function(t){if(t.type!=='movie'&&t.sl)slugTitle[t.sl]=t.t});
   // Build show title → SYD entry map
@@ -3449,13 +3438,15 @@ function renderCompEps(){
   var compTotal={};// {name: total}
   var allYears={};
   var compDetail={};// {name: [{title, slug, year, eps}]} for click detail
+  var _dbgMatched=0,_dbgNoTitle=0,_dbgNoSyd=0;
   slugs.forEach(function(slug){
     var names=compAll[slug];
     if(!names||!names.length)return;
     var title=slugTitle[slug];
-    if(!title)return;
+    if(!title){_dbgNoTitle++;return}
     var syd=sydByTitle[title];
-    if(!syd||!syd.yd)return;
+    if(!syd||!syd.yd){_dbgNoSyd++;return}
+    _dbgMatched++;
     Object.keys(syd.yd).forEach(function(yr){
       var eps=syd.yd[yr].e||0;
       if(!eps)return;
@@ -3469,7 +3460,14 @@ function renderCompEps(){
       });
     });
   });
-  if(!Object.keys(compTotal).length){wrap.style.display='none';return}
+  if(!Object.keys(compTotal).length){
+    // Show diagnostic if companions exist but no episode data matched
+    if(slugs.length){
+      wrap.style.display='';
+      el.innerHTML='<div style="text-align:center;color:var(--t2);padding:30px;font-size:12px">'+slugs.length+' companion tags — '+_dbgMatched+' matched shows, '+_dbgNoTitle+' not in TL, '+_dbgNoSyd+' not in SYD</div>';
+    }else wrap.style.display='none';
+    return;
+  }
   wrap.style.display='';
   // Sort companions by total
   var sorted=Object.keys(compTotal).sort(function(a,b){return compTotal[b]-compTotal[a]});
