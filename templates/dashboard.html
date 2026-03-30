@@ -988,6 +988,20 @@ function _compRenameName(oldName,newName){var names=_compNames();var idx=names.i
 window._compFilter=null;
 window._compEditorSlug=null; // slug context for editor (null=filter bar edit)
 
+// Up Next sort mode: 'default' | 'pct' (% complete) | 'time' (time remaining)
+var _unSortMode='default';
+var _UN_SORTS=[
+  {id:'default',label:'Default',icon:'📋'},
+  {id:'pct',label:'% Complete',icon:'📊'},
+  {id:'time',label:'Time Left',icon:'⏱️'}
+];
+function _unCycleSort(){
+  var idx=_UN_SORTS.findIndex(function(s){return s.id===_unSortMode});
+  _unSortMode=_UN_SORTS[(idx+1)%_UN_SORTS.length].id;
+  _compRenderFilter();
+  _renderUpNext();
+}
+
 // Tint map: precomputed {slug: {color, names}} for instant card rendering
 var _compTintMap={};
 function _compBuildTintMap(){
@@ -1129,9 +1143,11 @@ function _compEdDelete(){
 function _compRenderFilter(){
   var el=document.getElementById('un-comp-filter');if(!el)return;
   var names=_compNames();
-  if(!names.length){el.style.display='none';return}
+  // Always show filter bar (sort button is useful even without companions)
   el.style.display='';
-  var h='<button onclick="_compSetFilter(null)" style="display:inline-block;padding:4px 12px;margin:0 3px;border-radius:14px;font-size:11px;font-weight:600;border:1px solid rgba(255,255,255,.15);cursor:pointer;background:'+(window._compFilter===null?'rgba(255,255,255,.15)':'transparent')+';color:'+(window._compFilter===null?'#fff':'var(--t2)')+'">All</button>';
+  var curSort=_UN_SORTS.find(function(s){return s.id===_unSortMode})||_UN_SORTS[0];
+  var sortActive=_unSortMode!=='default';
+  var h='<button onclick="_unCycleSort()" style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;margin:0 3px;border-radius:14px;font-size:11px;font-weight:600;border:1px solid '+(sortActive?'var(--tv)':'rgba(255,255,255,.15)')+';cursor:pointer;background:'+(sortActive?'rgba(20,184,166,.15)':'transparent')+';color:'+(sortActive?'#fff':'var(--t2)')+';-webkit-tap-highlight-color:transparent"><span style="font-size:10px">'+curSort.icon+'</span>'+curSort.label+'</button>';
   names.forEach(function(name){
     var active=window._compFilter===name;
     var col=_compColor(name);
@@ -5261,6 +5277,30 @@ function _renderUpNext(prerender){
   }
 
   var recentFiltered=recent.filter(function(s){return !_isRemoved(s.slug,s.season,s.episode,s.watched_at)});
+
+  if(_unSortMode!=='default'){
+    // Sorted view: flatten all shows into one list, no sections
+    var allSorted=newItems.concat(rest);
+    if(_unSortMode==='pct'){
+      allSorted.sort(function(a,b){
+        var pa=a.aired_total?a.completed/a.aired_total:0;
+        var pb=b.aired_total?b.completed/b.aired_total:0;
+        return pb-pa; // most complete first
+      });
+    }else if(_unSortMode==='time'){
+      allSorted.sort(function(a,b){return (a.remaining_min||0)-(b.remaining_min||0)}); // least time first
+    }
+    if(recentFiltered.length){
+      h+='<div class="un-section">\ud83d\udd50 Recently Watched <span id="un-rw-count" style="font-size:11px;opacity:.45;font-weight:400"></span></div><div class="un-grid" id="un-rw-grid">';
+      recentFiltered.slice().reverse().forEach(function(s){h+=card(s,true)});
+      h+='</div>';
+    }
+    var sortLabel=_unSortMode==='pct'?'📊 By % Complete':'⏱️ By Time Remaining';
+    h+='<div class="un-section" id="un-default-scroll">'+sortLabel+' ('+allSorted.length+')</div><div class="un-grid">';
+    allSorted.forEach(function(s){h+=card(s,false)});
+    h+='</div>';
+  } else {
+  // Default view: sectioned layout
   if(recentFiltered.length){
     h+='<div class="un-section">\ud83d\udd50 Recently Watched <span id="un-rw-count" style="font-size:11px;opacity:.45;font-weight:400"></span></div><div class="un-grid" id="un-rw-grid">';
     recentFiltered.slice().reverse().forEach(function(s){h+=card(s,true)});
@@ -5285,6 +5325,8 @@ function _renderUpNext(prerender){
     h+='<div class="un-section">'+(_needAnchor?'<span id="un-default-scroll"></span>':'')+'\ud83d\udce6 On Hold ('+stale.length+')</div><div class="un-grid">';
     stale.forEach(function(s){h+=card(s,false)});
     h+='</div>';
+  }
+  } // end default view
   }
   el.innerHTML=h;
   var ov=document.getElementById('un-overlay');
