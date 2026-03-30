@@ -20,6 +20,32 @@ from utils import retry_request
 TMDB_API_KEY = os.environ.get("TMDB_API_KEY", "")
 TMDB_BASE = "https://api.themoviedb.org/3"
 
+# All crew jobs to store in cache (matches CREW_ROLES in refresh_data.py + director/writer)
+_CACHE_CREW_JOBS = {
+    "Director", "Writer", "Screenplay", "Story", "Author", "Novel", "Original Story",
+    "Producer", "Executive Producer", "Co-Director",
+    "Characters", "Comic Book",
+    "Casting", "Casting Director", "Editor",
+    "Director of Photography",
+    "First Assistant Director", "Second Assistant Director",
+    "Additional Directing", "Second Unit Director",
+    "Gaffer", "Best Boy Electric", "Lighting Director",
+    "Camera Operator", "Steadicam Operator",
+    "Additional Photography", "Second Unit Director of Photography",
+    "Production Designer", "Production Design",
+    "Art Director", "Art Direction",
+    "Original Music Composer", "Music", "Music Supervisor",
+    "Sound Designer", "Sound Editor", "Supervising Sound Editor",
+    "Sound Re-Recording Mixer", "Sound Mixer", "Boom Operator", "Foley Artist",
+    "Visual Effects Supervisor", "Visual Effects Producer", "Visual Effects",
+    "Stunt Coordinator", "Stunts",
+    "Costume Designer", "Costume Design",
+    "Set Decorator", "Set Decoration",
+    "Makeup Artist", "Makeup Department Head", "Hair Department Head",
+    "Special Effects Makeup Artist", "Key Makeup Artist",
+    "Title Designer",
+}
+
 
 def _slugify(name):
     return name.lower().replace(" ", "-").replace("'", "").replace(".", "")
@@ -77,11 +103,12 @@ def main():
 
     print(f"Recently-watched shows: {len(recent_slugs)}")
 
-    # Find cache keys needing crew re-fetch
+    # Find cache keys needing crew re-fetch (no crew data OR missing expanded _ac flag)
     refetch = []
     for key, sdata in cache.items():
         has_crew = any(ep.get("crew") for ep in sdata.get("episodes", []))
-        if not has_crew:
+        has_expanded = sdata.get("_ac", False)
+        if not has_crew or not has_expanded:
             tmdb_id = key.split("|")[0]
             # Check if this tmdb_id maps to a recent slug
             for sl, tid in slug_to_tmdb.items():
@@ -105,6 +132,7 @@ def main():
             if r and r.status_code == 200:
                 sdata = r.json()
                 cache[key] = {
+                    "_ac": True,
                     "credits": {"cast": [{"name": c.get("name", ""), "gender": c.get("gender", 0)}
                                          for c in sdata.get("credits", {}).get("cast", [])]},
                     "episodes": [{"episode_number": ep.get("episode_number"),
@@ -112,7 +140,7 @@ def main():
                                                   for gs in ep.get("guest_stars", [])],
                                   "crew": [{"name": cr.get("name", ""), "job": cr.get("job", "")}
                                            for cr in ep.get("crew", [])
-                                           if cr.get("job") in ("Director", "Writer", "Screenplay", "Story")]
+                                           if cr.get("job") in _CACHE_CREW_JOBS]
                                   } for ep in sdata.get("episodes", [])]
                 }
                 fetched += 1
