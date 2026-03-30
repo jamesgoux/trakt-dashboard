@@ -1212,7 +1212,7 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
                 for t_slug in titles:
                     for yr in slug_watch_years.get(t_slug, set()):
                         cy_counts[yr] += 1
-                item = {"n": info["name"], "c": n_titles}
+                item = {"n": info["name"], "c": n_titles, "ts": list(titles)[:15]}
                 if cy_counts:
                     item["cy"] = dict(cy_counts)
                 items.append(item)

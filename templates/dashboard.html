@@ -77,7 +77,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
 .chart-detail .cd-item:last-child{border:none}
 .chart-detail .cd-close{float:right;cursor:pointer;color:var(--t2);font-size:14px}
 .chart-detail.ll-detail .cd-item{justify-content:flex-start;gap:6px}
-#crw-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px 24px}.crw-role{margin-bottom:2px}.crw-role h4{font-size:11px;color:var(--t2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;font-weight:500}.crw-list{display:grid;grid-template-columns:repeat(2,1fr);gap:2px 20px}.crw-item{display:flex;justify-content:space-between;align-items:center;padding:3px 0;font-size:12px;border-bottom:1px solid rgba(255,255,255,.03)}.crw-item .crw-n{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0}.crw-item .crw-c{color:var(--t2);font-weight:600;font-variant-numeric:tabular-nums;margin-left:6px;flex-shrink:0}
+#crw-grid{column-count:2;column-gap:20px}.crw-role{break-inside:avoid;margin-bottom:10px}.crw-role h4{font-size:11px;color:var(--t2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;font-weight:500}.crw-list{display:flex;flex-direction:column}.crw-item{font-size:12px;border-bottom:1px solid rgba(255,255,255,.03)}.crw-item .crw-row{display:flex;justify-content:space-between;align-items:center;padding:4px 0;cursor:pointer;-webkit-tap-highlight-color:transparent}.crw-item .crw-row:active{background:rgba(255,255,255,.03)}.crw-item .crw-n{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0}.crw-item .crw-c{color:var(--t2);font-weight:600;font-variant-numeric:tabular-nums;margin-left:6px;flex-shrink:0}.crw-titles{padding:2px 0 6px 8px;display:none}.crw-titles.open{display:block}.crw-titles div{font-size:11px;color:var(--t2);padding:2px 0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .status{text-align:center;padding:20px;color:var(--t2);font-size:11px;border-top:1px solid rgba(255,255,255,.04);margin-top:20px}
 .status span{margin:0 10px}
 .ll-day{margin-bottom:24px}.ll-day-hdr{font-size:13px;font-weight:700;color:var(--t2);padding:8px 0 8px 54px;border-bottom:1px solid rgba(255,255,255,.06);margin-bottom:0;position:sticky;top:56px;background:var(--bg);z-index:2}
@@ -275,8 +275,7 @@ body{overflow-x:hidden}
 #filter-btn{flex:1}
 .fbtn select{font-size:13px;padding:0 8px;line-height:44px;height:44px}
 .hbtn{min-height:44px;padding:8px 12px;font-size:20px}
-#crw-grid{grid-template-columns:1fr}
-.crw-list{grid-template-columns:repeat(2,1fr)}
+#crw-grid{column-count:2;column-gap:14px}
 }
 .iris-loader{position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity .5s ease;pointer-events:auto}
 .iris-loader.fade-out{opacity:0;pointer-events:none}
@@ -2071,15 +2070,31 @@ D.crw.forEach(function(role){
   if(!role.items||!role.items.length)return;
   var filtered;
   if(isYr){
-    filtered=role.items.map(function(it){return{n:it.n,c:(it.cy&&it.cy[cy])||0}}).filter(function(it){return it.c>0});
+    filtered=role.items.map(function(it){return{n:it.n,c:(it.cy&&it.cy[cy])||0,ts:it.ts||[]}}).filter(function(it){return it.c>1});
     filtered.sort(function(a,b){return b.c-a.c});
-  }else{filtered=role.items}
+  }else{
+    filtered=role.items.filter(function(it){return it.c>1});
+  }
   if(!filtered.length)return;
   anyRole=true;
   var top=filtered.slice(0,20);
   h+='<div class="crw-role"><h4>'+role.label+' <span style="font-weight:400;color:#666">('+filtered.length+')</span></h4><div class="crw-list">';
-  top.forEach(function(it){
-    h+='<div class="crw-item"><span class="crw-n">'+it.n+'</span><span class="crw-c">'+it.c+'</span></div>';
+  top.forEach(function(it,idx){
+    var uid=role.label.replace(/\W/g,'')+'_'+idx;
+    h+='<div class="crw-item"><div class="crw-row" onclick="var t=document.getElementById(\'crwt_'+uid+'\');if(t)t.classList.toggle(\'open\')">';
+    h+='<span class="crw-n">'+it.n+'</span><span class="crw-c">'+it.c+'</span></div>';
+    // Title list (hidden, toggles on click)
+    var titles=it.ts||[];
+    if(titles.length){
+      h+='<div class="crw-titles" id="crwt_'+uid+'">';
+      titles.forEach(function(slug){
+        var sm=D.sm&&D.sm[slug];
+        var tName=sm?sm.t:slug.replace(/-/g,' ');
+        h+='<div>• '+tName+'</div>';
+      });
+      h+='</div>';
+    }
+    h+='</div>';
   });
   h+='</div></div>';
 });
