@@ -2061,6 +2061,13 @@ var dr=document.createElement('tr');dr.className='dr';var h='<td colspan="5"><ta
 _tItems.forEach(function(it){h+='<tr'+(it.grn?' style="background:rgba(74,222,128,.08)"':'')+'><td><span class="badge '+(it.t.type==='movie'?'b-m':'b-e')+'">'+it.t.type+'</span></td><td style="font-weight:600'+(it.grn?';color:#4ade80':'')+'">'+it.t.t+it.ep+'</td><td style="color:var(--t2)">'+(it.t.yr||'')+'</td></tr>'});
 h+='</table></td>';dr.innerHTML=h;tr.after(dr)};tb.appendChild(tr)})}
 
+function _crwToggle(id){
+  var t=document.getElementById(id);if(!t)return;
+  var opening=!t.classList.contains('open');
+  var prev=document.querySelector('.crw-titles.open');
+  if(prev&&prev.id!==id)prev.classList.remove('open');
+  if(opening)t.classList.add('open');else t.classList.remove('open');
+}
 function renderCrewGrid(){
 var el=document.getElementById('crw-grid');var sec=document.getElementById('sec-crw-grid');
 if(!el||!sec||!D.crw||!D.crw.length){if(sec)sec.style.display='none';return}
@@ -2070,7 +2077,7 @@ D.crw.forEach(function(role){
   if(!role.items||!role.items.length)return;
   var filtered;
   if(isYr){
-    filtered=role.items.map(function(it){return{n:it.n,c:(it.cy&&it.cy[cy])||0,ts:it.ts||[]}}).filter(function(it){return it.c>1});
+    filtered=role.items.map(function(it){return{n:it.n,c:(it.cy&&it.cy[cy])||0,tsy:it.tsy}}).filter(function(it){return it.c>1});
     filtered.sort(function(a,b){return b.c-a.c});
   }else{
     filtered=role.items.filter(function(it){return it.c>1});
@@ -2081,9 +2088,14 @@ D.crw.forEach(function(role){
   h+='<div class="crw-role"><h4>'+role.label+' <span style="font-weight:400;color:#666">('+filtered.length+')</span></h4><div class="crw-list">';
   top.forEach(function(it,idx){
     var uid=role.label.replace(/\W/g,'')+'_'+idx;
-    var titles=it.ts||[];
+    // Get titles for current filter: year-specific or all years
+    var titles=[];
+    if(it.tsy){
+      if(isYr){titles=it.tsy[cy]||[]}
+      else{var seen={};Object.keys(it.tsy).forEach(function(y){(it.tsy[y]||[]).forEach(function(s){if(!seen[s]){seen[s]=1;titles.push(s)}})});}
+    }
     var hasTitles=titles.length>0;
-    h+='<div class="crw-item"><div class="crw-row'+(hasTitles?' crw-has-titles':'')+'" onclick="var t=document.getElementById(\'crwt_'+uid+'\');if(t)t.classList.toggle(\'open\')">';
+    h+='<div class="crw-item"><div class="crw-row'+(hasTitles?' crw-has-titles':'')+'" onclick="_crwToggle(\'crwt_'+uid+'\')">';
     h+='<span class="crw-n">'+it.n+'</span><span class="crw-c">'+it.c+'</span></div>';
     if(hasTitles){
       h+='<div class="crw-titles" id="crwt_'+uid+'">';
