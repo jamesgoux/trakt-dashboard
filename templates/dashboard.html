@@ -1006,9 +1006,12 @@ function _compUpdateAllCards(){
   document.querySelectorAll('.un-card[data-slug]').forEach(function(card){
     var slug=card.dataset.slug;
     var t=_compTintMap[slug];
-    if(t){
-      card.style.background=t.color+'30';
-    }else{card.style.background=''}
+    card.style.background='';
+    var wb=card.querySelector('.un-watch-btn');
+    if(wb){
+      if(t){wb.style.background=t.color;wb.style.color='#fff'}
+      else{wb.style.background='';wb.style.color=''}
+    }
   });
 }
 
@@ -1205,14 +1208,16 @@ function _compToggleShow(slug,name){
   _compRenderFilter();
   _compUpdateCards(slug);
 }
-// Live-update card backgrounds for a slug (background tint only)
+// Live-update watch buttons for a slug (companion color on button)
 function _compUpdateCards(slug){
   var comps=_compForSlug(slug);
   document.querySelectorAll('.un-card[data-slug="'+slug+'"]').forEach(function(card){
-    if(comps.length){
-      var col=_compColor(comps[0]);
-      card.style.background=col+'30';
-    }else{card.style.background=''}
+    card.style.background='';
+    var wb=card.querySelector('.un-watch-btn');
+    if(wb){
+      if(comps.length){var col=_compColor(comps[0]);wb.style.background=col;wb.style.color='#fff'}
+      else{wb.style.background='';wb.style.color=''}
+    }
   });
 }
 
@@ -5228,15 +5233,13 @@ function _renderUpNext(prerender){
     var poster=s.poster;
     if(!poster){var match=ud.shows.find(function(x){return x.slug===s.slug});if(match)poster=match.poster}
     var _tm=_compTintMap[s.slug];
-    var _cardStyle=_tm?'background:'+_tm.color+'30':'';
-    var c='<div class="un-card un-card-tap" data-slug="'+s.slug+'" data-s="'+s.season+'" data-e="'+s.episode+'" data-eid="'+(s.ep_trakt_id||0)+'" data-tmdb="'+(s.tmdb_id||'')+'" onclick="showEpDetail(this)"'+(_cardStyle?' style="'+_cardStyle+'"':'')+'>';
+    var c='<div class="un-card un-card-tap" data-slug="'+s.slug+'" data-s="'+s.season+'" data-e="'+s.episode+'" data-eid="'+(s.ep_trakt_id||0)+'" data-tmdb="'+(s.tmdb_id||'')+'" onclick="showEpDetail(this)">';
     if(poster)c+='<img class="un-poster" src="'+poster+'" loading="lazy" onerror="this.style.display=\'none\'" alt="">';
     else c+='<div class="un-poster-ph">📺</div>';
     c+='<div class="un-info">';
     c+='<div style="display:flex;align-items:center;gap:6px"><div class="un-show" style="flex:1;min-width:0">'+s.show+'</div>';
     if(!isRecent&&s.stream&&s.stream.length){c+='<div class="un-stream">';s.stream.forEach(function(st){c+='<img src="'+st.i+'" title="'+st.n+'" loading="lazy">'});c+='</div>'}
     c+='</div>';
-    // Companion indicator is the card background tint (no pills)
     c+='<div class="un-ep">S'+String(s.season).padStart(2,'0')+'E'+String(s.episode).padStart(2,'0');
     if(s.ep_title)c+=' — '+s.ep_title;
     c+='</div>';
@@ -5245,7 +5248,8 @@ function _renderUpNext(prerender){
       c+='<div class="un-prog-text"><span>'+(s.ep_runtime?_unFmtMin(s.ep_runtime):'')+'</span><span>'+(s.eps_left||0)+' eps · '+_unFmtMin(s.remaining_min)+'</span></div>';
       c+='</div></div>';
       if(s.is_new)c+='<div class="un-new">New</div>';
-      c+='<button onclick="event.stopPropagation();markWatched(\''+s.slug.replace(/'/g,"\\'")+'\','+s.season+','+s.episode+','+(s.ep_trakt_id||0)+',this)" class="un-watch-btn" title="Mark watched">✓</button>';
+      var _wbStyle=_tm?'background:'+_tm.color+';color:#fff':'';
+      c+='<button onclick="event.stopPropagation();markWatched(\''+s.slug.replace(/'/g,"\\'")+'\','+s.season+','+s.episode+','+(s.ep_trakt_id||0)+',this)" class="un-watch-btn"'+(_wbStyle?' style="'+_wbStyle+'"':'')+' title="Mark watched">✓</button>';
     }else{
       var wa=s.watched_at?s.watched_at.substring(0,10):'';
       c+='<div class="un-meta"><span>'+wa+'</span></div>';
