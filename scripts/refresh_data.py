@@ -226,6 +226,16 @@ def fetch_cast_and_studios(entries):
     if _need_refetch and tmdb_credits_done:
         print(f"  ⚡ Bootstrapping crew extraction: clearing {len(tmdb_credits_done)} credits-done to re-fetch")
         tmdb_credits_done = set()
+    # Billing order backfill: identify slugs that have no billing data in people.json
+    # These need TMDB re-fetch even if credits were previously fetched (before billing feature)
+    _slugs_with_billing = set()
+    for _pid, _pinfo in people.items():
+        for _bslug in _pinfo.get("billing", {}).keys():
+            _slugs_with_billing.add(_bslug)
+    _bo_missing = tmdb_credits_done - _slugs_with_billing
+    if _bo_missing:
+        print(f"  ⚡ Billing order backfill: {len(_bo_missing)} slugs need re-fetch (of {len(tmdb_credits_done)} done)")
+        tmdb_credits_done -= _bo_missing
     all_slugs = [(s, "shows") for s in show_slugs] + [(s, "movies") for s in movie_slugs]
     # Sort by recency: recently watched titles first so new content gets processed before budget runs out
     slug_recency = {}
@@ -1371,13 +1381,14 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
             mc = sc = 0
             for t_slug in titles:
                 if t_slug in _crw_show_slugs:
-                    # Show: episode-level filtering (same logic as actors)
+                    # Show: episode-level filtering (softer than actors — many crew only have show-level credits)
                     if t_slug in _shows_with_sc and t_slug in _watched_eps:
-                        if t_slug not in person_role_eps:
-                            continue  # Season data exists but person not credited on any watched episode
-                        pe = set((ep[0], ep[1]) for ep in person_role_eps[t_slug])
-                        if not (pe & _watched_eps[t_slug]):
-                            continue  # Person's episodes weren't watched
+                        if t_slug in person_role_eps:
+                            # Has per-episode data: only count if credited on a watched episode
+                            pe = set((ep[0], ep[1]) for ep in person_role_eps[t_slug])
+                            if not (pe & _watched_eps[t_slug]):
+                                continue  # Person's episodes weren't watched
+                        # No episode data: person is credited at show level, count as 1 title
                     counted_titles.append(t_slug)
                     sc += 1
                 else:
