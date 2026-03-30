@@ -2088,11 +2088,13 @@ D.crw.forEach(function(role){
   h+='<div class="crw-role"><h4>'+role.label+' <span style="font-weight:400;color:#666">('+filtered.length+')</span></h4><div class="crw-list">';
   top.forEach(function(it,idx){
     var uid=role.label.replace(/\W/g,'')+'_'+idx;
-    // Get titles for current filter: year-specific or all years
+    // Get titles for current filter: year-specific (tsy) or flat fallback (ts)
     var titles=[];
     if(it.tsy){
       if(isYr){titles=it.tsy[cy]||[]}
       else{var seen={};Object.keys(it.tsy).forEach(function(y){(it.tsy[y]||[]).forEach(function(s){if(!seen[s]){seen[s]=1;titles.push(s)}})});}
+    }else if(it.ts){
+      titles=it.ts;
     }
     var hasTitles=titles.length>0;
     h+='<div class="crw-item"><div class="crw-row'+(hasTitles?' crw-has-titles':'')+'" onclick="_crwToggle(\'crwt_'+uid+'\')">';
