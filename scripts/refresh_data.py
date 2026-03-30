@@ -444,6 +444,9 @@ def fetch_cast_and_studios(entries):
                             role_key = CREW_ROLES.get(cjob)
                             if role_key:
                                 other_crew_ep[role_key][cpid][slug].add((season_num, ep_num, wy))
+                                # Also register in title-level other_crew so grid builder discovers TV crew
+                                other_crew[role_key][cpid]["name"] = cname
+                                other_crew[role_key][cpid]["titles"].add(slug)
 
         # Save cache
         with open(season_cache_path, "w") as f:
@@ -1313,11 +1316,13 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
     for role_key in ROLE_ORDER:
         ppl = other_crew_raw.get(role_key, {})
         role_ep = other_crew_ep.get(role_key, {})
-        if not ppl:
+        if not ppl and not role_ep:
             continue
         # Merge entries with same name (TMDB vs Trakt PIDs)
         _crw_by_name = {}
+        _crw_seen_pids = set()
         for pid, info in ppl.items():
+            _crw_seen_pids.add(pid)
             name = info["name"]
             pid_eps = role_ep.get(pid, {})
             if name in _crw_by_name:
@@ -1335,6 +1340,29 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
             else:
                 _crw_by_name[name] = {"name": name, "titles": list(info.get("titles", [])),
                                        "eps": {s: list(e) for s, e in pid_eps.items()}}
+        # Also include people who only have episode credits (not in aggregate other_crew)
+        for pid, shows in role_ep.items():
+            if pid in _crw_seen_pids:
+                continue
+            # Derive name from PID (title-cased slug); titles = show slugs from episode credits
+            name = pid.replace("-", " ").title()
+            ep_slugs = list(shows.keys())
+            pid_eps_data = {s: list(e) for s, e in shows.items()}
+            if name in _crw_by_name:
+                bn = _crw_by_name[name]
+                for s in ep_slugs:
+                    if s not in bn["titles"]: bn["titles"].append(s)
+                for slug, eps in pid_eps_data.items():
+                    if slug not in bn["eps"]:
+                        bn["eps"][slug] = eps
+                    else:
+                        existing = set((e[0], e[1]) for e in bn["eps"][slug])
+                        for ep in eps:
+                            if (ep[0], ep[1]) not in existing:
+                                bn["eps"][slug].append(ep)
+            else:
+                _crw_by_name[name] = {"name": name, "titles": ep_slugs,
+                                       "eps": pid_eps_data}
         items = []
         for name, minfo in _crw_by_name.items():
             titles = minfo["titles"]
