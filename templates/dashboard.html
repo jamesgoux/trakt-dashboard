@@ -1210,23 +1210,28 @@ function _compSetFilter(name){
   // If on a sub-page, go back to home view first so filter applies to card grid
   if(_unCurrentView!=='home'){_unCurrentView='home';_unNavStack=[];_renderUpNext();_unUpdateHeader()}
   _compApplyFilter();
-  // Scroll to default anchor (past Recently Watched, same as normal open)
-  // rAF ensures layout changes from _compApplyFilter are flushed before measuring
+  // Scroll past Recently Watched to first real section (Continue Watching / New Episodes)
   var ov=document.getElementById('un-overlay');
   if(ov){
     _rwSuppressScroll();
-    requestAnimationFrame(function(){
-      var anchor=document.getElementById('un-default-scroll');
-      if(anchor&&anchor.offsetParent!==null){
-        var hdrH=ov.firstElementChild?ov.firstElementChild.offsetHeight:70;
-        var anchorTop=anchor.getBoundingClientRect().top-ov.getBoundingClientRect().top+ov.scrollTop;
-        ov.scrollTop=Math.max(0,anchorTop-hdrH);
-      } else {
-        // Anchor hidden or missing — find first visible section
-        var secs=ov.querySelectorAll('#un-content .un-section');
-        for(var i=0;i<secs.length;i++){if(secs[i].offsetParent!==null){var hdrH=ov.firstElementChild?ov.firstElementChild.offsetHeight:70;var ft=secs[i].getBoundingClientRect().top-ov.getBoundingClientRect().top+ov.scrollTop;ov.scrollTop=Math.max(0,ft-hdrH);break}}
+    // Use setTimeout to ensure iOS Safari flushes layout + scroll state
+    setTimeout(function(){
+      // Find first visible section that isn't Recently Watched
+      var secs=ov.querySelectorAll('#un-content .un-section');
+      var target=null;
+      for(var i=0;i<secs.length;i++){
+        var s=secs[i];
+        if(s.style.display==='none')continue;
+        // Skip the Recently Watched section (contains un-rw-count badge)
+        if(s.querySelector('#un-rw-count'))continue;
+        target=s;break;
       }
-    });
+      if(target){
+        var hdrH=ov.firstElementChild?ov.firstElementChild.offsetHeight:70;
+        var t=target.getBoundingClientRect().top-ov.getBoundingClientRect().top+ov.scrollTop;
+        ov.scrollTop=Math.max(0,t-hdrH);
+      }
+    },50);
   }
 }
 // Render companion chips on show page
