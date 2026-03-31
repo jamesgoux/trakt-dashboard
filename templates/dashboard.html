@@ -26,6 +26,7 @@ body{background:var(--bg);color:var(--tx);font-family:-apple-system,BlinkMacSyst
 .hbtn:active{background:#333;transform:scale(.92)}
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes pulse{0%{opacity:1}50%{opacity:.5}100%{opacity:1}}
+@keyframes wlSaveIn{from{transform:translateY(100%);opacity:0}to{transform:translateY(0);opacity:1}}
 .hbtn-spin{animation:spin .8s ease;display:inline-block}
 .fbar-pulse{animation:pulse .4s ease}
 .sg{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:22px}
@@ -5431,6 +5432,8 @@ function _setupRWVirtualScroll(ov){
     hdrBar._unTap=true;hdrBar.style.cursor='pointer';
     hdrBar.onclick=function(e){
       if(e.target.closest('button'))return;// Don't hijack back button
+      // On non-home views (watchlist, calendar, etc.), scroll to top
+      if(_unCurrentView!=='home'){ov.scrollTo({top:0,behavior:'smooth'});return}
       var anchor=document.getElementById('un-default-scroll');
       if(anchor){var hh=hdrBar.offsetHeight||70;var at=anchor.getBoundingClientRect().top-ov.getBoundingClientRect().top+ov.scrollTop;ov.scrollTo({top:Math.max(0,at-hh),behavior:'smooth'})}
     };
@@ -7292,9 +7295,8 @@ function _unSetView(view,data){
   }
   _unCurrentView=view;
   _unUpdateHeader();
-  // When entering search view, show the search header
-  if(view==='search'){
-  }
+  // Hide companion filter bar on non-home views
+  if(view!=='home'){var cf=document.getElementById('un-comp-filter');if(cf)cf.style.display='none'}
 }
 
 function _unUpdateHeader(){
@@ -7354,6 +7356,7 @@ function _unNavBack(){
   }
   // Auto-save watchlist order silently when navigating away
   if(_unCurrentView==='watchlist'&&_wlDirty){_wlDirty=false;_wlSyncToTrakt()}
+  var sb=document.getElementById('wl-save-bar');if(sb)sb.remove();
   if(_unNavStack.length){
     var prev=_unNavStack.pop();
     _unCurrentView=prev.view;
@@ -7504,8 +7507,7 @@ function _wlRender(){
   }
 
   h+='<div class="un-wl-count" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">'+items.length+' '+(_wlFilter==='movie'?'movies':'shows');
-  if(isCustom&&_wlDirty)h+=' · <button id="wl-save-btn" onclick="_wlSaveOrder()" style="display:inline-flex;align-items:center;gap:4px;padding:3px 12px;border-radius:12px;border:1px solid var(--tv);background:rgba(20,184,166,.15);color:var(--tv);font-size:11px;font-weight:600;cursor:pointer">Save Order</button>';
-  else if(isCustom)h+=' · <span style="color:var(--t2);font-size:11px">drag to reorder</span>';
+  if(isCustom)h+=' · <span style="color:var(--t2);font-size:11px">drag to reorder</span>';
   h+='</div>';
   h+='<div class="un-wl-list" id="wl-list">';
 
@@ -7596,7 +7598,24 @@ function _wlRender(){
   });
 
   h+='</div>'; // .un-wl-list
+  if(isCustom)h+='<div style="height:80px"></div>'; // spacer for sticky save bar
   el.innerHTML=h;
+  // Show/hide sticky save bar
+  _wlUpdateSaveBar();
+}
+
+function _wlUpdateSaveBar(){
+  var existing=document.getElementById('wl-save-bar');
+  if(_wlSort==='custom'&&_wlDirty){
+    if(!existing){
+      var bar=document.createElement('div');bar.id='wl-save-bar';
+      bar.style.cssText='position:fixed;bottom:0;left:0;width:100%;z-index:9050;padding:12px 16px;background:rgba(15,15,15,.95);backdrop-filter:blur(12px);border-top:1px solid rgba(20,184,166,.25);display:flex;align-items:center;gap:12px;justify-content:center;animation:wlSaveIn .25s ease';
+      bar.innerHTML='<span style="color:var(--t2);font-size:12px">Unsaved changes</span><button id="wl-save-btn" onclick="_wlSaveOrder()" style="padding:10px 28px;background:var(--tv);color:#fff;border:none;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;min-height:44px;letter-spacing:.3px">Save Order</button>';
+      document.body.appendChild(bar);
+    }
+  }else{
+    if(existing)existing.remove();
+  }
 }
 
 function _wlSetFilter(f){_wlFilter=f;_wlRender()}
@@ -7611,7 +7630,7 @@ function _wlSaveOrder(){
   if(btn){btn.textContent='Saving…';btn.style.opacity='.6';btn.disabled=true}
   _wlSyncToTrakt(function(ok){
     _wlDirty=false;
-    _wlRender();
+    _wlUpdateSaveBar();
   });
 }
 
@@ -7736,6 +7755,49 @@ function _wlSyncToTrakt(cb){
   }).catch(function(e){
     console.warn('Watchlist sync failed:',e);
     if(cb)cb(false);
+  });
+}
+
+// ─── Watchlist Add/Remove (Trakt API) ────────────────────────────
+function _wlIsOnWatchlist(type,slug){
+  var wl=D.wlst||{};
+  var items=type==='movie'?(wl.movies||[]):(wl.shows||[]);
+  return items.some(function(it){return it.slug===slug});
+}
+
+function _wlToggle(type,slug,traktId,btn){
+  var isOn=_wlIsOnWatchlist(type,slug);
+  if(!D._tc||!D._tt){alert('Trakt credentials not available');return}
+  if(btn){btn.disabled=true;btn.style.opacity='.6';btn.textContent=isOn?'Removing…':'Adding…'}
+  var hdr={'Content-Type':'application/json','trakt-api-version':'2','trakt-api-key':D._tc,'Authorization':'Bearer '+D._tt};
+  var bodyKey=type==='movie'?'movies':'shows';
+  var body={};body[bodyKey]=[{ids:{trakt:traktId,slug:slug}}];
+  var url=isOn?'https://api.trakt.tv/sync/watchlist/remove':'https://api.trakt.tv/sync/watchlist';
+  fetch(url,{method:'POST',headers:hdr,body:JSON.stringify(body)})
+  .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json()})
+  .then(function(res){
+    // Update local data
+    var wl=D.wlst||(D.wlst={});
+    var key=type==='movie'?'movies':'shows';
+    if(!wl[key])wl[key]=[];
+    if(isOn){
+      wl[key]=wl[key].filter(function(it){return it.slug!==slug});
+    }else{
+      wl[key].push({slug:slug,trakt_id:traktId,source:'trakt',title:slug.replace(/-/g,' ')});
+    }
+    var nowOn=!isOn;
+    if(btn){
+      btn.disabled=false;btn.style.opacity='';
+      btn.textContent=nowOn?'✓ On Watchlist':'+ Add to Watchlist';
+      btn.style.borderColor=nowOn?'var(--tv)':'rgba(255,255,255,.15)';
+      btn.style.background=nowOn?'rgba(20,184,166,.15)':'rgba(255,255,255,.04)';
+      btn.style.color=nowOn?'var(--tv)':'var(--t2)';
+    }
+  })
+  .catch(function(e){
+    console.warn('Watchlist toggle failed:',e);
+    if(btn){btn.disabled=false;btn.style.opacity='';btn.textContent=isOn?'✓ On Watchlist':'+ Add to Watchlist'}
+    alert('Failed: '+e.message);
   });
 }
 
@@ -8052,6 +8114,9 @@ function _unOpenMovie(slug,tmdbId){
     }
     // Box office
     h+=_boDetailHtml(slug,movie.year||0);
+    // Watchlist button
+    var _onWl=_wlIsOnWatchlist('movie',slug);
+    h+='<button id="un-mv-wl-btn" onclick="_wlToggle(\'movie\',\''+slug.replace(/'/g,"\\'")+'\','+(movie.ids.trakt||0)+',this)" style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:12px;margin-bottom:12px;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;min-height:44px;border:1px solid '+(_onWl?'var(--tv)':'rgba(255,255,255,.15)')+';background:'+(_onWl?'rgba(20,184,166,.15)':'rgba(255,255,255,.04)')+';color:'+(_onWl?'var(--tv)':'var(--t2)')+'">'+(_onWl?'✓ On Watchlist':'+ Add to Watchlist')+'</button>';
     // Watch buttons — above synopsis
     var _mvReleaseDate=movie.released||'';
     h+='<div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:nowrap">';
@@ -8279,6 +8344,9 @@ function _unRenderShowPage(slug,show,seasons,progress,tmdbId){
   }
   // Companion tags
   h+='<div id="un-comp-tags">'+_compRenderShowTags(slug)+'</div>';
+  // Watchlist button
+  var _shOnWl=_wlIsOnWatchlist('show',slug);
+  h+='<button id="un-sh-wl-btn" onclick="_wlToggle(\'show\',\''+slug.replace(/'/g,"\\'")+'\','+(show.ids&&show.ids.trakt||0)+',this)" style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;max-width:360px;margin:8px auto 12px;padding:10px;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;min-height:44px;border:1px solid '+(_shOnWl?'var(--tv)':'rgba(255,255,255,.15)')+';background:'+(_shOnWl?'rgba(20,184,166,.15)':'rgba(255,255,255,.04)')+';color:'+(_shOnWl?'var(--tv)':'var(--t2)')+'">'+(_shOnWl?'✓ On Watchlist':'+ Add to Watchlist')+'</button>';
   if(show.overview){
     h+='<div class="un-show-overview" id="un-sh-overview">'+show.overview+'</div>';
     h+='<div class="un-show-more" onclick="var o=document.getElementById(\'un-sh-overview\');o.classList.toggle(\'expanded\');this.textContent=o.classList.contains(\'expanded\')?\'Show less\':\'Show more\'">Show more</div>';
@@ -8610,6 +8678,7 @@ function _unToggleEpWatched(ev,slug,season,episode,epTraktId,btn){
 function closeUpNext(){
   // Auto-save watchlist order silently if leaving with unsaved changes
   if(_wlDirty){_wlDirty=false;_wlSyncToTrakt()}
+  var sb=document.getElementById('wl-save-bar');if(sb)sb.remove();
   _unCurrentView='home';
   _unNavStack=[];
   _unUpdateHeader();
@@ -8646,10 +8715,11 @@ function closeUpNext(){
     var adx=Math.abs(dx),ady=Math.abs(dy);
     if(!_dir&&(adx>10||ady>10)){
       if(_onSub){
-        // Sub-page: horizontal (right) swipe-back or vertical dismiss
+        // Sub-page: horizontal (right) swipe-back; vertical dismiss only on detail pages (not watchlist/calendar)
+        var _noVert=_unCurrentView==='watchlist'||_unCurrentView==='calendar';
         if(adx>ady&&dx>0){_dir='h'}
-        else if(ady>adx&&dy>0&&_atTop){_dir='v'}
-        else if(ady>adx&&dy<0&&_atBot){_dir='v'}
+        else if(!_noVert&&ady>adx&&dy>0&&_atTop){_dir='v'}
+        else if(!_noVert&&ady>adx&&dy<0&&_atBot){_dir='v'}
         else{_dir='none';tracking=false;return}// Let scroll happen
       }else{
         // Home: only horizontal right
