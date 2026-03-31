@@ -7426,7 +7426,7 @@ function _unGoHome(restoreScroll){
 
 // ─── Watchlist ───────────────────────────────────────────────────
 var _wlFilter='movie'; // 'movie' or 'show'
-var _wlSort='added'; // 'added', 'title', 'runtime', 'rating', 'custom'
+var _wlSort=(function(){try{var s=localStorage.getItem('iris-wl-sort');if(s&&['added','custom','title','runtime','rating'].indexOf(s)>=0)return s}catch(e){}return'custom'})();
 var _wlCustomOrder={movies:[],shows:[]};
 var _wlListSlug=null; // Trakt list slug for persistence
 var _wlDragActive=false;
@@ -7622,7 +7622,9 @@ function _wlSetFilter(f){_wlFilter=f;_wlRender()}
 function _wlSetSort(s){
   // If leaving custom mode with unsaved changes, auto-save silently
   if(_wlSort==='custom'&&s!=='custom'&&_wlDirty){_wlDirty=false;_wlSyncToTrakt()}
-  _wlSort=s;_wlRender();
+  _wlSort=s;
+  try{localStorage.setItem('iris-wl-sort',s)}catch(e){}
+  _wlRender();
 }
 
 function _wlSaveOrder(){
