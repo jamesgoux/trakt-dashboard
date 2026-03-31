@@ -1166,6 +1166,8 @@ function _compEdDelete(){
 
 function _compRenderFilter(){
   var el=document.getElementById('un-comp-filter');if(!el)return;
+  // Hide companion/sort bar on non-home views (watchlist, calendar, etc. have their own controls)
+  if(_unCurrentView&&_unCurrentView!=='home'){el.style.display='none';return}
   var names=_compNames();
   // Always show filter bar (sort button is useful even without companions)
   el.style.display='';
@@ -7350,6 +7352,8 @@ function _unNavBack(){
     _unCloseSearchOverlay();
     return;
   }
+  // Auto-save watchlist order silently when navigating away
+  if(_unCurrentView==='watchlist'&&_wlDirty){_wlDirty=false;_wlSyncToTrakt()}
   if(_unNavStack.length){
     var prev=_unNavStack.pop();
     _unCurrentView=prev.view;
@@ -7428,6 +7432,7 @@ var _wlDragGhost=null;
 var _wlDragOverIdx=-1;
 var _wlItems=null; // current items array reference
 var _wlScrollTimer=null;
+var _wlDirty=false; // true when custom order changed but not yet synced
 
 // Init custom order from D.wlst.custom_order or localStorage
 (function(){
@@ -7498,8 +7503,9 @@ function _wlRender(){
     el.innerHTML=h;return;
   }
 
-  h+='<div class="un-wl-count">'+items.length+' '+(_wlFilter==='movie'?'movies':'shows');
-  if(isCustom)h+=' · <span id="wl-sync-status" class="un-wl-sync">drag to reorder</span>';
+  h+='<div class="un-wl-count" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">'+items.length+' '+(_wlFilter==='movie'?'movies':'shows');
+  if(isCustom&&_wlDirty)h+=' · <button id="wl-save-btn" onclick="_wlSaveOrder()" style="display:inline-flex;align-items:center;gap:4px;padding:3px 12px;border-radius:12px;border:1px solid var(--tv);background:rgba(20,184,166,.15);color:var(--tv);font-size:11px;font-weight:600;cursor:pointer">Save Order</button>';
+  else if(isCustom)h+=' · <span style="color:var(--t2);font-size:11px">drag to reorder</span>';
   h+='</div>';
   h+='<div class="un-wl-list" id="wl-list">';
 
@@ -7594,7 +7600,20 @@ function _wlRender(){
 }
 
 function _wlSetFilter(f){_wlFilter=f;_wlRender()}
-function _wlSetSort(s){_wlSort=s;_wlRender()}
+function _wlSetSort(s){
+  // If leaving custom mode with unsaved changes, auto-save silently
+  if(_wlSort==='custom'&&s!=='custom'&&_wlDirty){_wlDirty=false;_wlSyncToTrakt()}
+  _wlSort=s;_wlRender();
+}
+
+function _wlSaveOrder(){
+  var btn=document.getElementById('wl-save-btn');
+  if(btn){btn.textContent='Saving…';btn.style.opacity='.6';btn.disabled=true}
+  _wlSyncToTrakt(function(ok){
+    _wlDirty=false;
+    _wlRender();
+  });
+}
 
 function _wlTap(type,slug,tmdbId){
   if(_wlDragActive)return;
@@ -7678,14 +7697,12 @@ function _wlDragEnd(e){
     var moved=_wlItems.splice(_wlDragIdx,1)[0];
     _wlItems.splice(_wlDragOverIdx,0,moved);
 
-    // Save new order
+    // Save new order locally (batch — sync only when user taps Save)
     var slugs=_wlItems.map(function(it){return it.slug});
     var orderKey=_wlFilter==='movie'?'movies':'shows';
     _wlCustomOrder[orderKey]=slugs;
     localStorage.setItem('iris-wl-order',JSON.stringify(_wlCustomOrder));
-
-    // Sync to Trakt
-    _wlSyncToTrakt();
+    _wlDirty=true;
   }
 
   // Re-render
@@ -7694,16 +7711,8 @@ function _wlDragEnd(e){
 }
 
 // ─── Trakt List Persistence ─────────────────────────────────────
-var _wlSyncDebounce=null;
-function _wlSyncToTrakt(){
-  if(_wlSyncDebounce)clearTimeout(_wlSyncDebounce);
-  var st=document.getElementById('wl-sync-status');
-  if(st){st.textContent='saving…';st.className='un-wl-sync saving'}
-  _wlSyncDebounce=setTimeout(function(){_wlDoSync()},1500);
-}
-
-function _wlDoSync(){
-  if(!D._tt||!D._tc)return;
+function _wlSyncToTrakt(cb){
+  if(!D._tt||!D._tc){if(cb)cb(false);return}
   var h={'Content-Type':'application/json','trakt-api-version':'2','trakt-api-key':D._tc,'Authorization':'Bearer '+D._tt};
   var orderJson=JSON.stringify(_wlCustomOrder);
 
@@ -7723,12 +7732,10 @@ function _wlDoSync(){
       body:JSON.stringify({description:orderJson})
     });
   }).then(function(){
-    var st=document.getElementById('wl-sync-status');
-    if(st){st.textContent='✓ synced';st.className='un-wl-sync saved'}
+    if(cb)cb(true);
   }).catch(function(e){
     console.warn('Watchlist sync failed:',e);
-    var st=document.getElementById('wl-sync-status');
-    if(st){st.textContent='saved locally';st.className='un-wl-sync'}
+    if(cb)cb(false);
   });
 }
 
@@ -8601,6 +8608,8 @@ function _unToggleEpWatched(ev,slug,season,episode,epTraktId,btn){
 // ═══════════════════════════════════════════════════════════════════
 
 function closeUpNext(){
+  // Auto-save watchlist order silently if leaving with unsaved changes
+  if(_wlDirty){_wlDirty=false;_wlSyncToTrakt()}
   _unCurrentView='home';
   _unNavStack=[];
   _unUpdateHeader();
