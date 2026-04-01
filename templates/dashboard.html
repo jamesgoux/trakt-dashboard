@@ -54,7 +54,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
 .badge{display:inline-block;padding:1px 6px;border-radius:3px;font-size:10px;font-weight:600}
 .b-m{background:rgba(251,146,60,.15);color:var(--mv)}.b-e{background:rgba(20,184,166,.15);color:var(--tv)}.b-c{background:rgba(59,130,246,.15);color:var(--cn)}.b-th{background:rgba(167,139,250,.15);color:var(--th)}.b-bk{background:rgba(251,191,36,.15);color:var(--bk)}.b-pc{background:rgba(239,68,68,.15);color:#ef4444}.b-wk{background:rgba(29,185,84,.15);color:#1db954}.b-sp{background:rgba(14,165,233,.15);color:#0ea5e9}.b-bg{background:rgba(236,72,153,.15);color:#ec4899}.b-gt{background:rgba(99,102,241,.15);color:#6366f1}
 .pr{cursor:pointer}.pr:hover td{background:rgba(255,255,255,.04)}
-.fd-chip{display:block;width:100%;padding:10px 12px;margin:3px 0;border:1px solid rgba(255,255,255,.08);border-radius:10px;background:rgba(255,255,255,.03);color:var(--t2);font-size:13px;cursor:pointer;text-align:left;transition:all .15s;-webkit-tap-highlight-color:transparent}
+.fd-chip{display:block;width:100%;padding:10px 12px;margin:3px 0;border:1px solid rgba(255,255,255,.08);border-radius:10px;background:rgba(255,255,255,.03);color:var(--t2);font-size:13px;cursor:pointer;text-align:left;transition:background-color .15s,color .15s,border-color .15s;-webkit-tap-highlight-color:transparent}
 .fd-chip.fd-on{background:rgba(124,58,237,.2);border-color:rgba(124,58,237,.5);color:#fff;font-weight:600}
 .fd-chip:active{transform:scale(.97)}
 .fd-yr{text-align:center;padding:10px 8px;font-variant-numeric:tabular-nums}
@@ -111,9 +111,9 @@ tr:hover td{background:rgba(255,255,255,.02)}
 .un-prog-text{position:absolute;top:0;left:0;right:0;height:100%;display:flex;align-items:center;justify-content:space-between;padding:0 8px;font-size:13px;color:rgba(255,255,255,.85);font-weight:600;pointer-events:none}
 .un-new{position:absolute;top:0;left:0;background:#ef4444;color:#fff;font-size:9px;font-weight:700;padding:3px 7px;border-radius:0 0 6px 0;text-transform:uppercase;letter-spacing:.5px;z-index:1}
 .un-section{padding:8px 16px;max-width:1200px;margin:0 auto;font-size:12px;font-weight:600;color:var(--t2);text-transform:uppercase;letter-spacing:.5px}
-.un-watch-btn{position:absolute;top:0;right:0;width:48px;height:100%;border-radius:0 10px 10px 0;background:var(--sf);border:none;border-left:1px solid rgba(255,255,255,.04);color:var(--tv);font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;-webkit-tap-highlight-color:transparent}
+.un-watch-btn{position:absolute;top:0;right:0;width:48px;height:100%;border-radius:0 10px 10px 0;background:var(--sf);border:none;border-left:1px solid rgba(255,255,255,.04);color:var(--tv);font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background-color .15s,color .15s,border-color .15s;-webkit-tap-highlight-color:transparent}
 .un-watch-btn:active{background:var(--tv);color:#fff}
-.un-del-btn{position:absolute;top:0;right:0;width:48px;height:100%;border-radius:0 10px 10px 0;background:rgba(239,68,68,.04);border:none;border-left:1px solid rgba(255,255,255,.04);color:#ef4444;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;-webkit-tap-highlight-color:transparent}
+.un-del-btn{position:absolute;top:0;right:0;width:48px;height:100%;border-radius:0 10px 10px 0;background:rgba(239,68,68,.04);border:none;border-left:1px solid rgba(255,255,255,.04);color:#ef4444;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background-color .15s,color .15s,border-color .15s;-webkit-tap-highlight-color:transparent}
 .un-del-btn:active{background:#ef4444;color:#fff}
 .un-del-btn:hover{background:#ef4444;color:#fff}
 .un-detail{background:var(--sf);border-radius:12px;border:1px solid rgba(255,255,255,.08);padding:20px;max-width:500px;margin:0 auto}
@@ -162,7 +162,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
 .un-ep-info{flex:1;min-width:0}
 .un-ep-title{font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .un-ep-meta{font-size:11px;color:var(--t2);margin-top:2px}
-.un-ep-watch{width:40px;height:40px;border-radius:50%;border:2px solid rgba(255,255,255,.15);background:none;color:var(--t2);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s}
+.un-ep-watch{width:40px;height:40px;border-radius:50%;border:2px solid rgba(255,255,255,.15);background:none;color:var(--t2);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background-color .15s,color .15s,border-color .15s}
 .un-ep-watch.watched{border-color:var(--tv);background:var(--tv);color:#fff}
 .un-ep-watch:active:not(.watched){background:rgba(20,184,166,.2);border-color:var(--tv);color:var(--tv)}
 /* Movie detail styles */
@@ -196,9 +196,9 @@ tr:hover td{background:rgba(255,255,255,.02)}
 .un-back{background:none;border:1px solid rgba(255,255,255,.1);color:var(--t2);border-radius:8px;padding:8px 14px;font-size:14px;cursor:pointer;min-height:44px;min-width:44px;display:flex;align-items:center;justify-content:center}
 /* Watchlist styles */
 .un-wl-toggle{display:flex;gap:6px;padding:10px 16px;max-width:600px;margin:0 auto}
-.un-wl-toggle button{padding:6px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s}
+.un-wl-toggle button{padding:6px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;transition:background-color .15s,color .15s,border-color .15s}
 .un-wl-sort{display:flex;gap:6px;padding:0 16px 8px;max-width:600px;margin:0 auto}
-.un-wl-sort button{padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer;border:1px solid rgba(255,255,255,.08);background:none;color:var(--t2);transition:all .15s}
+.un-wl-sort button{padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer;border:1px solid rgba(255,255,255,.08);background:none;color:var(--t2);transition:background-color .15s,color .15s,border-color .15s}
 .un-wl-sort button.active{border-color:var(--tv);color:var(--tv);background:rgba(20,184,166,.08)}
 .un-wl-list{padding:8px 16px;max-width:600px;margin:0 auto}
 .un-wl-card{display:flex;gap:12px;padding:12px;background:var(--sf);border-radius:12px;border:1px solid rgba(255,255,255,.06);margin-bottom:10px;cursor:pointer;transition:background .15s;position:relative}
@@ -531,7 +531,7 @@ Drop GameTrack games.csv or <span style="color:#6366f1;text-decoration:underline
 <div id="ll-feed-loading" style="text-align:center;padding:20px;color:var(--t2);font-size:12px;display:none">Loading more...</div>
 </div>
 <!-- Up Next Overlay -->
-<div id="un-overlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg);z-index:9000;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;transition:transform .3s ease;will-change:transform;scroll-padding-top:70px">
+<div id="un-overlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg);z-index:9000;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;transition:transform .3s ease;will-change:transform;scroll-padding-top:70px;contain:layout style">
 <div id="un-hdr" style="position:sticky;top:0;z-index:9001;background:rgba(15,15,15,.97);backdrop-filter:blur(8px);padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.06)">
 <div id="un-hdr-normal" style="display:flex;align-items:center">
 <button onclick="_unHomeBtn()" class="un-back" id="un-back-btn" style="flex-shrink:0">←</button>
@@ -545,7 +545,7 @@ Drop GameTrack games.csv or <span style="color:#6366f1;text-decoration:underline
 <div id="un-content"></div>
 </div>
 <!-- Unified Search Overlay -->
-<div id="iris-search-ov" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg);z-index:9700;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain">
+<div id="iris-search-ov" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg);z-index:9700;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;will-change:transform">
 <div style="position:sticky;top:0;z-index:9701;background:rgba(15,15,15,.97);backdrop-filter:blur(8px)">
 <div style="display:flex;align-items:center;gap:8px;padding:12px 16px">
 <button onclick="_irisSearchBack()" class="un-back" style="flex-shrink:0">←</button>
@@ -5882,7 +5882,7 @@ function _unRenderDetail(allShows,idx){
     ov.style.overflowY='hidden';
     fg=document.createElement('div');
     fg.id='un-detail-fg';
-    fg.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;z-index:9100;background:var(--bg,#0f0f0f);overflow:auto;-webkit-overflow-scrolling:touch;transform:translateY(-100%);';
+    fg.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;z-index:9100;background:var(--bg,#0f0f0f);overflow:auto;-webkit-overflow-scrolling:touch;transform:translateY(-100%);will-change:transform;';
     document.body.appendChild(fg);
   }
   fg.innerHTML=h;
@@ -5933,8 +5933,16 @@ function _unRenderDetail(allShows,idx){
     var dy=(ev.changedTouches?ev.changedTouches[0].clientY:0)-_tSy;
     if(_tDir==='h'){
       car.classList.add('animating');
-      if(dx>w*0.12&&(_crEp>1||(_crBase&&_crBase.season>1))){car.style.transform='translateX(0%)';setTimeout(function(){_crNav(-1)},320)}
-      else if(dx<-w*0.12){car.style.transform='translateX(-66.666%)';setTimeout(function(){_crNav(1)},320)}
+      if(dx>w*0.12&&(_crEp>1||(_crBase&&_crBase.season>1))){
+        car.style.transform='translateX(0%)';
+        var _crLD=false;function _crL(ev){if(_crLD)return;if(ev&&ev.target!==car)return;_crLD=true;car.removeEventListener('transitionend',_crL);_crNav(-1)}
+        car.addEventListener('transitionend',_crL);setTimeout(_crL,350);
+      }
+      else if(dx<-w*0.12){
+        car.style.transform='translateX(-66.666%)';
+        var _crRD=false;function _crR(ev){if(_crRD)return;if(ev&&ev.target!==car)return;_crRD=true;car.removeEventListener('transitionend',_crR);_crNav(1)}
+        car.addEventListener('transitionend',_crR);setTimeout(_crR,350);
+      }
       else{car.style.transform='translateX(-33.333%)'}
     }else if(_tDir==='v'){
       if(Math.abs(dy)>80){
@@ -5942,7 +5950,8 @@ function _unRenderDetail(allShows,idx){
       }else{
         fg.style.transition='transform .2s ease';
         fg.style.transform='';
-        setTimeout(function(){fg.style.transition=''},220);
+        function _fgSnap(ev){if(ev.target!==fg)return;fg.removeEventListener('transitionend',_fgSnap);fg.style.transition=''}
+        fg.addEventListener('transitionend',_fgSnap);
       }
     }else{
       car.classList.add('animating');
@@ -6011,7 +6020,8 @@ function _unDismissDetail(dir){
   fg.style.transition='transform .25s ease';
   fg.style.transform='translateY('+(dir==='down'?'100%':'-100%')+')';
   var _restoreScroll=el._savedScroll||ov.scrollTop;
-  setTimeout(function(){
+  var _ddDone=false;
+  function _ddClean(){if(_ddDone)return;_ddDone=true;fg.removeEventListener('transitionend',_ddEnd);
     fg.remove();
     ov.style.overflowY='auto';
     ov.scrollTop=_restoreScroll;
@@ -6019,7 +6029,10 @@ function _unDismissDetail(dir){
     if(_unCurrentView==='season'&&_dismissSlug){
       _unSyncSeasonWatched(_dismissSlug,_dismissSeason);
     }
-  },280);
+  }
+  function _ddEnd(e){if(e.target===fg&&e.propertyName==='transform')_ddClean()}
+  fg.addEventListener('transitionend',_ddEnd);
+  setTimeout(_ddClean,300);
 }
 // Sync season page watched indicators with current _unWatched state
 function _unSyncSeasonWatched(slug,season){
@@ -6732,9 +6745,10 @@ var _irisSportsView='teams'; // 'teams' | 'events' | 'confirm'
 function _irisOpenSearch(tab){
   tab=tab||_irisLSGet('iris_search_tab')||'media';
   var ov=document.getElementById('iris-search-ov');
-  ov.style.display='';ov.style.transform='';
+  ov.style.display='';ov.style.transition='none';ov.style.transform='translateX(100%)';
   _irisSearchIsOpen=true;
   _lockBody();
+  requestAnimationFrame(function(){ov.style.transition='transform .25s ease';requestAnimationFrame(function(){ov.style.transform=''})});
   _irisSetTab(tab,true);
   var input=document.getElementById('iris-s-input');
   input.value='';
@@ -6755,21 +6769,30 @@ function _irisOpenSearch(tab){
 
 function _irisCloseSearch(){
   var ov=document.getElementById('iris-search-ov');
-  ov.style.display='none';
   _irisSearchIsOpen=false;
-  _unlockBody();
   var input=document.getElementById('iris-s-input');
   input.blur();input.value='';
   document.getElementById('iris-s-clear').style.display='none';
-  document.getElementById('un-search-results').innerHTML='';
-  // Reset sports
-  _irisSportsView='teams';
-  document.getElementById('sp-ov-search').style.display='';
-  document.getElementById('sp-ov-events').style.display='none';
-  document.getElementById('sp-ov-confirm').style.display='none';
-  document.getElementById('sp-team-results').innerHTML='';
   // Reset nav state
   if(_unCurrentView!=='home'){_unCurrentView='home';_unNavStack=[];_unUpdateHeader()}
+  // Animate out then clean up
+  ov.style.transition='transform .25s ease';
+  ov.style.transform='translateX(100%)';
+  var _csDone=false;
+  function _csClean(){if(_csDone)return;_csDone=true;ov.removeEventListener('transitionend',_csEnd);
+    ov.style.display='none';ov.style.transition='';ov.style.transform='';
+    _unlockBody();
+    document.getElementById('un-search-results').innerHTML='';
+    // Reset sports
+    _irisSportsView='teams';
+    document.getElementById('sp-ov-search').style.display='';
+    document.getElementById('sp-ov-events').style.display='none';
+    document.getElementById('sp-ov-confirm').style.display='none';
+    document.getElementById('sp-team-results').innerHTML='';
+  }
+  function _csEnd(e){if(e.target===ov&&e.propertyName==='transform')_csClean()}
+  ov.addEventListener('transitionend',_csEnd);
+  setTimeout(_csClean,300);
 }
 
 function _irisSetTab(tab,skipSearch){
@@ -7011,11 +7034,17 @@ function closeSportsAdd(){_irisCloseSearch()}
     if(dir==='h'&&dx>80){
       slideTarget.style.transition='transform .25s ease';
       slideTarget.style.transform='translateX(100%)';
-      setTimeout(function(){slideTarget.style.transition='none';slideTarget.style.transform='';_irisSearchBack()},260);
+      var _st=slideTarget;
+      function _swDone(ev){if(ev&&ev.target!==_st)return;_st.removeEventListener('transitionend',_swDone);_st.style.transition='none';_st.style.transform='';_irisSearchBack()}
+      _st.addEventListener('transitionend',_swDone);
+      setTimeout(_swDone,300);
     }else if(moved){
       slideTarget.style.transition='transform .2s ease';
       slideTarget.style.transform='';
-      setTimeout(function(){slideTarget.style.transition=''},220);
+      var _st2=slideTarget;
+      function _snDone(ev){if(ev&&ev.target!==_st2)return;_st2.removeEventListener('transitionend',_snDone);_st2.style.transition=''}
+      _st2.addEventListener('transitionend',_snDone);
+      setTimeout(_snDone,250);
     }
     dir=null;moved=false;
   },{passive:true});
@@ -8723,7 +8752,11 @@ function closeUpNext(){
   _unScrollPos=ov.scrollTop;
   ov.style.transition='transform .3s ease';
   ov.style.transform='translateX(100%)';
-  setTimeout(function(){ov.style.display='none';ov.style.transform='';_unlockBody()},320);
+  var _cuDone=false;
+  function _cuClean(){if(_cuDone)return;_cuDone=true;ov.removeEventListener('transitionend',_cuEnd);ov.style.display='none';ov.style.transition='';ov.style.transform='';_unlockBody()}
+  function _cuEnd(e){if(e.target===ov&&e.propertyName==='transform')_cuClean()}
+  ov.addEventListener('transitionend',_cuEnd);
+  setTimeout(_cuClean,350);
 }
 // R2: Slide-to-dismiss Up Next — horizontal on home, vertical+horizontal on sub-pages
 (function(){
@@ -8785,15 +8818,20 @@ function closeUpNext(){
       if(dx>threshold){
         _swCnt.style.transition='transform .25s ease';
         _swCnt.style.transform='translateX(100%)';
-        setTimeout(function(){
-          _swCnt.style.transition='none';_swCnt.style.transform='';
+        var _sc1=_swCnt;var _sc1Done=false;
+        function _sc1Clean(){if(_sc1Done)return;_sc1Done=true;_sc1.removeEventListener('transitionend',_sc1End);
+          _sc1.style.transition='none';_sc1.style.transform='';
           if(document.getElementById('iris-search-ov').style.display!=='none'&&_unCurrentView==='home'){_unCloseSearchOverlay()}
           else{_unNavBack()}
-        },260);
+        }
+        function _sc1End(ev){if(ev.target===_sc1&&ev.propertyName==='transform')_sc1Clean()}
+        _sc1.addEventListener('transitionend',_sc1End);
+        setTimeout(_sc1Clean,300);
       }else{
         _swCnt.style.transition='transform .2s ease';
         _swCnt.style.transform='';
-        setTimeout(function(){_swCnt.style.transition=''},220);
+        var _sc2=_swCnt;function _sc2End(ev){if(ev.target===_sc2)_sc2.removeEventListener('transitionend',_sc2End);_sc2.style.transition=''}
+        _sc2.addEventListener('transitionend',_sc2End);
       }
     }else if(_dir==='v'&&_onSub&&_swCnt){
       // Sub-page vertical: animate out up/down then nav back
@@ -8802,14 +8840,19 @@ function closeUpNext(){
         var dir=dy>0?'100%':'-100%';
         _swCnt.style.transition='transform .25s ease';
         _swCnt.style.transform='translateY('+dir+')';
-        setTimeout(function(){
-          _swCnt.style.transition='none';_swCnt.style.transform='';
+        var _sv1=_swCnt;var _sv1Done=false;
+        function _sv1Clean(){if(_sv1Done)return;_sv1Done=true;_sv1.removeEventListener('transitionend',_sv1End);
+          _sv1.style.transition='none';_sv1.style.transform='';
           if(_searchOpenV){_unCloseSearchOverlay()}else{_unNavBack()}
-        },260);
+        }
+        function _sv1End(ev){if(ev.target===_sv1&&ev.propertyName==='transform')_sv1Clean()}
+        _sv1.addEventListener('transitionend',_sv1End);
+        setTimeout(_sv1Clean,300);
       }else{
         _swCnt.style.transition='transform .2s ease';
         _swCnt.style.transform='';
-        setTimeout(function(){_swCnt.style.transition=''},220);
+        var _sv2=_swCnt;function _sv2End(ev){if(ev.target===_sv2)_sv2.removeEventListener('transitionend',_sv2End);_sv2.style.transition=''}
+        _sv2.addEventListener('transitionend',_sv2End);
       }
     }
   },{passive:true});
@@ -8839,10 +8882,12 @@ function render(){
   }
   _doRender();
 }
-function _doRender(){ch.forEach(function(c){try{c.dispose()}catch(e){}});ch=[];
-  // Show/hide sections based on medium filter
+function _doRender(){
+  // Show/hide sections based on medium filter FIRST (before any chart work)
   // Section visibility: data-med on each section lists which ct values show it
   document.querySelectorAll('.med-s').forEach(function(el){var meds=(' '+el.dataset.med+' ');el.style.display=meds.indexOf(' '+ct+' ')>=0?'':'none'});
+  // Dispose only charts in now-hidden sections (skip visible ones — their render functions handle disposal)
+  ch=ch.filter(function(c){try{var dom=c.getDom();if(!dom||!dom.offsetParent){c.dispose();return false}return true}catch(e){return false}});
   // CRITICAL (above fold) — render immediately
   stats();renderLifeline();baseCharts();renderPosters();
   // Batch 1: people tables + movies (skip if life mode — not shown)
@@ -8906,7 +8951,10 @@ function _bgPreload(){
   },{timeout:3000});
 }
 var _rzt,_lastW=window.innerWidth;
-function _rz(){clearTimeout(_rzt);_rzt=setTimeout(function(){mob=window.innerWidth<768;ch.forEach(function(c){try{c.resize()}catch(e){}})},200)}
+function _rz(){clearTimeout(_rzt);_rzt=setTimeout(function(){mob=window.innerWidth<768;
+  // Resize only visible charts (skip hidden sections for performance)
+  ch.forEach(function(c){try{var dom=c.getDom();if(dom&&dom.offsetParent)c.resize()}catch(e){}});
+},200)}
 window.addEventListener('resize',function(){
   var w=window.innerWidth;if(Math.abs(w-_lastW)>50){_lastW=w;clearTimeout(_rzt);_rzt=setTimeout(function(){mob=window.innerWidth<768;render()},400)}else{_rz()}
 });
