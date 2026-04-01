@@ -782,6 +782,9 @@ function _irisLoadTraktToken(){
             D._tt=cfg.access_token;
             if(cfg.client_id)D._tc=cfg.client_id;
             console.log('Trakt token loaded from Supabase (valid)');
+            // Kick off early Trakt sync so Up Next pre-render includes latest data
+            // This runs before _bgPreload, eliminating the blink on first open
+            _earlyTraktSync();
           }else{
             // Supabase token is stale — keep embedded token
             console.warn('Supabase Trakt token invalid ('+r.status+'), using embedded token');
@@ -793,6 +796,26 @@ function _irisLoadTraktToken(){
         });
       }
     }
+  });
+}
+
+// Early Trakt sync: runs as soon as auth succeeds (before _bgPreload)
+// Fetches watch history + progress and pre-renders Up Next so first open is instant + blink-free
+var _earlyTraktSyncRan=false;
+function _earlyTraktSync(){
+  if(_earlyTraktSyncRan||_unPreRendered||!D._tc||!D._tt)return;
+  _earlyTraktSyncRan=true;
+  _lastExternalSync=Date.now();
+  var hdr={'Content-Type':'application/json','trakt-api-version':'2','trakt-api-key':D._tc,'Authorization':'Bearer '+D._tt};
+  var histP=fetch('https://api.trakt.tv/users/'+_irisViewingUser+'/history/episodes?limit=100',{headers:hdr})
+    .then(function(r){return r.ok?r.json():[]}).catch(function(){return[]});
+  var progP=_liveCheckProgress(hdr);
+  Promise.all([histP,progP]).then(function(res){
+    _applyExternalWatches(res[0]);
+    _unPreSynced=true;
+    if(!_unPreRendered){_renderUpNext(true);_unPreRendered=true}
+  }).catch(function(){
+    if(!_unPreRendered){_renderUpNext(true);_unPreRendered=true}
   });
 }
 
@@ -5299,7 +5322,7 @@ function openUpNext(skipSync){
   if(needsSync){
     _lastExternalSync=Date.now();
     var hdr={'Content-Type':'application/json','trakt-api-version':'2','trakt-api-key':D._tc,'Authorization':'Bearer '+D._tt};
-    var histP=fetch('https://api.trakt.tv/users/jamesgoux/history/episodes?limit=100',{headers:hdr})
+    var histP=fetch('https://api.trakt.tv/users/'+_irisViewingUser+'/history/episodes?limit=100',{headers:hdr})
       .then(function(r){return r.ok?r.json():[]}).catch(function(){return[]});
     var progP=_liveCheckProgress(hdr);
     Promise.all([histP,progP]).then(function(res){
@@ -8963,22 +8986,15 @@ function _bgPreload(){
       if(D.lfm&&D.lfm.weekly)(D.lfm.weekly);
       _bgPreloaded=true;
       // Pre-sync Up Next data + pre-render HTML so first open is instant
-      if(D._tc&&D._tt){
-        _lastExternalSync=Date.now();
-        var hdr={'Content-Type':'application/json','trakt-api-version':'2','trakt-api-key':D._tc,'Authorization':'Bearer '+D._tt};
-        var histP=fetch('https://api.trakt.tv/users/jamesgoux/history/episodes?limit=100',{headers:hdr})
-          .then(function(r){return r.ok?r.json():[]}).catch(function(){return[]});
-        var progP=_liveCheckProgress(hdr);
-        Promise.all([histP,progP]).then(function(res){
-          _applyExternalWatches(res[0]);
-          _unPreSynced=true;
-          _renderUpNext(true);_unPreRendered=true;
-        }).catch(function(){
-          _renderUpNext(true);_unPreRendered=true;
-        });
+      // If early sync (from _irisLoadTraktToken) already ran, skip — it's already done or in-flight
+      if(_earlyTraktSyncRan){
+        // Early sync handled it; just pre-render if not already done
+        if(!_unPreRendered){_renderUpNext(true);_unPreRendered=true}
+      } else if(D._tc&&D._tt){
+        _earlyTraktSync();// delegate to the same function
       } else {
         // No Trakt auth — still pre-render with cached data
-        _renderUpNext(true);_unPreRendered=true;
+        if(!_unPreRendered){_renderUpNext(true);_unPreRendered=true}
       }
     }catch(e){}
   },{timeout:3000});
