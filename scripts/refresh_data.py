@@ -2941,11 +2941,8 @@ if os.path.exists("data/watchlist.json"):
         data["wlst"] = wlst_raw
         print(f"  Watchlist: {len(wlst_raw.get('movies',[]))} movies, {len(wlst_raw.get('shows',[]))} shows")
 
-# Inject Trakt credentials for client-side mark-as-watched
-_trakt_token = get_trakt_access_token()
-if _trakt_token and CLIENT_ID:
-    data["_tc"] = CLIENT_ID
-    data["_tt"] = _trakt_token
+# NOTE: Trakt credentials (_tc/_tt) are no longer embedded in the data blob.
+# Authenticated users get tokens via Supabase; unauthenticated visitors are read-only.
 
 data_str = json.dumps(data, separators=(',', ':'), ensure_ascii=False)
 with open("templates/dashboard.html") as f:
