@@ -5303,24 +5303,27 @@ function openUpNext(skipSync){
       .then(function(r){return r.ok?r.json():[]}).catch(function(){return[]});
     var progP=_liveCheckProgress(hdr);
     Promise.all([histP,progP]).then(function(res){
-      _applyExternalWatches(res[0]);
-      _unScrollPos=document.getElementById('un-overlay').scrollTop;
-      _unReturning=true;
-      _renderUpNext();
+      var watchChanged=_applyExternalWatches(res[0]);
+      var progChanged=res[1];// _liveCheckProgress returns true if any show was updated
+      if(watchChanged||progChanged){
+        _unScrollPos=document.getElementById('un-overlay').scrollTop;
+        _unReturning=true;
+        _renderUpNext();
+      }
     }).catch(function(e){console.error('Sync failed:',e)});
   }
 }
 // Live-check Trakt progress for top shows (new episodes + top 15 recently active).
 // Updates D.un.shows in place with authoritative next-episode data from Trakt.
 function _liveCheckProgress(hdr){
-  var shows=(D.un||{}).shows||[];if(!shows.length)return Promise.resolve();
+  var shows=(D.un||{}).shows||[];if(!shows.length)return Promise.resolve(false);
   // Pick shows to check: all "new" + top 15 by last_watched
-  var seen={};var toCheck=[];
+  var seen={};var toCheck=[];var _progChanged=false;
   shows.forEach(function(s){if(s.is_new&&!seen[s.slug]){seen[s.slug]=true;toCheck.push(s)}});
   shows.slice().sort(function(a,b){return(b.last_watched||'').localeCompare(a.last_watched||'')}).forEach(function(s){
     if(!seen[s.slug]&&toCheck.length<20){seen[s.slug]=true;toCheck.push(s)}
   });
-  if(!toCheck.length)return Promise.resolve();
+  if(!toCheck.length)return Promise.resolve(false);
   console.log('Live-checking progress for '+toCheck.length+' shows');
   var promises=toCheck.map(function(show){
     return fetch('https://api.trakt.tv/shows/'+encodeURIComponent(show.slug)+'/progress/watched?extended=full',{headers:hdr})
@@ -5328,7 +5331,7 @@ function _liveCheckProgress(hdr){
     .then(function(prog){
       if(!prog)return;
       // Fully caught up?
-      if(prog.aired&&prog.completed>=prog.aired){show.completed=prog.completed;show.aired_total=prog.aired;return}
+      if(prog.aired&&prog.completed>=prog.aired){if(show.completed!==prog.completed||show.aired_total!==prog.aired)_progChanged=true;show.completed=prog.completed;show.aired_total=prog.aired;return}
       // Get next episode, verify not stale
       var nextEp=prog.next_episode;
       if(nextEp){
@@ -5355,9 +5358,10 @@ function _liveCheckProgress(hdr){
           if(nextEp)break;
         }
       }
-      if(!nextEp){show.completed=prog.completed;show.aired_total=prog.aired;return}// truly done
+      if(!nextEp){if(show.completed!==prog.completed||show.aired_total!==prog.aired)_progChanged=true;show.completed=prog.completed;show.aired_total=prog.aired;return}// truly done
       var newS=nextEp.season||0,newE=nextEp.number||0;
       if(newS!==show.season||newE!==show.episode){
+        _progChanged=true;
         console.log('  '+show.slug+': S'+show.season+'E'+show.episode+' → S'+newS+'E'+newE);
         show.season=newS;show.episode=newE;
         show.ep_title=nextEp.title||'';
@@ -5381,11 +5385,11 @@ function _liveCheckProgress(hdr){
       if(rm)show.remaining_min=rm;
     }).catch(function(){});// per-show failure is OK
   });
-  return Promise.all(promises);
+  return Promise.all(promises).then(function(){return _progChanged});
 }
 function _applyExternalWatches(entries){
   var ud=D.un||{};var shows=ud.shows||[];
-  var extWatched={};
+  var extWatched={};var changed=false;
   entries.forEach(function(e){
     var show=e.show||{};var ep=e.episode||{};
     var slug=show.ids?show.ids.slug:'';if(!slug)return;
@@ -5398,6 +5402,7 @@ function _applyExternalWatches(entries){
     var key=s.slug+'|'+s.season+'|'+s.episode;
     var ew=extWatched[key];
     if(ew){
+      changed=true;
       s.episode++;s.completed=(s.completed||0)+1;
       s.eps_left=Math.max(0,(s.eps_left||1)-1);
       s.remaining_min=Math.max(0,(s.remaining_min||0)-(s.ep_runtime||0));
@@ -5406,6 +5411,7 @@ function _applyExternalWatches(entries){
       if(!inRecent){if(!ud.recent)ud.recent=[];ud.recent.unshift({show:ew.show,slug:ew.slug,season:ew.season,episode:ew.episode,ep_title:ew.ep_title,watched_at:ew.watched_at,ep_id:ew.ep_id,ep_aired:ew.ep_aired})}
     }
   });
+  return changed;
 }
 // Recently Watched virtual scroll: show 10, reveal 10 more on scroll up
 var _rwCards=null,_rwShown=0,_rwTotal=0,_rwBusy=false,_rwSuppress=false;
@@ -7705,6 +7711,9 @@ function _wlTap(type,slug,tmdbId){
 }
 
 // ─── Drag and Drop ──────────────────────────────────────────────
+var _wlDragCards=null; // cached card references during drag
+var _wlDragOv=null;    // cached overlay ref during drag
+
 function _wlDragStart(e,idx){
   e.preventDefault();e.stopPropagation();
   _wlDragActive=true;_wlDragIdx=idx;_wlDragOverIdx=idx;
@@ -7712,6 +7721,10 @@ function _wlDragStart(e,idx){
   var card=e.target.closest('.un-wl-card');
   if(!card)return;
   var rect=card.getBoundingClientRect();
+
+  // Cache card refs + overlay at start (not on every move)
+  _wlDragCards=Array.from(document.querySelectorAll('#wl-list .un-wl-card'));
+  _wlDragOv=document.getElementById('un-overlay');
 
   // Create ghost
   _wlDragGhost=card.cloneNode(true);
@@ -7746,26 +7759,23 @@ function _wlDragMove(e){
 
   _wlDragGhost.style.top=(y-60)+'px';
 
-  // Auto-scroll
-  var ov=document.getElementById('un-overlay');
+  // Auto-scroll (use cached overlay ref)
   if(_wlScrollTimer)clearTimeout(_wlScrollTimer);
-  if(y<100){ov.scrollTop-=12;_wlScrollTimer=setTimeout(function(){_wlDragMove(e)},30)}
-  else if(y>window.innerHeight-100){ov.scrollTop+=12;_wlScrollTimer=setTimeout(function(){_wlDragMove(e)},30)}
+  if(y<100){_wlDragOv.scrollTop-=12;_wlScrollTimer=setTimeout(function(){_wlDragMove(e)},30)}
+  else if(y>window.innerHeight-100){_wlDragOv.scrollTop+=12;_wlScrollTimer=setTimeout(function(){_wlDragMove(e)},30)}
 
-  // Find insertion target
-  var cards=document.querySelectorAll('#wl-list .un-wl-card:not(.un-wl-ghost)');
+  // Find insertion target using cached cards (no DOM query per frame)
   var newOver=_wlDragIdx;
-  cards.forEach(function(c,ci){
-    var r=c.getBoundingClientRect();
-    if(y>r.top&&y<r.bottom)newOver=ci;
-  });
+  for(var ci=0;ci<_wlDragCards.length;ci++){
+    var r=_wlDragCards[ci].getBoundingClientRect();
+    if(y>r.top&&y<r.bottom){newOver=ci;break}
+  }
 
   if(newOver!==_wlDragOverIdx){
-    // Remove old drop indicator
-    cards.forEach(function(c){c.classList.remove('wl-dropping')});
+    // Swap only the affected cards' classes (not all cards)
+    if(_wlDragCards[_wlDragOverIdx])_wlDragCards[_wlDragOverIdx].classList.remove('wl-dropping');
     _wlDragOverIdx=newOver;
-    // Highlight target
-    if(cards[newOver])cards[newOver].classList.add('wl-dropping');
+    if(_wlDragCards[newOver])_wlDragCards[newOver].classList.add('wl-dropping');
   }
 }
 
@@ -7775,10 +7785,12 @@ function _wlDragEnd(e){
   _wlDragActive=false;
   if(_wlDragGhost){_wlDragGhost.remove();_wlDragGhost=null}
 
+  var fromIdx=_wlDragIdx, toIdx=_wlDragOverIdx;
+
   // Perform reorder
-  if(_wlItems&&_wlDragIdx!==_wlDragOverIdx&&_wlDragIdx>=0&&_wlDragOverIdx>=0){
-    var moved=_wlItems.splice(_wlDragIdx,1)[0];
-    _wlItems.splice(_wlDragOverIdx,0,moved);
+  if(_wlItems&&fromIdx!==toIdx&&fromIdx>=0&&toIdx>=0){
+    var moved=_wlItems.splice(fromIdx,1)[0];
+    _wlItems.splice(toIdx,0,moved);
 
     // Save new order locally (batch — sync only when user taps Save)
     var slugs=_wlItems.map(function(it){return it.slug});
@@ -7786,11 +7798,32 @@ function _wlDragEnd(e){
     _wlCustomOrder[orderKey]=slugs;
     localStorage.setItem('iris-wl-order',JSON.stringify(_wlCustomOrder));
     _wlDirty=true;
+
+    // DOM-swap instead of full re-render: move the card node
+    var list=document.getElementById('wl-list');
+    if(list&&_wlDragCards[fromIdx]){
+      var movedCard=_wlDragCards[fromIdx];
+      movedCard.classList.remove('wl-dropping');
+      if(toIdx>=_wlDragCards.length-1){list.appendChild(movedCard)}
+      else if(toIdx>fromIdx){list.insertBefore(movedCard,_wlDragCards[toIdx].nextSibling)}
+      else{list.insertBefore(movedCard,_wlDragCards[toIdx])}
+      // Update data-idx attributes + drag handlers for affected range
+      var start=Math.min(fromIdx,toIdx),end=Math.max(fromIdx,toIdx);
+      var updatedCards=Array.from(list.querySelectorAll('.un-wl-card'));
+      for(var ui=start;ui<=end;ui++){
+        if(updatedCards[ui]){
+          updatedCards[ui].dataset.idx=ui;
+          var dh=updatedCards[ui].querySelector('.un-wl-drag');
+          if(dh){dh.setAttribute('ontouchstart','_wlDragStart(event,'+ui+')');dh.setAttribute('onmousedown','_wlDragStart(event,'+ui+')')}
+        }
+      }
+    }
+  }else{
+    // No move happened — just clear drop indicators
+    if(_wlDragCards)_wlDragCards.forEach(function(c){c.classList.remove('wl-dropping')});
   }
 
-  // Re-render
-  _wlDragIdx=-1;_wlDragOverIdx=-1;
-  _wlRender();
+  _wlDragIdx=-1;_wlDragOverIdx=-1;_wlDragCards=null;_wlDragOv=null;
 }
 
 // ─── Trakt List Persistence ─────────────────────────────────────
