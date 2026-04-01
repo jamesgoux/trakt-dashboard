@@ -3476,8 +3476,8 @@ function renderCompEps(){
   var wrap=document.getElementById('comp-eps-wrap');
   var el=document.getElementById('comp-eps-chart');
   if(!wrap||!el)return;
-  // TV-only section: hide on movie-only filter
-  if(ct==='movie'){wrap.style.display='none';return}
+  // TV-only section: only show on all/movietv/show filters
+  if(ct!=='all'&&ct!=='movietv'&&ct!=='show'){wrap.style.display='none';return}
   var compAll=_compGetAll();// {slug: [name1, name2]}
   var slugs=Object.keys(compAll);
   if(!slugs.length){wrap.style.display='none';return}
