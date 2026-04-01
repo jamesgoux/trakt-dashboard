@@ -1,2 +1,19 @@
 __pycache__/
+
+# Auth tokens — never commit
 data/trakt_auth.json
+data/.token_refresh_result
+
+# Environment and secrets
+.env
+.env.*
+*.pem
+*.key
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+.idea/
