@@ -5206,12 +5206,16 @@ var rSet={};recent.forEach(function(r){rSet[r.slug+'|'+r.season+'|'+r.episode]=t
 var knownSlugs={};shows.forEach(function(s){knownSlugs[s.slug]=true});
 recent.forEach(function(r){knownSlugs[r.slug]=true});
 var pruned=false;
+var _ageLimit=Date.now()-2*86400000; // 48hr max age for unsynced watches
 Object.keys(_unWatched).forEach(function(key){
   var slug=key.split('|')[0]||'';
   // Prune: pipeline has it in recent (caught up), or slug not in Up Next data at all (ghost)
-  if(rSet[key]||!knownSlugs[slug]){delete _unWatched[key];pruned=true}
+  if(rSet[key]||!knownSlugs[slug]){delete _unWatched[key];pruned=true;return}
+  // Prune: entry older than 48hr and pipeline never picked it up (likely failed Trakt sync)
+  var wMs=new Date(_unWatched[key]).getTime()||0;
+  if(wMs&&wMs<_ageLimit){delete _unWatched[key];pruned=true}
 });
-if(pruned){_irisLSSet('un_watched',JSON.stringify(_unWatched));console.log('Pruned '+Object.keys(_unWatched).length+' _unWatched entries')}
+if(pruned){_irisLSSet('un_watched',JSON.stringify(_unWatched));console.log('Pruned _unWatched, '+Object.keys(_unWatched).length+' remaining')}
 // Build-change prune: also clear old entries older than build time
 var lastBuild=_irisLSGet('un_build')||'';
 if(build!==lastBuild&&build!=='__BUILD_'+'TIME__'){
@@ -5222,8 +5226,7 @@ if(build!==lastBuild&&build!=='__BUILD_'+'TIME__'){
     if(wMs&&wMs<buildMs){delete _unWatched[key];pruned=true}
   });
   if(pruned)_irisLSSet('un_watched',JSON.stringify(_unWatched));
-  // Prune only stale removals (>24hr) — keep recent removals to prevent ghost reappearance
-  if(Object.keys(_unRemoved).length){var rmCut=Date.now()-86400000,rmP=false;Object.keys(_unRemoved).forEach(function(k){if(_unRemoved[k]<rmCut){delete _unRemoved[k];rmP=true}});if(rmP)_irisLSSet('un_removed',JSON.stringify(_unRemoved))}
+  // Removals are permanent — only cleared when a new episode is watched after dismissal (handled in _isRemoved)
 }
 // Advance shows based on _unWatched entries (skip if later removed)
 shows.forEach(function(s){
@@ -5467,6 +5470,7 @@ function _renderUpNext(prerender){
   var shows=ud.shows.filter(function(s){
     if(recentSet[s.slug+'|'+s.season+'|'+s.episode])return false;
     if(s.aired_total&&s.completed>=s.aired_total)return false;
+    if(_isRemoved(s.slug,s.season,s.episode))return false;
     return true;
   });
   // Companion filter: if active, only show series tagged with that companion
@@ -6183,12 +6187,21 @@ function _renderEpHistory(ct,entries){
 
 // Persistent removed-watches tracker (survives page refresh)
 function _isRemoved(slug,season,ep,watchedAt){
-  var k=slug+'|'+season+'|'+ep;var rmTime=_unRemoved[k];if(!rmTime)return false;
-  // If the episode was re-watched AFTER removal, show it (the removal is stale)
-  if(watchedAt){var wt=new Date(watchedAt).getTime();if(wt&&wt>rmTime){delete _unRemoved[k];_irisLSSet('un_removed',JSON.stringify(_unRemoved));return false}}
+  // Check both exact episode key and show-level key
+  var k=slug+'|'+season+'|'+ep;
+  var sk=slug+'|*';
+  var rmTime=_unRemoved[k]||_unRemoved[sk];
+  if(!rmTime)return false;
+  // If ANY episode of this show was watched AFTER removal, clear the removal (user re-engaged)
+  if(watchedAt){var wt=new Date(watchedAt).getTime();if(wt&&wt>rmTime){delete _unRemoved[k];delete _unRemoved[sk];_irisLSSet('un_removed',JSON.stringify(_unRemoved));return false}}
   return true;
 }
-function _markRemoved(slug,season,ep){_unRemoved[slug+'|'+season+'|'+ep]=Date.now();_irisLSSet('un_removed',JSON.stringify(_unRemoved))}
+function _markRemoved(slug,season,ep){
+  // Store both episode-level and show-level removal so it persists across episode advances
+  _unRemoved[slug+'|'+season+'|'+ep]=Date.now();
+  _unRemoved[slug+'|*']=Date.now();
+  _irisLSSet('un_removed',JSON.stringify(_unRemoved));
+}
 
 // Remove a single watch entry — executes immediately on tap
 function _removeEpWatch(historyId,btn,ev){
