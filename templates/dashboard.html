@@ -765,22 +765,42 @@ function _irisLoadProfile(){
 }
 
 // Load Trakt token from Supabase integrations (decrypted via RPC)
+// Only use Supabase token if it's actually newer/valid; otherwise keep embedded token
 function _irisLoadTraktToken(){
   if(!_irisSB||!_irisUser)return;
   _irisSB.rpc('get_my_integration',{p_service:'trakt'}).then(function(res){
     if(res.data){
       var cfg=res.data;
-      if(cfg.access_token)_irisTraktToken=cfg.access_token;
-      if(cfg.client_id)_irisTraktClientId=cfg.client_id;
+      if(cfg.access_token){
+        // Validate the Supabase token before trusting it
+        var testHdr={'Content-Type':'application/json','trakt-api-version':'2','trakt-api-key':cfg.client_id||D._tc,'Authorization':'Bearer '+cfg.access_token};
+        fetch('https://api.trakt.tv/users/me',{headers:testHdr}).then(function(r){
+          if(r.ok){
+            // Supabase token is valid — use it and also update D._tt/D._tc so all code paths work
+            _irisTraktToken=cfg.access_token;
+            _irisTraktClientId=cfg.client_id||D._tc;
+            D._tt=cfg.access_token;
+            if(cfg.client_id)D._tc=cfg.client_id;
+            console.log('Trakt token loaded from Supabase (valid)');
+          }else{
+            // Supabase token is stale — keep embedded token
+            console.warn('Supabase Trakt token invalid ('+r.status+'), using embedded token');
+            _irisTraktToken=null;_irisTraktClientId=null;
+          }
+        }).catch(function(){
+          console.warn('Trakt token validation failed, using embedded token');
+          _irisTraktToken=null;_irisTraktClientId=null;
+        });
+      }
     }
   });
 }
 
-// Get effective Trakt credentials (Supabase user → embedded fallback)
+// Get effective Trakt credentials (embedded D._tt is always up-to-date now)
 function _irisGetTraktAuth(){
   return{
-    clientId:_irisTraktClientId||D._tc||'',
-    accessToken:_irisTraktToken||D._tt||''
+    clientId:D._tc||'',
+    accessToken:D._tt||''
   };
 }
 

@@ -81,3 +81,47 @@ with open(DATA_FILE, "w") as f:
 
 print(f"Token refreshed! Expires in {result['expires_in']/86400:.1f} days")
 print(f"Written to {DATA_FILE}")
+
+# Sync refreshed token to Supabase integrations table
+sb_url = os.environ.get("SUPABASE_URL", "")
+sb_key = os.environ.get("SUPABASE_SERVICE_KEY", "")
+trakt_user = os.environ.get("TRAKT_USERNAME", "jamesgoux")
+if sb_url and sb_key:
+    try:
+        # Look up user_id
+        prof_r = requests.get(
+            f"{sb_url}/rest/v1/profiles?username=eq.{trakt_user}&select=id",
+            headers={"apikey": sb_key, "Authorization": f"Bearer {sb_key}"}
+        )
+        if prof_r.status_code == 200 and prof_r.json():
+            uid = prof_r.json()[0]["id"]
+            # Update the Trakt integration config with new tokens
+            # The auto-encrypt trigger will encrypt sensitive fields on write
+            new_cfg = {
+                "client_id": CLIENT_ID,
+                "client_secret": CLIENT_SECRET,
+                "access_token": result["access_token"],
+                "refresh_token": result["refresh_token"],
+                "username": trakt_user,
+                "token_expires_at": result["created_at"] + result["expires_in"],
+            }
+            up_r = requests.patch(
+                f"{sb_url}/rest/v1/integrations?user_id=eq.{uid}&service=eq.trakt",
+                headers={
+                    "apikey": sb_key,
+                    "Authorization": f"Bearer {sb_key}",
+                    "Content-Type": "application/json",
+                    "Prefer": "return=minimal",
+                },
+                json={"config": new_cfg, "is_enabled": True, "last_error": None},
+            )
+            if up_r.status_code in (200, 204):
+                print(f"  Synced token to Supabase integrations for {trakt_user}")
+            else:
+                print(f"  Supabase sync failed: {up_r.status_code} {up_r.text[:200]}")
+        else:
+            print(f"  Profile not found for {trakt_user}, skipping Supabase sync")
+    except Exception as e:
+        print(f"  Supabase token sync error (non-fatal): {e}")
+else:
+    print("  Supabase not configured, skipping token sync")
