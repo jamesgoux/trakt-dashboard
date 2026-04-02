@@ -12,6 +12,8 @@ on:
         description: Commit message
         required: true
         default: 'update file'
+permissions:
+  contents: write
 jobs:
   commit:
     runs-on: ubuntu-latest
