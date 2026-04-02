@@ -2941,8 +2941,10 @@ if os.path.exists("data/watchlist.json"):
         data["wlst"] = wlst_raw
         print(f"  Watchlist: {len(wlst_raw.get('movies',[]))} movies, {len(wlst_raw.get('shows',[]))} shows")
 
-# NOTE: Trakt credentials (_tc/_tt) are no longer embedded in the data blob.
-# Authenticated users get tokens via Supabase; unauthenticated visitors are read-only.
+# Embed public Trakt client ID so browser-side search works without Supabase auth.
+# Access token (_tt) is NOT embedded — authenticated features require Supabase login.
+if CLIENT_ID:
+    data["_tc"] = CLIENT_ID
 
 data_str = json.dumps(data, separators=(',', ':'), ensure_ascii=False)
 with open("templates/dashboard.html") as f:
