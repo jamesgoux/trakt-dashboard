@@ -490,13 +490,11 @@ def run():
 
     print(f"  TMDB enrichment: {tmdb_fetched} lookups")
 
-    # 4. Fetch JustWatch prices (two-pass: new items first, then stale refreshes)
+    # 4. Fetch JustWatch prices (new items only — stale refresh in enrichment)
     jw_fetched = 0
     all_items = list(movies_by_tmdb.values()) + trakt_shows
     now = int(time.time())
-    stale_cutoff = now - JW_STALE_HOURS * 3600
 
-    # Pass 1: assign cached data to all items, fresh-fetch items with no cache
     for item in all_items:
         slug = item.get("slug", "")
         if not slug:
@@ -505,10 +503,11 @@ def run():
         if not slug:
             continue
 
+        # Use cache if available (stale refresh handled by refresh_jw_stale.py)
         if slug in jw_cache:
             item["jw"] = jw_cache[slug]
             item["jw_ts"] = jw_ts_cache.get(slug, 0)
-            continue  # staleness checked in pass 2
+            continue
 
         if jw_fetched >= JW_BUDGET:
             continue
@@ -522,28 +521,7 @@ def run():
         jw_fetched += 1
         time.sleep(0.3)
 
-    new_fetched = jw_fetched
-
-    # Pass 2: refresh stale cached items (oldest first)
-    stale_items = [i for i in all_items if i.get("jw") and i.get("jw_ts", 0) < stale_cutoff and i.get("slug")]
-    stale_items.sort(key=lambda x: x.get("jw_ts", 0))
-    stale_refreshed = 0
-    for item in stale_items:
-        if jw_fetched >= JW_BUDGET:
-            break
-        slug = item["slug"]
-        media_type = "show" if "aired_episodes" in item else "movie"
-        jw_data = fetch_justwatch(slug, media_type, tmdb_id=item.get("tmdb_id"))
-        if jw_data:
-            item["jw"] = jw_data
-            jw_cache[slug] = jw_data
-        item["jw_ts"] = now
-        jw_ts_cache[slug] = now
-        jw_fetched += 1
-        stale_refreshed += 1
-        time.sleep(0.3)
-
-    print(f"  JustWatch: {jw_fetched} lookups ({new_fetched} new, {stale_refreshed} stale refreshed), {sum(1 for i in all_items if i.get('jw'))} with data")
+    print(f"  JustWatch: {jw_fetched} new lookups, {sum(1 for i in all_items if i.get('jw'))} with data")
 
     # 5. Build final output
     final_movies = []
