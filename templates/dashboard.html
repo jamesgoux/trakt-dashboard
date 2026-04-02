@@ -2268,10 +2268,8 @@ function renderLifeline(){
   var scScale=posMax/scMax;
   var negScScaled=negData.sc.map(function(v){return Math.round(v*scScale)});
 
-  // Dispose existing chart to prevent stale series persisting via ECharts merge mode
-  var _llExist=echarts.getInstanceByDom(llEl);
-  if(_llExist){_llExist.dispose();var _ci=ch.indexOf(_llExist);if(_ci>=0)ch.splice(_ci,1)}
-  var llChart=echarts.init(llEl);
+  // Reuse existing chart instance; notMerge on setOption prevents stale series
+  var llChart=echarts.getInstanceByDom(llEl)||echarts.init(llEl);
   // Build legend + series only for filter-active types (with data)
   var llLeg=[];var llSeries=[];
   function _llAdd(show,name,data,grad0,grad1,neg){if(!show)return;var hasD=data.some(function(v){return v!==0});if(!hasD)return;llLeg.push(name);llSeries.push({name:name,type:'bar',stack:'ll',data:data,itemStyle:{color:new echarts.graphic.LinearGradient(0,neg?0:1,0,neg?1:0,[{offset:0,color:grad0},{offset:1,color:grad1}])},barMaxWidth:bw})}
@@ -2292,7 +2290,7 @@ function renderLifeline(){
     grid:{left:40,right:10,top:50,bottom:30},
     xAxis:{type:'category',data:days.map(function(d){return d.substring(5)}),axisLabel:{color:'#666',fontSize:8,rotate:45,interval:0},axisLine:{lineStyle:{color:'#444'}}},
     yAxis:{type:'value',axisLabel:{color:'#666',formatter:function(v){return v>=0?v:''}},splitLine:{lineStyle:{color:'#222'}}},
-    series:llSeries});
+    series:llSeries},true);
   // Click to show chronological events for that day
   var typeIcons={ep:'📺',mv:'🎞️',sc:'🎧',bk:'📚',co:'🎸',th:'🎭',pc:'🎙️',wk:'🏃',sp:'🏟️',bg:'🎲',gt:'🎮'};
   var typeColors={ep:'var(--tv)',mv:'var(--mv)',sc:'var(--mu)',bk:'var(--bk)',co:'var(--cn)',th:'var(--th)',pc:'#ef4444',wk:'#1db954',sp:'#0ea5e9',bg:'#ec4899',gt:'#6366f1'};
@@ -2321,7 +2319,7 @@ function renderLifeline(){
     }
     div.innerHTML=h;llEl.parentElement.appendChild(div);
   });
-  ch.push(llChart);
+  if(ch.indexOf(llChart)<0)ch.push(llChart);
 }
 
 // CPI-U annual averages for inflation adjustment (source: BLS, 2026 estimated)
