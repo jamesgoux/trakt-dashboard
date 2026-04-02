@@ -65,6 +65,22 @@ def fetch_ep_still(tmdb_id, season, episode):
         return ""
 
 
+def fetch_season_runtimes(slug):
+    """Fetch per-episode runtimes from Trakt seasons endpoint."""
+    r = retry_request("get", f"{BASE}/shows/{slug}/seasons?extended=full,episodes",
+                      headers=AUTH_HEADERS, timeout=15)
+    if not r or r.status_code != 200:
+        return {}
+    runtimes = {}
+    for season in r.json():
+        sn = season.get("number", 0)
+        for ep in season.get("episodes", []):
+            rt = ep.get("runtime", 0)
+            if rt:
+                runtimes[(sn, ep.get("number", 0))] = rt
+    return runtimes
+
+
 def fetch_recent_history():
     """Fetch last 20 watched episodes from Trakt history."""
     r = retry_request("get", f"{BASE}/users/{USERNAME}/history/episodes?limit=100&extended=full",
@@ -193,11 +209,15 @@ def run():
         poster = posters.get(slug, "")
         ep_runtime = next_ep.get("runtime", 0) or show.get("runtime", 0) or 0
 
+        # Fetch per-episode runtimes for accurate remaining time
+        rt_map = fetch_season_runtimes(slug)
         remaining_min = 0
         for sn in prog.get("seasons", []):
+            sn_num = sn.get("number", 0)
             for ep in sn.get("episodes", []):
                 if not ep.get("completed", False):
-                    remaining_min += ep.get("runtime") or ep_runtime
+                    ep_num = ep.get("number", 0)
+                    remaining_min += rt_map.get((sn_num, ep_num), ep_runtime)
 
         aired_total = prog.get("aired", 0)
         completed = prog.get("completed", 0)
