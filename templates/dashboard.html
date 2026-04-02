@@ -207,7 +207,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
 .un-wl-poster-ph{width:85px;height:127px;border-radius:8px;background:linear-gradient(135deg,#1a1a2e,#0f3460);display:flex;align-items:center;justify-content:center;font-size:22px;color:var(--t2);flex-shrink:0}
 .un-wl-info{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;padding:10px 12px}
 .un-wl-title{font-weight:700;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.un-wl-meta{font-size:12px;color:var(--t2);display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.un-wl-meta{font-size:12px;color:var(--t2);display:flex;align-items:center;justify-content:space-between}
 .un-wl-runtime{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:4px;background:rgba(255,255,255,.06);font-size:11px;font-weight:600;color:var(--tx);white-space:nowrap}
 .un-wl-genres{display:flex;flex-wrap:nowrap;gap:4px;margin-top:1px;overflow:hidden}
 .un-wl-jw{display:flex;flex-direction:column;gap:4px;margin-top:3px}
@@ -215,7 +215,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
 .un-wl-jw-icon{width:28px;height:28px;border-radius:6px}
 .un-wl-jw-price{font-size:11px;font-weight:600;padding:2px 6px;border-radius:4px;white-space:nowrap}
 .un-wl-jw-rent{background:rgba(251,191,36,.12);color:#fbbf24}
-.un-wl-jw-buy{background:rgba(59,130,246,.12);color:#60a5fa}
+.un-wl-jw-buy{background:rgba(34,197,94,.12);color:#22c55e}
 .un-wl-jw-free{background:rgba(20,184,166,.12);color:#14b8a6;font-size:11px;font-weight:600;padding:2px 6px;border-radius:4px}
 .un-wl-arrow{color:var(--t2);font-size:18px;flex-shrink:0;align-self:center;padding-right:12px}
 .un-wl-source{position:absolute;top:8px;right:8px;font-size:9px;padding:1px 5px;border-radius:3px;background:rgba(255,255,255,.06);color:var(--t2);text-transform:uppercase;letter-spacing:.5px}
@@ -7620,17 +7620,21 @@ function _wlRender(){
     // Title
     h+='<div class="un-wl-title">'+item.title+'</div>';
 
-    // Meta line
+    // Meta line — year left, rating center, runtime right
     h+='<div class="un-wl-meta">';
-    if(item.year)h+='<span>'+item.year+'</span>';
-    if(item.rating)h+='<span>⭐ '+item.rating+'</span>';
-    if(rt)h+='<span class="un-wl-runtime">🕐 '+_fmtRuntime(rt)+'</span>';
-    if(!isMovie&&item.aired_episodes)h+='<span>'+item.aired_episodes+' eps</span>';
-    if(!isMovie&&item.status){
-      var stc=item.status==='returning series'?'var(--tv)':item.status==='ended'?'var(--t2)':'#fbbf24';
-      h+='<span style="color:'+stc+'">'+item.status.replace('returning series','Returning').replace('ended','Ended').replace('canceled','Canceled').replace('in production','In Production')+'</span>';
-    }
+    h+='<span>'+(item.year||'')+'</span>';
+    h+='<span>'+(item.rating?'⭐ '+item.rating:'')+'</span>';
+    h+='<span>'+(rt?'🕐 '+_fmtRuntime(rt):'')+'</span>';
     h+='</div>';
+    if(!isMovie&&(item.aired_episodes||item.status)){
+      h+='<div style="font-size:11px;color:var(--t2);display:flex;gap:6px">';
+      if(item.aired_episodes)h+='<span>'+item.aired_episodes+' eps</span>';
+      if(item.status){
+        var stc=item.status==='returning series'?'var(--tv)':item.status==='ended'?'var(--t2)':'#fbbf24';
+        h+='<span style="color:'+stc+'">'+item.status.replace('returning series','Returning').replace('ended','Ended').replace('canceled','Canceled').replace('in production','In Production')+'</span>';
+      }
+      h+='</div>';
+    }
 
     // Genres
     if(item.genres&&item.genres.length){
@@ -7643,22 +7647,23 @@ function _wlRender(){
       h+='</div>';
     }
 
-    // JustWatch row
-    if(jw.s||jw.r||jw.b){
-      h+='<div class="un-wl-jw">';
-      if(jw.s&&jw.s.length){
-        h+='<div class="un-wl-jw-icons">';
-        jw.s.slice(0,4).forEach(function(svc){
-          if(svc.i)h+='<img class="un-wl-jw-icon" src="'+svc.i+'" alt="'+svc.n+'" title="'+svc.n+'" loading="lazy" onerror="this.style.display=\'none\'">';
-        });
-        h+='</div>';
-      }
-      var _jwPrices='';
-      if(jw.r&&jw.r.length&&jw.r[0].p)_jwPrices+='<span class="un-wl-jw-price un-wl-jw-rent">Rent '+jw.r[0].p+'</span>';
-      if(jw.b&&jw.b.length&&jw.b[0].p)_jwPrices+='<span class="un-wl-jw-price un-wl-jw-buy">Buy '+jw.b[0].p+'</span>';
-      if(_jwPrices)h+='<div style="display:flex;gap:6px;align-items:center">'+_jwPrices+'</div>';
+    // JustWatch rows — always render for consistent card height
+    h+='<div class="un-wl-jw">';
+    if(jw.s&&jw.s.length){
+      h+='<div class="un-wl-jw-icons">';
+      jw.s.slice(0,4).forEach(function(svc){
+        if(svc.i)h+='<img class="un-wl-jw-icon" src="'+svc.i+'" alt="'+svc.n+'" title="'+svc.n+'" loading="lazy" onerror="this.style.display=\'none\'">';
+      });
       h+='</div>';
+    }else{
+      h+='<div style="min-height:28px"></div>';
     }
+    var _jwPrices='';
+    if(jw.r&&jw.r.length&&jw.r[0].p)_jwPrices+='<span class="un-wl-jw-price un-wl-jw-rent">Rent '+jw.r[0].p+'</span>';
+    if(jw.b&&jw.b.length&&jw.b[0].p)_jwPrices+='<span class="un-wl-jw-price un-wl-jw-buy">Buy '+jw.b[0].p+'</span>';
+    if(_jwPrices)h+='<div style="display:flex;gap:6px;align-items:center">'+_jwPrices+'</div>';
+    else h+='<div style="min-height:18px"></div>';
+    h+='</div>';
 
     h+='</div>'; // .un-wl-info
 
