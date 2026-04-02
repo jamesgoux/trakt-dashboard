@@ -2596,7 +2596,7 @@ function baseCharts(){
   // Monthly/Weekly activity — only when a year is selected
   if(isYear){
   var mf=D.c.m.filter(function(m){return m.month.startsWith(cy)});
-  var c1=echarts.init(document.getElementById('tlc'));
+  var c1=echarts.getInstanceByDom(document.getElementById('tlc'))||echarts.init(document.getElementById('tlc'));
   var tlSeries=[];var tlLeg=[];
   var conM=D.c.con_m||{};var thM=D.c.th_m||{};var grM=D.c.gr_m||{};var pcM=D.c.pc_m||{};
   var showSe=_isShow(),showMo=_isMov(),showBk=_isAll()||ct==='book',showCo=_isAll()||ct==='concert',showTh=_isAll()||ct==='theater',showPc=_isAll()||ct==='podcast';
@@ -2701,7 +2701,7 @@ function baseCharts(){
     }
   }
   var tlLegRows=Math.ceil(tlLeg.length/4);var tlGridTop=Math.max(36,tlLegRows*22+8);
-  c1.setOption({tooltip:{trigger:'axis',...tt},legend:{data:tlLeg.length>1?tlLeg:[],right:10,top:0,textStyle:{color:'#999',fontSize:10},itemWidth:12,itemHeight:8,itemGap:8},grid:{left:50,right:40,top:tlGridTop,bottom:30},xAxis:{type:'category',data:tlLabels,axisLabel:{color:'#666',interval:0,rotate:45,fontSize:window._tlRes==='weekly'?8:10},axisLine:{lineStyle:{color:'#333'}}},yAxis:[{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},{type:'value',position:'right',axisLabel:{show:false},splitLine:{show:false}},{type:'value',position:'right',axisLabel:{show:false},splitLine:{show:false}}],series:tlSeries});
+  c1.setOption({tooltip:{trigger:'axis',...tt},legend:{data:tlLeg.length>1?tlLeg:[],right:10,top:0,textStyle:{color:'#999',fontSize:10},itemWidth:12,itemHeight:8,itemGap:8},grid:{left:50,right:40,top:tlGridTop,bottom:30},xAxis:{type:'category',data:tlLabels,axisLabel:{color:'#666',interval:0,rotate:45,fontSize:window._tlRes==='weekly'?8:10},axisLine:{lineStyle:{color:'#333'}}},yAxis:[{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},{type:'value',position:'right',axisLabel:{show:false},splitLine:{show:false}},{type:'value',position:'right',axisLabel:{show:false},splitLine:{show:false}}],series:tlSeries},true);
   if(_isAll()&&tlLeg.length>1)legendIsolate(c1,tlLeg);
   c1.on('click',function(p){
     var month;
@@ -2743,32 +2743,32 @@ function baseCharts(){
     var lfmMoD=lfmMo.find(function(m2){return m2.m===month});
     if(lfmMoD&&lfmMoD.ta&&lfmMoD.ta.length){detailH2+='<div style="margin-top:6px;font-size:10px;font-weight:600;color:var(--t2)">🎤 Top Artists ('+lfmMoD.ta.length+')</div>';lfmMoD.ta.slice(0,5).forEach(function(a){detailH2+='<div class="cd-item"><span>'+a.n+'</span><span class="nm" style="color:#15803d">'+a.c+'</span></div>'})}
     div.innerHTML=detailH2;el.parentElement.appendChild(div)});
-  ch.push(c1);
+  if(ch.indexOf(c1)<0)ch.push(c1);
   }
 
-  // Life mode: skip genres/countries/etc but still render yearly chart
-  if(ct==='life'){
-    if(!isYear){
-      var yr2=D.c.y.filter(function(d){return parseInt(d.year)>=2012}).map(function(d){return{year:d.year,seasons:d.seasons||0,movies:d.movies}});
-      var c6b=echarts.init(document.getElementById('yrc'));
-      var yrS2=[];var yrL2=[];
-      yrS2.push({name:'Movies',type:'bar',stack:'t',data:yr2.map(function(d){return d.movies}),itemStyle:{color:'#fb923c'}});yrL2.push('Movies');
-      yrS2.push({name:'Seasons',type:'bar',stack:'t',data:yr2.map(function(d){return d.seasons}),itemStyle:{color:'#14b8a6'}});yrL2.push('Seasons');
-      var grY2=D.c.gr_y||{};if(Object.keys(grY2).length){yrS2.push({name:'Books',type:'bar',stack:'t',data:yr2.map(function(d){return grY2[d.year]||0}),itemStyle:{color:'#fbbf24'}});yrL2.push('Books')}
-      var conY2=D.c.con_y||{};if(Object.keys(conY2).length){yrS2.push({name:'Concerts',type:'bar',stack:'t',data:yr2.map(function(d){return conY2[d.year]||0}),itemStyle:{color:'#3b82f6'}});yrL2.push('Concerts')}
-      var thY2=D.c.th_y||{};if(Object.keys(thY2).length){yrS2.push({name:'Theater',type:'bar',stack:'t',data:yr2.map(function(d){return thY2[d.year]||0}),itemStyle:{color:'#a78bfa'}});yrL2.push('Theater')}
-      if(SP.length){var spYr2={};SP.forEach(function(e){if(e.date){var y=e.date.substring(0,4);spYr2[y]=(spYr2[y]||0)+1}});yrS2.push({name:'Sports',type:'bar',stack:'t',data:yr2.map(function(d){return spYr2[d.year]||0}),itemStyle:{color:'#0ea5e9'}});yrL2.push('Sports')}
-      var hwYr2=(D.health||{}).by_year||{};if(Object.keys(hwYr2).length){yrS2.push({name:'Workouts',type:'bar',stack:'t',data:yr2.map(function(d){return(hwYr2[d.year]||{}).count||0}),itemStyle:{color:'#1db954'}});yrL2.push('Workouts')}
-      var bgYr2=(D.bg||{}).agg&&(D.bg||{}).agg.by_year||{};if(Object.keys(bgYr2).length){yrS2.push({name:'Board Games',type:'bar',stack:'t',data:yr2.map(function(d){return bgYr2[d.year]||0}),itemStyle:{color:'#ec4899'}});yrL2.push('Board Games')}
-      var gtYr2=(D.gt||{}).by_year||{};if(Object.keys(gtYr2).length){yrS2.push({name:'Video Games',type:'bar',stack:'t',data:yr2.map(function(d){return(gtYr2[d.year]||{}).games||0}),itemStyle:{color:'#6366f1'}});yrL2.push('Video Games')}
-      var lfmYr2=D.lfm&&D.lfm.yearly?D.lfm.yearly:[];if(lfmYr2.length){var lfmYrM2={};lfmYr2.forEach(function(y){lfmYrM2[y.yr]=y.s||0});yrS2.push({name:'Scrobbles',type:'line',yAxisIndex:1,data:yr2.map(function(d){return lfmYrM2[d.year]||0}),itemStyle:{color:'#15803d'},lineStyle:{width:2},symbol:'circle',symbolSize:4});yrL2.push('Scrobbles')}
-      var yrLegRows2=Math.ceil(yrL2.length/4);var yrGridTop2=Math.max(36,yrLegRows2*22+8);
-      c6b.setOption({tooltip:{trigger:'axis',...tt,formatter:function(p){return p.map(function(s){return s.marker+s.seriesName+': '+s.value}).join('<br/>')}},legend:{data:yrL2,right:10,top:0,textStyle:{color:'#999',fontSize:10},itemWidth:12,itemHeight:8,itemGap:8},grid:{left:50,right:40,top:yrGridTop2,bottom:24},xAxis:{type:'category',data:yr2.map(function(d){return d.year}),axisLabel:{color:'#666',fontSize:10},axisLine:{lineStyle:{color:'#333'}}},yAxis:[{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},{type:'value',position:'right',axisLabel:{show:false},splitLine:{show:false}}],series:yrS2});
-      if(yrL2.length>1)legendIsolate(c6b,yrL2);
-      ch.push(c6b);
-    }
-    return;
+  // Yearly Activity chart — renders for ALL filters when not year-specific
+  if(!isYear){
+    var yr2=D.c.y.filter(function(d){return parseInt(d.year)>=2012}).map(function(d){return{year:d.year,seasons:d.seasons||0,movies:d.movies}});
+    var c6b=echarts.getInstanceByDom(document.getElementById('yrc'))||echarts.init(document.getElementById('yrc'));
+    var yrS2=[];var yrL2=[];
+    if(_isMov()){yrS2.push({name:'Movies',type:'bar',stack:'t',data:yr2.map(function(d){return d.movies}),itemStyle:{color:'#fb923c'}});yrL2.push('Movies')}
+    if(_isShow()){yrS2.push({name:'Seasons',type:'bar',stack:'t',data:yr2.map(function(d){return d.seasons}),itemStyle:{color:'#14b8a6'}});yrL2.push('Seasons')}
+    var grY2=D.c.gr_y||{};if((_isAll()||ct==='book')&&Object.keys(grY2).length){yrS2.push({name:'Books',type:'bar',stack:'t',data:yr2.map(function(d){return grY2[d.year]||0}),itemStyle:{color:'#fbbf24'}});yrL2.push('Books')}
+    var conY2=D.c.con_y||{};if((_isAll()||ct==='concert')&&Object.keys(conY2).length){yrS2.push({name:'Concerts',type:'bar',stack:'t',data:yr2.map(function(d){return conY2[d.year]||0}),itemStyle:{color:'#3b82f6'}});yrL2.push('Concerts')}
+    var thY2=D.c.th_y||{};if((_isAll()||ct==='theater')&&Object.keys(thY2).length){yrS2.push({name:'Theater',type:'bar',stack:'t',data:yr2.map(function(d){return thY2[d.year]||0}),itemStyle:{color:'#a78bfa'}});yrL2.push('Theater')}
+    if((_isAll()||ct==='sports')&&SP.length){var spYr2={};SP.forEach(function(e){if(e.date){var y=e.date.substring(0,4);spYr2[y]=(spYr2[y]||0)+1}});yrS2.push({name:'Sports',type:'bar',stack:'t',data:yr2.map(function(d){return spYr2[d.year]||0}),itemStyle:{color:'#0ea5e9'}});yrL2.push('Sports')}
+    var hwYr2=(D.health||{}).by_year||{};if((_isAll()||ct==='health')&&Object.keys(hwYr2).length){yrS2.push({name:'Workouts',type:'bar',stack:'t',data:yr2.map(function(d){return(hwYr2[d.year]||{}).count||0}),itemStyle:{color:'#1db954'}});yrL2.push('Workouts')}
+    var bgYr2=(D.bg||{}).agg&&(D.bg||{}).agg.by_year||{};if((_isAll()||ct==='boardgame')&&Object.keys(bgYr2).length){yrS2.push({name:'Board Games',type:'bar',stack:'t',data:yr2.map(function(d){return bgYr2[d.year]||0}),itemStyle:{color:'#ec4899'}});yrL2.push('Board Games')}
+    var gtYr2=(D.gt||{}).by_year||{};if((_isAll()||ct==='game')&&Object.keys(gtYr2).length){yrS2.push({name:'Video Games',type:'bar',stack:'t',data:yr2.map(function(d){return(gtYr2[d.year]||{}).games||0}),itemStyle:{color:'#6366f1'}});yrL2.push('Video Games')}
+    var lfmYr2=D.lfm&&D.lfm.yearly?D.lfm.yearly:[];if((_isAll()||ct==='music')&&lfmYr2.length){var lfmYrM2={};lfmYr2.forEach(function(y){lfmYrM2[y.yr]=y.s||0});yrS2.push({name:'Scrobbles',type:'line',yAxisIndex:1,data:yr2.map(function(d){return lfmYrM2[d.year]||0}),itemStyle:{color:'#15803d'},lineStyle:{width:2},symbol:'circle',symbolSize:4});yrL2.push('Scrobbles')}
+    var yrLegRows2=Math.ceil(yrL2.length/4);var yrGridTop2=Math.max(36,yrLegRows2*22+8);
+    c6b.setOption({tooltip:{trigger:'axis',...tt,formatter:function(p){return p.map(function(s){return s.marker+s.seriesName+': '+s.value}).join('<br/>')}},legend:{data:yrL2,right:10,top:0,textStyle:{color:'#999',fontSize:10},itemWidth:12,itemHeight:8,itemGap:8},grid:{left:50,right:40,top:yrGridTop2,bottom:24},xAxis:{type:'category',data:yr2.map(function(d){return d.year}),axisLabel:{color:'#666',fontSize:10},axisLine:{lineStyle:{color:'#333'}}},yAxis:[{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},{type:'value',position:'right',axisLabel:{show:false},splitLine:{show:false}}],series:yrS2},true);
+    if(_isAll()&&yrL2.length>1)legendIsolate(c6b,yrL2);
+    if(ch.indexOf(c6b)<0)ch.push(c6b);
   }
+
+  // Life mode: skip genres/countries/etc
+  if(ct==='life') return;
 
   // Genres - respects type AND year filter
   var gd;
