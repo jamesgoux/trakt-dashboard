@@ -210,7 +210,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
 .un-wl-meta{font-size:12px;color:var(--t2);display:flex;align-items:center;justify-content:space-between}
 .un-wl-runtime{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:4px;background:rgba(255,255,255,.06);font-size:11px;font-weight:600;color:var(--tx);white-space:nowrap}
 .un-wl-genres{display:flex;flex-wrap:nowrap;gap:4px;margin-top:1px;overflow:hidden}
-.un-wl-jw{display:flex;flex-direction:column;gap:4px;margin-top:3px}
+.un-wl-jw{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-top:auto}
 .un-wl-jw-icons{display:flex;gap:4px;align-items:center}
 .un-wl-jw-icon{width:28px;height:28px;border-radius:6px}
 .un-wl-jw-price{font-size:11px;font-weight:600;padding:2px 6px;border-radius:4px;white-space:nowrap}
@@ -7537,6 +7537,7 @@ function _fmtRuntime(m){
   if(m>=60)return Math.floor(m/60)+'h '+(m%60?m%60+'m':'');
   return m+'m';
 }
+function _wlRoundPrice(p){var n=parseFloat(p.replace(/[^0-9.]/g,''));return isNaN(n)?p:'$'+Math.round(n)}
 
 function _wlGetItems(){
   var wl=D.wlst||{};
@@ -7647,7 +7648,7 @@ function _wlRender(){
       h+='</div>';
     }
 
-    // JustWatch rows — always render for consistent card height
+    // JustWatch — one row: icons left, prices right, pinned to bottom
     h+='<div class="un-wl-jw">';
     if(jw.s&&jw.s.length){
       h+='<div class="un-wl-jw-icons">';
@@ -7656,13 +7657,12 @@ function _wlRender(){
       });
       h+='</div>';
     }else{
-      h+='<div style="min-height:28px"></div>';
+      h+='<div></div>';
     }
     var _jwPrices='';
-    if(jw.r&&jw.r.length&&jw.r[0].p)_jwPrices+='<span class="un-wl-jw-price un-wl-jw-rent">Rent '+jw.r[0].p+'</span>';
-    if(jw.b&&jw.b.length&&jw.b[0].p)_jwPrices+='<span class="un-wl-jw-price un-wl-jw-buy">Buy '+jw.b[0].p+'</span>';
+    if(jw.r&&jw.r.length&&jw.r[0].p)_jwPrices+='<span class="un-wl-jw-price un-wl-jw-rent">'+_wlRoundPrice(jw.r[0].p)+'</span>';
+    if(jw.b&&jw.b.length&&jw.b[0].p)_jwPrices+='<span class="un-wl-jw-price un-wl-jw-buy">'+_wlRoundPrice(jw.b[0].p)+'</span>';
     if(_jwPrices)h+='<div style="display:flex;gap:6px;align-items:center">'+_jwPrices+'</div>';
-    else h+='<div style="min-height:18px"></div>';
     h+='</div>';
 
     h+='</div>'; // .un-wl-info
