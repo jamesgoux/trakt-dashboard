@@ -31,6 +31,7 @@ JW_QUERY = """query($path:String!){urlV2(fullPath:$path){node{...on MovieOrShow{
 }}}}"""
 
 JW_BUDGET = 100  # max new JustWatch lookups per run
+JW_STALE_HOURS = 24  # re-fetch JW prices older than this
 
 
 def fetch_letterboxd_watchlist():
@@ -332,8 +333,9 @@ def slugify_for_jw(title, year=None):
 def run():
     print("=== Watchlist Refresh ===")
 
-    # Load existing watchlist for JW price cache
+    # Load existing watchlist for JW price cache + timestamps
     jw_cache = {}  # slug -> jw data
+    jw_ts_cache = {}  # slug -> epoch when jw was last fetched
     existing = {"movies": [], "shows": []}
     if os.path.exists("data/watchlist.json"):
         with open("data/watchlist.json") as f:
@@ -341,6 +343,7 @@ def run():
         for item in existing.get("movies", []) + existing.get("shows", []):
             if item.get("jw") and item.get("slug"):
                 jw_cache[item["slug"]] = item["jw"]
+                jw_ts_cache[item["slug"]] = item.get("jw_ts", 0)
 
     # Load poster cache for fallback
     posters = {}
@@ -487,10 +490,13 @@ def run():
 
     print(f"  TMDB enrichment: {tmdb_fetched} lookups")
 
-    # 4. Fetch JustWatch prices
+    # 4. Fetch JustWatch prices (two-pass: new items first, then stale refreshes)
     jw_fetched = 0
     all_items = list(movies_by_tmdb.values()) + trakt_shows
+    now = int(time.time())
+    stale_cutoff = now - JW_STALE_HOURS * 3600
 
+    # Pass 1: assign cached data to all items, fresh-fetch items with no cache
     for item in all_items:
         slug = item.get("slug", "")
         if not slug:
@@ -499,10 +505,10 @@ def run():
         if not slug:
             continue
 
-        # Use cache if available
         if slug in jw_cache:
             item["jw"] = jw_cache[slug]
-            continue
+            item["jw_ts"] = jw_ts_cache.get(slug, 0)
+            continue  # staleness checked in pass 2
 
         if jw_fetched >= JW_BUDGET:
             continue
@@ -510,11 +516,34 @@ def run():
         media_type = "show" if "aired_episodes" in item else "movie"
         jw_data = fetch_justwatch(slug, media_type, tmdb_id=item.get("tmdb_id"))
         item["jw"] = jw_data
+        item["jw_ts"] = now
         jw_cache[slug] = jw_data
+        jw_ts_cache[slug] = now
         jw_fetched += 1
         time.sleep(0.3)
 
-    print(f"  JustWatch: {jw_fetched} new lookups, {sum(1 for i in all_items if i.get('jw'))} with data")
+    new_fetched = jw_fetched
+
+    # Pass 2: refresh stale cached items (oldest first)
+    stale_items = [i for i in all_items if i.get("jw") and i.get("jw_ts", 0) < stale_cutoff and i.get("slug")]
+    stale_items.sort(key=lambda x: x.get("jw_ts", 0))
+    stale_refreshed = 0
+    for item in stale_items:
+        if jw_fetched >= JW_BUDGET:
+            break
+        slug = item["slug"]
+        media_type = "show" if "aired_episodes" in item else "movie"
+        jw_data = fetch_justwatch(slug, media_type, tmdb_id=item.get("tmdb_id"))
+        if jw_data:
+            item["jw"] = jw_data
+            jw_cache[slug] = jw_data
+        item["jw_ts"] = now
+        jw_ts_cache[slug] = now
+        jw_fetched += 1
+        stale_refreshed += 1
+        time.sleep(0.3)
+
+    print(f"  JustWatch: {jw_fetched} lookups ({new_fetched} new, {stale_refreshed} stale refreshed), {sum(1 for i in all_items if i.get('jw'))} with data")
 
     # 5. Build final output
     final_movies = []
@@ -534,6 +563,8 @@ def run():
         }
         if m.get("jw"):
             entry["jw"] = m["jw"]
+        if m.get("jw_ts"):
+            entry["jw_ts"] = m["jw_ts"]
         final_movies.append(entry)
 
     # Sort by added_at desc (most recent first)
@@ -558,6 +589,8 @@ def run():
         }
         if s.get("jw"):
             entry["jw"] = s["jw"]
+        if s.get("jw_ts"):
+            entry["jw_ts"] = s["jw_ts"]
         final_shows.append(entry)
 
     final_shows.sort(key=lambda x: x.get("added_at") or "", reverse=True)
