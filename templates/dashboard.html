@@ -7538,6 +7538,8 @@ function _fmtRuntime(m){
   return m+'m';
 }
 
+function _wlRoundPrice(p){var n=parseFloat(p.replace(/[^0-9.]/g,''));return isNaN(n)?p:'$'+Math.round(n);}
+
 function _wlGetItems(){
   var wl=D.wlst||{};
   var src=_wlFilter==='movie'?(wl.movies||[]):(wl.shows||[]);
@@ -7659,8 +7661,8 @@ function _wlRender(){
       h+='<div></div>';
     }
     var _jwPrices='';
-    if(jw.r&&jw.r.length&&jw.r[0].p)_jwPrices+='<span class="un-wl-jw-price un-wl-jw-rent">'+jw.r[0].p+'</span>';
-    if(jw.b&&jw.b.length&&jw.b[0].p)_jwPrices+='<span class="un-wl-jw-price un-wl-jw-buy">'+jw.b[0].p+'</span>';
+    if(jw.r&&jw.r.length&&jw.r[0].p)_jwPrices+='<span class="un-wl-jw-price un-wl-jw-rent">'+_wlRoundPrice(jw.r[0].p)+'</span>';
+    if(jw.b&&jw.b.length&&jw.b[0].p)_jwPrices+='<span class="un-wl-jw-price un-wl-jw-buy">'+_wlRoundPrice(jw.b[0].p)+'</span>';
     if(_jwPrices)h+='<div style="display:flex;gap:6px;align-items:center">'+_jwPrices+'</div>';
     h+='</div>';
 
