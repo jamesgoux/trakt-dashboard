@@ -7847,6 +7847,8 @@ function _wlDragEnd(e){
   }
 
   _wlDragIdx=-1;_wlDragOverIdx=-1;_wlDragCards=null;_wlDragOv=null;
+  // Show/update save bar (previously handled by _wlRender which we now skip)
+  _wlUpdateSaveBar();
 }
 
 // ─── Trakt List Persistence ─────────────────────────────────────
