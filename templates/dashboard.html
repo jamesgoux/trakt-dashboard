@@ -7235,7 +7235,7 @@ function _unFetchJW(type,slug,containerId,tmdbId){
     var results=[];
     (cached.jw.s||[]).forEach(function(o){results.push({name:o.n,icon:o.i,label:'Stream'})});
     (cached.jw.r||[]).forEach(function(o){results.push({name:o.n,icon:o.i,label:'Rent'+(o.p?' ('+o.p+')':'')})});
-    (cached.jw.b||[]).forEach(function(o){results.push({name:o.n,icon:o.i,label:'Buy'+(o.p?' ('+o.p+')':'')})});
+    (cached.jw.b||[]).filter(function(o){return!o.n||o.n.toLowerCase().indexOf('dvd')<0}).forEach(function(o){results.push({name:o.n,icon:o.i,label:'Buy'+(o.p?' ('+o.p+')':'')})});
     if(results.length){_unRenderWP(results,containerId);return}
   }
   // Check Up Next show streaming data
@@ -7662,7 +7662,8 @@ function _wlRender(){
     }
     var _jwPrices='';
     if(jw.r&&jw.r.length&&jw.r[0].p)_jwPrices+='<span class="un-wl-jw-price un-wl-jw-rent">'+_wlRoundPrice(jw.r[0].p)+'</span>';
-    if(jw.b&&jw.b.length&&jw.b[0].p)_jwPrices+='<span class="un-wl-jw-price un-wl-jw-buy">'+_wlRoundPrice(jw.b[0].p)+'</span>';
+    var _jwBuy=(jw.b||[]).filter(function(o){return!o.n||o.n.toLowerCase().indexOf('dvd')<0});
+    if(_jwBuy.length&&_jwBuy[0].p)_jwPrices+='<span class="un-wl-jw-price un-wl-jw-buy">'+_wlRoundPrice(_jwBuy[0].p)+'</span>';
     if(_jwPrices)h+='<div style="display:flex;gap:6px;align-items:center">'+_jwPrices+'</div>';
     h+='</div>';
 
