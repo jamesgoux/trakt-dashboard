@@ -1464,29 +1464,29 @@ function _irisCloseSettings(){
 }
 
 // ── Streaming Services Preferences ──────────────────────────
-var _strmAll=[
-  {s:'nfx',n:'Netflix'},{s:'nfa',n:'Netflix with Ads'},{s:'nfk',n:'Netflix Kids'},
-  {s:'mxx',n:'Max'},{s:'aho',n:'Max Amazon Channel'},
-  {s:'dnp',n:'Disney Plus'},{s:'hlu',n:'Hulu'},
-  {s:'amp',n:'Amazon Prime Video'},{s:'pva',n:'Prime Video with Ads'},
-  {s:'atp',n:'Apple TV+'},{s:'avl',n:'Apple TV+ Amazon Channel'},
-  {s:'pct',n:'Peacock'},{s:'pcp',n:'Peacock Premium Plus'},
-  {s:'ppp',n:'Paramount+ Premium'},{s:'ppe',n:'Paramount+ Essential'},{s:'ppa',n:'Paramount+ Apple TV'},
-  {s:'acp',n:'AMC+'},{s:'azp',n:'AMC+ Amazon Channel'},{s:'aat',n:'AMC+ Apple TV'},
-  {s:'dpu',n:'Discovery+'},{s:'adp',n:'Discovery+ Amazon Channel'},
-  {s:'bbo',n:'BritBox'},{s:'abb',n:'BritBox Amazon Channel'},{s:'bba',n:'BritBox Apple TV'},
-  {s:'ytt',n:'YouTube TV'},{s:'fuv',n:'fuboTV'},{s:'phl',n:'Philo'},
-  {s:'sod',n:'Spectrum On Demand'},{s:'tnt',n:'TNT'},{s:'fxn',n:'FXNow'},
-  {s:'mse',n:'MovieSphere+ Amazon Channel'}
-];
-// Build icon URL map from data at boot
+// Build service catalog + icon map dynamically from data at boot
+var _strmAll=[];
 var _strmIconMap={};
 (function(){
+  var seen={};
   var sources=[].concat((D.un||{}).shows||[],(D.wlst||{}).movies||[],(D.wlst||{}).shows||[]);
   sources.forEach(function(item){
-    var st=item.stream||item.jw&&item.jw.s||[];
-    st.forEach(function(sv){if(sv.s&&sv.i)_strmIconMap[sv.s]=sv.i});
+    // Streaming arrays: up_next uses item.stream, watchlist uses item.jw.s
+    var streams=item.stream||(item.jw?item.jw.s:null)||[];
+    streams.forEach(function(sv){
+      if(sv.s&&sv.n){
+        if(!seen[sv.s]){seen[sv.s]=sv.n;_strmAll.push({s:sv.s,n:sv.n})}
+        if(sv.i)_strmIconMap[sv.s]=sv.i;
+      }
+    });
+    // Also scan rent/buy for icons only (not added to catalog)
+    if(item.jw){
+      (item.jw.r||[]).concat(item.jw.b||[]).forEach(function(sv){
+        if(sv.s&&sv.i&&!_strmIconMap[sv.s])_strmIconMap[sv.s]=sv.i;
+      });
+    }
   });
+  _strmAll.sort(function(a,b){return a.n.localeCompare(b.n)});
 })();
 var _strmSelected=null; // null=show all (no pref), Set=filtered
 var _strmDraft=new Set();
