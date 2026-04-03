@@ -1532,9 +1532,10 @@ function _strmToggle(shortName){
     var on=_strmDraft.has(shortName);
     el.style.border='1px solid '+(on?'var(--sp)':'rgba(255,255,255,.08)');
     el.style.background=on?'rgba(20,184,166,.1)':'var(--sf)';
-    var dot=el.querySelector('div:last-child');
+    var dot=el.lastElementChild;
     if(dot){dot.style.borderColor=on?'var(--sp)':'rgba(255,255,255,.15)';dot.innerHTML=on?'<div style="width:10px;height:10px;border-radius:50%;background:var(--sp)"></div>':''}
-    var label=el.querySelector('div > div');
+    var labelWrap=el.querySelector('[style*="flex:1"]');
+    var label=labelWrap?labelWrap.firstElementChild:null;
     if(label)label.style.color=on?'var(--sp)':'var(--tx)';
   }
 }
