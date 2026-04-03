@@ -1,0 +1,47 @@
+name: Patch DVD filter
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply DVD filter to template
+        run: |
+          python3 << 'PY'
+          import re
+          with open('templates/dashboard.html', 'r') as f:
+              html = f.read()
+
+          # Patch 1: Where to Watch detail — filter DVD from buy providers
+          old1 = "(cached.jw.b||[]).forEach(function(o){results.push({name:o.n,icon:o.i,label:'Buy'+(o.p?' ('+o.p+')':'')})})"
+          new1 = "(cached.jw.b||[]).filter(function(o){return!o.n||o.n.toLowerCase().indexOf('dvd')<0}).forEach(function(o){results.push({name:o.n,icon:o.i,label:'Buy'+(o.p?' ('+o.p+')':'')})})"
+          html = html.replace(old1, new1, 1)
+
+          # Patch 2: Watchlist card buy price badge — filter DVD before picking cheapest
+          old2 = "if(jw.b&&jw.b.length&&jw.b[0].p)_jwPrices+='<span class=\"un-wl-jw-price un-wl-jw-buy\">'+_wlRoundPrice(jw.b[0].p)+'</span>';"
+          new2 = """var _jwBuy=(jw.b||[]).filter(function(o){return!o.n||o.n.toLowerCase().indexOf('dvd')<0});
+    if(_jwBuy.length&&_jwBuy[0].p)_jwPrices+='<span class=\"un-wl-jw-price un-wl-jw-buy\">'+_wlRoundPrice(_jwBuy[0].p)+'</span>';"""
+          html = html.replace(old2, new2, 1)
+
+          with open('templates/dashboard.html', 'w') as f:
+              f.write(html)
+          print("Patches applied successfully")
+          PY
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add templates/dashboard.html
+          git diff --cached --stat
+          git commit -m "Exclude DVD from buy prices in template [skip ci]" || echo "No changes"
+          git push
+      - name: Cleanup workflow
+        run: |
+          git rm .github/workflows/patch_dvd_filter.yml
+          git commit -m "Remove one-time patch workflow [skip ci]"
+          git push
