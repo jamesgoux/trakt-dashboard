@@ -2,11 +2,13 @@
 """
 Auto-refresh Trakt OAuth token.
 
-Reads refresh token from data/trakt_auth.json (or TRAKT_REFRESH_TOKEN env var on first run).
-Writes new access + refresh tokens back to data/trakt_auth.json.
-Other scripts read the access token from this file.
+Reads refresh token from:
+  1. data/trakt_auth.json (self-renewing local file during GH Actions)
+  2. Supabase integrations table (if --user and SUPABASE_* configured)
+  3. TRAKT_REFRESH_TOKEN env var (bootstrap fallback)
 
-Trakt tokens expire every 7 days, so this runs every 2 hours in the enrichment workflow.
+Writes new access + refresh tokens to data/trakt_auth.json AND Supabase.
+Trakt tokens expire every 7 days; this runs every 2 hours via enrichment.
 """
 import os, json, sys, time, requests
 from user_config import load_user_config, get_service
@@ -18,38 +20,73 @@ DATA_FILE = os.path.join(os.path.dirname(__file__), "..", "data", "trakt_auth.js
 CLIENT_ID = get_service(_ucfg, "trakt", "client_id") or os.environ.get("TRAKT_CLIENT_ID", "")
 CLIENT_SECRET = get_service(_ucfg, "trakt", "client_secret") or os.environ.get("TRAKT_CLIENT_SECRET", "")
 
-# Try data file first (self-renewing), fall back to env var (bootstrap)
+# --- Determine refresh token source (priority: local file > Supabase > env var) ---
 refresh_token = ""
+token_source = ""
 existing = {}
+
+# 1. Try local data file (self-renewing within a single GH Actions run)
 if os.path.exists(DATA_FILE):
     try:
         with open(DATA_FILE) as f:
             existing = json.load(f)
         refresh_token = existing.get("refresh_token", "")
         if refresh_token:
-            print(f"Using refresh token from {DATA_FILE}")
+            token_source = f"local file ({DATA_FILE})"
     except Exception:
         pass
 
+# 2. Try Supabase (always has the latest token after each refresh)
 if not refresh_token:
-    refresh_token = get_service(_ucfg, "trakt", "refresh_token") or os.environ.get("TRAKT_REFRESH_TOKEN", "")
+    sb_token = get_service(_ucfg, "trakt", "refresh_token")
+    if sb_token:
+        refresh_token = sb_token
+        token_source = "Supabase integrations"
+
+# 3. Fall back to env var (bootstrap / legacy)
+if not refresh_token:
+    refresh_token = os.environ.get("TRAKT_REFRESH_TOKEN", "")
     if refresh_token:
-        print("Using refresh token from TRAKT_REFRESH_TOKEN env var (bootstrap)")
+        token_source = "TRAKT_REFRESH_TOKEN env var (bootstrap)"
 
 if not all([CLIENT_ID, CLIENT_SECRET, refresh_token]):
     print("ERROR: Need TRAKT_CLIENT_ID, TRAKT_CLIENT_SECRET, and refresh token")
     sys.exit(1)
 
-# Check if current token is still fresh (more than 2 days left = skip)
+print(f"Using refresh token from {token_source}")
+
+# --- Check if token is still fresh (skip refresh if > 2 days remaining) ---
+# Check local file first, then Supabase token_expires_at
+skip_refresh = False
+
+# Local file check
 created = existing.get("created_at", 0)
 expires_in = existing.get("expires_in", 0)
 if created and expires_in:
     remaining = (created + expires_in) - time.time()
     if remaining > 2 * 86400:
         print(f"Token still valid ({remaining/86400:.1f} days left), skipping refresh")
-        sys.exit(0)
+        skip_refresh = True
     else:
         print(f"Token expires in {remaining/86400:.1f} days, refreshing...")
+
+# Supabase token_expires_at check (handles concurrent runs: if another
+# workflow already refreshed, Supabase will have a fresh token_expires_at)
+if not skip_refresh and not created:
+    sb_expires = get_service(_ucfg, "trakt", "token_expires_at")
+    if sb_expires:
+        try:
+            remaining = float(sb_expires) - time.time()
+            if remaining > 2 * 86400:
+                print(f"Supabase token still valid ({remaining/86400:.1f} days left), skipping refresh")
+                skip_refresh = True
+            else:
+                print(f"Supabase token expires in {remaining/86400:.1f} days, refreshing...")
+        except (ValueError, TypeError):
+            pass
+
+if skip_refresh:
+    sys.exit(0)
 
 print("Refreshing Trakt OAuth token...")
 r = requests.post("https://api.trakt.tv/oauth/token", json={
@@ -85,7 +122,7 @@ print(f"Written to {DATA_FILE}")
 # Sync refreshed token to Supabase integrations table
 sb_url = os.environ.get("SUPABASE_URL", "")
 sb_key = os.environ.get("SUPABASE_SERVICE_KEY", "")
-trakt_user = os.environ.get("TRAKT_USERNAME", "jamesgoux")
+trakt_user = _ucfg.get("_username") or os.environ.get("TRAKT_USERNAME", "jamesgoux")
 if sb_url and sb_key:
     try:
         # Look up user_id
