@@ -23,7 +23,12 @@ jobs:
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email 'github-actions[bot]@users.noreply.github.com'
-          git pull --no-rebase -X ours || true
+          git pull --no-rebase -X ours origin main || true
           git add data/boardgames.json
           git diff --staged --quiet || git commit -m "Auto-refresh board games data"
-          git push
+          for i in 1 2 3; do
+            git pull --no-rebase -X ours origin main || true
+            git push && break
+            echo "Push attempt $i failed, retrying in 5s..."
+            sleep 5
+          done
