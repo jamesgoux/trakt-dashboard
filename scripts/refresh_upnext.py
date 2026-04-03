@@ -205,6 +205,10 @@ def run():
             except Exception:
                 pass
 
+        # Skip episodes that haven't aired yet
+        if ep_aired and not is_aired:
+            continue
+
         is_new = is_aired and aired_days_ago is not None and aired_days_ago <= NEW_PIN_DAYS
         poster = posters.get(slug, "")
         ep_runtime = next_ep.get("runtime", 0) or show.get("runtime", 0) or 0
@@ -310,6 +314,15 @@ def run():
             if at > 0 and comp >= at:
                 skipped_complete += 1
                 continue
+            # Don't preserve shows whose next episode hasn't aired yet
+            ps_aired = ps.get("ep_aired", "")
+            if ps_aired:
+                try:
+                    ps_dt = datetime.fromisoformat(ps_aired + "T00:00:00+00:00")
+                    if ps_dt > now:
+                        continue
+                except Exception:
+                    pass
             results.append(ps)
             preserved += 1
     if preserved:

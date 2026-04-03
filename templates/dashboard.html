@@ -5491,6 +5491,7 @@ function _renderUpNext(prerender){
     if(recentSet[s.slug+'|'+s.season+'|'+s.episode])return false;
     if(s.aired_total&&s.completed>=s.aired_total)return false;
     if(_isRemoved(s.slug,s.season,s.episode))return false;
+    if(s.ep_aired&&new Date(s.ep_aired+'T00:00:00')>new Date())return false;
     return true;
   });
   // Companion filter: if active, only show series tagged with that companion
