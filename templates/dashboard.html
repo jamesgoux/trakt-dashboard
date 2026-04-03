@@ -7740,11 +7740,11 @@ function _wlRender(){
     var rt=item.runtime||0;
     var jw=item.jw||{};
 
-    h+='<div class="un-wl-card" data-idx="'+i+'" data-slug="'+slug+'"'+(isCustom?'':' onclick="_wlTap(\''+(_wlFilter)+'\',\''+slug.replace(/'/g,"\\'")+'\','+tmdbId+')"')+'>';
+    h+='<div class="un-wl-card" data-idx="'+i+'" data-slug="'+slug+'" onclick="_wlTap(\''+(_wlFilter)+'\',\''+slug.replace(/'/g,"\\'")+'\','+tmdbId+')">';
 
     // Drag handle (only in custom sort mode)
     if(isCustom){
-      h+='<div class="un-wl-drag" ontouchstart="_wlDragStart(event,'+i+')" onmousedown="_wlDragStart(event,'+i+')">⋮⋮</div>';
+      h+='<div class="un-wl-drag" ontouchstart="event.stopPropagation();_wlDragStart(event,'+i+')" onmousedown="event.stopPropagation();_wlDragStart(event,'+i+')">⋮⋮</div>';
     }
 
     // Poster
@@ -7754,7 +7754,7 @@ function _wlRender(){
       h+='<div class="un-wl-poster-ph" id="wlp-'+i+'">'+(isMovie?'🎞️':'📺')+'</div>';
     }
 
-    h+='<div class="un-wl-info"'+(isCustom?' onclick="_wlTap(\''+(_wlFilter)+'\',\''+slug.replace(/'/g,"\\'")+'\','+tmdbId+')"':'')+'>';
+    h+='<div class="un-wl-info">';
 
     // Title
     h+='<div class="un-wl-title">'+item.title+'</div>';
