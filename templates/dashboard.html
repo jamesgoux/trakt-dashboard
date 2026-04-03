@@ -7190,8 +7190,8 @@ function closeSportsAdd(){_irisCloseSearch()}
     if(dir==='h'&&dx>80){
       slideTarget.style.transition='transform .25s ease';
       slideTarget.style.transform='translateX(100%)';
-      var _st=slideTarget;
-      function _swDone(ev){if(ev&&ev.target!==_st)return;_st.removeEventListener('transitionend',_swDone);_st.style.transition='none';_st.style.transform='';_irisSearchBack()}
+      var _st=slideTarget;var _swRan=false;
+      function _swDone(ev){if(_swRan)return;if(ev&&ev.target!==_st)return;_swRan=true;_st.removeEventListener('transitionend',_swDone);_st.style.transition='none';_st.style.transform='';_irisSearchBack()}
       _st.addEventListener('transitionend',_swDone);
       setTimeout(_swDone,300);
     }else if(moved){
@@ -7593,7 +7593,8 @@ function _unNavBack(){
       _unHideSearchOverlay();
       _unCurrentView='watchlist';
       _unUpdateHeader();
-      _wlRender();
+      // Only re-render if watchlist content was replaced (e.g. by search); skip if already in DOM
+      if(!document.getElementById('wl-list'))_wlRender();
     }else if(prev.view==='calendar'){
       // Return to calendar view — close search overlay if open
       _unHideSearchOverlay();
