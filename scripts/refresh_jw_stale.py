@@ -48,7 +48,8 @@ def run():
 
         slug = item["slug"]
         media_type = item["_media_type"]
-        jw_data = fetch_justwatch(slug, media_type, tmdb_id=item.get("tmdb_id"))
+        jw_data = fetch_justwatch(slug, media_type, tmdb_id=item.get("tmdb_id"),
+                                  title=item.get("title"), year=item.get("year"))
 
         if jw_data:
             old_jw = item.get("jw", {})

@@ -227,6 +227,28 @@ def fetch_tmdb_show(tmdb_id):
         return {}
 
 
+# TMDB provider_id → JustWatch shortName mapping
+# TMDB uses JustWatch data but returns numeric provider IDs; this maps them
+# to JW shortNames so streaming icons are consistent across both code paths.
+_TMDB_TO_JW = {
+    "2": "itu", "3": "ply", "8": "nfx", "9": "amp", "10": "amz",
+    "11": "mbi", "15": "hlu", "25": "fnd", "34": "epx", "43": "stz",
+    "192": "yot", "257": "fuv", "258": "crc", "337": "dnp",
+    "350": "atp", "386": "pct", "387": "pcp", "531": "ppp",
+    "583": "aep", "636": "erk", "1796": "nfa", "1825": "aho",
+    "1855": "szt", "1899": "mxx", "2100": "pva", "2383": "phl",
+    "2528": "ytt", "2616": "ppe",
+}
+
+
+def _tmdb_provider_entry(p):
+    """Build a service entry from a TMDB provider, mapping ID to JW shortName."""
+    pid = str(p["provider_id"])
+    sn = _TMDB_TO_JW.get(pid, pid)  # use JW shortName if mapped, else numeric ID
+    icon = f"https://image.tmdb.org/t/p/w92{p['logo_path']}" if p.get("logo_path") else ""
+    return {"n": p["provider_name"], "s": sn, "i": icon}
+
+
 def fetch_tmdb_watch_providers(tmdb_id, media_type="movie"):
     """Fallback: fetch streaming info from TMDB Watch Providers (no prices but reliable matching)."""
     if not TMDB_API_KEY or not tmdb_id:
@@ -240,25 +262,104 @@ def fetch_tmdb_watch_providers(tmdb_id, media_type="movie"):
         us = d.get("results", {}).get("US", {})
         result = {}
         if us.get("flatrate"):
-            result["s"] = [{"n": p["provider_name"], "s": str(p["provider_id"]),
-                           "i": f"https://image.tmdb.org/t/p/w92{p['logo_path']}" if p.get("logo_path") else ""}
-                          for p in us["flatrate"][:5]]
+            result["s"] = [_tmdb_provider_entry(p) for p in us["flatrate"][:5]]
         if us.get("rent"):
-            result["r"] = [{"n": p["provider_name"], "s": str(p["provider_id"]),
-                           "i": f"https://image.tmdb.org/t/p/w92{p['logo_path']}" if p.get("logo_path") else ""}
-                          for p in us["rent"][:3]]
+            result["r"] = [_tmdb_provider_entry(p) for p in us["rent"][:3]]
         if us.get("buy"):
             buy_filtered = [p for p in us["buy"] if "dvd" not in p.get("provider_name", "").lower()]
             if buy_filtered:
-                result["b"] = [{"n": p["provider_name"], "s": str(p["provider_id"]),
-                               "i": f"https://image.tmdb.org/t/p/w92{p['logo_path']}" if p.get("logo_path") else ""}
-                              for p in buy_filtered[:3]]
+                result["b"] = [_tmdb_provider_entry(p) for p in buy_filtered[:3]]
         return result
     except Exception:
         return {}
 
 
-def fetch_justwatch(slug, media_type="movie", tmdb_id=None):
+# JustWatch title search — used when slug-based lookup fails, before TMDB fallback
+JW_SEARCH_QUERY = """query($q:String!,$type:ObjectType!,$country:Country!){
+  popularTitles(country:$country,first:3,
+    filter:{searchQuery:$q,objectTypes:[$type]}){
+    edges{node{...on MovieOrShow{
+      content(country:$country,language:en){title fullPath originalReleaseYear}
+      offers(country:$country,platform:WEB){
+        monetizationType retailPrice(language:en)
+        package{clearName shortName icon(profile:S100 format:PNG)}
+      }
+    }}}
+  }
+}"""
+
+
+def _jw_search_title(title, media_type="movie", year=None):
+    """Search JustWatch by title, return offers from the best match."""
+    jw_obj = "MOVIE" if media_type == "movie" else "SHOW"
+    try:
+        body = json.dumps({
+            "query": JW_SEARCH_QUERY,
+            "variables": {"q": title, "type": jw_obj, "country": "US"}
+        }).encode()
+        req = urllib.request.Request(
+            "https://apis.justwatch.com/graphql",
+            data=body, headers={"Content-Type": "application/json"}
+        )
+        resp = urllib.request.urlopen(req, timeout=5)
+        d = json.loads(resp.read())
+        edges = (d.get("data") or {}).get("popularTitles", {}).get("edges", [])
+        if not edges:
+            return None
+        # Pick best match (prefer year match if available)
+        best = edges[0].get("node", {})
+        if year:
+            for e in edges:
+                n = e.get("node", {})
+                c = n.get("content", {})
+                if c.get("originalReleaseYear") == year:
+                    best = n
+                    break
+        offers = best.get("offers", [])
+        if not offers:
+            return None
+        # Parse offers same as fetch_justwatch
+        stream, rent, buy = [], [], []
+        seen_s, seen_r, seen_b = set(), set(), set()
+        for o in offers:
+            p = o.get("package", {})
+            sn = p.get("shortName", "")
+            mt = o.get("monetizationType", "")
+            price = o.get("retailPrice", "")
+            icon = "https://images.justwatch.com" + p.get("icon", "") if p.get("icon") else ""
+            name = p.get("clearName", "")
+            if mt == "FLATRATE" and sn not in seen_s:
+                seen_s.add(sn)
+                stream.append({"n": name, "s": sn, "i": icon})
+            elif mt == "RENT" and sn not in seen_r:
+                seen_r.add(sn)
+                entry = {"n": name, "s": sn, "i": icon}
+                if price:
+                    entry["p"] = price
+                rent.append(entry)
+            elif mt == "BUY" and sn not in seen_b and "dvd" not in name.lower():
+                seen_b.add(sn)
+                entry = {"n": name, "s": sn, "i": icon}
+                if price:
+                    entry["p"] = price
+                buy.append(entry)
+        result = {}
+        if stream:
+            result["s"] = stream[:5]
+        if rent:
+            rent.sort(key=lambda x: float(str(x.get("p", "999")).replace("$", "").replace(",", "")))
+            result["r"] = rent[:3]
+        if buy:
+            buy.sort(key=lambda x: float(str(x.get("p", "999")).replace("$", "").replace(",", "")))
+            result["b"] = buy[:3]
+        ct = best.get("content", {})
+        print(f"    JW search matched: {ct.get('title','')} ({ct.get('originalReleaseYear','')})")
+        return result if result else None
+    except Exception as e:
+        return None
+
+
+def fetch_justwatch(slug, media_type="movie", tmdb_id=None, title=None, year=None):
     """Fetch streaming + rental + purchase prices from JustWatch GraphQL API."""
     jw_type = "movie" if media_type == "movie" else "tv-show"
     path = f"/us/{jw_type}/{slug}"
@@ -271,6 +372,12 @@ def fetch_justwatch(slug, media_type="movie", tmdb_id=None):
         url_v2 = (d.get("data") or {}).get("urlV2") or {}
         node = url_v2.get("node")
         if not node:
+            # Slug miss — try JW title search (gets prices), then TMDB fallback (no prices)
+            if title:
+                print(f"    JW slug miss for {slug}, trying title search...")
+                search_result = _jw_search_title(title, media_type, year)
+                if search_result:
+                    return search_result
             print(f"    JW miss for {slug} ({jw_type}), trying TMDB providers...")
             return fetch_tmdb_watch_providers(tmdb_id, media_type)
         offers = node.get("offers", [])
@@ -515,7 +622,8 @@ def run():
             continue
 
         media_type = "show" if "aired_episodes" in item else "movie"
-        jw_data = fetch_justwatch(slug, media_type, tmdb_id=item.get("tmdb_id"))
+        jw_data = fetch_justwatch(slug, media_type, tmdb_id=item.get("tmdb_id"),
+                                  title=item.get("title"), year=item.get("year"))
         item["jw"] = jw_data
         item["jw_ts"] = now
         jw_cache[slug] = jw_data
