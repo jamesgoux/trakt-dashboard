@@ -86,6 +86,26 @@ if not skip_refresh and not created:
             pass
 
 if skip_refresh:
+    # Even when skipping refresh, ensure data/trakt_auth.json exists with the
+    # current token so other scripts in this workflow run can read it.
+    # (The file is gitignored — it doesn't exist at checkout time.)
+    if not existing.get("access_token"):
+        sb_access = get_service(_ucfg, "trakt", "access_token")
+        sb_refresh = get_service(_ucfg, "trakt", "refresh_token")
+        sb_expires = get_service(_ucfg, "trakt", "token_expires_at")
+        if sb_access:
+            token_data = {
+                "access_token": sb_access,
+                "refresh_token": sb_refresh or refresh_token,
+                "created_at": int(float(sb_expires or 0) - 604800),  # approximate
+                "expires_in": 604800,  # 7 days
+            }
+            os.makedirs(os.path.dirname(DATA_FILE), exist_ok=True)
+            with open(DATA_FILE, "w") as f:
+                json.dump(token_data, f, indent=2)
+            print(f"  Wrote Supabase token to {DATA_FILE} for other scripts")
+        else:
+            print(f"  WARNING: No access token in Supabase — other scripts will use env var fallback")
     sys.exit(0)
 
 print("Refreshing Trakt OAuth token...")
