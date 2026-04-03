@@ -36,5 +36,9 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add -A
           git diff --quiet --staged || git commit -m "Watchlist refresh $(date -u +'%H:%M UTC')"
-          git pull --no-rebase -X ours origin main || true
-          git push
+          for i in 1 2 3; do
+            git pull --no-rebase -X ours origin main || true
+            git push && break
+            echo "Push attempt $i failed, retrying in 5s..."
+            sleep 5
+          done
