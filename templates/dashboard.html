@@ -6234,17 +6234,6 @@ function _markRemoved(slug,season,ep){
   _unRemoved[slug+'|'+season+'|'+ep]=Date.now();
   _irisLSSet('un_removed',JSON.stringify(_unRemoved));
 }
-function _unRestore(slug,season,ep,btn){
-  // Clear episode-level removal key
-  var k=slug+'|'+season+'|'+ep;
-  delete _unRemoved[k];
-  // Also clear any legacy show-level key
-  delete _unRemoved[slug+'|*'];
-  _irisLSSet('un_removed',JSON.stringify(_unRemoved));
-  if(btn){var card=btn.closest('.un-card');if(card){card.style.transition='opacity .2s';card.style.opacity='0';setTimeout(function(){_renderUpNext()},250);return}}
-  _renderUpNext();
-}
-
 // Remove a single watch entry — executes immediately on tap
 function _removeEpWatch(historyId,btn,ev){
   if(ev){ev.stopPropagation();ev.preventDefault()}

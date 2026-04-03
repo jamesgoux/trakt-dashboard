@@ -65,6 +65,19 @@ def fetch_ep_still(tmdb_id, season, episode):
         return ""
 
 
+def fetch_tmdb_episode(tmdb_id, season, episode):
+    """Get full episode info from TMDB (air_date, name, runtime, overview, still)."""
+    if not TMDB_API_KEY or not tmdb_id:
+        return None
+    try:
+        url = f"https://api.themoviedb.org/3/tv/{tmdb_id}/season/{season}/episode/{episode}?api_key={TMDB_API_KEY}"
+        req = urllib.request.Request(url, headers={"Accept": "application/json"})
+        resp = urllib.request.urlopen(req, timeout=5)
+        return json.loads(resp.read())
+    except Exception:
+        return None
+
+
 def fetch_season_runtimes(slug):
     """Fetch per-episode runtimes from Trakt seasons endpoint."""
     r = retry_request("get", f"{BASE}/shows/{slug}/seasons?extended=full,episodes",
@@ -228,18 +241,46 @@ def run():
         if aired_total and completed >= aired_total:
             continue  # 100% caught up
 
-        # Skip if this episode already appears in recent history (progress API stale)
+        # If next episode already in recent history, progress API is stale —
+        # try to advance to the following episode using TMDB
         ep_key = f"{slug}|{next_ep.get('season', 0)}|{next_ep.get('number', 0)}"
         if ep_key in recent_set:
-            continue
+            ne_s = next_ep.get("season", 0)
+            ne_e = next_ep.get("number", 0)
+            tmdb_id_val = show.get("ids", {}).get("tmdb", "")
+            advanced = False
+            if tmdb_id_val:
+                ep_info = fetch_tmdb_episode(tmdb_id_val, ne_s, ne_e + 1)
+                if ep_info and ep_info.get("air_date"):
+                    try:
+                        ep_dt = datetime.fromisoformat(ep_info["air_date"] + "T00:00:00+00:00")
+                        if ep_dt <= now:
+                            still = ep_info.get("still_path", "")
+                            next_ep = {
+                                "season": ne_s, "number": ne_e + 1,
+                                "title": ep_info.get("name", ""),
+                                "first_aired": ep_info["air_date"],
+                                "runtime": ep_info.get("runtime", 0),
+                                "overview": (ep_info.get("overview", "") or "")[:500],
+                                "ids": {"trakt": ep_info.get("id", "")},
+                                "_still": f"https://image.tmdb.org/t/p/w780{still}" if still else "",
+                            }
+                            completed += 1
+                            aired_total = max(aired_total, completed + 1)
+                            print(f"  Advanced {slug} past stale S{ne_s:02d}E{ne_e:02d} → S{ne_s:02d}E{ne_e+1:02d}")
+                            advanced = True
+                    except Exception:
+                        pass
+            if not advanced:
+                continue
 
         # Episode overview from extended data
         ep_overview = next_ep.get("overview", "")
 
-        # Episode still image from TMDB
+        # Episode still image from TMDB (skip if already fetched during advance)
         tmdb_id = show.get("ids", {}).get("tmdb", "")
-        ep_still = ""
-        if tmdb_id and TMDB_API_KEY:
+        ep_still = next_ep.pop("_still", "")
+        if not ep_still and tmdb_id and TMDB_API_KEY:
             ep_still = fetch_ep_still(tmdb_id, next_ep.get("season", 1), next_ep.get("number", 1))
             time.sleep(0.15)
 
@@ -306,6 +347,12 @@ def run():
             # Don't preserve shows the user removed from their watch history
             if ps["slug"] not in watched_slugs:
                 skipped_removed += 1
+                continue
+            # Don't preserve shows whose next episode is already in recent history
+            # (progress API was stale — if we couldn't advance, the show is caught up)
+            ps_ep_key = f"{ps['slug']}|{ps.get('season', 0)}|{ps.get('episode', 0)}"
+            if ps_ep_key in recent_set:
+                skipped_complete += 1
                 continue
             # Don't preserve shows that are actually complete — they were
             # skipped by the current run for a reason (100% caught up)
