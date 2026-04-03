@@ -7550,8 +7550,9 @@ function _wlGetItems(){
       var bySlug={};src.forEach(function(it){bySlug[it.slug]=it});
       var ordered=[];
       order.forEach(function(s){if(bySlug[s]){ordered.push(bySlug[s]);delete bySlug[s]}});
-      // Append any new items not in custom order
-      src.forEach(function(it){if(bySlug[it.slug])ordered.push(it)});
+      // Prepend any new items not in custom order (newest at top)
+      var _ni=[];src.forEach(function(it){if(bySlug[it.slug])_ni.push(it)});
+      ordered=_ni.concat(ordered);
       return ordered;
     }
     return src.slice();
