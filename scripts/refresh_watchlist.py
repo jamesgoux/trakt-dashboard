@@ -248,9 +248,11 @@ def fetch_tmdb_watch_providers(tmdb_id, media_type="movie"):
                            "i": f"https://image.tmdb.org/t/p/w92{p['logo_path']}" if p.get("logo_path") else ""}
                           for p in us["rent"][:3]]
         if us.get("buy"):
-            result["b"] = [{"n": p["provider_name"], "s": str(p["provider_id"]),
-                           "i": f"https://image.tmdb.org/t/p/w92{p['logo_path']}" if p.get("logo_path") else ""}
-                          for p in us["buy"][:3]]
+            buy_filtered = [p for p in us["buy"] if "dvd" not in p.get("provider_name", "").lower()]
+            if buy_filtered:
+                result["b"] = [{"n": p["provider_name"], "s": str(p["provider_id"]),
+                               "i": f"https://image.tmdb.org/t/p/w92{p['logo_path']}" if p.get("logo_path") else ""}
+                              for p in buy_filtered[:3]]
         return result
     except Exception:
         return {}
@@ -297,7 +299,7 @@ def fetch_justwatch(slug, media_type="movie", tmdb_id=None):
                 if price:
                     entry["p"] = price
                 rent.append(entry)
-            elif mt == "BUY" and sn not in seen_buy:
+            elif mt == "BUY" and sn not in seen_buy and "dvd" not in name.lower():
                 seen_buy.add(sn)
                 entry = {"n": name, "s": sn, "i": icon}
                 if price:
