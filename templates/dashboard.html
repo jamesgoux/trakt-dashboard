@@ -618,6 +618,23 @@ Drop GameTrack games.csv or <span style="color:#6366f1;text-decoration:underline
 <div id="iris-profile-content"></div>
 </div>
 </div>
+<!-- Streaming Services Overlay -->
+<div id="iris-streaming-ov" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg);z-index:9800;overflow-y:auto;-webkit-overflow-scrolling:touch">
+<div style="max-width:600px;margin:0 auto;padding:16px 16px 80px">
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+<div style="font-size:22px;font-weight:800;color:var(--ac)">📺 Streaming Services</div>
+<button onclick="_strmClose()" style="background:none;border:none;color:var(--t2);font-size:22px;cursor:pointer;padding:8px">✕</button>
+</div>
+<div style="font-size:12px;color:var(--t2);margin-bottom:20px">Select the services you subscribe to. Only these will show on Watchlist and Up Next cards.</div>
+<div id="iris-streaming-grid"></div>
+<div id="iris-streaming-save" style="position:fixed;bottom:0;left:0;right:0;padding:14px 20px;background:var(--bg);border-top:1px solid rgba(255,255,255,.08);display:flex;gap:10px;justify-content:center;z-index:9801">
+<button onclick="_strmSelectAll()" style="padding:10px 20px;border-radius:10px;font-size:13px;font-weight:600;background:none;border:1px solid rgba(255,255,255,.15);color:var(--t2);cursor:pointer">Select All</button>
+<button onclick="_strmClearAll()" style="padding:10px 20px;border-radius:10px;font-size:13px;font-weight:600;background:none;border:1px solid rgba(255,255,255,.15);color:var(--t2);cursor:pointer">Clear All</button>
+<button onclick="_strmSave()" style="padding:10px 24px;border-radius:10px;font-size:13px;font-weight:700;background:var(--sp);border:none;color:#fff;cursor:pointer">Save</button>
+</div>
+</div>
+</div>
+
 <!-- Auth Modal -->
 <div id="iris-auth-modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);z-index:9998;align-items:center;justify-content:center">
 <div style="background:var(--sf);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:28px;max-width:380px;width:90%;position:relative">
@@ -714,9 +731,11 @@ if(_IRIS_SB_URL&&_IRIS_SB_URL.indexOf('__')!==0&&typeof supabase!=='undefined'){
       _irisLoadProfile();
       _irisLoadTraktToken();
       _compLoadFromSupabase();
+      _strmLoadFromSupabase();
       _irisUpdateUI();
     }else if(event==='SIGNED_OUT'){
       _irisUser=null;_irisProfile=null;_irisTraktToken=null;_irisTraktClientId=null;
+      _strmSelected=null;
       _irisUpdateUI();
     }
   });
@@ -727,6 +746,7 @@ if(_IRIS_SB_URL&&_IRIS_SB_URL.indexOf('__')!==0&&typeof supabase!=='undefined'){
       _irisLoadProfile();
       _irisLoadTraktToken();
       _compLoadFromSupabase();
+      _strmLoadFromSupabase();
       _irisUpdateUI();
     }
   });
@@ -857,6 +877,7 @@ function _irisToggleUserMenu(){
   menu.innerHTML='<div style="padding:10px 16px 8px;font-size:13px;font-weight:700;color:var(--tx);border-bottom:1px solid rgba(255,255,255,.08);margin-bottom:4px">'+name+'</div>'
     +'<div style="padding:8px 16px;font-size:13px;color:var(--t2);cursor:pointer" onmouseover="this.style.color=\'var(--tx)\'" onmouseout="this.style.color=\'var(--t2)\'" onclick="_irisUserMenuAction(\'profile\')">👤 Profile</div>'
     +'<div style="padding:8px 16px;font-size:13px;color:var(--t2);cursor:pointer" onmouseover="this.style.color=\'var(--tx)\'" onmouseout="this.style.color=\'var(--t2)\'" onclick="_irisUserMenuAction(\'settings\')">⚙️ Integrations</div>'
+    +'<div style="padding:8px 16px;font-size:13px;color:var(--t2);cursor:pointer" onmouseover="this.style.color=\'var(--tx)\'" onmouseout="this.style.color=\'var(--t2)\'" onclick="_irisUserMenuAction(\'streaming\')">📺 Streaming</div>'
     +'<div style="padding:8px 16px;font-size:13px;color:var(--t2);cursor:pointer" onmouseover="this.style.color=\'var(--tx)\'" onmouseout="this.style.color=\'var(--t2)\'" onclick="_irisUserMenuAction(\'refresh\')">🔄 Refresh Data</div>'
     +'<div style="padding:8px 16px;font-size:13px;color:var(--t2);cursor:pointer" onmouseover="this.style.color=\'var(--tx)\'" onmouseout="this.style.color=\'var(--t2)\'" onclick="_irisUserMenuAction(\'logout\')">🚪 Log Out</div>';
   menu.style.display='block';
@@ -877,6 +898,8 @@ function _irisUserMenuAction(action){
     _irisOpenProfile();
   }else if(action==='settings'){
     _irisOpenSettings();
+  }else if(action==='streaming'){
+    _strmOpen();
   }else if(action==='refresh'){
     _irisRequestRefresh();
   }
@@ -1438,6 +1461,120 @@ function _irisOpenSettings(){
 function _irisCloseSettings(){
   document.getElementById('iris-settings-ov').style.display='none';
   _irisSettingsOpen=false;
+}
+
+// ── Streaming Services Preferences ──────────────────────────
+var _strmAll=[
+  {s:'nfx',n:'Netflix'},{s:'nfa',n:'Netflix with Ads'},{s:'nfk',n:'Netflix Kids'},
+  {s:'mxx',n:'Max'},{s:'aho',n:'Max Amazon Channel'},
+  {s:'dnp',n:'Disney Plus'},{s:'hlu',n:'Hulu'},
+  {s:'amp',n:'Amazon Prime Video'},{s:'pva',n:'Prime Video with Ads'},
+  {s:'atp',n:'Apple TV+'},{s:'avl',n:'Apple TV+ Amazon Channel'},
+  {s:'pct',n:'Peacock'},{s:'pcp',n:'Peacock Premium Plus'},
+  {s:'ppp',n:'Paramount+ Premium'},{s:'ppe',n:'Paramount+ Essential'},{s:'ppa',n:'Paramount+ Apple TV'},
+  {s:'acp',n:'AMC+'},{s:'azp',n:'AMC+ Amazon Channel'},{s:'aat',n:'AMC+ Apple TV'},
+  {s:'dpu',n:'Discovery+'},{s:'adp',n:'Discovery+ Amazon Channel'},
+  {s:'bbo',n:'BritBox'},{s:'abb',n:'BritBox Amazon Channel'},{s:'bba',n:'BritBox Apple TV'},
+  {s:'ytt',n:'YouTube TV'},{s:'fuv',n:'fuboTV'},{s:'phl',n:'Philo'},
+  {s:'sod',n:'Spectrum On Demand'},{s:'tnt',n:'TNT'},{s:'fxn',n:'FXNow'},
+  {s:'mse',n:'MovieSphere+ Amazon Channel'}
+];
+// Build icon URL map from data at boot
+var _strmIconMap={};
+(function(){
+  var sources=[].concat((D.un||{}).shows||[],(D.wlst||{}).movies||[],(D.wlst||{}).shows||[]);
+  sources.forEach(function(item){
+    var st=item.stream||item.jw&&item.jw.s||[];
+    st.forEach(function(sv){if(sv.s&&sv.i)_strmIconMap[sv.s]=sv.i});
+  });
+})();
+var _strmSelected=null; // null=show all (no pref), Set=filtered
+var _strmDraft=new Set();
+
+function _strmFilterStream(arr){
+  if(!_strmSelected||!_strmSelected.size)return arr;
+  return(arr||[]).filter(function(sv){return _strmSelected.has(sv.s)});
+}
+
+function _strmOpen(){
+  if(!_irisUser){_irisOpenAuth();return}
+  _strmDraft=new Set(_strmSelected||[]);
+  _strmRenderGrid();
+  document.getElementById('iris-streaming-ov').style.display='';
+}
+function _strmClose(){
+  document.getElementById('iris-streaming-ov').style.display='none';
+}
+function _strmRenderGrid(){
+  var h='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px">';
+  _strmAll.forEach(function(svc){
+    var on=_strmDraft.has(svc.s);
+    var ico=_strmIconMap[svc.s]||'';
+    h+='<div onclick="_strmToggle(\''+svc.s+'\')" style="display:flex;align-items:center;gap:10px;padding:12px;border-radius:12px;cursor:pointer;'
+      +'border:1px solid '+(on?'var(--sp)':'rgba(255,255,255,.08)')+';'
+      +'background:'+(on?'rgba(20,184,166,.1)':'var(--sf)')+';transition:all .15s" data-strm="'+svc.s+'">';
+    if(ico)h+='<img src="'+ico+'" style="width:28px;height:28px;border-radius:6px" loading="lazy" onerror="this.style.display=\'none\'">';
+    else h+='<div style="width:28px;height:28px;border-radius:6px;background:rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;font-size:14px">📺</div>';
+    h+='<div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:600;color:'+(on?'var(--sp)':'var(--tx)')+';white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+svc.n+'</div></div>';
+    h+='<div style="width:20px;height:20px;border-radius:50%;border:2px solid '+(on?'var(--sp)':'rgba(255,255,255,.15)')+';display:flex;align-items:center;justify-content:center;flex-shrink:0">'
+      +(on?'<div style="width:10px;height:10px;border-radius:50%;background:var(--sp)"></div>':'')+'</div>';
+    h+='</div>';
+  });
+  h+='</div>';
+  document.getElementById('iris-streaming-grid').innerHTML=h;
+}
+function _strmToggle(shortName){
+  if(_strmDraft.has(shortName))_strmDraft.delete(shortName);
+  else _strmDraft.add(shortName);
+  // In-place update for snappy feel
+  var el=document.querySelector('[data-strm="'+shortName+'"]');
+  if(el){
+    var on=_strmDraft.has(shortName);
+    el.style.border='1px solid '+(on?'var(--sp)':'rgba(255,255,255,.08)');
+    el.style.background=on?'rgba(20,184,166,.1)':'var(--sf)';
+    var dot=el.querySelector('div:last-child');
+    if(dot){dot.style.borderColor=on?'var(--sp)':'rgba(255,255,255,.15)';dot.innerHTML=on?'<div style="width:10px;height:10px;border-radius:50%;background:var(--sp)"></div>':''}
+    var label=el.querySelector('div > div');
+    if(label)label.style.color=on?'var(--sp)':'var(--tx)';
+  }
+}
+function _strmSelectAll(){
+  _strmAll.forEach(function(svc){_strmDraft.add(svc.s)});
+  _strmRenderGrid();
+}
+function _strmClearAll(){
+  _strmDraft.clear();
+  _strmRenderGrid();
+}
+function _strmSave(){
+  var arr=Array.from(_strmDraft);
+  _strmSelected=arr.length?new Set(arr):null;
+  // Persist to Supabase
+  if(_irisSB&&_irisUser){
+    _irisSB.from('user_preferences').upsert({
+      user_id:_irisUser.id,
+      key:'streaming_services',
+      value:arr
+    },{onConflict:'user_id,key'}).then(function(res){
+      if(res.error)console.warn('Streaming pref save failed:',res.error.message);
+      else console.log('Streaming prefs saved:',arr.length,'services');
+    });
+  }
+  _strmClose();
+  // Re-render Up Next and Watchlist if open
+  if(_unCurrentView==='home')_renderUpNext();
+  if(_unCurrentView==='watchlist')_wlRender();
+}
+function _strmLoadFromSupabase(){
+  if(!_irisSB||!_irisUser)return;
+  _irisSB.from('user_preferences').select('value').eq('user_id',_irisUser.id).eq('key','streaming_services').single().then(function(res){
+    if(res.error||!res.data)return;
+    var arr=res.data.value;
+    if(Array.isArray(arr)&&arr.length){
+      _strmSelected=new Set(arr);
+      console.log('Loaded streaming prefs:',arr.length,'services');
+    }
+  });
 }
 
 // Profile overlay
@@ -5520,7 +5657,7 @@ function _renderUpNext(prerender){
     else c+='<div class="un-poster-ph">📺</div>';
     c+='<div class="un-info">';
     c+='<div style="display:flex;align-items:center;gap:6px"><div class="un-show" style="flex:1;min-width:0">'+s.show+'</div>';
-    if(!isRecent&&s.stream&&s.stream.length){c+='<div class="un-stream">';s.stream.forEach(function(st){c+='<img src="'+st.i+'" title="'+st.n+'" loading="lazy">'});c+='</div>'}
+    if(!isRecent&&s.stream&&s.stream.length){var _fs=_strmFilterStream(s.stream);if(_fs.length){c+='<div class="un-stream">';_fs.forEach(function(st){c+='<img src="'+st.i+'" title="'+st.n+'" loading="lazy">'});c+='</div>'}}
     c+='</div>';
     c+='<div class="un-ep">S'+String(s.season).padStart(2,'0')+'E'+String(s.episode).padStart(2,'0');
     if(s.ep_title)c+=' — '+s.ep_title;
@@ -7652,7 +7789,7 @@ function _wlRender(){
     h+='<div class="un-wl-jw">';
     if(jw.s&&jw.s.length){
       h+='<div class="un-wl-jw-icons">';
-      jw.s.slice(0,4).forEach(function(svc){
+      _strmFilterStream(jw.s).slice(0,4).forEach(function(svc){
         if(svc.i)h+='<img class="un-wl-jw-icon" src="'+svc.i+'" alt="'+svc.n+'" title="'+svc.n+'" loading="lazy" onerror="this.style.display=\'none\'">';
       });
       h+='</div>';
