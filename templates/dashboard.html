@@ -5494,6 +5494,14 @@ function _renderUpNext(prerender){
     if(s.ep_aired&&new Date(s.ep_aired+'T00:00:00')>new Date())return false;
     return true;
   });
+  // Collect removed shows (for restore UI at bottom)
+  var removedShows=ud.shows.filter(function(s){
+    if(recentSet[s.slug+'|'+s.season+'|'+s.episode])return false;
+    if(s.aired_total&&s.completed>=s.aired_total)return false;
+    if(s.ep_aired&&new Date(s.ep_aired+'T00:00:00')>new Date())return false;
+    if(!_isRemoved(s.slug,s.season,s.episode))return false;
+    return true;
+  });
   // Companion filter: if active, only show series tagged with that companion
   _compBuildTintMap();
   var _compAll=_compGetAll();
@@ -5592,6 +5600,24 @@ function _renderUpNext(prerender){
     h+='</div>';
   }
   } // end default view
+  // Removed shows section — tap to restore
+  if(removedShows.length){
+    h+='<div class="un-section">\ud83d\udeab Removed ('+removedShows.length+')</div><div class="un-grid">';
+    removedShows.forEach(function(s){
+      var c='<div class="un-card" data-slug="'+s.slug+'" style="opacity:.4">';
+      if(s.poster)c+='<img class="un-poster" src="'+s.poster+'" loading="lazy" onerror="this.style.display=\'none\'" alt="">';
+      else c+='<div class="un-poster-ph">\ud83d\udcfa</div>';
+      c+='<div class="un-info">';
+      c+='<div class="un-show">'+s.show+'</div>';
+      c+='<div class="un-ep">S'+String(s.season).padStart(2,'0')+'E'+String(s.episode).padStart(2,'0');
+      if(s.ep_title)c+=' \u2014 '+s.ep_title;
+      c+='</div>';
+      c+='<button onclick="event.stopPropagation();_unRestore(\''+s.slug.replace(/'/g,"\\'")+'\','+s.season+','+s.episode+',this)" class="un-watch-btn" style="background:rgba(20,184,166,.12);color:#14b8a6;border-color:rgba(20,184,166,.25)" title="Restore to Up Next">\u21a9</button>';
+      c+='</div></div>';
+      h+=c;
+    });
+    h+='</div>';
+  }
   el.innerHTML=h;
   var ov=document.getElementById('un-overlay');
   _setupRWVirtualScroll(ov);
@@ -6235,6 +6261,17 @@ function _markRemoved(slug,season,ep){
   _unRemoved[slug+'|'+season+'|'+ep]=Date.now();
   _unRemoved[slug+'|*']=Date.now();
   _irisLSSet('un_removed',JSON.stringify(_unRemoved));
+}
+function _unRestore(slug,season,ep,btn){
+  // Clear both episode-level and show-level removal keys
+  var k=slug+'|'+season+'|'+ep;
+  var sk=slug+'|*';
+  delete _unRemoved[k];
+  delete _unRemoved[sk];
+  _irisLSSet('un_removed',JSON.stringify(_unRemoved));
+  // Animate card out then re-render
+  if(btn){var card=btn.closest('.un-card');if(card){card.style.transition='opacity .2s';card.style.opacity='0';setTimeout(function(){_renderUpNext()},250);return}}
+  _renderUpNext();
 }
 
 // Remove a single watch entry — executes immediately on tap
