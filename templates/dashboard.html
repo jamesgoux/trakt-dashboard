@@ -43,7 +43,8 @@ body{background:var(--bg);color:var(--tx);font-family:-apple-system,BlinkMacSyst
 .s-t{border-left-color:#666}.s-e{border-left-color:#666}.s-c{border-left-color:#666}.s-con{border-left-color:var(--cn)}.s-th{border-left-color:var(--th)}.s-sp{border-left-color:var(--sp)}
 .s-r{border-left-color:#666}.s-gr{border-left-color:var(--bk)}.s-lfm{border-left-color:var(--mu)}
 .stb{max-height:300px;overflow-y:auto;overflow-x:hidden}.stb table{width:100%}.stb th:nth-child(n+3),.stb td:nth-child(n+3){text-align:right;width:38px;padding-left:4px}
-.ptbl-search{padding:4px 0 2px;position:relative}.ptbl-search input{width:100%;box-sizing:border-box;padding:7px 28px 7px 10px;background:var(--bg);border:1px solid rgba(255,255,255,.1);border-radius:6px;color:var(--tx);font-size:12px;outline:none}.ptbl-search input:focus{border-color:var(--ac)}.ptbl-search input::placeholder{color:var(--t2)}.ptbl-search-x{position:absolute;right:8px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--t2);font-size:16px;line-height:1;padding:2px}
+.ptbl-search{padding:4px 0 2px;position:relative;display:none}.ptbl-search.open{display:block}.ptbl-search input{width:100%;box-sizing:border-box;padding:7px 28px 7px 10px;background:var(--bg);border:1px solid rgba(255,255,255,.1);border-radius:6px;color:var(--tx);font-size:12px;outline:none}.ptbl-search input:focus{border-color:var(--ac)}.ptbl-search input::placeholder{color:var(--t2)}.ptbl-search-x{position:absolute;right:8px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--t2);font-size:16px;line-height:1;padding:2px}
+.ptbl-search-btn{float:right;font-size:13px;padding:3px 7px;background:none;border:1px solid rgba(255,255,255,.15);color:var(--t2);border-radius:6px;cursor:pointer;margin-left:6px;line-height:1}.ptbl-search-btn:hover,.ptbl-search-btn.active{background:rgba(251,146,60,.12);border-color:rgba(251,146,60,.4);color:var(--ac)}
 .ptbl-more td{text-align:center;padding:12px 0;font-size:12px;color:var(--t2)}.ptbl-show-all{color:var(--ac);cursor:pointer;font-weight:600}.ptbl-show-all:hover{text-decoration:underline}
 .cd ::-webkit-scrollbar{width:5px}.cd ::-webkit-scrollbar-thumb{background:#333;border-radius:3px}.cd ::-webkit-scrollbar-track{background:transparent}
 .cd *{scrollbar-width:thin;scrollbar-color:#333 transparent}
@@ -2309,19 +2310,25 @@ tb.appendChild(_ft)}
 if(_sq&&_ri.length===0){var _nr=document.createElement('tr');_nr.innerHTML='<td colspan="5" style="text-align:center;padding:20px;color:var(--t2);font-size:13px">No matches for \u201c'+_sq.replace(/</g,'&lt;')+'\u201d</td>';tb.appendChild(_nr)}
 // Inject search input above table (once)
 _ptblEnsureSearch(id,pp)}
-// Inject search input for people tables
+// Inject collapsible search for people tables: 🔍 button in header, search bar expands on click
 function _ptblEnsureSearch(id,pp){var tb=document.getElementById(id);var cd=tb.closest('.cd');
-if(cd.querySelector('.ptbl-search'))return;
-var stb=cd.querySelector('.stb');if(!stb)return;
-var wrap=document.createElement('div');wrap.className='ptbl-search';
+if(cd.querySelector('.ptbl-search-btn'))return;
+var h3=cd.querySelector('h3');var stb=cd.querySelector('.stb');if(!h3||!stb)return;
 var th2=tb.closest('table').querySelector('thead th:nth-child(2)');
 var lbl=th2?th2.textContent:'';var plbl=lbl==='Actress'?'actresses':lbl.toLowerCase()+'s';
-wrap.innerHTML='<input type="text" placeholder="Search '+plbl+'\u2026" spellcheck="false" autocomplete="off"><span class="ptbl-search-x" style="display:none">\u00d7</span>';
+// Hidden search bar
+var wrap=document.createElement('div');wrap.className='ptbl-search';
+wrap.innerHTML='<input type="text" placeholder="Search '+plbl+'\u2026" spellcheck="false" autocomplete="off"><span class="ptbl-search-x">\u00d7</span>';
 stb.parentNode.insertBefore(wrap,stb);
 var inp=wrap.querySelector('input'),clr=wrap.querySelector('.ptbl-search-x'),tmr;
-inp.addEventListener('input',function(){clearTimeout(tmr);var v=inp.value;clr.style.display=v?'':'none';
+// 🔍 button in header
+var sbtn=document.createElement('button');sbtn.className='ptbl-search-btn';sbtn.innerHTML='&#128269;';sbtn.title='Search '+plbl;
+h3.appendChild(sbtn);
+sbtn.onclick=function(){if(wrap.classList.contains('open')){wrap.classList.remove('open');sbtn.classList.remove('active');
+if(inp.value){inp.value='';_ptblSearch[id]='';ptbl(id,pp)}}else{wrap.classList.add('open');sbtn.classList.add('active');setTimeout(function(){inp.focus()},50)}};
+inp.addEventListener('input',function(){clearTimeout(tmr);var v=inp.value;
 tmr=setTimeout(function(){_ptblSearch[id]=v;ptbl(id,pp)},200)});
-clr.onclick=function(){inp.value='';clr.style.display='none';_ptblSearch[id]='';ptbl(id,pp)}}
+clr.onclick=function(){inp.value='';_ptblSearch[id]='';wrap.classList.remove('open');sbtn.classList.remove('active');ptbl(id,pp)}}
 
 function _crwToggle(id){
   var t=document.getElementById(id);if(!t)return;
