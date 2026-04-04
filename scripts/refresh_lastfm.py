@@ -333,6 +333,29 @@ for yr in sorted(yearly_artist_plays.keys()):
 print(f"  Genres computed for {len(yearly_genres)} years")
 
 # ── 5. Build output ──
+# Album image cache from period-based top_albums (already fetched with covers)
+_alb_img_cache = {}
+for pdata in top_albums:
+    for a in pdata.get("albums", []):
+        key = a["n"] + "\t" + a["a"]
+        if a.get("img") and key not in _alb_img_cache:
+            _alb_img_cache[key] = a["img"]
+
+def top_n_albums(counter, n=10):
+    """Like top_n but attaches album images from the period-based cache."""
+    items = sorted(counter.items(), key=lambda x: x[1], reverse=True)[:n]
+    result = []
+    for key, count in items:
+        parts = key.split(" — ", 1)
+        artist = parts[0] if len(parts) > 1 else ""
+        name = parts[1] if len(parts) > 1 else parts[0]
+        entry = {"n": key, "c": count}
+        img = _alb_img_cache.get(name + "\t" + artist, "")
+        if img:
+            entry["img"] = img
+        result.append(entry)
+    return result
+
 def top_n_tracks(counter, n=50):
     items = sorted(counter.items(), key=lambda x: x[1], reverse=True)[:n]
     result = []
@@ -343,13 +366,13 @@ def top_n_tracks(counter, n=50):
 
 lfm_yearly = sorted([{"yr": y, "s": yearly_scrobbles[y],
                        "a": len(yearly_artist_plays[y]), "al": len(yearly_album_plays[y]),
-                       "ta": top_n(yearly_artist_plays[y]), "tal": top_n(yearly_album_plays[y]),
+                       "ta": top_n(yearly_artist_plays[y]), "tal": top_n_albums(yearly_album_plays[y]),
                        "tt": top_n_tracks(yearly_track_plays[y]),
                        "g": yearly_genres.get(y, [])}
                       for y in yearly_scrobbles], key=lambda x: x["yr"])
 lfm_monthly = sorted([{"m": m, "s": monthly_scrobbles[m],
                        "a": len(monthly_artist_plays[m]), "al": len(monthly_album_plays[m]),
-                       "ta": top_n(monthly_artist_plays[m]), "tal": top_n(monthly_album_plays[m]),
+                       "ta": top_n(monthly_artist_plays[m]), "tal": top_n_albums(monthly_album_plays[m]),
                        "tt": top_n_tracks(monthly_track_plays[m])}
                        for m in monthly_scrobbles], key=lambda x: x["m"])
 
