@@ -386,8 +386,8 @@ body{overflow-x:hidden}
 <div class="cd fw s-g"><h3><span class="i">📈</span>Genre Trends</h3><div id="gtc" style="height:620px"></div></div>
 </div>
 <div class="g2 med-s" data-med="all movietv movie show">
-<div class="cd s-n med-s" data-med="all movietv show"><h3><span class="i">📡</span>Top Networks</h3><div id="netc" style="height:360px"></div></div>
-<div class="cd s-u"><h3><span class="i">🏢</span>Top Studios</h3><div id="stuc" style="height:360px"></div></div>
+<div id="sec-net" class="cd s-n med-s" data-med="all movietv show"><h3><span class="i">📡</span>Top Networks</h3><div id="netc" style="height:360px"></div></div>
+<div id="sec-stu" class="cd s-u"><h3><span class="i">🏢</span>Top Studios</h3><div id="stuc" style="height:360px"></div></div>
 </div>
 <!-- GEO -->
 <div class="g2 med-s" data-med="all movietv movie show">
@@ -2131,7 +2131,7 @@ Array.from(yrs).sort().reverse().forEach(function(y){var o=document.createElemen
 readHash();
 
 // Jump menu popup (reordered: people tables moved after first/last watches)
-var _jmpItems=[['sec-ll','🧬 Lifeline'],['sec-tl','📈 Timeline'],['sec-shows','📺 Top Shows'],['sec-eps','📺 Episodes'],['sec-ttw','⏱️ Time to Watch'],['sec-mov','🎞️ Movies'],['sec-ratings','⭐ Movie Ratings'],['sec-sz-ratings','⭐ TV Ratings'],['sec-meta','🎯 Genres'],['sec-geo','🌍 Countries/Languages'],['sec-vy','📅 Release Years'],['sec-how','🖥️ How I Watch'],['sec-first','🌅 First Watches'],['sec-rec','👁️ Last Watches'],['sec-act','🎭 Actors'],['sec-crew','🎬 Directors/Writers'],['sec-crw-grid','🎥 Crew'],['sec-pc','🎙️ Podcasts'],['sec-lfm','🎧 Music'],['sec-con','🎸 Concerts'],['sec-gr','📚 Books'],['sec-th','🎭 Theater'],['sec-bg','🎲 Board Games'],['sec-gt','🎮 Video Games'],['sec-sp','🏟️ Sports'],['sec-hw','🏃 Workouts']];
+var _jmpItems=[['sec-ll','🧬 Lifeline'],['sec-tl','📈 Timeline'],['sec-shows','📺 Top Shows'],['sec-ttw','⏱️ Time to Watch'],['sec-mov','🎞️ Movies'],['sec-ratings','⭐ Ratings'],['sec-time','🕐 When I Watch'],['sec-meta','🎯 Genres'],['sec-net','📡 Networks'],['sec-stu','🏢 Studios'],['sec-geo','🌍 Countries/Languages'],['sec-vy','📅 Release Years'],['sec-how','👥 How I Watch'],['sec-first','🌅 First & Last'],['sec-act','👤 People'],['sec-pc','🎙️ Podcasts'],['sec-lfm','🎧 Music'],['sec-con','🎸 Concerts'],['sec-gr','📚 Books'],['sec-th','🎭 Theater'],['sec-bg','🎲 Board Games'],['sec-gt','🎮 Video Games'],['sec-sp','🏟️ Sports'],['sec-hw','🏃 Workouts']];
 var _jm=document.getElementById('jmp-menu');
 function _buildJumpMenu(){
   _jm.innerHTML='';
