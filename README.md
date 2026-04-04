@@ -7,7 +7,7 @@ A personal media consumption dashboard aggregating data from **14 sources** into
 ## What it does
 
 - **Auto-refreshes every 10 minutes** — rebuilds from all data sources via GitHub Actions
-- **Enrichment every 2 hours** — book genres, artist genres, daily scrobbles, health data
+- **Enrichment hourly** — book genres, artist genres, daily scrobbles, health data, stale JustWatch prices, full Up Next refresh, Letterboxd→Trakt sync, full dashboard rebuild
 - **Headshots hourly** — TMDB images, sports schedules, per-episode crew credits
 - **Mobile-first** — works as iOS home screen app with eye icon, orientation-aware
 - **No manual intervention** — runs entirely on GitHub Actions
@@ -126,9 +126,9 @@ Multi-user settings overlay with 13 service configuration cards. Supabase-backed
 ├── requirements.txt                ← Python deps (requests>=2.31)
 ├── vercel.json                     ← Static site config
 ├── templates/
-│   └── dashboard.html              ← HTML template (~8,976 lines), all charts + JS
+│   └── dashboard.html              ← HTML template (~9,700 lines), all charts + JS
 ├── scripts/
-│   ├── refresh_data.py             ← Main pipeline: all sources → index.html (~2,700 lines)
+│   ├── refresh_data.py             ← Main pipeline: all sources → index.html (~3,000 lines)
 │   ├── refresh_headshots.py        ← TMDB image backfill (posters→logos→actors→dirs→writers)
 │   ├── refresh_letterboxd.py       ← Letterboxd RSS + CSV tag import
 │   ├── refresh_goodreads.py        ← Goodreads RSS feed
@@ -136,7 +136,7 @@ Multi-user settings overlay with 13 service configuration cards. Supabase-backed
 │   ├── refresh_pocketcasts.py      ← Pocket Casts API
 │   ├── refresh_serializd.py        ← Serializd login + ratings
 │   ├── refresh_setlist.py          ← setlist.fm concerts + MusicBrainz albums
-│   ├── refresh_upnext.py           ← Trakt progress + JustWatch + TMDB → Up Next
+│   ├── refresh_upnext.py           ← Trakt progress + JustWatch + TMDB → Up Next (incremental)
 │   ├── refresh_upcoming.py         ← Trakt calendar (90 days ahead)
 │   ├── refresh_watchlist.py        ← Letterboxd+Trakt watchlists + JustWatch prices
 │   ├── refresh_book_genres.py      ← Goodreads page genre scraper
@@ -147,6 +147,10 @@ Multi-user settings overlay with 13 service configuration cards. Supabase-backed
 │   ├── refresh_trakt_token.py      ← Auto-refresh Trakt OAuth token
 │   ├── backfill_lastfm_daily.py    ← Daily scrobble backfill
 │   ├── backfill_crew_episodes.py   ← Per-episode TMDB crew credits
+│   ├── backfill_setlist_songs.py   ← setlist.fm song-level backfill
+│   ├── backfill_posters.py         ← Poster image backfill
+│   ├── sync_letterboxd_to_trakt.py ← Sync Letterboxd watches → Trakt history
+│   ├── refresh_jw_stale.py         ← Re-check stale JustWatch prices
 │   ├── fetch_box_office.py         ← TMDB revenue + Box Office Mojo scraping
 │   ├── import_gametrack.py         ← GameTrack CSV → video games data
 │   ├── import_pocketcasts_export.py ← Pocket Casts GDPR export
@@ -180,7 +184,9 @@ Multi-user settings overlay with 13 service configuration cards. Supabase-backed
 │   ├── health.json                 ← Apple Health workouts
 │   ├── sports.json                 ← Logged sporting events
 │   ├── sports_schedule.json        ← 805 cached games, 7 teams
-│   ├── up_next.json                ← In-progress show data
+│   ├── season_credits.json          ← Per-season TMDB cast + guest star cache
+│   ├── entries_cache.json           ← Incremental Trakt watch history cache
+│   ├── up_next.json                ← In-progress show data (with incremental tracking)
 │   ├── upcoming.json               ← 90-day episode calendar
 │   ├── watchlist.json              ← Letterboxd + Trakt watchlists
 │   ├── tag_categories.json         ← Tag classification rules
@@ -192,8 +198,8 @@ Multi-user settings overlay with 13 service configuration cards. Supabase-backed
 │   ├── mezzanine.csv               ← Theater diary export
 │   └── letterboxd_tags.csv         ← Letterboxd diary with tags
 └── .github/workflows/
-    ├── refresh-data.yml            ← Every 10 min: Core Build (all sources → rebuild index.html)
-    ├── refresh-enrichment.yml      ← Every 2 hours: genres, daily scrobbles, health, full refresh
+    ├── refresh-data.yml            ← Every 10 min: Core Build (sources → up next → rebuild index.html)
+    ├── refresh-enrichment.yml      ← Hourly: genres, scrobbles, health, JustWatch, Letterboxd sync, full Up Next, full rebuild
     ├── refresh-headshots.yml       ← Hourly: headshots, sports schedules, crew episodes
     ├── refresh-upnext.yml          ← Manual: standalone Up Next + Calendar refresh
     ├── refresh-watchlist.yml       ← Manual: standalone Watchlist + JustWatch refresh
@@ -244,7 +250,7 @@ Multi-user settings overlay with 13 service configuration cards. Supabase-backed
 
 ## Technical Notes
 
-- Single HTML file (~8,976 lines) with embedded ECharts 5 (single CDN dependency), no build step
+- Single HTML file (~9,700 lines) with embedded ECharts 5 (single CDN dependency), no build step
 - All charts use ECharts — responsive, dark theme, consistent styling
 - Poster shuffle uses FLIP animation
 - Orientation change triggers full re-render (debounced)
@@ -256,3 +262,7 @@ Multi-user settings overlay with 13 service configuration cards. Supabase-backed
 - Trakt token: auto-refreshed every 10-min build when <2 days remaining, stored in `data/trakt_auth.json`
 - TMDB→Trakt slug cache: 3,065 entries, saves ~11 minutes per full rebuild
 - Box office: concurrent TMDB API + Box Office Mojo scraping for domestic/worldwide/budget data
+- Up Next incremental caching: only re-fetches Trakt progress for recently-watched shows (~90% fewer API calls per core build). `FULL_UPNEXT=1` env var forces full refresh (used by enrichment). Falls back to cached results on API failures.
+- Season credits cache invalidation: two-tier strategy — 48-hour window always re-fetches from TMDB; 7-day window re-fetches only when episodes have 0 guest stars or are missing. Catches TMDB updates for newly-aired episodes.
+- Letterboxd→Trakt sync: enrichment syncs Letterboxd diary watches to Trakt history via `sync_letterboxd_to_trakt.py`
+- JustWatch stale price refresh: enrichment re-checks old streaming/rent/buy prices via `refresh_jw_stale.py`
