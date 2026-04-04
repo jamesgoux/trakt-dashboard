@@ -49,7 +49,12 @@ def scrape_bom(imdb_id):
         if len(spans) >= 4:
             result["bom_opening"] = pm(spans[3])
         if len(spans) >= 5:
-            result["bom_budget"] = pm(spans[4])
+            val = pm(spans[4])
+            # Skip budget if it matches opening — BOM pages often repeat the
+            # opening figure in other page sections and the positional scrape
+            # picks it up as "budget" by mistake.
+            if val != result.get("bom_opening"):
+                result["bom_budget"] = val
         return result
     except Exception as e:
         return None

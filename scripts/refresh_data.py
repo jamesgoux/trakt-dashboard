@@ -1495,7 +1495,12 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
         for slug, info in bo_raw.items():
             dom = info.get("bom_domestic", 0)
             ww = info.get("bom_worldwide", 0)
-            bud = info.get("bom_budget", 0) or 0
+            # Prefer TMDB budget; fall back to BOM budget only if it differs from
+            # BOM opening (the scraper often misidentifies opening as budget)
+            bom_bud = info.get("bom_budget", 0) or 0
+            bom_open = info.get("bom_opening", 0) or 0
+            tmdb_bud = info.get("budget", 0) or 0
+            bud = tmdb_bud or (bom_bud if bom_bud != bom_open else 0)
             if not dom and not ww:
                 continue
             meta = slug_meta.get(slug, {})
