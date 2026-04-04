@@ -139,6 +139,19 @@ Turn Iris from a single-user GitHub Pages site into a multi-user web application
 
 ---
 
+## Recently Completed (April 2026)
+
+15. ~~**Season credits cache invalidation**~~ ✅ DONE
+    `season_credits.json` was never re-fetched once cached, causing missing guest stars for newly-aired episodes. Added two-tier invalidation: 48-hour window always re-fetches from TMDB; 7-day window re-fetches only when episodes have 0 guest stars or are missing from cache. Fixes missing credits for actors like Luke Tennie in The Pitt S2.
+
+16. ~~**Up Next incremental caching**~~ ✅ DONE
+    Core build was taking 15-20 min because Up Next re-fetched Trakt progress for all ~200 watched shows every 10 minutes. Added incremental caching: only shows with new watch activity get re-fetched (~90% fewer API calls). `FULL_UPNEXT=1` env var forces full refresh. Falls back to cached results on API failures.
+
+17. ~~**Full Up Next in enrichment**~~ ✅ DONE
+    Non-recently-watched shows can still gain new episodes (new seasons air, runtime changes). Added `FULL_UPNEXT=1` step to the enrichment workflow so all shows get a full progress refresh hourly.
+
+---
+
 ## Completed
 
 | # | Item | Status |
@@ -153,3 +166,6 @@ Turn Iris from a single-user GitHub Pages site into a multi-user web application
 | 9 | Refactor workflow ordering | ✅ |
 | 17 | CSV import validation | ✅ |
 | 18 | Workflow concurrency guards | ✅ |
+| 15 | Season credits cache invalidation | ✅ |
+| 16 | Up Next incremental caching | ✅ |
+| 17 | Full Up Next in enrichment | ✅ |

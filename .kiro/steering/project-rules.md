@@ -39,8 +39,8 @@ These don't need new API data. Use the fast local rebuild:
 These change how data is structured or fetched. The workflow must run to regenerate data:
 1. Edit the script(s) in `scripts/`
 2. Commit and push
-3. Wait for the "Refresh Trakt Data" workflow to complete (~5-10 min). It fetches from all APIs and rebuilds index.html with new data.
-4. Monitor progress: check https://github.com/jamesgoux/trakt-dashboard/actions or poll via `git fetch` for new commits.
+3. Wait for the Core Build workflow to complete (~3-5 min). It fetches from all APIs and rebuilds index.html with new data. Up Next uses incremental caching (only recently-watched shows re-fetched).
+4. Monitor progress: check https://github.com/jamesgoux/iris-stats/actions or poll via `git fetch` for new commits.
 
 ### Both template + pipeline changes
 1. Make all edits to both `templates/dashboard.html` and `scripts/`
@@ -52,7 +52,7 @@ These change how data is structured or fetched. The workflow must run to regener
 Use the GitHub API from the terminal:
 ```python
 import urllib.request, json
-url = 'https://api.github.com/repos/jamesgoux/trakt-dashboard/actions/runs?per_page=5'
+url = 'https://api.github.com/repos/jamesgoux/iris-stats/actions/runs?per_page=5'
 req = urllib.request.Request(url, headers={'User-Agent': 'Iris/1.0'})
 resp = urllib.request.urlopen(req)
 data = json.loads(resp.read())
@@ -63,6 +63,13 @@ for r in data['workflow_runs']:
 ## Iteration Plan
 - Active bugs and feature priorities are tracked in `ITERATION_PLAN.md` at the repo root.
 - Always reference the iteration plan when deciding what to work on next.
+
+## Caching & Performance
+
+- **Up Next incremental caching**: `refresh_upnext.py` tracks `_trakt_lw` (last watched at) per show. Only shows with new watch activity or in recent history get re-fetched from Trakt. Set `FULL_UPNEXT=1` to bypass and re-fetch all shows (used by enrichment). Falls back to previous results on API failures.
+- **Season credits cache invalidation**: `season_credits.json` keys are `{tmdb_id}|{season_num}`. Two-tier invalidation in `refresh_data.py`: 48-hour window always re-fetches; 7-day window only re-fetches when episodes have 0 guest stars or are missing from cache.
+- **Pipeline schedules**: Core Build every 10 min, Enrichment hourly at :45, Headshots hourly at :15, Sources every 2 hrs at :30.
+- **Workflow changes**: `.github/workflows/` modifications require the `workflow` scope on the GitHub token. Pipeline scripts can be pushed normally.
 
 ## Code Style
 - Python scripts use minimal dependencies (just `requests`).
