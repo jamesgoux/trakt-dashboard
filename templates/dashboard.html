@@ -4121,8 +4121,8 @@ function renderLastfm(){
     if(yrData&&yrData.tt&&yrData.tt.length){curTracks=yrData.tt}
     else{var aggTr={};yMonths.forEach(function(m){(m.tt||[]).forEach(function(t){var key=t.a+'\t'+t.n;if(!aggTr[key])aggTr[key]={n:t.n,a:t.a,c:0};aggTr[key].c+=t.c})});
       curTracks=Object.values(aggTr).sort(function(a,b){return b.c-a.c})}
-    // Genres: use yearly pre-computed g, or fall back to 3month period for current year
-    genres=(yrData&&yrData.g)?yrData.g:[];
+    // Genres: use yearly pre-computed g, fall back to 12month period data (never empty)
+    genres=(yrData&&yrData.g&&yrData.g.length)?yrData.g:((lfm.genres_p||{})['12month']||lfm.genres||[]);
     // 90 Days toggle only makes sense for current year
     var isCurYr=cy===curYr;
     if(isCurYr){
