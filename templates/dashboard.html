@@ -199,11 +199,16 @@ tr:hover td{background:rgba(255,255,255,.02)}
 /* Back nav button */
 .un-back{background:none;border:1px solid rgba(255,255,255,.1);color:var(--t2);border-radius:8px;padding:8px 14px;font-size:14px;cursor:pointer;min-height:44px;min-width:44px;display:flex;align-items:center;justify-content:center}
 /* Watchlist styles */
-.un-wl-toggle{display:flex;gap:6px;padding:10px 16px;max-width:600px;margin:0 auto}
+.un-wl-toggle{display:flex;gap:6px;padding:10px 16px;max-width:600px;margin:0 auto;align-items:center}
 .un-wl-toggle button{padding:6px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;transition:background-color .15s,color .15s,border-color .15s}
-.un-wl-sort{display:flex;gap:6px;padding:0 16px 8px;max-width:600px;margin:0 auto}
-.un-wl-sort button{padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer;border:1px solid rgba(255,255,255,.08);background:none;color:var(--t2);transition:background-color .15s,color .15s,border-color .15s}
-.un-wl-sort button.active{border-color:var(--tv);color:var(--tv);background:rgba(20,184,166,.08)}
+.wl-sort-wrap{position:relative;margin-left:auto}
+.wl-sort-btn{padding:5px 10px;border-radius:6px;font-size:11px;cursor:pointer;border:1px solid rgba(255,255,255,.12);background:none;color:var(--t2);white-space:nowrap;display:flex;align-items:center;gap:4px}
+.wl-sort-btn:active{background:rgba(255,255,255,.05)}
+.wl-sort-menu{display:none;position:absolute;right:0;top:100%;margin-top:4px;background:var(--sf);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:4px 0;min-width:120px;z-index:20;box-shadow:0 8px 24px rgba(0,0,0,.5)}
+.wl-sort-menu.open{display:block}
+.wl-sort-menu div{padding:8px 14px;font-size:12px;cursor:pointer;color:var(--t2);white-space:nowrap}
+.wl-sort-menu div:hover{background:rgba(255,255,255,.06)}
+.wl-sort-menu div.active{color:var(--tv);font-weight:600}
 .un-wl-list{padding:8px 16px;max-width:600px;margin:0 auto}
 .un-wl-card{display:flex;gap:0;padding:0;background:var(--sf);border-radius:12px;border:1px solid rgba(255,255,255,.06);margin-bottom:10px;cursor:pointer;transition:background .15s;position:relative;overflow:hidden}
 .un-wl-card:active{background:#1e1e3a}
@@ -301,8 +306,8 @@ body{overflow-x:hidden}
 <select id="gs" style="display:none"><option value="all">All</option><option value="life">Life</option><option value="movietv">Movies/TV</option><option value="movie">Movies</option><option value="show">Shows</option><option value="book">Books</option><option value="music">Music</option><option value="concert">Concerts</option><option value="podcast">Podcasts</option><option value="theater">Theater</option><option value="boardgame">Board Games</option><option value="sports">Sports</option><option value="game">Video Games</option><option value="health">Workouts</option></select>
 <select id="ys" style="display:none"><option value="all">All Time</option></select>
 <button class="hbtn" onclick="_irisOpenWatchlist()" title="Watchlist">📋</button>
-<button class="hbtn" onclick="_irisOpenSearch()" title="Search">🔍</button>
 <button class="hbtn" onclick="openUpNext()" title="Up Next">📺</button>
+<button class="hbtn" onclick="_irisOpenSearch()" title="Search">🔍</button>
 <div style="position:relative"><button class="hbtn" id="iris-user-btn" onclick="_irisToggleUserMenu()" title="Account">👤</button><div id="iris-user-menu" style="display:none;position:absolute;right:0;top:100%;margin-top:6px;background:var(--sf);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:6px 0;min-width:180px;z-index:9999;box-shadow:0 8px 30px rgba(0,0,0,.5)"></div></div>
 </div>
 </div>
@@ -545,6 +550,7 @@ Drop GameTrack games.csv or <span style="color:#6366f1;text-decoration:underline
 <div id="un-hdr-normal" style="display:flex;align-items:center">
 <button onclick="_unHomeBtn()" class="un-back" id="un-back-btn" style="flex-shrink:0">←</button>
 <h2 id="un-header-title" style="font-size:18px;font-weight:700;margin:0;flex:1;text-align:center"><span class="i">📺</span> Up Next</h2>
+<button onclick="_unNavToHome()" class="un-back" id="un-home-btn" style="display:none;flex-shrink:0;font-size:16px">📺</button>
 <button onclick="_unOpenWatchlist()" class="un-back" id="un-wl-btn" style="flex-shrink:0;font-size:16px">📋</button>
 <button onclick="_unOpenCalendar()" class="un-back" id="un-cal-btn" style="flex-shrink:0;font-size:16px">📅</button>
 <button onclick="_unOpenSearchOverlay()" class="un-back" id="un-search-btn" style="flex-shrink:0;font-size:16px">🔍</button>
@@ -2148,8 +2154,26 @@ function _jmpFloatSync(){
   var fbar=document.querySelector('.fbar');
   _jmpFloat.style.top=_fbarHidden?'12px':((fbar?fbar.offsetHeight:64)+4)+'px';
 }
-// Watchlist shortcut from header
-function _irisOpenWatchlist(){openUpNext();setTimeout(function(){_unOpenWatchlist()},100)}
+// Watchlist: open directly without loading Up Next queue
+function _irisOpenWatchlist(){
+  document.querySelectorAll('.chart-detail').forEach(function(d){d.remove()});
+  if(window.echarts){document.querySelectorAll('[_echarts_instance_]').forEach(function(el){var c=echarts.getInstanceByDom(el);if(c)c.dispatchAction({type:'hideTip'})})}
+  var llOv=document.getElementById('ll-feed-overlay');if(llOv)llOv.style.display='none';
+  _unCurrentView='watchlist';_unNavStack=[];
+  _unUpdateHeader();
+  _wlRender();
+  var ov=document.getElementById('un-overlay');
+  _unEverOpened=true;
+  ov.style.display='';ov.style.visibility='hidden';ov.style.transition='none';ov.style.transform='translateX(100%)';
+  requestAnimationFrame(function(){ov.scrollTop=0;ov.style.visibility='';ov.style.transition='transform .3s ease';requestAnimationFrame(function(){ov.style.transform=''})});
+  _lockBody();
+}
+// Navigate from watchlist/calendar to Up Next home (with back navigation)
+function _unNavToHome(){
+  _unSetView('home',{});
+  _unScrollPos=0;_unReturning=true;
+  _renderUpNext();
+}
 
 function fby(e){if(cy==='all')return e||{};var f={};if(e&&e[cy])f[cy]=e[cy];return f}
 function sm(e){return Object.values(e||{}).reduce(function(a,b){return a+b},0)}
@@ -5842,6 +5866,8 @@ function _renderUpNext(prerender){
 
 // Delegated click handler for Up Next cards (U1: reliable click targets)
 document.getElementById('un-content').addEventListener('click',function(e){
+  // Close sort menu on any tap outside it
+  if(!e.target.closest('.wl-sort-wrap')){var sm=document.getElementById('wl-sort-menu');if(sm)sm.classList.remove('open')}
   var card=e.target.closest('.un-card-tap');
   if(!card)return;
   if(e.target.closest('.un-watch-btn,.un-del-btn'))return;
@@ -6948,7 +6974,8 @@ function _unHomeBtn(){
     return;
   }
   if(_unCurrentView==='home'){
-    closeUpNext();
+    if(_unNavStack.length){_unNavBack()}
+    else closeUpNext();
   }else{
     _unNavBack();
   }
@@ -7583,9 +7610,15 @@ function _unSetView(view,data){
 
 function _unUpdateHeader(){
   var title=document.getElementById('un-header-title');
+  var homeBtn=document.getElementById('un-home-btn');
   var searchBtn=document.getElementById('un-search-btn');
   var wlBtn=document.getElementById('un-wl-btn');
   var calBtn=document.getElementById('un-cal-btn');
+  // Default: hide all action buttons
+  if(homeBtn)homeBtn.style.display='none';
+  if(searchBtn)searchBtn.style.display='none';
+  if(wlBtn)wlBtn.style.display='none';
+  if(calBtn)calBtn.style.display='none';
   if(_unCurrentView==='home'){
     title.innerHTML='<span class="i">📺</span> Up Next';
     if(searchBtn)searchBtn.style.display='';
@@ -7593,37 +7626,18 @@ function _unUpdateHeader(){
     if(calBtn)calBtn.style.display='';
   }else if(_unCurrentView==='calendar'){
     title.innerHTML='<span class="i">📅</span> Upcoming';
-    if(searchBtn)searchBtn.style.display='none';
-    if(wlBtn)wlBtn.style.display='none';
-    if(calBtn)calBtn.style.display='none';
   }else if(_unCurrentView==='watchlist'){
     title.innerHTML='<span class="i">📋</span> Watchlist';
-    if(searchBtn)searchBtn.style.display='none';
-    if(wlBtn)wlBtn.style.display='none';
-    if(calBtn)calBtn.style.display='none';
+    if(homeBtn)homeBtn.style.display='';
+    if(searchBtn)searchBtn.style.display='';
   }else if(_unCurrentView==='search'){
     title.innerHTML='<span class="i">🔍</span> Search';
-    if(searchBtn)searchBtn.style.display='none';
-    if(wlBtn)wlBtn.style.display='none';
-    if(calBtn)calBtn.style.display='none';
   }else if(_unCurrentView==='show'){
     title.innerHTML='<span class="i">📺</span> Show';
-    if(searchBtn)searchBtn.style.display='none';
-    if(wlBtn)wlBtn.style.display='none';
-    if(calBtn)calBtn.style.display='none';
   }else if(_unCurrentView==='season'){
     title.innerHTML='<span class="i">📺</span> Season';
-    if(searchBtn)searchBtn.style.display='none';
-    if(wlBtn)wlBtn.style.display='none';
-    if(calBtn)calBtn.style.display='none';
   }else if(_unCurrentView==='movie'){
     title.innerHTML='<span class="i">🎞️</span> Movie';
-    if(searchBtn)searchBtn.style.display='none';
-    if(wlBtn)wlBtn.style.display='none';
-    if(calBtn)calBtn.style.display='none';
-  }
-  // Ensure normal header is shown (not search bar) for non-search views
-  if(_unCurrentView!=='search'){
   }
 }
 
@@ -7773,18 +7787,17 @@ function _wlRender(){
 
   var mc=(wl.movies||[]).length, sc2=(wl.shows||[]).length;
 
-  // Toggle buttons
+  // Toggle + sort row (single line)
+  var _sortLabels={added:'Recent',custom:'Custom',title:'A-Z',runtime:'Runtime',rating:'Rating'};
   var h='<div class="un-wl-toggle">';
   h+='<button onclick="_wlSetFilter(\'movie\')" style="border:1px solid '+(_wlFilter==='movie'?'#fb923c':'rgba(255,255,255,.1)')+';background:'+(_wlFilter==='movie'?'rgba(251,146,60,.15)':'none')+';color:'+(_wlFilter==='movie'?'#fb923c':'var(--t2)')+'">🎞️ Movies'+(mc?' ('+mc+')':'')+'</button>';
   h+='<button onclick="_wlSetFilter(\'show\')" style="border:1px solid '+(_wlFilter==='show'?'var(--tv)':'rgba(255,255,255,.1)')+';background:'+(_wlFilter==='show'?'rgba(20,184,166,.15)':'none')+';color:'+(_wlFilter==='show'?'var(--tv)':'var(--t2)')+'">📺 Shows'+(sc2?' ('+sc2+')':'')+'</button>';
-  h+='</div>';
-
-  // Sort buttons
-  h+='<div class="un-wl-sort">';
+  h+='<div class="wl-sort-wrap"><button class="wl-sort-btn" onclick="_wlToggleSortMenu(event)">'+(_sortLabels[_wlSort]||'Sort')+' ▾</button>';
+  h+='<div class="wl-sort-menu" id="wl-sort-menu">';
   ['added','custom','title','runtime','rating'].forEach(function(s){
-    var lbl=s==='added'?'Recent':s==='custom'?'Custom':s==='title'?'A-Z':s==='runtime'?'Runtime':'Rating';
-    h+='<button class="'+(_wlSort===s?'active':'')+'" onclick="_wlSetSort(\''+s+'\')">'+lbl+'</button>';
+    h+='<div class="'+(_wlSort===s?'active':'')+'" onclick="_wlPickSort(\''+s+'\')">'+_sortLabels[s]+'</div>';
   });
+  h+='</div></div>';
   h+='</div>';
 
   if(!items.length){
@@ -7917,6 +7930,8 @@ function _wlUpdateSaveBar(){
 }
 
 function _wlSetFilter(f){_wlFilter=f;_wlRender()}
+function _wlToggleSortMenu(e){e.stopPropagation();var m=document.getElementById('wl-sort-menu');if(m)m.classList.toggle('open')}
+function _wlPickSort(s){var m=document.getElementById('wl-sort-menu');if(m)m.classList.remove('open');_wlSetSort(s)}
 function _wlSetSort(s){
   // If leaving custom mode with unsaved changes, auto-save silently
   if(_wlSort==='custom'&&s!=='custom'&&_wlDirty){_wlDirty=false;_wlSyncToTrakt()}
