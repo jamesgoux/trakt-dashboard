@@ -43,6 +43,9 @@ body{background:var(--bg);color:var(--tx);font-family:-apple-system,BlinkMacSyst
 .s-t{border-left-color:#666}.s-e{border-left-color:#666}.s-c{border-left-color:#666}.s-con{border-left-color:var(--cn)}.s-th{border-left-color:var(--th)}.s-sp{border-left-color:var(--sp)}
 .s-r{border-left-color:#666}.s-gr{border-left-color:var(--bk)}.s-lfm{border-left-color:var(--mu)}
 .stb{max-height:300px;overflow-y:auto;overflow-x:hidden}.stb table{width:100%}.stb th:nth-child(n+3),.stb td:nth-child(n+3){text-align:right;width:38px;padding-left:4px}
+.ptbl-search{padding:4px 0 2px;position:relative;display:none}.ptbl-search.open{display:block}.ptbl-search input{width:100%;box-sizing:border-box;padding:7px 28px 7px 10px;background:var(--bg);border:1px solid rgba(255,255,255,.1);border-radius:6px;color:var(--tx);font-size:12px;outline:none}.ptbl-search input:focus{border-color:var(--ac)}.ptbl-search input::placeholder{color:var(--t2)}.ptbl-search-x{position:absolute;right:8px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--t2);font-size:16px;line-height:1;padding:2px}
+.ptbl-search-btn{float:right;font-size:13px;padding:3px 7px;background:none;border:1px solid rgba(255,255,255,.15);color:var(--t2);border-radius:6px;cursor:pointer;margin-left:6px;line-height:1}.ptbl-search-btn:hover,.ptbl-search-btn.active{background:rgba(251,146,60,.12);border-color:rgba(251,146,60,.4);color:var(--ac)}
+.ptbl-more td{text-align:center;padding:12px 0;font-size:12px;color:var(--t2)}.ptbl-show-all{color:var(--ac);cursor:pointer;font-weight:600}.ptbl-show-all:hover{text-decoration:underline}
 .cd ::-webkit-scrollbar{width:5px}.cd ::-webkit-scrollbar-thumb{background:#333;border-radius:3px}.cd ::-webkit-scrollbar-track{background:transparent}
 .cd *{scrollbar-width:thin;scrollbar-color:#333 transparent}
 table{width:100%;border-collapse:collapse;font-size:12px}
@@ -2228,6 +2231,9 @@ function stats(){
 // p['g+'] = {"all": N, "2026": N, ...} — new titles in last 7 days
 function _personGain(p){var g=p['g+'];if(!g)return 0;return g[cy]||0}
 var _ptblNewOnly={};
+var _ptblData={};
+var _ptblSearch={};
+var _PTBL_CAP=1000;
 function _ptblToggleNew(id,pp,btn){
   _ptblNewOnly[id]=!_ptblNewOnly[id];
   btn.style.background=_ptblNewOnly[id]?'rgba(74,222,128,.15)':'none';
@@ -2267,14 +2273,22 @@ var hasAnyGain=items.some(function(item){return item.cg>0});
 var newBtn=tb.closest('.cd').querySelector('.ptbl-new-btn');
 if(newBtn)newBtn.style.display=hasAnyGain?'':'none';
 if(_ptblNewOnly[id])items=items.filter(function(item){return item.cg>0});
-items.forEach(function(item){var p=item.p,m=item.m,s=item.s,rk=item.rk;var tot=item.tot;var img=HS[p.n]?'<img class="hs" src="'+HS[p.n]+'" loading="lazy" onerror="this.style.display=\'none\'" alt="">':'<div class="hp">'+p.n.charAt(0)+'</div>';
+// Store for search / show-all
+_ptblData[id]={items:items,pp:pp};
+// Apply search filter
+var _sq=(_ptblSearch[id]||'').toLowerCase();
+var _ri=_sq?items.filter(function(it){return it.p.n.toLowerCase().indexOf(_sq)>=0}):items;
+// Cap: no cap when searching or in climbers-only mode
+var _capN=(_sq||_ptblNewOnly[id])?_ri.length:_PTBL_CAP;
+var _isCapped=_ri.length>_capN;
+var _showList=_isCapped?_ri.slice(0,_capN):_ri;
+// Row creation helper (captures closure vars for detail expand)
+function _mkRow(item){var p=item.p,m=item.m,s=item.s,rk=item.rk;var tot=item.tot;var img=HS[p.n]?'<img class="hs" src="'+HS[p.n]+'" loading="lazy" onerror="this.style.display=\'none\'" alt="">':'<div class="hp">'+p.n.charAt(0)+'</div>';
 var gain=item.cg;
 var tr=document.createElement('tr');tr.className='pr';if(gain)tr.style.background='rgba(74,222,128,.06)';tr.innerHTML='<td style="color:var(--t2);font-size:10px;width:24px">'+rk+'</td><td><div class="pn">'+img+'<span>'+p.n+'</span></div></td><td class="nm" style="color:var(--mv)">'+m+'</td><td class="nm" style="color:var(--tv)">'+s+'</td><td class="nm" style="color:'+(gain?'#4ade80':'#999')+'">'+tot+(gain?'<span style="font-size:9px"> \u2191'+gain+'</span>':'')+'</td>';tr.onclick=function(){var nx=tr.nextElementSibling;if(nx&&nx.classList.contains('dr')){nx.remove();return}document.querySelectorAll('.dr').forEach(function(r){r.remove()});if(!p.ti)return;
 var _tItems=[];p.ti.forEach(function(i){var t=TL[i];if(!t)return;var eb=cy==='all'?t.eby:fby(t.eby);var ct2=sm(eb);if(ct2===0&&cy!=='all')return;
-// For shows with per-episode data: exclude if person wasn't in episodes this year
 if(cy!=='all'&&t.type!=='movie'&&p.eps&&t.sl&&p.eps[t.sl]&&!(p.eps[t.sl].y||{})[cy])return;
 var rec=_tlw[t.t]||0;var isGrn=_tld[t.t]&&_tld[t.t]>=_cutoff7d;
-// For shows: verify person appeared in episodes from the watch year (only when year data exists)
 if(isGrn&&t.type!=='movie'&&p.eps&&t.sl&&p.eps[t.sl]&&p.eps[t.sl].y){var wy=new Date(rec).getFullYear().toString();if(!p.eps[t.sl].y[wy])isGrn=false}
 if(!rec&&t.eby){var mk=Object.keys(t.eby).sort().pop();if(mk){rec=mk.length===4?new Date(mk+'-12-31').getTime():mk.length===7?new Date(mk+'-15').getTime():new Date(mk).getTime();if(isNaN(rec))rec=0}}
 var epLabel='';if(t.type==='show'&&p.eps&&t.sl&&p.eps[t.sl]){var epCount=cy==='all'?(p.eps[t.sl].t||0):((p.eps[t.sl].y||{})[cy]||0);if(epCount)epLabel='<span style="color:var(--t2);font-weight:400"> ('+epCount+' ep'+(epCount>1?'s':'')+')</span>'}else if(t.type==='movie'&&ct2>1){epLabel='<span style="color:var(--t2)"> '+ct2+'x</span>'}
@@ -2282,7 +2296,39 @@ _tItems.push({t:t,ep:epLabel,rec:rec,grn:isGrn})});
 _tItems.sort(function(a,b){return b.rec-a.rec});
 var dr=document.createElement('tr');dr.className='dr';var h='<td colspan="5"><table>';
 _tItems.forEach(function(it){h+='<tr'+(it.grn?' style="background:rgba(74,222,128,.08)"':'')+'><td><span class="badge '+(it.t.type==='movie'?'b-m':'b-e')+'">'+it.t.type+'</span></td><td style="font-weight:600'+(it.grn?';color:#4ade80':'')+'">'+it.t.t+it.ep+'</td><td style="color:var(--t2)">'+(it.t.yr||'')+'</td></tr>'});
-h+='</table></td>';dr.innerHTML=h;tr.after(dr)};tb.appendChild(tr)})}
+h+='</table></td>';dr.innerHTML=h;tr.after(dr)};return tr}
+// Render capped list
+_showList.forEach(function(item){tb.appendChild(_mkRow(item))});
+// Show All footer
+if(_isCapped){var _ft=document.createElement('tr');_ft.className='ptbl-more';
+_ft.innerHTML='<td colspan="5">Showing '+_capN.toLocaleString()+' of '+_ri.length.toLocaleString()+' \u00b7 <a class="ptbl-show-all">Show All</a></td>';
+var _rest=_ri.slice(_capN);
+_ft.querySelector('.ptbl-show-all').onclick=function(e){e.preventDefault();e.stopPropagation();
+_ft.querySelector('td').textContent='Loading\u2026';setTimeout(function(){_ft.remove();_rest.forEach(function(it2){tb.appendChild(_mkRow(it2))})},50)};
+tb.appendChild(_ft)}
+// No results message for search
+if(_sq&&_ri.length===0){var _nr=document.createElement('tr');_nr.innerHTML='<td colspan="5" style="text-align:center;padding:20px;color:var(--t2);font-size:13px">No matches for \u201c'+_sq.replace(/</g,'&lt;')+'\u201d</td>';tb.appendChild(_nr)}
+// Inject search input above table (once)
+_ptblEnsureSearch(id,pp)}
+// Inject collapsible search for people tables: 🔍 button in header, search bar expands on click
+function _ptblEnsureSearch(id,pp){var tb=document.getElementById(id);var cd=tb.closest('.cd');
+if(cd.querySelector('.ptbl-search-btn'))return;
+var h3=cd.querySelector('h3');var stb=cd.querySelector('.stb');if(!h3||!stb)return;
+var th2=tb.closest('table').querySelector('thead th:nth-child(2)');
+var lbl=th2?th2.textContent:'';var plbl=lbl==='Actress'?'actresses':lbl.toLowerCase()+'s';
+// Hidden search bar
+var wrap=document.createElement('div');wrap.className='ptbl-search';
+wrap.innerHTML='<input type="text" placeholder="Search '+plbl+'\u2026" spellcheck="false" autocomplete="off"><span class="ptbl-search-x">\u00d7</span>';
+stb.parentNode.insertBefore(wrap,stb);
+var inp=wrap.querySelector('input'),clr=wrap.querySelector('.ptbl-search-x'),tmr;
+// 🔍 button in header
+var sbtn=document.createElement('button');sbtn.className='ptbl-search-btn';sbtn.innerHTML='&#128269;';sbtn.title='Search '+plbl;
+h3.appendChild(sbtn);
+sbtn.onclick=function(){if(wrap.classList.contains('open')){wrap.classList.remove('open');sbtn.classList.remove('active');
+if(inp.value){inp.value='';_ptblSearch[id]='';ptbl(id,pp)}}else{wrap.classList.add('open');sbtn.classList.add('active');setTimeout(function(){inp.focus()},50)}};
+inp.addEventListener('input',function(){clearTimeout(tmr);var v=inp.value;
+tmr=setTimeout(function(){_ptblSearch[id]=v;ptbl(id,pp)},200)});
+clr.onclick=function(){inp.value='';_ptblSearch[id]='';wrap.classList.remove('open');sbtn.classList.remove('active');ptbl(id,pp)}}
 
 function _crwToggle(id){
   var t=document.getElementById(id);if(!t)return;
