@@ -368,8 +368,38 @@ def fetch_cast_and_studios(entries):
 
     if TMDB_API_KEY and show_episodes:
         season_count = sum(len(seasons) for seasons in show_episodes.values())
-        cached_count = 0; fetched_count = 0
+        cached_count = 0; fetched_count = 0; invalidated_count = 0
         print(f"\n  Episode-level credits for {len(show_episodes)} shows, {season_count} seasons...")
+
+        # Invalidate stale season caches: re-fetch for recently-watched seasons
+        # (catches TMDB updates for new episodes and newly-added credits)
+        _cutoff_2d = (datetime.now(timezone.utc) - timedelta(days=2)).strftime("%Y-%m-%d")
+        for slug, seasons in show_episodes.items():
+            tmdb_info = slug_tmdb.get(slug)
+            if not tmdb_info: continue
+            tmdb_id, _ = tmdb_info
+            for season_num, ep_nums in seasons.items():
+                cache_key = f"{tmdb_id}|{season_num}"
+                if cache_key not in season_cache: continue
+                sdata = season_cache[cache_key]
+                cached_eps = {ep.get("episode_number"): ep for ep in sdata.get("episodes", [])}
+                # Always re-fetch if any watched episode was in last 48 hours
+                # (TMDB credits are frequently updated for new episodes)
+                has_very_recent = any(ep_watch_date.get((slug, season_num, en), "") >= _cutoff_2d for en in ep_nums)
+                if has_very_recent:
+                    del season_cache[cache_key]
+                    invalidated_count += 1
+                    continue
+                # For 7-day window: only re-fetch if any episode has 0 guests or is missing from cache
+                has_recent = any(ep_watch_date.get((slug, season_num, en), "") >= _cutoff_7d for en in ep_nums)
+                if not has_recent: continue
+                has_empty = any(len(cached_eps.get(en, {}).get("guest_stars", [])) == 0 for en in ep_nums if en in cached_eps)
+                has_missing = any(en not in cached_eps for en in ep_nums)
+                if has_empty or has_missing:
+                    del season_cache[cache_key]
+                    invalidated_count += 1
+        if invalidated_count:
+            print(f"  ⚡ Invalidated {invalidated_count} stale season caches (recent eps with incomplete credits)")
 
         for slug, seasons in show_episodes.items():
             tmdb_info = slug_tmdb.get(slug)
