@@ -4114,10 +4114,36 @@ function renderLastfm(){
     var yMonths=lfmMonthly.filter(function(m){return m.m.startsWith(cy)});
     var aggAr={};yMonths.forEach(function(m){(m.ta||[]).forEach(function(a){aggAr[a.n]=(aggAr[a.n]||0)+a.c})});
     curArtists=Object.keys(aggAr).map(function(n){return{n:n,c:aggAr[n]}}).sort(function(a,b){return b.c-a.c});
-    var aggAl={};yMonths.forEach(function(m){(m.tal||[]).forEach(function(a){var key=a.n;aggAl[key]=(aggAl[key]||0)+a.c})});
-    curAlbums=Object.keys(aggAl).map(function(n){var parts=n.split(' — ');return{n:parts.length>1?parts[1]:n,a:parts[0]||'',c:aggAl[n]}}).sort(function(a,b){return b.c-a.c});
-    curTracks=[];genres=[];
-    if(rangeWrap)rangeWrap.innerHTML='';
+    var aggAl={},aggAlImg={};yMonths.forEach(function(m){(m.tal||[]).forEach(function(a){var key=a.n;aggAl[key]=(aggAl[key]||0)+a.c;if(a.img&&!aggAlImg[key])aggAlImg[key]=a.img})});
+    curAlbums=Object.keys(aggAl).map(function(n){var parts=n.split(' — ');return{n:parts.length>1?parts[1]:n,a:parts[0]||'',c:aggAl[n],img:aggAlImg[n]||''}}).sort(function(a,b){return b.c-a.c});
+    // Tracks: use yearly pre-computed tt, or aggregate from monthly tt
+    var yrData=lfmYearly.find(function(y){return y.yr===cy});
+    if(yrData&&yrData.tt&&yrData.tt.length){curTracks=yrData.tt}
+    else{var aggTr={};yMonths.forEach(function(m){(m.tt||[]).forEach(function(t){var key=t.a+'\t'+t.n;if(!aggTr[key])aggTr[key]={n:t.n,a:t.a,c:0};aggTr[key].c+=t.c})});
+      curTracks=Object.values(aggTr).sort(function(a,b){return b.c-a.c})}
+    // Genres: use yearly pre-computed g, or fall back to 3month period for current year
+    genres=(yrData&&yrData.g)?yrData.g:[];
+    // 90 Days toggle only makes sense for current year
+    var isCurYr=cy===curYr;
+    if(isCurYr){
+      window._lfmRange=window._lfmRange||'12month';
+      var per=window._lfmRange;
+      if(per==='overall')per='12month';
+      if(per==='3month'){
+        genres=(lfm.genres_p||{})['3month']||lfm.genres||[];
+        var pData3=lfm.top_artists||[];curArtists=(pData3.find(function(p){return p.period==='3month'})||{}).artists||[];
+        var tData3=lfm.top_tracks||[];curTracks=(tData3.find(function(p){return p.period==='3month'})||{}).tracks||[];
+        var alData3=lfm.top_albums||[];curAlbums=(alData3.find(function(p){return p.period==='3month'})||{}).albums||[];
+      }
+      if(rangeWrap){
+        var opts='<button class="vb lfm-rng '+(per==='12month'?'vb-on':'')+'" data-v="12month" style="font-size:9px">This Year</button>';
+        opts+='<button class="vb lfm-rng '+(per==='3month'?'vb-on':'')+'" data-v="3month" style="font-size:9px">90 Days</button>';
+        rangeWrap.innerHTML=opts;
+        rangeWrap.querySelectorAll('.lfm-rng').forEach(function(btn){btn.onclick=function(){window._lfmRange=btn.dataset.v;renderLastfm()}});
+      }
+    }else{
+      if(rangeWrap)rangeWrap.innerHTML='';
+    }
   }else{
     // Period-based (overall, 12month, 3month, 1month)
     window._lfmRange=window._lfmRange||'overall';
@@ -4169,11 +4195,13 @@ function renderLastfm(){
     ch.push(tChart);
   }else{tEl.parentElement.parentElement.style.display='none'}
 
-  // Top Albums
+  // Top Albums — build image lookup from period-based data for year-aggregated albums
+  var _albImg={};(lfm.top_albums||[]).forEach(function(p){(p.albums||[]).forEach(function(a){if(a.img)_albImg[a.n+'\t'+a.a]=a.img})});
   var alEl=document.getElementById('lfm-albums');
   if(curAlbums.length){
     var alH='<div class="cover-grid" style="justify-content:flex-start;gap:0">';curAlbums.slice(0,mob?25:50).forEach(function(a,i){
-      var cover=a.img?'<img src="'+a.img+'" class="al-cover" title="'+a.n+' — '+a.a+' ('+a.c+' plays)">':'<div style="width:100%;aspect-ratio:1;background:linear-gradient(135deg,#1a1a4e,#111);display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,0.3);font-size:16px;font-weight:800">'+a.n.charAt(0)+'</div>';
+      var imgUrl=a.img||_albImg[a.n+'\t'+a.a]||'';
+      var cover=imgUrl?'<img src="'+imgUrl+'" class="al-cover" title="'+a.n+' — '+a.a+' ('+a.c+' plays)">':'<div style="width:100%;aspect-ratio:1;background:linear-gradient(135deg,#1a1a4e,#111);display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,0.3);font-size:16px;font-weight:800">'+a.n.charAt(0)+'</div>';
       alH+='<div class="gi" style="width:'+(mob?'20%':'calc(100%/7)')+'">'+cover+'<div class="al-info">'+a.n+'<br>'+a.a+'<br><span class="al-val">'+a.c+'</span></div></div>'});
     alH+='</div>';alEl.style.height='auto';alEl.innerHTML=alH;
     alEl.parentElement.style.display='';
