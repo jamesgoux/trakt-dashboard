@@ -437,8 +437,8 @@ body{overflow-x:hidden}
 <div class="g2 med-s" data-med="all music" id="lfm-wrap" style="display:none">
 <div id="sec-lfm" class="cd s-lfm"><h3><span class="i">🎧</span>Listening Activity <span class="vtog" style="float:right"><button class="vb vb-on lfm-met" data-v="s">Scrobbles</button><button class="vb lfm-met" data-v="a">Artists</button><button class="vb lfm-met" data-v="al">Albums</button></span></h3><div id="lfm-weekly" style="height:280px"></div></div>
 <div class="cd s-lfm"><h3><span class="i">🏷️</span>Genres</h3><div id="lfm-genres" style="height:280px"></div></div>
-<div class="cd s-lfm"><h3><span class="i">🎤</span>Top Artists <span class="vtog" id="lfm-range-wrap" style="float:right"></span></h3><div style="max-height:500px;overflow-y:auto;overflow-x:hidden"><div id="lfm-artists" style="height:1200px"></div></div></div>
-<div class="cd s-lfm"><h3><span class="i">🎵</span>Top Tracks</h3><div style="max-height:500px;overflow-y:auto;overflow-x:hidden"><div id="lfm-tracks" style="height:1200px"></div></div></div>
+<div class="cd s-lfm"><h3><span class="i">🎤</span>Top Artists <span class="vtog" id="lfm-range-wrap" style="float:right"></span></h3><div id="lfm-artists-wrap" style="overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch"><div id="lfm-artists" style="height:0"></div></div></div>
+<div class="cd s-lfm"><h3><span class="i">🎵</span>Top Tracks</h3><div id="lfm-tracks-wrap" style="overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch"><div id="lfm-tracks" style="height:0"></div></div></div>
 <div class="cd fw s-lfm"><h3><span class="i">💿</span>Top Albums</h3><div id="lfm-albums" style="height:auto"></div></div>
 </div>
 <!-- CONCERTS -->
@@ -4169,7 +4169,10 @@ function renderLastfm(){
   var aEl=document.getElementById('lfm-artists');
   if(curArtists.length){
     var aSlice=curArtists.slice(0,100).reverse();
-    aEl.style.height=(aSlice.length*18+20)+'px';
+    var aChartH=aSlice.length*18+20;
+    aEl.style.height=aChartH+'px';
+    var aWrap=document.getElementById('lfm-artists-wrap');
+    aWrap.style.height=Math.min(aChartH,500)+'px';
     aEl.parentElement.parentElement.style.display='';
     var aChart=echarts.init(aEl);
     aChart.setOption({tooltip:{trigger:mob?'item':'axis',axisPointer:{type:'shadow'},...tt,formatter:function(p){var idx=aSlice.length-p.dataIndex;return'<b>#'+idx+' '+tp(p).name+'</b>: '+tp(p).value+' plays'}},
@@ -4184,7 +4187,10 @@ function renderLastfm(){
   var tEl=document.getElementById('lfm-tracks');
   if(curTracks.length){
     var tSlice=curTracks.slice(0,100).reverse();
-    tEl.style.height=(tSlice.length*18+20)+'px';
+    var tChartH=tSlice.length*18+20;
+    tEl.style.height=tChartH+'px';
+    var tWrap=document.getElementById('lfm-tracks-wrap');
+    tWrap.style.height=Math.min(tChartH,500)+'px';
     tEl.parentElement.parentElement.style.display='';
     var tChart=echarts.init(tEl);
     tChart.setOption({tooltip:{trigger:mob?'item':'axis',axisPointer:{type:'shadow'},...tt,formatter:function(p){var t=tSlice[p.dataIndex];return t?'<b>#'+(tSlice.length-p.dataIndex)+' '+t.n+'</b><br/>'+t.a+'<br/>'+t.c+' plays':''}},
