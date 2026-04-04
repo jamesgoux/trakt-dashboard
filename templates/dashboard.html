@@ -301,8 +301,8 @@ body{overflow-x:hidden}
 <select id="gs" style="display:none"><option value="all">All</option><option value="life">Life</option><option value="movietv">Movies/TV</option><option value="movie">Movies</option><option value="show">Shows</option><option value="book">Books</option><option value="music">Music</option><option value="concert">Concerts</option><option value="podcast">Podcasts</option><option value="theater">Theater</option><option value="boardgame">Board Games</option><option value="sports">Sports</option><option value="game">Video Games</option><option value="health">Workouts</option></select>
 <select id="ys" style="display:none"><option value="all">All Time</option></select>
 <button class="hbtn" onclick="_irisOpenWatchlist()" title="Watchlist">📋</button>
-<button class="hbtn" onclick="_irisOpenSearch()" title="Search">🔍</button>
 <button class="hbtn" onclick="openUpNext()" title="Up Next">📺</button>
+<button class="hbtn" onclick="_irisOpenSearch()" title="Search">🔍</button>
 <div style="position:relative"><button class="hbtn" id="iris-user-btn" onclick="_irisToggleUserMenu()" title="Account">👤</button><div id="iris-user-menu" style="display:none;position:absolute;right:0;top:100%;margin-top:6px;background:var(--sf);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:6px 0;min-width:180px;z-index:9999;box-shadow:0 8px 30px rgba(0,0,0,.5)"></div></div>
 </div>
 </div>
@@ -545,6 +545,7 @@ Drop GameTrack games.csv or <span style="color:#6366f1;text-decoration:underline
 <div id="un-hdr-normal" style="display:flex;align-items:center">
 <button onclick="_unHomeBtn()" class="un-back" id="un-back-btn" style="flex-shrink:0">←</button>
 <h2 id="un-header-title" style="font-size:18px;font-weight:700;margin:0;flex:1;text-align:center"><span class="i">📺</span> Up Next</h2>
+<button onclick="_unNavToHome()" class="un-back" id="un-home-btn" style="display:none;flex-shrink:0;font-size:16px">📺</button>
 <button onclick="_unOpenWatchlist()" class="un-back" id="un-wl-btn" style="flex-shrink:0;font-size:16px">📋</button>
 <button onclick="_unOpenCalendar()" class="un-back" id="un-cal-btn" style="flex-shrink:0;font-size:16px">📅</button>
 <button onclick="_unOpenSearchOverlay()" class="un-back" id="un-search-btn" style="flex-shrink:0;font-size:16px">🔍</button>
@@ -2148,8 +2149,26 @@ function _jmpFloatSync(){
   var fbar=document.querySelector('.fbar');
   _jmpFloat.style.top=_fbarHidden?'12px':((fbar?fbar.offsetHeight:64)+4)+'px';
 }
-// Watchlist shortcut from header
-function _irisOpenWatchlist(){openUpNext();setTimeout(function(){_unOpenWatchlist()},100)}
+// Watchlist: open directly without loading Up Next queue
+function _irisOpenWatchlist(){
+  document.querySelectorAll('.chart-detail').forEach(function(d){d.remove()});
+  if(window.echarts){document.querySelectorAll('[_echarts_instance_]').forEach(function(el){var c=echarts.getInstanceByDom(el);if(c)c.dispatchAction({type:'hideTip'})})}
+  var llOv=document.getElementById('ll-feed-overlay');if(llOv)llOv.style.display='none';
+  _unCurrentView='watchlist';_unNavStack=[];
+  _unUpdateHeader();
+  _wlRender();
+  var ov=document.getElementById('un-overlay');
+  _unEverOpened=true;
+  ov.style.display='';ov.style.visibility='hidden';ov.style.transition='none';ov.style.transform='translateX(100%)';
+  requestAnimationFrame(function(){ov.scrollTop=0;ov.style.visibility='';ov.style.transition='transform .3s ease';requestAnimationFrame(function(){ov.style.transform=''})});
+  _lockBody();
+}
+// Navigate from watchlist/calendar to Up Next home (with back navigation)
+function _unNavToHome(){
+  _unSetView('home',{});
+  _unScrollPos=0;_unReturning=true;
+  _renderUpNext();
+}
 
 function fby(e){if(cy==='all')return e||{};var f={};if(e&&e[cy])f[cy]=e[cy];return f}
 function sm(e){return Object.values(e||{}).reduce(function(a,b){return a+b},0)}
@@ -6948,7 +6967,8 @@ function _unHomeBtn(){
     return;
   }
   if(_unCurrentView==='home'){
-    closeUpNext();
+    if(_unNavStack.length){_unNavBack()}
+    else closeUpNext();
   }else{
     _unNavBack();
   }
@@ -7583,9 +7603,15 @@ function _unSetView(view,data){
 
 function _unUpdateHeader(){
   var title=document.getElementById('un-header-title');
+  var homeBtn=document.getElementById('un-home-btn');
   var searchBtn=document.getElementById('un-search-btn');
   var wlBtn=document.getElementById('un-wl-btn');
   var calBtn=document.getElementById('un-cal-btn');
+  // Default: hide all action buttons
+  if(homeBtn)homeBtn.style.display='none';
+  if(searchBtn)searchBtn.style.display='none';
+  if(wlBtn)wlBtn.style.display='none';
+  if(calBtn)calBtn.style.display='none';
   if(_unCurrentView==='home'){
     title.innerHTML='<span class="i">📺</span> Up Next';
     if(searchBtn)searchBtn.style.display='';
@@ -7593,37 +7619,18 @@ function _unUpdateHeader(){
     if(calBtn)calBtn.style.display='';
   }else if(_unCurrentView==='calendar'){
     title.innerHTML='<span class="i">📅</span> Upcoming';
-    if(searchBtn)searchBtn.style.display='none';
-    if(wlBtn)wlBtn.style.display='none';
-    if(calBtn)calBtn.style.display='none';
   }else if(_unCurrentView==='watchlist'){
     title.innerHTML='<span class="i">📋</span> Watchlist';
-    if(searchBtn)searchBtn.style.display='none';
-    if(wlBtn)wlBtn.style.display='none';
-    if(calBtn)calBtn.style.display='none';
+    if(homeBtn)homeBtn.style.display='';
+    if(searchBtn)searchBtn.style.display='';
   }else if(_unCurrentView==='search'){
     title.innerHTML='<span class="i">🔍</span> Search';
-    if(searchBtn)searchBtn.style.display='none';
-    if(wlBtn)wlBtn.style.display='none';
-    if(calBtn)calBtn.style.display='none';
   }else if(_unCurrentView==='show'){
     title.innerHTML='<span class="i">📺</span> Show';
-    if(searchBtn)searchBtn.style.display='none';
-    if(wlBtn)wlBtn.style.display='none';
-    if(calBtn)calBtn.style.display='none';
   }else if(_unCurrentView==='season'){
     title.innerHTML='<span class="i">📺</span> Season';
-    if(searchBtn)searchBtn.style.display='none';
-    if(wlBtn)wlBtn.style.display='none';
-    if(calBtn)calBtn.style.display='none';
   }else if(_unCurrentView==='movie'){
     title.innerHTML='<span class="i">🎞️</span> Movie';
-    if(searchBtn)searchBtn.style.display='none';
-    if(wlBtn)wlBtn.style.display='none';
-    if(calBtn)calBtn.style.display='none';
-  }
-  // Ensure normal header is shown (not search bar) for non-search views
-  if(_unCurrentView!=='search'){
   }
 }
 
