@@ -4121,22 +4121,28 @@ function renderLastfm(){
     if(yrData&&yrData.tt&&yrData.tt.length){curTracks=yrData.tt}
     else{var aggTr={};yMonths.forEach(function(m){(m.tt||[]).forEach(function(t){var key=t.a+'\t'+t.n;if(!aggTr[key])aggTr[key]={n:t.n,a:t.a,c:0};aggTr[key].c+=t.c})});
       curTracks=Object.values(aggTr).sort(function(a,b){return b.c-a.c})}
-    // Genres: use yearly pre-computed g, or fall back to 3month/overall period
-    window._lfmRange=window._lfmRange||'12month';
-    var per=window._lfmRange;
-    if(per==='overall')per='12month';
-    genres=(per==='3month')?((lfm.genres_p||{})['3month']||lfm.genres||[]):((yrData&&yrData.g)?yrData.g:[]);
-    // Also let artists/tracks/albums respect the toggle
-    if(per==='3month'){
-      var pData3=lfm.top_artists||[];curArtists=(pData3.find(function(p){return p.period==='3month'})||{}).artists||[];
-      var tData3=lfm.top_tracks||[];curTracks=(tData3.find(function(p){return p.period==='3month'})||{}).tracks||[];
-      var alData3=lfm.top_albums||[];curAlbums=(alData3.find(function(p){return p.period==='3month'})||{}).albums||[];
-    }
-    if(rangeWrap){
-      var opts='<button class="vb lfm-rng '+(per==='12month'?'vb-on':'')+'" data-v="12month" style="font-size:9px">This Year</button>';
-      opts+='<button class="vb lfm-rng '+(per==='3month'?'vb-on':'')+'" data-v="3month" style="font-size:9px">90 Days</button>';
-      rangeWrap.innerHTML=opts;
-      rangeWrap.querySelectorAll('.lfm-rng').forEach(function(btn){btn.onclick=function(){window._lfmRange=btn.dataset.v;renderLastfm()}});
+    // Genres: use yearly pre-computed g, or fall back to 3month period for current year
+    genres=(yrData&&yrData.g)?yrData.g:[];
+    // 90 Days toggle only makes sense for current year
+    var isCurYr=cy===curYr;
+    if(isCurYr){
+      window._lfmRange=window._lfmRange||'12month';
+      var per=window._lfmRange;
+      if(per==='overall')per='12month';
+      if(per==='3month'){
+        genres=(lfm.genres_p||{})['3month']||lfm.genres||[];
+        var pData3=lfm.top_artists||[];curArtists=(pData3.find(function(p){return p.period==='3month'})||{}).artists||[];
+        var tData3=lfm.top_tracks||[];curTracks=(tData3.find(function(p){return p.period==='3month'})||{}).tracks||[];
+        var alData3=lfm.top_albums||[];curAlbums=(alData3.find(function(p){return p.period==='3month'})||{}).albums||[];
+      }
+      if(rangeWrap){
+        var opts='<button class="vb lfm-rng '+(per==='12month'?'vb-on':'')+'" data-v="12month" style="font-size:9px">This Year</button>';
+        opts+='<button class="vb lfm-rng '+(per==='3month'?'vb-on':'')+'" data-v="3month" style="font-size:9px">90 Days</button>';
+        rangeWrap.innerHTML=opts;
+        rangeWrap.querySelectorAll('.lfm-rng').forEach(function(btn){btn.onclick=function(){window._lfmRange=btn.dataset.v;renderLastfm()}});
+      }
+    }else{
+      if(rangeWrap)rangeWrap.innerHTML='';
     }
   }else{
     // Period-based (overall, 12month, 3month, 1month)
