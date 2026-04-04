@@ -118,15 +118,21 @@ def fetch_recent_history():
 
 
 def run():
-    # Load existing streaming cache (including empty results to avoid re-fetching)
+    # Load existing data: streaming cache + previous results for incremental updates
     stream_cache = {}
+    prev_results_by_slug = {}
+    prev_last_watched = {}  # slug -> last_watched_at from previous Trakt data
     if os.path.exists("data/up_next.json"):
         with open("data/up_next.json") as f:
             raw = json.load(f)
             if isinstance(raw, dict):
                 for item in raw.get("shows", []):
+                    slug = item.get("slug", "")
                     if "stream" in item:
-                        stream_cache[item["slug"]] = item["stream"]
+                        stream_cache[slug] = item["stream"]
+                    if slug:
+                        prev_results_by_slug[slug] = item
+                        prev_last_watched[slug] = item.get("_trakt_lw", "")
 
     # Fetch recent watch history
     print("Fetching recent history...")
@@ -135,8 +141,10 @@ def run():
 
     # Build set of recently watched episodes for cross-check against stale progress
     recent_set = set()
+    recent_slugs = set()
     for re_ep in recent:
         recent_set.add(f"{re_ep.get('slug')}|{re_ep.get('season')}|{re_ep.get('episode')}")
+        recent_slugs.add(re_ep.get("slug", ""))
 
     print("Fetching watched shows...")
     r = retry_request("get", f"{BASE}/users/{USERNAME}/watched/shows?extended=full",
@@ -155,6 +163,7 @@ def run():
     results = []
     total = len(watched)
     stream_fetched = 0
+    cached_count = 0; fetched_count = 0
 
     for i, show_data in enumerate(watched):
         show = show_data.get("show", {})
@@ -164,10 +173,25 @@ def run():
 
         last_watched = show_data.get("last_watched_at", "")
 
+        # Incremental: reuse previous result if show hasn't been watched since last run
+        # (no new episodes → progress hasn't changed)
+        prev = prev_results_by_slug.get(slug)
+        if prev and slug not in recent_slugs and last_watched == prev_last_watched.get(slug, ""):
+            prev["_trakt_lw"] = last_watched
+            results.append(prev)
+            cached_count += 1
+            continue
+
         r2 = retry_request("get", f"{BASE}/shows/{slug}/progress/watched?extended=full",
                            headers=AUTH_HEADERS, timeout=10)
         if not r2 or r2.status_code != 200:
+            # Keep previous result on API failure
+            if prev:
+                prev["_trakt_lw"] = last_watched
+                results.append(prev)
+                cached_count += 1
             time.sleep(0.3); continue
+        fetched_count += 1
 
         prog = r2.json()
         next_ep = prog.get("next_episode")
@@ -315,28 +339,24 @@ def run():
             "eps_left": eps_left,
             "remaining_min": remaining_min,
             "stream": stream or [],
+            "_trakt_lw": last_watched,  # track for incremental cache
         }
         results.append(entry)
 
         if (i + 1) % 50 == 0:
-            print(f"  progress: {i+1}/{total}")
-        time.sleep(0.8)
+            print(f"  progress: {i+1}/{total} (cached {cached_count}, fetched {fetched_count})")
+        time.sleep(0.3)  # Trakt allows ~3 req/sec
 
     # Sort: new first, then by last_watched desc
     new_items = sorted([r for r in results if r["is_new"]], key=lambda x: x.get("last_watched", ""), reverse=True)
     rest = sorted([r for r in results if not r["is_new"]], key=lambda x: x.get("last_watched", ""), reverse=True)
 
+    print(f"  Processed {total} shows: {fetched_count} fetched, {cached_count} cached (incremental)")
+
     # Merge with previous data to preserve shows lost to API failures
     # But only if the show still exists in the user's watched list on Trakt
     # (if it's gone from watched entirely, the user removed it — don't preserve)
-    prev_shows = []
-    if os.path.exists("data/up_next.json"):
-        try:
-            with open("data/up_next.json") as f:
-                prev = json.load(f)
-            prev_shows = prev.get("shows", [])
-        except Exception:
-            pass
+    prev_shows = list(prev_results_by_slug.values())
     current_slugs = set(r["slug"] for r in results)
     watched_slugs = set(s.get("show", {}).get("ids", {}).get("slug", "") for s in watched)
     preserved = 0
