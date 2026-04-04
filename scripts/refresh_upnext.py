@@ -164,6 +164,10 @@ def run():
     total = len(watched)
     stream_fetched = 0
     cached_count = 0; fetched_count = 0
+    # Set FULL_UPNEXT=1 to skip cache and re-fetch all shows (used by enrichment every 2hrs)
+    full_mode = os.environ.get("FULL_UPNEXT") == "1"
+    if full_mode:
+        print("  Full mode: re-fetching all shows (FULL_UPNEXT=1)")
 
     for i, show_data in enumerate(watched):
         show = show_data.get("show", {})
@@ -176,7 +180,7 @@ def run():
         # Incremental: reuse previous result if show hasn't been watched since last run
         # (no new episodes → progress hasn't changed)
         prev = prev_results_by_slug.get(slug)
-        if prev and slug not in recent_slugs and last_watched == prev_last_watched.get(slug, ""):
+        if not full_mode and prev and slug not in recent_slugs and last_watched == prev_last_watched.get(slug, ""):
             prev["_trakt_lw"] = last_watched
             results.append(prev)
             cached_count += 1
