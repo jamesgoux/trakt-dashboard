@@ -2161,6 +2161,7 @@ function _irisOpenWatchlist(){
   var llOv=document.getElementById('ll-feed-overlay');if(llOv)llOv.style.display='none';
   _unCurrentView='watchlist';_unNavStack=[];
   _unUpdateHeader();
+  var cf=document.getElementById('un-comp-filter');if(cf)cf.style.display='none';
   _wlRender();
   var ov=document.getElementById('un-overlay');
   _unEverOpened=true;
@@ -7805,9 +7806,6 @@ function _wlRender(){
     el.innerHTML=h;return;
   }
 
-  h+='<div class="un-wl-count" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">'+items.length+' '+(_wlFilter==='movie'?'movies':'shows');
-  if(isCustom)h+=' · <span style="color:var(--t2);font-size:11px">drag to reorder</span>';
-  h+='</div>';
   h+='<div class="un-wl-list" id="wl-list">';
 
   items.forEach(function(item,i){
