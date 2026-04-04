@@ -2120,8 +2120,8 @@ function _updateFilterBtn(){
 }
 
 function readHash(){var h=location.hash.substring(1);var p=new URLSearchParams(h);var curYr=new Date().getFullYear().toString();var ysEl=document.getElementById('ys');
-  // Default: current year + all
-  cy=p.get('y')||(h?'all':curYr);ct=p.get('t')||'all';
+  // Default: current year + all (year always defaults to current year unless explicit y=all)
+  cy=p.get('y')||curYr;ct=p.get('t')||'all';
   ysEl.value=cy;document.getElementById('gs').value=ct;_updateFilterBtn()}
 function writeHash(){var p=new URLSearchParams();if(cy!=='all')p.set('y',cy);if(ct!=='all')p.set('t',ct);history.replaceState(null,'','#'+p.toString())}
 
