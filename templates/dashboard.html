@@ -298,10 +298,10 @@ body{overflow-x:hidden}
 <div id="iris-loader-user" style="font-size:13px;color:var(--t2);margin-top:4px">// jamesgoux</div>
 </div>
 <div class="fbar">
-<h1><svg class="iris-logo" viewBox="0 0 512 512" width="28" height="28" style="vertical-align:middle;margin-right:6px"><defs><radialGradient id="ig" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#e94560"/><stop offset="45%" stop-color="#7c3aed"/><stop offset="100%" stop-color="#c4b5fd"/></radialGradient></defs><path d="M256 96C128 96 32 256 32 256s96 160 224 160 224-160 224-160S384 96 256 96z" fill="#c4b5fd"/><circle cx="256" cy="256" r="200" fill="url(#ig)"/><circle cx="256" cy="256" r="80" fill="#0f0f0f"/><circle cx="220" cy="220" r="28" fill="rgba(255,255,255,0.4)"/><circle cx="280" cy="240" r="12" fill="rgba(255,255,255,0.2)"/></svg><span style="color:var(--ac);font-weight:800">iris</span> <span id="iris-hdr-user" style="color:var(--t2);font-weight:400">// jamesgoux</span></h1>
+<h1><a href="./" onclick="event.preventDefault();location.hash='';location.reload()" style="text-decoration:none;color:inherit;display:inline-flex;align-items:center"><svg class="iris-logo" viewBox="0 0 512 512" width="28" height="28" style="vertical-align:middle;margin-right:6px"><defs><radialGradient id="ig" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#e94560"/><stop offset="45%" stop-color="#7c3aed"/><stop offset="100%" stop-color="#c4b5fd"/></radialGradient></defs><path d="M256 96C128 96 32 256 32 256s96 160 224 160 224-160 224-160S384 96 256 96z" fill="#c4b5fd"/><circle cx="256" cy="256" r="200" fill="url(#ig)"/><circle cx="256" cy="256" r="80" fill="#0f0f0f"/><circle cx="220" cy="220" r="28" fill="rgba(255,255,255,0.4)"/><circle cx="280" cy="240" r="12" fill="rgba(255,255,255,0.2)"/></svg><span style="color:var(--ac);font-weight:800">iris</span> <span id="iris-hdr-user" style="color:var(--t2);font-weight:400">// jamesgoux</span></a></h1>
 <div class="fctrls">
-<svg class="iris-logo-mob" viewBox="0 0 512 512" width="24" height="24" style="display:none;vertical-align:middle;flex-shrink:0"><defs><radialGradient id="igm" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#e94560"/><stop offset="45%" stop-color="#7c3aed"/><stop offset="100%" stop-color="#c4b5fd"/></radialGradient></defs><path d="M256 96C128 96 32 256 32 256s96 160 224 160 224-160 224-160S384 96 256 96z" fill="#c4b5fd"/><circle cx="256" cy="256" r="200" fill="url(#igm)"/><circle cx="256" cy="256" r="80" fill="#0f0f0f"/><circle cx="220" cy="220" r="28" fill="rgba(255,255,255,0.4)"/></svg>
-<button id="filter-btn" onclick="openFilterDialog()" style="min-width:0;padding:0 14px;background:var(--sf);border:1px solid rgba(255,255,255,.15);border-radius:8px;color:var(--tx);font-size:12px;cursor:pointer;font-weight:600;height:44px;display:flex;align-items:center;justify-content:center;white-space:nowrap;overflow:hidden">2026 🧬 Life</button>
+<a href="./" onclick="event.preventDefault();location.hash='';location.reload()" class="iris-logo-mob" style="display:none;flex-shrink:0;line-height:0"><svg viewBox="0 0 512 512" width="24" height="24"><defs><radialGradient id="igm" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#e94560"/><stop offset="45%" stop-color="#7c3aed"/><stop offset="100%" stop-color="#c4b5fd"/></radialGradient></defs><path d="M256 96C128 96 32 256 32 256s96 160 224 160 224-160 224-160S384 96 256 96z" fill="#c4b5fd"/><circle cx="256" cy="256" r="200" fill="url(#igm)"/><circle cx="256" cy="256" r="80" fill="#0f0f0f"/><circle cx="220" cy="220" r="28" fill="rgba(255,255,255,0.4)"/></svg></a>
+<button id="filter-btn" onclick="openFilterDialog()" style="min-width:0;padding:0 14px;background:var(--sf);border:1px solid rgba(255,255,255,.15);border-radius:8px;color:var(--tx);font-size:12px;cursor:pointer;font-weight:600;height:44px;display:flex;align-items:center;justify-content:center;white-space:nowrap;overflow:hidden">2026 All</button>
 <!-- Hidden selects for backward compat -->
 <select id="gs" style="display:none"><option value="all">All</option><option value="life">Life</option><option value="movietv">Movies/TV</option><option value="movie">Movies</option><option value="show">Shows</option><option value="book">Books</option><option value="music">Music</option><option value="concert">Concerts</option><option value="podcast">Podcasts</option><option value="theater">Theater</option><option value="boardgame">Board Games</option><option value="sports">Sports</option><option value="game">Video Games</option><option value="health">Workouts</option></select>
 <select id="ys" style="display:none"><option value="all">All Time</option></select>
@@ -354,10 +354,6 @@ body{overflow-x:hidden}
 <div id="sec-ttw" class="cd s-s"><h3><span class="i">⏱️</span>Time to Watch</h3><div id="ttwc" style="height:400px"></div></div>
 <div class="cd s-s"><h3><span class="i">📚</span>Catch-Up Shows <span class="vtog" style="float:right"><button class="vb vb-on cup-tog" data-v="long" onclick="window._cupMode='long';document.querySelectorAll('.cup-tog').forEach(function(b){b.classList.toggle('vb-on',b.dataset.v==='long')});renderCatchup()">Longest</button><button class="vb cup-tog" data-v="short" onclick="window._cupMode='short';document.querySelectorAll('.cup-tog').forEach(function(b){b.classList.toggle('vb-on',b.dataset.v==='short')});renderCatchup()">Shortest</button></span></h3><div id="cupc" style="height:400px"></div></div>
 </div>
-<!-- COMPANION EPISODES -->
-<div class="g2 med-s" data-med="all movietv show" id="comp-eps-wrap" style="display:none">
-<div class="cd fw s-s"><h3><span class="i">🎬</span>Episodes by Companion</h3><div id="comp-eps-chart" style="height:300px"></div></div>
-</div>
 <!-- MOVIES -->
 <div class="g2 med-s" data-med="all movietv movie">
 <div id="sec-mov" class="cd fw s-m"><h3 id="mdh"><span class="i">🎞️</span>Watched Movies <span class="vtog" style="float:right"><button class="vb vb-on mv-mode" data-v="long" onclick="window._mvMode='long';movieCharts(true)">Longest</button><button class="vb mv-mode" data-v="short" onclick="window._mvMode='short';movieCharts(true)">Shortest</button><button class="vb mv-mode" data-v="rewatch" onclick="window._mvMode='rewatch';movieCharts(true)">Rewatched</button></span></h3><div id="mdc" class="cover-grid"></div></div>
@@ -401,6 +397,10 @@ body{overflow-x:hidden}
 <!-- RELEASE YEARS -->
 <div class="g2 med-s" data-med="all movietv movie show">
 <div id="sec-vy" class="cd fw s-t"><h3><span class="i">📅</span>Content Release Years</h3><div class="vtog" style="margin:-6px 0 8px 0"><button class="vb vb-on vy-tog" data-v="year">Year</button><button class="vb vy-tog" data-v="decade">Decade</button><button class="vb vy-tog" data-v="pie">New vs Old</button></div><div id="vyc" style="height:300px"></div></div>
+</div>
+<!-- COMPANION EPISODES -->
+<div class="g2 med-s" data-med="all movietv show" id="comp-eps-wrap" style="display:none">
+<div class="cd fw s-s"><h3><span class="i">🎬</span>Episodes by Companion</h3><div id="comp-eps-chart" style="height:300px"></div></div>
 </div>
 <!-- HOW I WATCH (Letterboxd tags — movie-only data) -->
 <div class="g2 med-s" data-med="all movietv movie">
@@ -2120,10 +2120,10 @@ function _updateFilterBtn(){
 }
 
 function readHash(){var h=location.hash.substring(1);var p=new URLSearchParams(h);var curYr=new Date().getFullYear().toString();var ysEl=document.getElementById('ys');
-  // Default: current year + life (not all/all)
-  cy=p.get('y')||(h?'all':curYr);ct=p.get('t')||(h?'all':'life');
+  // Default: current year + all (year always defaults to current year unless explicit y=all)
+  cy=p.get('y')||curYr;ct=p.get('t')||'all';
   ysEl.value=cy;document.getElementById('gs').value=ct;_updateFilterBtn()}
-function writeHash(){var p=new URLSearchParams();if(cy!=='all')p.set('y',cy);if(ct!=='life'&&ct!=='all')p.set('t',ct);if(ct==='all')p.set('t','all');history.replaceState(null,'','#'+p.toString())}
+function writeHash(){var p=new URLSearchParams();if(cy!=='all')p.set('y',cy);if(ct!=='all')p.set('t',ct);history.replaceState(null,'','#'+p.toString())}
 
 // Populate hidden year select (backward compat)
 var ys=document.getElementById('ys');var yrs=new Set();D.c.m.forEach(function(m){yrs.add(m.month.substr(0,4))});
@@ -9251,11 +9251,15 @@ window.addEventListener('resize',function(){
   var fbar=document.querySelector('.fbar');if(!fbar)return;
   var lastY=0;
   window.addEventListener('scroll',function(){
-    if(window.innerWidth>=768)return;
-    var y=window.scrollY;
-    if(y>lastY&&y>60&&!_fbarHidden){fbar.style.transform='translateY(-100%)';_fbarHidden=true;_jmpFloatSync()}
-    else if(y<lastY&&_fbarHidden){fbar.style.transform='translateY(0)';_fbarHidden=false;_jmpFloatSync()}
-    lastY=y;
+    // Header auto-hide (mobile only)
+    if(window.innerWidth<768){
+      var y=window.scrollY;
+      if(y>lastY&&y>60&&!_fbarHidden){fbar.style.transform='translateY(-100%)';_fbarHidden=true}
+      else if(y<lastY&&_fbarHidden){fbar.style.transform='translateY(0)';_fbarHidden=false}
+      lastY=y;
+    }
+    // Keep jump pill visible on qualifying filters (every scroll)
+    _jmpFloatSync();
   },{passive:true});
 })();
 window.addEventListener('hashchange',function(){readHash();render()});
