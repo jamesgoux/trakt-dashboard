@@ -4105,32 +4105,46 @@ function renderLastfm(){
       window._lfmRes=btn.dataset.v;renderLastfm()}});
   }
 
-  // Period: use range toggle if available (all-time or current year), else map by year
+  // Year-aware data selection for artists, tracks, albums, genres
   var curYr=new Date().getFullYear().toString();
-  var canToggle=!isYr||cy===curYr;
-  // When year is selected, force 12month; only allow overall on all-time
-  if(isYr&&window._lfmRange==='overall')window._lfmRange='12month';
-  if(!isYr)window._lfmRange=window._lfmRange||'overall';
-  var per=isYr?'12month':window._lfmRange;
-  if(canToggle&&window._lfmRange==='3month')per='3month';
-  // Show range toggle on Top Artists header
   var rangeWrap=document.getElementById('lfm-range-wrap');
-  if(canToggle&&rangeWrap){
-    var opts='';
-    if(!isYr)opts+='<button class="vb lfm-rng '+(per==='overall'?'vb-on':'')+'" data-v="overall" style="font-size:9px">All Time</button>';
-    if(isYr)opts+='<button class="vb lfm-rng '+(per==='12month'?'vb-on':'')+'" data-v="12month" style="font-size:9px">This Year</button>';
-    opts+='<button class="vb lfm-rng '+(per==='3month'?'vb-on':'')+'" data-v="3month" style="font-size:9px">Last 90 Days</button>';
-    rangeWrap.innerHTML=opts;
-    rangeWrap.querySelectorAll('.lfm-rng').forEach(function(btn){btn.onclick=function(){window._lfmRange=btn.dataset.v;renderLastfm()}});
-  }else if(rangeWrap){rangeWrap.innerHTML=''}
+  var curArtists,curTracks,curAlbums,genres;
+  if(isYr){
+    // Aggregate from monthly data for selected year (richer than yearly top-10)
+    var yMonths=lfmMonthly.filter(function(m){return m.m.startsWith(cy)});
+    var aggAr={};yMonths.forEach(function(m){(m.ta||[]).forEach(function(a){aggAr[a.n]=(aggAr[a.n]||0)+a.c})});
+    curArtists=Object.keys(aggAr).map(function(n){return{n:n,c:aggAr[n]}}).sort(function(a,b){return b.c-a.c});
+    var aggAl={};yMonths.forEach(function(m){(m.tal||[]).forEach(function(a){var key=a.n;aggAl[key]=(aggAl[key]||0)+a.c})});
+    curAlbums=Object.keys(aggAl).map(function(n){var parts=n.split(' — ');return{n:parts.length>1?parts[1]:n,a:parts[0]||'',c:aggAl[n]}}).sort(function(a,b){return b.c-a.c});
+    curTracks=[];genres=[];
+    if(rangeWrap)rangeWrap.innerHTML='';
+  }else{
+    // Period-based (overall, 12month, 3month, 1month)
+    window._lfmRange=window._lfmRange||'overall';
+    var per=window._lfmRange;
+    if(rangeWrap){
+      var opts='<button class="vb lfm-rng '+(per==='overall'?'vb-on':'')+'" data-v="overall" style="font-size:9px">All Time</button>';
+      opts+='<button class="vb lfm-rng '+(per==='12month'?'vb-on':'')+'" data-v="12month" style="font-size:9px">12 Months</button>';
+      opts+='<button class="vb lfm-rng '+(per==='3month'?'vb-on':'')+'" data-v="3month" style="font-size:9px">90 Days</button>';
+      rangeWrap.innerHTML=opts;
+      rangeWrap.querySelectorAll('.lfm-rng').forEach(function(btn){btn.onclick=function(){window._lfmRange=btn.dataset.v;renderLastfm()}});
+    }
+    var perData=lfm.top_artists||[];
+    curArtists=(perData.find(function(p){return p.period===per})||perData[0]||{}).artists||[];
+    var trData=lfm.top_tracks||[];
+    curTracks=(trData.find(function(p){return p.period===per})||trData[0]||{}).tracks||[];
+    var alData=lfm.top_albums||[];
+    curAlbums=(alData.find(function(p){return p.period===per})||alData[0]||{}).albums||[];
+    var genresP=lfm.genres_p||{};
+    genres=genresP[per]||lfm.genres||[];
+  }
 
-  // Top Artists — HTML list with initial avatars
-  var perData=lfm.top_artists||[];
-  var curArtists=(perData.find(function(p){return p.period===per})||perData[0]||{}).artists||[];
+  // Top Artists
   var aEl=document.getElementById('lfm-artists');
   if(curArtists.length){
     var aSlice=curArtists.slice(0,100).reverse();
     aEl.style.height=(aSlice.length*18+20)+'px';
+    aEl.parentElement.parentElement.style.display='';
     var aChart=echarts.init(aEl);
     aChart.setOption({tooltip:{trigger:mob?'item':'axis',axisPointer:{type:'shadow'},...tt,formatter:function(p){var idx=aSlice.length-p.dataIndex;return'<b>#'+idx+' '+tp(p).name+'</b>: '+tp(p).value+' plays'}},
       grid:{left:gl(130),right:36,top:4,bottom:4},
@@ -4138,15 +4152,14 @@ function renderLastfm(){
       yAxis:{type:'category',data:aSlice.map(function(d,i){return(aSlice.length-i)+'. '+d.n}),axisLabel:{color:'#ccc',fontSize:10,interval:0},axisLine:{lineStyle:{color:'#333'}}},
       series:[{type:'bar',data:aSlice.map(function(d){return d.c}),itemStyle:{color:LG('#0f3460','#15803d')},barMaxWidth:14,barCategoryGap:'20%',label:{show:true,position:'right',color:'#15803d',fontSize:9}}]});
     ch.push(aChart);
-  }
+  }else{aEl.parentElement.parentElement.style.display='none'}
 
-  // Top Tracks — obeys year filter
-  var trData=lfm.top_tracks||[];
-  var curTracks=(trData.find(function(p){return p.period===per})||trData[0]||{}).tracks||[];
+  // Top Tracks (period-based only, hidden when year-filtered)
   var tEl=document.getElementById('lfm-tracks');
   if(curTracks.length){
     var tSlice=curTracks.slice(0,100).reverse();
     tEl.style.height=(tSlice.length*18+20)+'px';
+    tEl.parentElement.parentElement.style.display='';
     var tChart=echarts.init(tEl);
     tChart.setOption({tooltip:{trigger:mob?'item':'axis',axisPointer:{type:'shadow'},...tt,formatter:function(p){var t=tSlice[p.dataIndex];return t?'<b>#'+(tSlice.length-p.dataIndex)+' '+t.n+'</b><br/>'+t.a+'<br/>'+t.c+' plays':''}},
       grid:{left:gl(150),right:30,top:4,bottom:4},
@@ -4154,25 +4167,23 @@ function renderLastfm(){
       yAxis:{type:'category',data:tSlice.map(function(d,i){var num=tSlice.length-i;var name=d.n.length>35?d.n.substring(0,33)+'…':d.n;return num+'. '+name}),axisLabel:{color:'#ccc',fontSize:9,interval:0,overflow:'truncate',width:mob?100:170},axisLine:{lineStyle:{color:'#333'}}},
       series:[{type:'bar',data:tSlice.map(function(d){return d.c}),itemStyle:{color:LG('#0f3460','#14b8a6')},barMaxWidth:14,barCategoryGap:'20%',label:{show:true,position:'right',color:'#a78bfa',fontSize:9}}]});
     ch.push(tChart);
-  }
+  }else{tEl.parentElement.parentElement.style.display='none'}
 
   // Top Albums
-  var alData=lfm.top_albums||[];
-  var curAlbums=(alData.find(function(p){return p.period===per})||alData[0]||{}).albums||[];
   var alEl=document.getElementById('lfm-albums');
   if(curAlbums.length){
     var alH='<div class="cover-grid" style="justify-content:flex-start;gap:0">';curAlbums.slice(0,mob?25:50).forEach(function(a,i){
       var cover=a.img?'<img src="'+a.img+'" class="al-cover" title="'+a.n+' — '+a.a+' ('+a.c+' plays)">':'<div style="width:100%;aspect-ratio:1;background:linear-gradient(135deg,#1a1a4e,#111);display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,0.3);font-size:16px;font-weight:800">'+a.n.charAt(0)+'</div>';
       alH+='<div class="gi" style="width:'+(mob?'20%':'calc(100%/7)')+'">'+cover+'<div class="al-info">'+a.n+'<br>'+a.a+'<br><span class="al-val">'+a.c+'</span></div></div>'});
     alH+='</div>';alEl.style.height='auto';alEl.innerHTML=alH;
-  }
+    alEl.parentElement.style.display='';
+  }else{alEl.innerHTML='';alEl.parentElement.style.display='none'}
 
-  // Genres — respects period toggle
-  var genresP=lfm.genres_p||{};
-  var genres=genresP[per]||lfm.genres||[];
+  // Genres (period-based only, hidden when year-filtered)
   var gEl=document.getElementById('lfm-genres');
   if(genres.length){
     var gSlice=genres.slice(0,10).reverse();
+    gEl.parentElement.style.display='';
     var gChart=echarts.init(gEl);
     var gCols=['#15803d','#60a5fa','#a78bfa','#e94560','#fb923c','#4ade80','#f472b6','#38bdf8','#fbbf24','#22d3ee'];
     gChart.setOption({tooltip:{trigger:mob?'item':'axis',axisPointer:{type:'shadow'},...tt},
@@ -4181,7 +4192,7 @@ function renderLastfm(){
       yAxis:{type:'category',data:gSlice.map(function(d){return d.n}),axisLabel:{color:'#ccc',fontSize:10,interval:0},axisLine:{lineStyle:{color:'#333'}}},
       series:[{type:'bar',data:gSlice.map(function(d,i){return{value:d.c,itemStyle:{color:gCols[i%gCols.length]}}}),barMaxWidth:18,label:{show:true,position:'right',color:'#ccc',fontSize:10}}]});
     ch.push(gChart);
-  }
+  }else{gEl.parentElement.style.display='none'}
 
 }
 
@@ -9182,12 +9193,16 @@ function render(){
   // Show mini loading overlay for filter changes (not initial load)
   var isInitial=!!document.getElementById('iris-loader');
   if(!isInitial){
+    var savedScroll=window.scrollY;
+    window._renderScrollRestore=savedScroll;
     var ov=document.createElement('div');ov.id='render-ov';
     ov.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(15,15,15,.75);z-index:9998;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(2px)';
     ov.innerHTML='<div style="text-align:center"><svg viewBox="0 0 512 512" width="72" height="72" style="animation:iris-pulse 1.5s ease-in-out infinite"><defs><radialGradient id="igl2" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#e94560"/><stop offset="45%" stop-color="#7c3aed"/><stop offset="100%" stop-color="#c4b5fd"/></radialGradient></defs><path d="M256 96C128 96 32 256 32 256s96 160 224 160 224-160 224-160S384 96 256 96z" fill="#c4b5fd"/><circle cx="256" cy="256" r="200" fill="url(#igl2)"/><circle cx="256" cy="256" r="80" fill="#0f0f0f"/><circle cx="220" cy="220" r="28" fill="rgba(255,255,255,0.4)"/><circle cx="280" cy="240" r="12" fill="rgba(255,255,255,0.2)"/></svg></div>';
     document.body.appendChild(ov);
     // Double-rAF: yield to browser so overlay paints before heavy render
     requestAnimationFrame(function(){requestAnimationFrame(function(){try{_doRender()}catch(e){console.error('Render error:',e)}
+      // Restore scroll position after re-render so user stays in place
+      window.scrollTo(0,savedScroll);
       ov.style.opacity='0';ov.style.transition='opacity .3s';setTimeout(function(){ov.remove()},350)})});
     return;
   }
@@ -9202,6 +9217,7 @@ function _doRender(){
   ch=ch.filter(function(c){try{var dom=c.getDom();if(!dom||!dom.offsetParent){c.dispose();return false}return true}catch(e){return false}});
   // CRITICAL (above fold) — render immediately
   stats();renderLifeline();baseCharts();renderPosters();
+  var _rs=window._renderScrollRestore;
   // Batch 1: people tables + movies (skip if life mode — not shown)
   requestAnimationFrame(function(){
     if(ct!=='life'){movieCharts();renderBoxOffice();renderBudget();renderLetterboxd();renderCompEps()}
@@ -9210,8 +9226,8 @@ function _doRender(){
       setTimeout(function(){renderGoodreads();renderLastfm()},0);
       setTimeout(function(){renderConcerts();renderTheater()},50);
       setTimeout(function(){ptbl('atb',D.a);ptbl('xtb',D.x);ptbl('dtb',D.d||[]);ptbl('wtb',D.w||[]);renderCrewGrid()},75);
-      setTimeout(function(){renderPodcasts();renderHealth();renderBoardGames();renderGames();renderSports();renderStatus()},100);
-    }else{renderStatus()}
+      setTimeout(function(){renderPodcasts();renderHealth();renderBoardGames();renderGames();renderSports();renderStatus();if(_rs!==undefined){window.scrollTo(0,_rs);window._renderScrollRestore=undefined}},100);
+    }else{renderStatus();if(_rs!==undefined){window.scrollTo(0,_rs);window._renderScrollRestore=undefined}}
     // Dismiss initial loader after batch 1 (user sees content immediately)
     var loader=document.getElementById('iris-loader');if(loader){loader.classList.add('fade-out');setTimeout(function(){loader.remove();_bgPreload()},600)}
   })}
