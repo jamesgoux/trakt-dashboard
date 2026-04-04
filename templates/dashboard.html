@@ -199,11 +199,16 @@ tr:hover td{background:rgba(255,255,255,.02)}
 /* Back nav button */
 .un-back{background:none;border:1px solid rgba(255,255,255,.1);color:var(--t2);border-radius:8px;padding:8px 14px;font-size:14px;cursor:pointer;min-height:44px;min-width:44px;display:flex;align-items:center;justify-content:center}
 /* Watchlist styles */
-.un-wl-toggle{display:flex;gap:6px;padding:10px 16px;max-width:600px;margin:0 auto}
+.un-wl-toggle{display:flex;gap:6px;padding:10px 16px;max-width:600px;margin:0 auto;align-items:center}
 .un-wl-toggle button{padding:6px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;transition:background-color .15s,color .15s,border-color .15s}
-.un-wl-sort{display:flex;gap:6px;padding:0 16px 8px;max-width:600px;margin:0 auto}
-.un-wl-sort button{padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer;border:1px solid rgba(255,255,255,.08);background:none;color:var(--t2);transition:background-color .15s,color .15s,border-color .15s}
-.un-wl-sort button.active{border-color:var(--tv);color:var(--tv);background:rgba(20,184,166,.08)}
+.wl-sort-wrap{position:relative;margin-left:auto}
+.wl-sort-btn{padding:5px 10px;border-radius:6px;font-size:11px;cursor:pointer;border:1px solid rgba(255,255,255,.12);background:none;color:var(--t2);white-space:nowrap;display:flex;align-items:center;gap:4px}
+.wl-sort-btn:active{background:rgba(255,255,255,.05)}
+.wl-sort-menu{display:none;position:absolute;right:0;top:100%;margin-top:4px;background:var(--sf);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:4px 0;min-width:120px;z-index:20;box-shadow:0 8px 24px rgba(0,0,0,.5)}
+.wl-sort-menu.open{display:block}
+.wl-sort-menu div{padding:8px 14px;font-size:12px;cursor:pointer;color:var(--t2);white-space:nowrap}
+.wl-sort-menu div:hover{background:rgba(255,255,255,.06)}
+.wl-sort-menu div.active{color:var(--tv);font-weight:600}
 .un-wl-list{padding:8px 16px;max-width:600px;margin:0 auto}
 .un-wl-card{display:flex;gap:0;padding:0;background:var(--sf);border-radius:12px;border:1px solid rgba(255,255,255,.06);margin-bottom:10px;cursor:pointer;transition:background .15s;position:relative;overflow:hidden}
 .un-wl-card:active{background:#1e1e3a}
@@ -5861,6 +5866,8 @@ function _renderUpNext(prerender){
 
 // Delegated click handler for Up Next cards (U1: reliable click targets)
 document.getElementById('un-content').addEventListener('click',function(e){
+  // Close sort menu on any tap outside it
+  if(!e.target.closest('.wl-sort-wrap')){var sm=document.getElementById('wl-sort-menu');if(sm)sm.classList.remove('open')}
   var card=e.target.closest('.un-card-tap');
   if(!card)return;
   if(e.target.closest('.un-watch-btn,.un-del-btn'))return;
@@ -7780,18 +7787,17 @@ function _wlRender(){
 
   var mc=(wl.movies||[]).length, sc2=(wl.shows||[]).length;
 
-  // Toggle buttons
+  // Toggle + sort row (single line)
+  var _sortLabels={added:'Recent',custom:'Custom',title:'A-Z',runtime:'Runtime',rating:'Rating'};
   var h='<div class="un-wl-toggle">';
   h+='<button onclick="_wlSetFilter(\'movie\')" style="border:1px solid '+(_wlFilter==='movie'?'#fb923c':'rgba(255,255,255,.1)')+';background:'+(_wlFilter==='movie'?'rgba(251,146,60,.15)':'none')+';color:'+(_wlFilter==='movie'?'#fb923c':'var(--t2)')+'">🎞️ Movies'+(mc?' ('+mc+')':'')+'</button>';
   h+='<button onclick="_wlSetFilter(\'show\')" style="border:1px solid '+(_wlFilter==='show'?'var(--tv)':'rgba(255,255,255,.1)')+';background:'+(_wlFilter==='show'?'rgba(20,184,166,.15)':'none')+';color:'+(_wlFilter==='show'?'var(--tv)':'var(--t2)')+'">📺 Shows'+(sc2?' ('+sc2+')':'')+'</button>';
-  h+='</div>';
-
-  // Sort buttons
-  h+='<div class="un-wl-sort">';
+  h+='<div class="wl-sort-wrap"><button class="wl-sort-btn" onclick="_wlToggleSortMenu(event)">'+(_sortLabels[_wlSort]||'Sort')+' ▾</button>';
+  h+='<div class="wl-sort-menu" id="wl-sort-menu">';
   ['added','custom','title','runtime','rating'].forEach(function(s){
-    var lbl=s==='added'?'Recent':s==='custom'?'Custom':s==='title'?'A-Z':s==='runtime'?'Runtime':'Rating';
-    h+='<button class="'+(_wlSort===s?'active':'')+'" onclick="_wlSetSort(\''+s+'\')">'+lbl+'</button>';
+    h+='<div class="'+(_wlSort===s?'active':'')+'" onclick="_wlPickSort(\''+s+'\')">'+_sortLabels[s]+'</div>';
   });
+  h+='</div></div>';
   h+='</div>';
 
   if(!items.length){
@@ -7924,6 +7930,8 @@ function _wlUpdateSaveBar(){
 }
 
 function _wlSetFilter(f){_wlFilter=f;_wlRender()}
+function _wlToggleSortMenu(e){e.stopPropagation();var m=document.getElementById('wl-sort-menu');if(m)m.classList.toggle('open')}
+function _wlPickSort(s){var m=document.getElementById('wl-sort-menu');if(m)m.classList.remove('open');_wlSetSort(s)}
 function _wlSetSort(s){
   // If leaving custom mode with unsaved changes, auto-save silently
   if(_wlSort==='custom'&&s!=='custom'&&_wlDirty){_wlDirty=false;_wlSyncToTrakt()}
