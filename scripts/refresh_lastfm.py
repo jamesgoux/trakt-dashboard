@@ -127,8 +127,10 @@ yearly_scrobbles = defaultdict(int)
 monthly_scrobbles = defaultdict(int)
 yearly_artist_plays = defaultdict(lambda: defaultdict(int))
 yearly_album_plays = defaultdict(lambda: defaultdict(int))
+yearly_track_plays = defaultdict(lambda: defaultdict(int))
 monthly_artist_plays = defaultdict(lambda: defaultdict(int))
 monthly_album_plays = defaultdict(lambda: defaultdict(int))
+monthly_track_plays = defaultdict(lambda: defaultdict(int))
 
 # Seed from existing yearly/monthly totals
 # Track which periods will get new data so we don't double-count
@@ -154,6 +156,9 @@ for y in existing.get("yearly", []):
     for a in y.get("tal", []):
         if y["yr"] not in new_periods_y:
             yearly_album_plays[y["yr"]][a["n"]] = a["c"]
+    for t in y.get("tt", []):
+        if y["yr"] not in new_periods_y:
+            yearly_track_plays[y["yr"]][t["a"] + "\t" + t["n"]] = t["c"]
 for m in existing.get("monthly", []):
     if m["m"] not in new_periods_m:
         monthly_scrobbles[m["m"]] = m["s"]
@@ -163,6 +168,12 @@ for m in existing.get("monthly", []):
     for a in m.get("tal", []):
         if m["m"] not in new_periods_m:
             monthly_album_plays[m["m"]][a["n"]] = a["c"]
+    for t in m.get("tt", []):
+        if m["m"] not in new_periods_m:
+            monthly_track_plays[m["m"]][t["a"] + "\t" + t["n"]] = t["c"]
+
+# Detect if tracks need one-time backfill (existing data has no tt field)
+_need_track_backfill = bool(existing.get("yearly")) and not any(y.get("tt") for y in existing.get("yearly", []))
 
 weekly = list(old_weekly)
 weekly_details = dict(old_wd)
@@ -207,7 +218,18 @@ try:
                     wk_albums.append({"n": name, "a": artist, "c": pc})
             except Exception:
                 pass
-            
+
+            # Track chart (for per-year/month top tracks)
+            try:
+                wkt = api("user.getweeklytrackchart", **{"from": ch["from"], "to": ch["to"]})
+                for t in wkt.get("weeklytrackchart", {}).get("track", []):
+                    pc = int(t.get("playcount", 0))
+                    key = t["artist"]["#text"] + "\t" + t["name"]
+                    yearly_track_plays[yr][key] += pc
+                    monthly_track_plays[mo][key] += pc
+            except Exception:
+                pass
+
             weekly.append({"week": wk_date, "c": week_total})
             weekly_details[wk_date] = {"artists": wk_artists[:10], "albums": wk_albums[:10]}
             
@@ -218,6 +240,35 @@ try:
             pass
 except Exception as e:
     print(f"  Weekly chart error: {e}")
+
+# Track backfill: one-time fetch of historical weekly track charts
+if _need_track_backfill:
+    print("  Backfilling per-year track data (one-time)...")
+    try:
+        bf_charts = api("user.getweeklychartlist")
+        bf_list = bf_charts.get("weeklychartlist", {}).get("chart", [])
+        # Skip weeks we just fetched in the incremental loop above
+        bf_list = [ch for ch in bf_list if safe_int(ch["from"]) <= last_fetched_ts] if last_fetched_ts else []
+        print(f"    Historical weeks to backfill: {len(bf_list)}")
+        for i, ch in enumerate(bf_list):
+            try:
+                dt = datetime.fromtimestamp(safe_int(ch["from"]))
+                yr = dt.strftime("%Y")
+                mo = dt.strftime("%Y-%m")
+                wkt = api("user.getweeklytrackchart", **{"from": ch["from"], "to": ch["to"]})
+                for t in wkt.get("weeklytrackchart", {}).get("track", []):
+                    pc = int(t.get("playcount", 0))
+                    key = t["artist"]["#text"] + "\t" + t["name"]
+                    yearly_track_plays[yr][key] += pc
+                    monthly_track_plays[mo][key] += pc
+                time.sleep(0.25)
+            except Exception:
+                pass
+            if (i + 1) % 50 == 0:
+                print(f"    Backfill: {i+1}/{len(bf_list)} weeks...")
+        print(f"    Track backfill complete.")
+    except Exception as e:
+        print(f"  Track backfill error: {e}")
 
 # Keep only last 52 weeks of detail
 weekly.sort(key=lambda x: x["week"], reverse=True)
@@ -260,14 +311,46 @@ except Exception as e:
     print(f"  Recent tracks error: {e}")
 print(f"  Recent tracks: {len(recent)}")
 
+# ── 4b. Per-year genres from yearly top artists' tags ──
+print("  Computing per-year genres...")
+yearly_genres = {}
+for yr in sorted(yearly_artist_plays.keys()):
+    top_yr = sorted(yearly_artist_plays[yr].items(), key=lambda x: x[1], reverse=True)[:15]
+    genre_counter = {}
+    for artist_name, play_count in top_yr:
+        if artist_name not in fetched_artist_tags:
+            try:
+                data = api("artist.gettoptags", artist=artist_name)
+                fetched_artist_tags[artist_name] = data.get("toptags", {}).get("tag", [])
+                time.sleep(0.3)
+            except Exception:
+                fetched_artist_tags[artist_name] = []
+        for t in fetched_artist_tags[artist_name][:5]:
+            name = t["name"].lower()
+            if name not in SKIP_TAGS:
+                genre_counter[name] = genre_counter.get(name, 0) + int(t.get("count", 1))
+    yearly_genres[yr] = [{"n": g, "c": c} for g, c in sorted(genre_counter.items(), key=lambda x: x[1], reverse=True)[:15]]
+print(f"  Genres computed for {len(yearly_genres)} years")
+
 # ── 5. Build output ──
+def top_n_tracks(counter, n=50):
+    items = sorted(counter.items(), key=lambda x: x[1], reverse=True)[:n]
+    result = []
+    for key, count in items:
+        parts = key.split("\t", 1)
+        result.append({"n": parts[1] if len(parts) > 1 else parts[0], "a": parts[0], "c": count})
+    return result
+
 lfm_yearly = sorted([{"yr": y, "s": yearly_scrobbles[y],
                        "a": len(yearly_artist_plays[y]), "al": len(yearly_album_plays[y]),
-                       "ta": top_n(yearly_artist_plays[y]), "tal": top_n(yearly_album_plays[y])}
+                       "ta": top_n(yearly_artist_plays[y]), "tal": top_n(yearly_album_plays[y]),
+                       "tt": top_n_tracks(yearly_track_plays[y]),
+                       "g": yearly_genres.get(y, [])}
                       for y in yearly_scrobbles], key=lambda x: x["yr"])
 lfm_monthly = sorted([{"m": m, "s": monthly_scrobbles[m],
                        "a": len(monthly_artist_plays[m]), "al": len(monthly_album_plays[m]),
-                       "ta": top_n(monthly_artist_plays[m]), "tal": top_n(monthly_album_plays[m])}
+                       "ta": top_n(monthly_artist_plays[m]), "tal": top_n(monthly_album_plays[m]),
+                       "tt": top_n_tracks(monthly_track_plays[m])}
                        for m in monthly_scrobbles], key=lambda x: x["m"])
 
 output = {
