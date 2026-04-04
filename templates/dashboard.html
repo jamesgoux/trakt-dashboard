@@ -46,6 +46,7 @@ body{background:var(--bg);color:var(--tx);font-family:-apple-system,BlinkMacSyst
 .ptbl-search{padding:4px 0 2px;position:relative;display:none}.ptbl-search.open{display:block}.ptbl-search input{width:100%;box-sizing:border-box;padding:7px 28px 7px 10px;background:var(--bg);border:1px solid rgba(255,255,255,.1);border-radius:6px;color:var(--tx);font-size:12px;outline:none}.ptbl-search input:focus{border-color:var(--ac)}.ptbl-search input::placeholder{color:var(--t2)}.ptbl-search-x{position:absolute;right:8px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--t2);font-size:16px;line-height:1;padding:2px}
 .ptbl-search-btn{float:right;font-size:13px;padding:4px 8px;background:none;border:1px solid rgba(255,255,255,.15);color:var(--t2);border-radius:6px;cursor:pointer;margin-right:6px;line-height:1;display:inline-flex;align-items:center;justify-content:center;height:24px;box-sizing:border-box}.ptbl-search-btn:hover,.ptbl-search-btn.active{background:rgba(251,146,60,.12);border-color:rgba(251,146,60,.4);color:var(--ac)}
 .ptbl-more td{text-align:center;padding:12px 0;font-size:12px;color:var(--t2)}.ptbl-show-all{color:var(--ac);cursor:pointer;font-weight:600}.ptbl-show-all:hover{text-decoration:underline}
+#jmp-float{transition:top .3s ease}
 .cd ::-webkit-scrollbar{width:5px}.cd ::-webkit-scrollbar-thumb{background:#333;border-radius:3px}.cd ::-webkit-scrollbar-track{background:transparent}
 .cd *{scrollbar-width:thin;scrollbar-color:#333 transparent}
 table{width:100%;border-collapse:collapse;font-size:12px}
@@ -299,7 +300,7 @@ body{overflow-x:hidden}
 <!-- Hidden selects for backward compat -->
 <select id="gs" style="display:none"><option value="all">All</option><option value="life">Life</option><option value="movietv">Movies/TV</option><option value="movie">Movies</option><option value="show">Shows</option><option value="book">Books</option><option value="music">Music</option><option value="concert">Concerts</option><option value="podcast">Podcasts</option><option value="theater">Theater</option><option value="boardgame">Board Games</option><option value="sports">Sports</option><option value="game">Video Games</option><option value="health">Workouts</option></select>
 <select id="ys" style="display:none"><option value="all">All Time</option></select>
-<div style="position:relative"><button class="hbtn" onclick="_buildJumpMenu();var m=document.getElementById('jmp-menu');m.style.display=m.style.display==='block'?'none':'block'" title="Jump to section"><span style="display:block;transform:translateY(-1px)">☰</span></button><div id="jmp-menu" style="display:none;position:absolute;right:0;top:100%;margin-top:6px;background:var(--sf);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:6px 0;min-width:200px;max-height:70vh;overflow-y:auto;z-index:150;box-shadow:0 8px 30px rgba(0,0,0,.5)"></div></div>
+<button class="hbtn" onclick="_irisOpenWatchlist()" title="Watchlist">📋</button>
 <button class="hbtn" onclick="_irisOpenSearch()" title="Search">🔍</button>
 <button class="hbtn" onclick="openUpNext()" title="Up Next">📺</button>
 <div style="position:relative"><button class="hbtn" id="iris-user-btn" onclick="_irisToggleUserMenu()" title="Account">👤</button><div id="iris-user-menu" style="display:none;position:absolute;right:0;top:100%;margin-top:6px;background:var(--sf);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:6px 0;min-width:180px;z-index:9999;box-shadow:0 8px 30px rgba(0,0,0,.5)"></div></div>
@@ -334,18 +335,6 @@ body{overflow-x:hidden}
 <!-- TIMELINE: Yearly / Monthly -->
 <div class="g2 med-s" data-med="all life movietv movie show book concert podcast sports theater health boardgame game">
 <div id="sec-tl" class="cd fw s-t"><h3 id="tlh"><span class="i">📈</span>Yearly Activity</h3><div id="yrc" style="height:280px"></div><div id="tlc" style="height:280px;display:none"></div></div>
-</div>
-<div class="g2 med-s" data-med="all movietv movie show">
-<div id="sec-act" class="cd s-a"><h3><span class="i">🎭</span>Most Watched Actors <button class="ptbl-new-btn" onclick="_ptblToggleNew('atb',D.a,this)" style="float:right;font-size:11px;padding:4px 10px;background:none;border:1px solid rgba(74,222,128,.3);color:#4ade80;border-radius:6px;cursor:pointer;display:none">↑ Climbers</button></h3><div class="stb"><table><thead><tr><th>#</th><th>Actor</th><th>Mov</th><th>Show</th><th>Total</th></tr></thead><tbody id="atb"></tbody></table></div></div>
-<div class="cd s-a"><h3><span class="i">🎭</span>Most Watched Actresses <button class="ptbl-new-btn" onclick="_ptblToggleNew('xtb',D.x,this)" style="float:right;font-size:11px;padding:4px 10px;background:none;border:1px solid rgba(74,222,128,.3);color:#4ade80;border-radius:6px;cursor:pointer;display:none">↑ Climbers</button></h3><div class="stb"><table><thead><tr><th>#</th><th>Actress</th><th>Mov</th><th>Show</th><th>Total</th></tr></thead><tbody id="xtb"></tbody></table></div></div>
-</div>
-<div class="g2 med-s" data-med="all movietv movie show">
-<div id="sec-crew" class="cd s-c"><h3><span class="i">🎬</span>Most Watched Directors <button class="ptbl-new-btn" onclick="_ptblToggleNew('dtb',D.d||[],this)" style="float:right;font-size:11px;padding:4px 10px;background:none;border:1px solid rgba(74,222,128,.3);color:#4ade80;border-radius:6px;cursor:pointer;display:none">↑ Climbers</button></h3><div class="stb"><table><thead><tr><th>#</th><th>Director</th><th>Mov</th><th>Show</th><th>Total</th></tr></thead><tbody id="dtb"></tbody></table></div></div>
-<div class="cd s-c"><h3><span class="i">✍️</span>Most Watched Writers <button class="ptbl-new-btn" onclick="_ptblToggleNew('wtb',D.w||[],this)" style="float:right;font-size:11px;padding:4px 10px;background:none;border:1px solid rgba(74,222,128,.3);color:#4ade80;border-radius:6px;cursor:pointer;display:none">↑ Climbers</button></h3><div class="stb"><table><thead><tr><th>#</th><th>Writer</th><th>Mov</th><th>Show</th><th>Total</th></tr></thead><tbody id="wtb"></tbody></table></div></div>
-</div>
-<!-- CREW GRID (additional roles - no headshots) -->
-<div class="g2 med-s" data-med="all movietv movie show">
-<div class="cd fw s-a" id="sec-crw-grid"><h3><span class="i">🎥</span>Crew</h3><div id="crw-grid"></div></div>
 </div>
 <!-- TOP SHOWS POSTERS -->
 <div class="g2 med-s" data-med="all movietv show">
@@ -421,6 +410,18 @@ body{overflow-x:hidden}
 <div class="g2 med-s" data-med="all movietv movie show">
 <div class="cd s-r" id="sec-first"><h3><span class="i">🌅</span>First Watches</h3><table><thead><tr><th>Title</th><th>Type</th><th>Date</th></tr></thead><tbody id="ftb"></tbody></table></div>
 <div id="sec-rec" class="cd s-r"><h3><span class="i">👁️</span>Last Watches</h3><table><thead><tr><th>Title</th><th>Type</th><th>Date</th></tr></thead><tbody id="rtb"></tbody></table></div>
+</div>
+<!-- PEOPLE TABLES (actors, actresses, directors, writers, crew) -->
+<div class="g2 med-s" data-med="all movietv movie show">
+<div id="sec-act" class="cd s-a"><h3><span class="i">🎭</span>Most Watched Actors <button class="ptbl-new-btn" onclick="_ptblToggleNew('atb',D.a,this)" style="float:right;font-size:11px;padding:4px 10px;background:none;border:1px solid rgba(74,222,128,.3);color:#4ade80;border-radius:6px;cursor:pointer;display:none">↑ Climbers</button></h3><div class="stb"><table><thead><tr><th>#</th><th>Actor</th><th>Mov</th><th>Show</th><th>Total</th></tr></thead><tbody id="atb"></tbody></table></div></div>
+<div class="cd s-a"><h3><span class="i">🎭</span>Most Watched Actresses <button class="ptbl-new-btn" onclick="_ptblToggleNew('xtb',D.x,this)" style="float:right;font-size:11px;padding:4px 10px;background:none;border:1px solid rgba(74,222,255,.3);color:#4ade80;border-radius:6px;cursor:pointer;display:none">↑ Climbers</button></h3><div class="stb"><table><thead><tr><th>#</th><th>Actress</th><th>Mov</th><th>Show</th><th>Total</th></tr></thead><tbody id="xtb"></tbody></table></div></div>
+</div>
+<div class="g2 med-s" data-med="all movietv movie show">
+<div id="sec-crew" class="cd s-c"><h3><span class="i">🎬</span>Most Watched Directors <button class="ptbl-new-btn" onclick="_ptblToggleNew('dtb',D.d||[],this)" style="float:right;font-size:11px;padding:4px 10px;background:none;border:1px solid rgba(74,222,128,.3);color:#4ade80;border-radius:6px;cursor:pointer;display:none">↑ Climbers</button></h3><div class="stb"><table><thead><tr><th>#</th><th>Director</th><th>Mov</th><th>Show</th><th>Total</th></tr></thead><tbody id="dtb"></tbody></table></div></div>
+<div class="cd s-c"><h3><span class="i">✍️</span>Most Watched Writers <button class="ptbl-new-btn" onclick="_ptblToggleNew('wtb',D.w||[],this)" style="float:right;font-size:11px;padding:4px 10px;background:none;border:1px solid rgba(74,222,128,.3);color:#4ade80;border-radius:6px;cursor:pointer;display:none">↑ Climbers</button></h3><div class="stb"><table><thead><tr><th>#</th><th>Writer</th><th>Mov</th><th>Show</th><th>Total</th></tr></thead><tbody id="wtb"></tbody></table></div></div>
+</div>
+<div class="g2 med-s" data-med="all movietv movie show">
+<div class="cd fw s-a" id="sec-crw-grid"><h3><span class="i">🎥</span>Crew</h3><div id="crw-grid"></div></div>
 </div>
 <!-- PODCASTS (Pocket Casts) -->
 <div class="g2 med-s" data-med="all podcast" id="pc-wrap" style="display:none">
@@ -519,6 +520,11 @@ Drop GameTrack games.csv or <span style="color:#6366f1;text-decoration:underline
 <div id="gt-status" style="margin-top:8px;font-size:11px;color:var(--t2)"></div>
 </div>
 <div class="status" id="status"></div>
+</div>
+<!-- Floating Jump Menu pill -->
+<div id="jmp-float" style="display:none;position:fixed;top:68px;right:12px;z-index:140">
+<button class="hbtn" id="jmp-float-btn" onclick="_buildJumpMenu();var m=document.getElementById('jmp-menu');m.style.display=m.style.display==='block'?'none':'block'" title="Jump to section" style="width:40px;height:40px;box-shadow:0 4px 16px rgba(0,0,0,.5);font-size:16px">☰</button>
+<div id="jmp-menu" style="display:none;position:absolute;right:0;top:100%;margin-top:6px;background:var(--sf);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:6px 0;min-width:200px;max-height:70vh;overflow-y:auto;z-index:150;box-shadow:0 8px 30px rgba(0,0,0,.5)"></div>
 </div>
 <!-- Lifeline Full Feed Overlay -->
 <div id="ll-feed" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg);z-index:300;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;transition:transform .3s ease;will-change:transform">
@@ -2118,8 +2124,8 @@ var ys=document.getElementById('ys');var yrs=new Set();D.c.m.forEach(function(m)
 Array.from(yrs).sort().reverse().forEach(function(y){var o=document.createElement('option');o.value=y;o.textContent=y;ys.appendChild(o)});
 readHash();
 
-// Jump menu popup
-var _jmpItems=[['sec-ll','🧬 Lifeline'],['sec-tl','📈 Timeline'],['sec-act','🎭 Actors'],['sec-crew','🎬 Directors/Writers'],['sec-shows','📺 Top Shows'],['sec-eps','📺 Episodes'],['sec-ttw','⏱️ Time to Watch'],['sec-mov','🎞️ Movies'],['sec-ratings','⭐ Movie Ratings'],['sec-sz-ratings','⭐ TV Ratings'],['sec-time','🕐 Day & Time'],['sec-meta','🎯 Genres'],['sec-geo','🌍 Countries/Languages'],['sec-vy','📅 Release Years'],['sec-how','🖥️ How I Watch'],['sec-first','🌅 First Watches'],['sec-rec','👁️ Last Watches'],['sec-pc','🎙️ Podcasts'],['sec-lfm','🎧 Music'],['sec-con','🎸 Concerts'],['sec-gr','📚 Books'],['sec-th','🎭 Theater'],['sec-bg','🎲 Board Games'],['sec-gt','🎮 Video Games'],['sec-sp','🏟️ Sports'],['sec-hw','🏃 Workouts']];
+// Jump menu popup (reordered: people tables moved after first/last watches)
+var _jmpItems=[['sec-ll','🧬 Lifeline'],['sec-tl','📈 Timeline'],['sec-shows','📺 Top Shows'],['sec-eps','📺 Episodes'],['sec-ttw','⏱️ Time to Watch'],['sec-mov','🎞️ Movies'],['sec-ratings','⭐ Movie Ratings'],['sec-sz-ratings','⭐ TV Ratings'],['sec-meta','🎯 Genres'],['sec-geo','🌍 Countries/Languages'],['sec-vy','📅 Release Years'],['sec-how','🖥️ How I Watch'],['sec-first','🌅 First Watches'],['sec-rec','👁️ Last Watches'],['sec-act','🎭 Actors'],['sec-crew','🎬 Directors/Writers'],['sec-crw-grid','🎥 Crew'],['sec-pc','🎙️ Podcasts'],['sec-lfm','🎧 Music'],['sec-con','🎸 Concerts'],['sec-gr','📚 Books'],['sec-th','🎭 Theater'],['sec-bg','🎲 Board Games'],['sec-gt','🎮 Video Games'],['sec-sp','🏟️ Sports'],['sec-hw','🏃 Workouts']];
 var _jm=document.getElementById('jmp-menu');
 function _buildJumpMenu(){
   _jm.innerHTML='';
@@ -2131,7 +2137,19 @@ function _buildJumpMenu(){
     if(el.style.display==='none')return;
     var a=document.createElement('div');a.textContent=item[1];a.style.cssText='padding:8px 16px;cursor:pointer;font-size:13px;white-space:nowrap';a.onmouseover=function(){a.style.background='rgba(255,255,255,.06)'};a.onmouseout=function(){a.style.background='none'};a.onclick=function(){el.scrollIntoView({behavior:'smooth',block:'start'});_jm.style.display='none'};_jm.appendChild(a)});
 }
-document.addEventListener('click',function(e){if(!e.target.closest('#jmp-menu')&&!e.target.closest('[onclick*="jmp-menu"]'))_jm.style.display='none'});
+document.addEventListener('click',function(e){if(!e.target.closest('#jmp-float'))_jm.style.display='none'});
+// Floating jump pill: always visible on qualifying filters, slides up when header hides
+var _jmpFloat=document.getElementById('jmp-float');
+var _jmpFilters={all:1,movietv:1,movie:1,show:1};
+var _fbarHidden=false;
+function _jmpFloatSync(){
+  if(!_jmpFilters[ct]){_jmpFloat.style.display='none';return}
+  _jmpFloat.style.display='';
+  var fbar=document.querySelector('.fbar');
+  _jmpFloat.style.top=_fbarHidden?'12px':((fbar?fbar.offsetHeight:64)+4)+'px';
+}
+// Watchlist shortcut from header
+function _irisOpenWatchlist(){openUpNext();setTimeout(function(){_unOpenWatchlist()},100)}
 
 function fby(e){if(cy==='all')return e||{};var f={};if(e&&e[cy])f[cy]=e[cy];return f}
 function sm(e){return Object.values(e||{}).reduce(function(a,b){return a+b},0)}
@@ -9148,17 +9166,19 @@ function _doRender(){
   // Show/hide sections based on medium filter FIRST (before any chart work)
   // Section visibility: data-med on each section lists which ct values show it
   document.querySelectorAll('.med-s').forEach(function(el){var meds=(' '+el.dataset.med+' ');el.style.display=meds.indexOf(' '+ct+' ')>=0?'':'none'});
+  _jmpFloatSync();
   // Dispose only charts in now-hidden sections (skip visible ones — their render functions handle disposal)
   ch=ch.filter(function(c){try{var dom=c.getDom();if(!dom||!dom.offsetParent){c.dispose();return false}return true}catch(e){return false}});
   // CRITICAL (above fold) — render immediately
   stats();renderLifeline();baseCharts();renderPosters();
   // Batch 1: people tables + movies (skip if life mode — not shown)
   requestAnimationFrame(function(){
-    if(ct!=='life'){ptbl('atb',D.a);ptbl('xtb',D.x);ptbl('dtb',D.d||[]);ptbl('wtb',D.w||[]);renderCrewGrid();movieCharts();renderBoxOffice();renderBudget();renderLetterboxd();renderCompEps()}
-    // Batch 2: type-specific sections (skip entirely in life mode)
+    if(ct!=='life'){movieCharts();renderBoxOffice();renderBudget();renderLetterboxd();renderCompEps()}
+    // Batch 2: type-specific sections + people tables (skip entirely in life mode)
     if(ct!=='life'){
       setTimeout(function(){renderGoodreads();renderLastfm()},0);
       setTimeout(function(){renderConcerts();renderTheater()},50);
+      setTimeout(function(){ptbl('atb',D.a);ptbl('xtb',D.x);ptbl('dtb',D.d||[]);ptbl('wtb',D.w||[]);renderCrewGrid()},75);
       setTimeout(function(){renderPodcasts();renderHealth();renderBoardGames();renderGames();renderSports();renderStatus()},100);
     }else{renderStatus()}
     // Dismiss initial loader after batch 1 (user sees content immediately)
@@ -9213,15 +9233,15 @@ function _rz(){clearTimeout(_rzt);_rzt=setTimeout(function(){mob=window.innerWid
 window.addEventListener('resize',function(){
   var w=window.innerWidth;if(Math.abs(w-_lastW)>50){_lastW=w;clearTimeout(_rzt);_rzt=setTimeout(function(){mob=window.innerWidth<768;render()},400)}else{_rz()}
 });
-// Auto-hide header on scroll (mobile)
+// Auto-hide header on scroll (mobile) + sync floating jump pill position
 (function(){
   var fbar=document.querySelector('.fbar');if(!fbar)return;
-  var lastY=0,hidden=false;
+  var lastY=0;
   window.addEventListener('scroll',function(){
     if(window.innerWidth>=768)return;
     var y=window.scrollY;
-    if(y>lastY&&y>60&&!hidden){fbar.style.transform='translateY(-100%)';hidden=true}
-    else if(y<lastY&&hidden){fbar.style.transform='translateY(0)';hidden=false}
+    if(y>lastY&&y>60&&!_fbarHidden){fbar.style.transform='translateY(-100%)';_fbarHidden=true;_jmpFloatSync()}
+    else if(y<lastY&&_fbarHidden){fbar.style.transform='translateY(0)';_fbarHidden=false;_jmpFloatSync()}
     lastY=y;
   },{passive:true});
 })();
