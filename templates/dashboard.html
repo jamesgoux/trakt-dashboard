@@ -354,10 +354,6 @@ body{overflow-x:hidden}
 <div id="sec-ttw" class="cd s-s"><h3><span class="i">⏱️</span>Time to Watch</h3><div id="ttwc" style="height:400px"></div></div>
 <div class="cd s-s"><h3><span class="i">📚</span>Catch-Up Shows <span class="vtog" style="float:right"><button class="vb vb-on cup-tog" data-v="long" onclick="window._cupMode='long';document.querySelectorAll('.cup-tog').forEach(function(b){b.classList.toggle('vb-on',b.dataset.v==='long')});renderCatchup()">Longest</button><button class="vb cup-tog" data-v="short" onclick="window._cupMode='short';document.querySelectorAll('.cup-tog').forEach(function(b){b.classList.toggle('vb-on',b.dataset.v==='short')});renderCatchup()">Shortest</button></span></h3><div id="cupc" style="height:400px"></div></div>
 </div>
-<!-- COMPANION EPISODES -->
-<div class="g2 med-s" data-med="all movietv show" id="comp-eps-wrap" style="display:none">
-<div class="cd fw s-s"><h3><span class="i">🎬</span>Episodes by Companion</h3><div id="comp-eps-chart" style="height:300px"></div></div>
-</div>
 <!-- MOVIES -->
 <div class="g2 med-s" data-med="all movietv movie">
 <div id="sec-mov" class="cd fw s-m"><h3 id="mdh"><span class="i">🎞️</span>Watched Movies <span class="vtog" style="float:right"><button class="vb vb-on mv-mode" data-v="long" onclick="window._mvMode='long';movieCharts(true)">Longest</button><button class="vb mv-mode" data-v="short" onclick="window._mvMode='short';movieCharts(true)">Shortest</button><button class="vb mv-mode" data-v="rewatch" onclick="window._mvMode='rewatch';movieCharts(true)">Rewatched</button></span></h3><div id="mdc" class="cover-grid"></div></div>
@@ -401,6 +397,10 @@ body{overflow-x:hidden}
 <!-- RELEASE YEARS -->
 <div class="g2 med-s" data-med="all movietv movie show">
 <div id="sec-vy" class="cd fw s-t"><h3><span class="i">📅</span>Content Release Years</h3><div class="vtog" style="margin:-6px 0 8px 0"><button class="vb vb-on vy-tog" data-v="year">Year</button><button class="vb vy-tog" data-v="decade">Decade</button><button class="vb vy-tog" data-v="pie">New vs Old</button></div><div id="vyc" style="height:300px"></div></div>
+</div>
+<!-- COMPANION EPISODES -->
+<div class="g2 med-s" data-med="all movietv show" id="comp-eps-wrap" style="display:none">
+<div class="cd fw s-s"><h3><span class="i">🎬</span>Episodes by Companion</h3><div id="comp-eps-chart" style="height:300px"></div></div>
 </div>
 <!-- HOW I WATCH (Letterboxd tags — movie-only data) -->
 <div class="g2 med-s" data-med="all movietv movie">
