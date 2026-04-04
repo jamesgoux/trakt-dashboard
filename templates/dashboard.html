@@ -386,8 +386,8 @@ body{overflow-x:hidden}
 <div class="cd fw s-g"><h3><span class="i">📈</span>Genre Trends</h3><div id="gtc" style="height:620px"></div></div>
 </div>
 <div class="g2 med-s" data-med="all movietv movie show">
-<div class="cd s-n med-s" data-med="all movietv show"><h3><span class="i">📡</span>Top Networks</h3><div id="netc" style="height:360px"></div></div>
-<div class="cd s-u"><h3><span class="i">🏢</span>Top Studios</h3><div id="stuc" style="height:360px"></div></div>
+<div id="sec-net" class="cd s-n med-s" data-med="all movietv show"><h3><span class="i">📡</span>Top Networks</h3><div id="netc" style="height:360px"></div></div>
+<div id="sec-stu" class="cd s-u"><h3><span class="i">🏢</span>Top Studios</h3><div id="stuc" style="height:360px"></div></div>
 </div>
 <!-- GEO -->
 <div class="g2 med-s" data-med="all movietv movie show">
@@ -2131,7 +2131,7 @@ Array.from(yrs).sort().reverse().forEach(function(y){var o=document.createElemen
 readHash();
 
 // Jump menu popup (reordered: people tables moved after first/last watches)
-var _jmpItems=[['sec-ll','🧬 Lifeline'],['sec-tl','📈 Timeline'],['sec-shows','📺 Top Shows'],['sec-eps','📺 Episodes'],['sec-ttw','⏱️ Time to Watch'],['sec-mov','🎞️ Movies'],['sec-ratings','⭐ Movie Ratings'],['sec-sz-ratings','⭐ TV Ratings'],['sec-meta','🎯 Genres'],['sec-geo','🌍 Countries/Languages'],['sec-vy','📅 Release Years'],['sec-how','🖥️ How I Watch'],['sec-first','🌅 First Watches'],['sec-rec','👁️ Last Watches'],['sec-act','🎭 Actors'],['sec-crew','🎬 Directors/Writers'],['sec-crw-grid','🎥 Crew'],['sec-pc','🎙️ Podcasts'],['sec-lfm','🎧 Music'],['sec-con','🎸 Concerts'],['sec-gr','📚 Books'],['sec-th','🎭 Theater'],['sec-bg','🎲 Board Games'],['sec-gt','🎮 Video Games'],['sec-sp','🏟️ Sports'],['sec-hw','🏃 Workouts']];
+var _jmpItems=[['sec-ll','🧬 Lifeline'],['sec-tl','📈 Timeline'],['sec-shows','📺 Top Shows'],['sec-ttw','⏱️ Time to Watch'],['sec-mov','🎞️ Movies'],['sec-ratings','⭐ Ratings'],['sec-time','🕐 When I Watch'],['sec-meta','🎯 Genres'],['sec-net','🏢 Companies'],['sec-geo','🌍 Countries/Languages'],['sec-vy','📅 Release Years'],['sec-how','👥 How I Watch'],['sec-first','🌅 First & Last'],['sec-act','👤 People'],['sec-pc','🎙️ Podcasts'],['sec-lfm','🎧 Music'],['sec-con','🎸 Concerts'],['sec-gr','📚 Books'],['sec-th','🎭 Theater'],['sec-bg','🎲 Board Games'],['sec-gt','🎮 Video Games'],['sec-sp','🏟️ Sports'],['sec-hw','🏃 Workouts']];
 var _jm=document.getElementById('jmp-menu');
 function _buildJumpMenu(){
   _jm.innerHTML='';
@@ -3127,6 +3127,23 @@ function baseCharts(){
   if(ct!=='show')stuSeries.push({name:'Movies',type:'bar',stack:'t',data:sd2.map(function(d){return d.m||0}),itemStyle:{color:'#fb923c'},barMaxWidth:18});
   if(ct!=='movie')stuSeries.push({name:'Shows',type:'bar',stack:'t',data:sd2.map(function(d){return d.s||0}),itemStyle:{color:'#14b8a6'},barMaxWidth:18});
   c3b.setOption({tooltip:{trigger:mob?'item':'axis',axisPointer:{type:'shadow'},...tt,formatter:function(p){var pp=Array.isArray(p)?p:[p];var n=pp[0].name;var img=LO[n]?'<img src="'+LO[n]+'" style="height:20px;vertical-align:middle;margin-right:4px;background:#fff;padding:2px 4px;border-radius:3px">':'';var vals=pp.map(function(s){return s.marker+s.seriesName+': '+s.value}).join('<br/>');return img+'<b>'+n+'</b><br/>'+vals}},legend:{data:_isAll()?['Movies','Shows']:[],right:10,top:0,textStyle:{color:'#999'}},grid:{left:gl(140),right:20,top:_isAll()?30:8,bottom:8},xAxis:{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},yAxis:{type:'category',data:sd2.map(function(d){return d.n}),axisLabel:{color:'#ccc',fontSize:10,interval:0},axisLine:{lineStyle:{color:'#333'}}},series:stuSeries});
+  // Overlay HTML logos on studio bars (same pattern as networks)
+  setTimeout(function(){
+    var stuEl=document.getElementById('stuc');
+    stuEl.querySelectorAll('.stu-logo-overlay').forEach(function(e){e.remove()});
+    sd2.forEach(function(d,i){
+      if(!LO[d.n])return;
+      var total=0;
+      if(ct!=='show')total+=(d.m||0);
+      if(ct!=='movie')total+=(d.s||0);
+      if(!total)return;
+      var coord=c3b.convertToPixel({seriesIndex:0},[total,i]);
+      if(!coord)return;
+      var img=document.createElement('img');img.className='stu-logo-overlay';
+      img.src=LO[d.n];img.style.cssText='position:absolute;height:18px;background:#fff;padding:2px 5px;border-radius:3px;pointer-events:none;left:'+(coord[0]+4)+'px;top:'+(coord[1]-11)+'px;z-index:10';
+      stuEl.style.position='relative';stuEl.appendChild(img);
+    });
+  },100);
 
   addClick(c3b,document.getElementById('stuc'),'stu',sd2);
 
