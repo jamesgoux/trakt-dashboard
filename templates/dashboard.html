@@ -341,6 +341,11 @@ body{overflow-x:hidden}
 <div class="g2 med-s" data-med="all life movietv movie show book concert podcast sports theater health boardgame game">
 <div id="sec-tl" class="cd fw s-t"><h3 id="tlh"><span class="i">📈</span>Yearly Activity</h3><div id="yrc" style="height:280px"></div><div id="tlc" style="height:280px;display:none"></div></div>
 </div>
+<!-- FIRST + LAST WATCHES (same row) -->
+<div class="g2 med-s" data-med="all movietv movie show">
+<div class="cd s-r" id="sec-first"><h3><span class="i">🌅</span>First Watches</h3><table><thead><tr><th>Title</th><th>Type</th><th>Date</th></tr></thead><tbody id="ftb"></tbody></table></div>
+<div id="sec-rec" class="cd s-r"><h3><span class="i">👁️</span>Last Watches</h3><table><thead><tr><th>Title</th><th>Type</th><th>Date</th></tr></thead><tbody id="rtb"></tbody></table></div>
+</div>
 <!-- TOP SHOWS POSTERS -->
 <div class="g2 med-s" data-med="all movietv show">
 <div id="sec-shows" class="cd fw s-s"><h3><span class="i">📺</span>Most Watched Shows <span class="vtog" style="float:right"><button class="vb" id="ss-eps" onclick="window._showSort='eps';document.getElementById('ss-eps').classList.add('vb-on');document.getElementById('ss-dur').classList.remove('vb-on');renderPosters(true)">By Episodes</button><button class="vb vb-on" id="ss-dur" onclick="window._showSort='dur';document.getElementById('ss-dur').classList.add('vb-on');document.getElementById('ss-eps').classList.remove('vb-on');renderPosters(true)">By Duration</button></span></h3><div id="poster-grid" style="display:flex;flex-wrap:wrap;gap:10px;overflow-x:auto;padding:4px 0"></div></div>
@@ -385,10 +390,6 @@ body{overflow-x:hidden}
 <div class="g2 med-s" data-med="all movietv movie show" id="gt-wrap">
 <div class="cd fw s-g"><h3><span class="i">📈</span>Genre Trends</h3><div id="gtc" style="height:620px"></div></div>
 </div>
-<div class="g2 med-s" data-med="all movietv movie show">
-<div id="sec-net" class="cd s-n med-s" data-med="all movietv show"><h3><span class="i">📡</span>Top Networks</h3><div id="netc" style="height:360px"></div></div>
-<div id="sec-stu" class="cd s-u"><h3><span class="i">🏢</span>Top Studios</h3><div id="stuc" style="height:360px"></div></div>
-</div>
 <!-- GEO -->
 <div class="g2 med-s" data-med="all movietv movie show">
 <div id="sec-geo" class="cd s-e"><h3><span class="i">🌍</span>Countries</h3><div id="ctryc"></div></div>
@@ -411,10 +412,10 @@ body{overflow-x:hidden}
 <div class="cd s-m"><h3><span class="i">📺</span>Streaming Services</h3><div id="strc" style="height:280px"></div></div>
 <div class="cd s-m"><h3><span class="i">📱</span>Devices &amp; Formats</h3><div id="devc" style="height:280px"></div></div>
 </div>
-<!-- FIRST + LAST WATCHES (same row) -->
+<!-- NETWORKS & STUDIOS -->
 <div class="g2 med-s" data-med="all movietv movie show">
-<div class="cd s-r" id="sec-first"><h3><span class="i">🌅</span>First Watches</h3><table><thead><tr><th>Title</th><th>Type</th><th>Date</th></tr></thead><tbody id="ftb"></tbody></table></div>
-<div id="sec-rec" class="cd s-r"><h3><span class="i">👁️</span>Last Watches</h3><table><thead><tr><th>Title</th><th>Type</th><th>Date</th></tr></thead><tbody id="rtb"></tbody></table></div>
+<div id="sec-net" class="cd s-n med-s" data-med="all movietv show"><h3><span class="i">📡</span>Top Networks</h3><div id="netc" style="height:360px"></div></div>
+<div id="sec-stu" class="cd s-u"><h3><span class="i">🏢</span>Top Studios</h3><div id="stuc" style="height:360px"></div></div>
 </div>
 <!-- PEOPLE TABLES (actors, actresses, directors, writers, crew) -->
 <div class="g2 med-s" data-med="all movietv movie show">
@@ -2131,7 +2132,7 @@ Array.from(yrs).sort().reverse().forEach(function(y){var o=document.createElemen
 readHash();
 
 // Jump menu popup (reordered: people tables moved after first/last watches)
-var _jmpItems=[['sec-ll','🧬 Lifeline'],['sec-tl','📈 Timeline'],['sec-shows','📺 Top Shows'],['sec-ttw','⏱️ Time to Watch'],['sec-mov','🎞️ Movies'],['sec-ratings','⭐ Ratings'],['sec-time','🕐 When I Watch'],['sec-meta','🎯 Genres'],['sec-net','🏢 Companies'],['sec-geo','🌍 Countries/Languages'],['sec-vy','📅 Release Years'],['sec-how','👥 How I Watch'],['sec-first','🌅 First & Last'],['sec-act','👤 People'],['sec-pc','🎙️ Podcasts'],['sec-lfm','🎧 Music'],['sec-con','🎸 Concerts'],['sec-gr','📚 Books'],['sec-th','🎭 Theater'],['sec-bg','🎲 Board Games'],['sec-gt','🎮 Video Games'],['sec-sp','🏟️ Sports'],['sec-hw','🏃 Workouts']];
+var _jmpItems=[['sec-ll','🧬 Lifeline'],['sec-tl','📈 Timeline'],['sec-first','🌅 First & Last'],['sec-shows','📺 Top Shows'],['sec-ttw','⏱️ Time to Watch'],['sec-mov','🎞️ Movies'],['sec-ratings','⭐ Ratings'],['sec-time','🕐 When I Watch'],['sec-meta','🎯 Genres'],['sec-geo','🌍 Countries/Languages'],['sec-vy','📅 Release Years'],['sec-how','👥 How I Watch'],['sec-net','🏢 Companies'],['sec-act','👤 People'],['sec-pc','🎙️ Podcasts'],['sec-lfm','🎧 Music'],['sec-con','🎸 Concerts'],['sec-gr','📚 Books'],['sec-th','🎭 Theater'],['sec-bg','🎲 Board Games'],['sec-gt','🎮 Video Games'],['sec-sp','🏟️ Sports'],['sec-hw','🏃 Workouts']];
 var _jm=document.getElementById('jmp-menu');
 function _buildJumpMenu(){
   _jm.innerHTML='';
