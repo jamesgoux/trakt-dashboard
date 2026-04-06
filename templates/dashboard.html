@@ -9172,6 +9172,24 @@ function closeUpNext(){
     }else if(_dir==='h'&&_onSub&&_swCnt){
       // Sub-page / calendar / watchlist: slide content out, reveal Up Next queue
       if(dx>threshold){
+        // When swiping the overlay itself (watchlist/calendar opened directly) and
+        // nav stack is empty or goes to home, just complete the dismiss — don't
+        // reset transform + re-animate via closeUpNext (causes double animation)
+        if(_swCnt===ov&&(_unNavStack.length===0||(_unNavStack.length===1&&_unNavStack[0].view==='home'))){
+          ov.style.transition='transform .3s ease';
+          ov.style.transform='translateX(100%)';
+          var _cuDone2=false;
+          function _cuClean2(){if(_cuDone2)return;_cuDone2=true;ov.removeEventListener('transitionend',_cuEnd2);
+            if(_unCurrentView==='watchlist'&&_wlDirty){_wlDirty=false;_wlSyncToTrakt()}
+            var sb=document.getElementById('wl-save-bar');if(sb)sb.remove();
+            ov.style.display='none';ov.style.transition='';ov.style.transform='';
+            _unCurrentView='home';_unNavStack=[];_unUpdateHeader();_unlockBody();
+            var sov=document.getElementById('iris-search-ov');if(sov)sov.style.display='none';
+          }
+          function _cuEnd2(e){if(e.target===ov&&e.propertyName==='transform')_cuClean2()}
+          ov.addEventListener('transitionend',_cuEnd2);
+          setTimeout(_cuClean2,350);
+        }else{
         _swCnt.style.transition='transform .25s ease';
         _swCnt.style.transform='translateX(100%)';
         var _sc1=_swCnt;var _sc1Done=false;
@@ -9183,6 +9201,7 @@ function closeUpNext(){
         function _sc1End(ev){if(ev.target===_sc1&&ev.propertyName==='transform')_sc1Clean()}
         _sc1.addEventListener('transitionend',_sc1End);
         setTimeout(_sc1Clean,300);
+        }
       }else{
         _swCnt.style.transition='transform .2s ease';
         _swCnt.style.transform='';
