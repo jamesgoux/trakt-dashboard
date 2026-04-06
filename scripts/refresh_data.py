@@ -2726,11 +2726,14 @@ LASTFM_KEY = get_service(_ucfg, "lastfm", "api_key") or os.environ.get("LASTFM_A
 LASTFM_USER = get_service(_ucfg, "lastfm", "username") or os.environ.get("LASTFM_USER", "")
 if LASTFM_KEY and LASTFM_USER:
     # Fetch exact daily scrobbles for last 35 days via API
+    # Use Pacific timezone for day boundaries (Last.fm API returns UTC timestamps)
     import urllib.request as urlreq
+    from zoneinfo import ZoneInfo as _ZI
+    _utc = _ZI("UTC")
     print("  Fetching daily scrobbles for lifeline...")
     for days_ago in range(35):
         try:
-            day_start = datetime.now().replace(hour=0,minute=0,second=0,microsecond=0) - timedelta(days=days_ago)
+            day_start = datetime.now(_tz_pac).replace(hour=0,minute=0,second=0,microsecond=0) - timedelta(days=days_ago)
             day_end = day_start + timedelta(days=1)
             d = day_start.strftime("%Y-%m-%d")
             fr = int(day_start.timestamp()); to = int(day_end.timestamp())
@@ -2742,7 +2745,7 @@ if LASTFM_KEY and LASTFM_USER:
             for t in tracks:
                 if not t.get("date"): continue
                 try:
-                    ts_parsed = datetime.strptime(t["date"]["#text"], "%d %b %Y, %H:%M")
+                    ts_parsed = datetime.strptime(t["date"]["#text"], "%d %b %Y, %H:%M").replace(tzinfo=_utc).astimezone(_tz_pac)
                     ts = ts_parsed.strftime("%H:%M")
                 except Exception:
                     ts = "00:00"
@@ -2753,7 +2756,7 @@ if LASTFM_KEY and LASTFM_USER:
         except Exception: pass
 
 # Approximate older days from stored Last.fm data
-today_str = datetime.now().strftime("%Y-%m-%d")
+today_str = datetime.now(_tz_pac).strftime("%Y-%m-%d")
 if os.path.exists("data/lastfm.json"):
     with open("data/lastfm.json") as f:
         lfm_data = json.load(f)
