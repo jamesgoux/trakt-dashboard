@@ -11,6 +11,10 @@ Designed to run on the daily schedule alongside headshot backfill.
 import json, os, sys, time
 import urllib.request
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
+
+_tz_pac = ZoneInfo("America/Los_Angeles")
+_utc = ZoneInfo("UTC")
 
 LASTFM_API_KEY = os.environ.get("LASTFM_API_KEY", "")
 LASTFM_USER = os.environ.get("LASTFM_USER", "")
@@ -58,13 +62,13 @@ if not info:
     print("  Could not fetch user info"); sys.exit(0)
 reg_ts = int(info["user"].get("registered", {}).get("unixtime", 0))
 if reg_ts:
-    reg_date = datetime.utcfromtimestamp(reg_ts).date()
+    reg_date = datetime.fromtimestamp(reg_ts, tz=_utc).astimezone(_tz_pac).date()
     print(f"  Account registered: {reg_date}")
 else:
     reg_date = datetime(2004, 1, 1).date()
     print(f"  No registration date, assuming {reg_date}")
 
-today = datetime.utcnow().date()
+today = datetime.now(_tz_pac).date()
 
 # Strategy: work backwards from the oldest day we have (or today if empty)
 if daily:
@@ -113,8 +117,9 @@ print(f"  Fetching {len(to_fetch)} days ({to_fetch[0]} to {to_fetch[-1]})")
 fetched = 0
 for i, d in enumerate(to_fetch):
     ds = d.strftime("%Y-%m-%d")
-    start_ts = int(datetime(d.year, d.month, d.day).timestamp())
-    end_ts = start_ts + 86400  # +1 day
+    day_start = datetime(d.year, d.month, d.day, tzinfo=_tz_pac)
+    start_ts = int(day_start.timestamp())
+    end_ts = int((day_start + timedelta(days=1)).timestamp())
     
     data = api("user.getrecenttracks", limit=1, **{"from": str(start_ts), "to": str(end_ts)})
     if data:

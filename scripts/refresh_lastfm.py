@@ -8,8 +8,10 @@ import json, os, sys, time
 import urllib.request
 from datetime import datetime
 from collections import defaultdict
+from zoneinfo import ZoneInfo
 from user_config import load_user_config, get_service
 _ucfg = load_user_config()
+_tz_pac = ZoneInfo("America/Los_Angeles")
 
 
 LASTFM_API_KEY = get_service(_ucfg, "lastfm", "api_key") or os.environ.get("LASTFM_API_KEY", "")
@@ -141,7 +143,7 @@ if last_fetched_ts:
         charts_data_pre = api("user.getweeklychartlist")
         for ch in charts_data_pre.get("weeklychartlist", {}).get("chart", []):
             if safe_int(ch["from"]) > last_fetched_ts:
-                dt = datetime.fromtimestamp(safe_int(ch["from"]))
+                dt = datetime.fromtimestamp(safe_int(ch["from"]), tz=_tz_pac)
                 new_periods_y.add(dt.strftime("%Y"))
                 new_periods_m.add(dt.strftime("%Y-%m"))
     except Exception:
@@ -188,7 +190,7 @@ try:
     
     for i, ch in enumerate(new_charts):
         try:
-            dt = datetime.fromtimestamp(safe_int(ch["from"]))
+            dt = datetime.fromtimestamp(safe_int(ch["from"]), tz=_tz_pac)
             yr = dt.strftime("%Y")
             mo = dt.strftime("%Y-%m")
             wk_date = dt.strftime("%Y-%m-%d")
@@ -252,7 +254,7 @@ if _need_track_backfill:
         print(f"    Historical weeks to backfill: {len(bf_list)}")
         for i, ch in enumerate(bf_list):
             try:
-                dt = datetime.fromtimestamp(safe_int(ch["from"]))
+                dt = datetime.fromtimestamp(safe_int(ch["from"]), tz=_tz_pac)
                 yr = dt.strftime("%Y")
                 mo = dt.strftime("%Y-%m")
                 wkt = api("user.getweeklytrackchart", **{"from": ch["from"], "to": ch["to"]})
