@@ -1590,6 +1590,9 @@ function _strmLoadFromSupabase(){
     if(Array.isArray(arr)&&arr.length){
       _strmSelected=new Set(arr);
       console.log('Loaded streaming prefs:',arr.length,'services');
+      // Re-render open views so streaming filter applies retroactively
+      if(_unCurrentView==='home'&&document.getElementById('un-overlay').style.display!=='none')_renderUpNext();
+      if(_unCurrentView==='watchlist')_wlRender();
     }
   });
 }
@@ -6022,7 +6025,7 @@ function _unBuildPanel(show){
   // Show title + streaming icons — vertically centered
   h+='<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">';
   h+='<div style="font-size:20px;font-weight:700;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2">'+show.show+'</div>';
-  if(show.stream&&show.stream.length){h+='<div style="display:flex;gap:4px;flex-shrink:0;align-items:center">';show.stream.forEach(function(st){h+='<img src="'+st.i+'" title="'+st.n+'" style="width:22px;height:22px;border-radius:5px">'});h+='</div>'}
+  if(show.stream&&show.stream.length){var _fse=_strmFilterStream(show.stream);if(_fse.length){h+='<div style="display:flex;gap:4px;flex-shrink:0;align-items:center">';_fse.forEach(function(st){h+='<img src="'+st.i+'" title="'+st.n+'" style="width:22px;height:22px;border-radius:5px">'});h+='</div>'}}
   h+='</div>';
   // Episode + air date — vertically centered
   h+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">';
@@ -7524,7 +7527,7 @@ function _unFetchJW(type,slug,containerId,tmdbId){
   var cached=items.find(function(m){return m.slug===slug})||(tmdbId&&items.find(function(m){return m.tmdb_id===tmdbId}));
   if(cached&&cached.jw&&(cached.jw.s||cached.jw.r||cached.jw.b)){
     var results=[];
-    (cached.jw.s||[]).forEach(function(o){results.push({name:o.n,icon:o.i,label:'Stream'})});
+    _strmFilterStream(cached.jw.s||[]).forEach(function(o){results.push({name:o.n,icon:o.i,label:'Stream'})});
     (cached.jw.r||[]).forEach(function(o){results.push({name:o.n,icon:o.i,label:'Rent'+(o.p?' ('+o.p+')':'')})});
     (cached.jw.b||[]).filter(function(o){return!o.n||o.n.toLowerCase().indexOf('dvd')<0}).forEach(function(o){results.push({name:o.n,icon:o.i,label:'Buy'+(o.p?' ('+o.p+')':'')})});
     if(results.length){_unRenderWP(results,containerId);return}
@@ -7533,7 +7536,7 @@ function _unFetchJW(type,slug,containerId,tmdbId){
   if(type==='show'&&D.un&&D.un.shows){
     var uns=D.un.shows.find(function(s){return s.slug===slug||(tmdbId&&s.tmdb_id===tmdbId)});
     if(uns&&uns.stream&&uns.stream.length){
-      var sr=uns.stream.map(function(o){return{name:o.n,icon:o.i,label:'Stream'}});
+      var sr=_strmFilterStream(uns.stream).map(function(o){return{name:o.n,icon:o.i,label:'Stream'}});
       _unRenderWP(sr,containerId);return;
     }
   }
