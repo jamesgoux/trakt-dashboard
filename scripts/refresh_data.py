@@ -700,22 +700,23 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
     cutoff_date = (datetime.now(timezone.utc) - timedelta(days=7)).strftime("%Y-%m-%d")
     cur_year = datetime.now(timezone.utc).strftime("%Y")
 
-    # Movies recently watched (including rewatches)
-    recent_movies = set()
+    # Movies recently watched (including rewatches) — use slugs to avoid
+    # title collisions (e.g. "Anaconda" 1997 vs 2025 are different slugs)
+    recent_movie_slugs = set()
     # Shows watched recently (for quick pre-filter)
     recent_show_slugs = set()
     for e in entries:
         d = e.get("watched_at", "")[:10]
         if not d: continue
         if e["type"] == "movie":
-            if d >= cutoff_date: recent_movies.add(e.get("title", ""))
+            if d >= cutoff_date and e.get("trakt_slug"): recent_movie_slugs.add(e["trakt_slug"])
         elif e.get("trakt_slug") and d >= cutoff_date:
             recent_show_slugs.add(e["trakt_slug"])
 
     # Map TL movie indices that were recently watched (including rewatches)
     tl_new_movie = set()
     for idx, t in enumerate(tl):
-        if t["type"] == "movie" and t["t"] in recent_movies:
+        if t["type"] == "movie" and t.get("sl") in recent_movie_slugs:
             tl_new_movie.add(idx)
 
     # Pre-compute: which TL indices are for recently-watched shows?
