@@ -3161,11 +3161,13 @@ function baseCharts(){
   function renderVintage(){
     c10.clear();
     if(vyMode==='pie'){
-      // New vs Old pie: current year vs everything else
+      // New vs Old pie: current year, previous year, older
       var curYr=cy!=='all'?cy:new Date().getFullYear().toString();
-      var newC=0,oldC=0;
-      vyd.forEach(function(d){var t=(ct==='movie'?d.m:ct==='show'?d.s:d.m+d.s);if(d.yr===curYr)newC+=t;else oldC+=t});
-      c10.setOption({tooltip:{trigger:'item',...tt},series:[{type:'pie',radius:['40%','70%'],center:['50%','55%'],data:[{value:newC,name:curYr+' releases',itemStyle:{color:'#4ade80'}},{value:oldC,name:'Older releases',itemStyle:{color:'#14b8a6'}}],label:{color:'#ccc',fontSize:12,formatter:'{b}\n{d}%'},emphasis:{itemStyle:{shadowBlur:10,shadowColor:'rgba(0,0,0,.5)'}}}]});
+      var prevYr=String(parseInt(curYr)-1);
+      var newC=0,prevC=0,oldC=0;
+      vyd.forEach(function(d){var t=(ct==='movie'?d.m:ct==='show'?d.s:d.m+d.s);if(d.yr===curYr)newC+=t;else if(d.yr===prevYr)prevC+=t;else oldC+=t});
+      var pieData=[{value:newC,name:curYr+' releases',itemStyle:{color:'#4ade80'}},{value:prevC,name:prevYr+' releases',itemStyle:{color:'#fb923c'}},{value:oldC,name:'Older releases',itemStyle:{color:'#14b8a6'}}];
+      c10.setOption({tooltip:{trigger:'item',...tt},series:[{type:'pie',radius:['40%','70%'],center:['50%','55%'],data:pieData,label:{color:'#ccc',fontSize:12,formatter:'{b}\n{d}%'},emphasis:{itemStyle:{shadowBlur:10,shadowColor:'rgba(0,0,0,.5)'}}}]});
     }else if(vyMode==='decade'){
       var decades={};vyd.forEach(function(d){var dec=d.yr.substring(0,3)+'0s';if(!decades[dec])decades[dec]={m:0,s:0};decades[dec].m+=d.m;decades[dec].s+=d.s});
       var dkeys=Object.keys(decades).sort();
