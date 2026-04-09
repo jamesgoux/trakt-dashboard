@@ -6450,6 +6450,129 @@ function _crNavToEp(season,newEp){
   }
 }
 
+// ─── Instant Stats: update D blob + targeted re-renders after mark-as-watched ───
+function _irisInjectWatch(type,opts){
+  // type: 'movie' or 'episode'
+  // opts: {slug, title, year, runtime, genres, tmdbId, season, episode, showSlug}
+  var yr=new Date().getFullYear().toString();
+  var mo=new Date().getFullYear()+'-'+String(new Date().getMonth()+1).padStart(2,'0');
+  var runtime=opts.runtime||0;
+  var isMovie=type==='movie';
+
+  // 1. Update D.c.s (overall stats)
+  if(D.c&&D.c.s){
+    D.c.s.total_watches++;
+    if(isMovie){D.c.s.movie_watches++;D.c.s.movie_runtime_days+=(runtime/1440)}
+    else{D.c.s.episode_watches++;D.c.s.show_runtime_days+=(runtime/1440)}
+    D.c.s.total_runtime_days+=(runtime/1440);
+  }
+
+  // 2. Update D.tl (timeline) — find existing entry by slug, or create new
+  var TL=D.tl||[];var tlIdx=-1;
+  for(var i=0;i<TL.length;i++){if(TL[i].sl===opts.slug){tlIdx=i;break}}
+  if(tlIdx>=0){
+    TL[tlIdx].tot=(TL[tlIdx].tot||0)+1;
+    if(!TL[tlIdx].eby)TL[tlIdx].eby={};
+    TL[tlIdx].eby[yr]=(TL[tlIdx].eby[yr]||0)+1;
+  }else{
+    var newTL={t:opts.title||opts.slug,type:isMovie?'movie':'show',yr:opts.year||yr,eby:{},tot:1,sl:opts.slug};
+    newTL.eby[yr]=1;
+    TL.push(newTL);tlIdx=TL.length-1;
+  }
+
+  // 3. Update D.c.m (monthly data) — find or create month entry
+  var months=D.c&&D.c.m||[];var mEntry=null;
+  for(var j=0;j<months.length;j++){if(months[j].month===mo){mEntry=months[j];break}}
+  if(!mEntry){mEntry={month:mo,movies:0,episodes:0,rt:0,rt_m:0,rt_s:0,seasons:0};months.push(mEntry);months.sort(function(a,b){return a.month.localeCompare(b.month)})}
+  if(isMovie){mEntry.movies++;mEntry.rt_m+=runtime}else{mEntry.episodes++;mEntry.rt_s+=runtime}
+  mEntry.rt+=runtime;
+
+  // 4. Update D.c.vy (release year vintage) if year is known
+  if(opts.year&&D.c&&D.c.vy){
+    var vyFound=false;
+    for(var v=0;v<D.c.vy.length;v++){if(D.c.vy[v].yr===opts.year){if(isMovie)D.c.vy[v].m++;else D.c.vy[v].s++;vyFound=true;break}}
+    if(!vyFound){var nv={yr:opts.year,m:isMovie?1:0,s:isMovie?0:1};D.c.vy.push(nv);D.c.vy.sort(function(a,b){return a.yr.localeCompare(b.yr)})}
+  }
+
+  // 5. Update D.c.ga (genre counts) from opts.genres
+  if(opts.genres&&opts.genres.length&&D.c&&D.c.ga){
+    opts.genres.forEach(function(g){
+      var gn=g.toLowerCase();var found=false;
+      for(var gi=0;gi<D.c.ga.length;gi++){if(D.c.ga[gi].genre===gn){D.c.ga[gi].count++;if(isMovie)D.c.ga[gi].m++;else D.c.ga[gi].s++;found=true;break}}
+      if(!found)D.c.ga.push({genre:gn,count:1,m:isMovie?1:0,s:isMovie?0:1});
+    });
+    D.c.ga.sort(function(a,b){return b.count-a.count});
+  }
+
+  // 6. Update people tables (actors, directors, writers) via TMDB credits
+  var tk=(D.un||{}).tmdb_key||'';
+  if(tk&&opts.tmdbId){
+    var credPath=isMovie?'/3/movie/'+opts.tmdbId+'/credits':'/3/tv/'+opts.tmdbId+'/season/'+(opts.season||1)+'/episode/'+(opts.episode||1)+'/credits';
+    fetch('https://api.themoviedb.org'+credPath+'?api_key='+tk)
+    .then(function(r){return r.json()})
+    .then(function(cr){
+      var cast=(cr.cast||[]).concat(cr.guest_stars||[]);
+      var crew=cr.crew||[];
+      // Update actors/actresses
+      cast.slice(0,20).forEach(function(p){
+        if(!p.name)return;
+        var isFemale=p.gender===1;
+        var arr=isFemale?(D.x||[]):(D.a||[]);
+        for(var ai=0;ai<arr.length;ai++){
+          if(arr[ai].n===p.name){
+            if(isMovie)arr[ai].m=(arr[ai].m||0)+1;else arr[ai].s=(arr[ai].s||0)+1;
+            arr[ai].tt=(arr[ai].m||0)+(arr[ai].s||0);
+            if(arr[ai].ti&&tlIdx>=0&&arr[ai].ti.indexOf(tlIdx)<0)arr[ai].ti.push(tlIdx);
+            // Mark as climber
+            if(!arr[ai]['g+'])arr[ai]['g+']={};
+            arr[ai]['g+']['all']=(arr[ai]['g+']['all']||0)+1;
+            arr[ai]['g+'][yr]=(arr[ai]['g+'][yr]||0)+1;
+            break;
+          }
+        }
+      });
+      // Update directors/writers
+      crew.forEach(function(p){
+        if(!p.name||!p.job)return;
+        var isDir=p.job==='Director';var isWr=p.department==='Writing';
+        var arr=isDir?(D.d||[]):isWr?(D.w||[]):null;
+        if(!arr)return;
+        for(var di=0;di<arr.length;di++){
+          if(arr[di].n===p.name){
+            if(isMovie)arr[di].m=(arr[di].m||0)+1;else arr[di].s=(arr[di].s||0)+1;
+            arr[di].tt=(arr[di].m||0)+(arr[di].s||0);
+            if(arr[di].ti&&tlIdx>=0&&arr[di].ti.indexOf(tlIdx)<0)arr[di].ti.push(tlIdx);
+            if(!arr[di]['g+'])arr[di]['g+']={};
+            arr[di]['g+']['all']=(arr[di]['g+']['all']||0)+1;
+            arr[di]['g+'][yr]=(arr[di]['g+'][yr]||0)+1;
+            break;
+          }
+        }
+      });
+      // Targeted re-render: people tables only
+      _irisReRenderPeople();
+    }).catch(function(e){console.warn('Credits fetch for instant stats failed:',e)});
+  }
+
+  // 7. Targeted re-renders (non-people — these don't need credits)
+  _irisReRenderStats();
+}
+
+function _irisReRenderStats(){
+  // Re-render stat tiles (the stats() function reads from D.c.s/D.c.m)
+  try{if(typeof stats==='function')stats()}catch(e){console.warn('Stats re-render:',e)}
+}
+
+function _irisReRenderPeople(){
+  // Re-render people tables if they're visible
+  try{
+    if(D.a&&document.getElementById('atb').closest('.cd').style.display!=='none')ptbl('atb',D.a);
+    if(D.x&&document.getElementById('xtb').closest('.cd').style.display!=='none')ptbl('xtb',D.x);
+    if(D.d&&document.getElementById('dtb').closest('.cd').style.display!=='none')ptbl('dtb',D.d||[]);
+    if(D.w&&document.getElementById('wtb').closest('.cd').style.display!=='none')ptbl('wtb',D.w||[]);
+  }catch(e){console.warn('People re-render:',e)}
+}
+
 function _traktSync(epTraktId,watchedAt,onDone){
   var auth=_irisGetTraktAuth();
   var cid=auth.clientId,tok=auth.accessToken;
@@ -6765,6 +6888,8 @@ function markWatchedAt(slug,season,episode,epTraktId,when){
     openUpNext(true);
   }
   if(epTraktId)_traktSync(epTraktId,watchedAt);
+  // Instant stats for episode
+  _irisInjectWatch('episode',{slug:slug,title:showTitle||slug,year:'',runtime:showObj?showObj.ep_runtime||0:0,genres:[],tmdbId:tmdbId||'',season:season,episode:episode});
 }
 
 // Targeted animated queue update: slides tiles down, reveals new card, updates show in-place
@@ -6864,7 +6989,10 @@ function markWatched(slug,season,episode,epTraktId,btn){
     card.parentNode.insertBefore(cw,card);cw.appendChild(card);
     requestAnimationFrame(function(){requestAnimationFrame(function(){cw.style.maxHeight='0'})});
     setTimeout(function(){cw.remove()},500);
-    if(epTraktId)_traktSync(epTraktId,watchedAt);return;
+    if(epTraktId)_traktSync(epTraktId,watchedAt);
+    // Instant stats for episode
+    _irisInjectWatch('episode',{slug:slug,title:showObj?showObj.show:slug,year:'',runtime:showObj?showObj.ep_runtime||0:0,genres:[],tmdbId:card.dataset.tmdb||'',season:season,episode:episode});
+    return;
   }
   card.style.transition='opacity .2s';card.style.opacity='0.2';
   setTimeout(function(){
@@ -6911,6 +7039,9 @@ function markWatched(slug,season,episode,epTraktId,btn){
     }
   },250);
   if(epTraktId)_traktSync(epTraktId,watchedAt);
+  // Instant stats for episode
+  var _showTitle2=card.querySelector('.un-show');
+  _irisInjectWatch('episode',{slug:slug,title:_showTitle2?_showTitle2.textContent:slug,year:'',runtime:showObj?showObj.ep_runtime||0:0,genres:[],tmdbId:card.dataset.tmdb||(showObj?showObj.tmdb_id:''),season:season,episode:episode});
 }
 
 function removeRecent(epId,btn){
@@ -8533,6 +8664,8 @@ function _unOpenMovie(slug,tmdbId){
   })
   .then(function(movie){
     if(_unCurrentView!=='movie')return;
+    // Cache metadata for instant stats on mark-as-watched
+    _mvLastMeta={slug:slug,title:movie.title,year:String(movie.year||''),runtime:movie.runtime||0,genres:movie.genres||[],tmdbId:tmdbId||((movie.ids||{}).tmdb)||''};
     var h='<div class="un-movie-detail">';
     h+='<div id="un-mv-poster-wrap" style="text-align:center;margin-bottom:16px"><div class="un-sr-poster-ph" style="width:200px;height:300px;margin:0 auto;border-radius:10px;font-size:40px">🎞️</div></div>';
     h+='<div class="un-movie-title">'+movie.title+'</div>';
@@ -8645,10 +8778,12 @@ function _unMarkMovieWatched(slug,traktId,btn){
     console.log('Movie synced:',d);
     if(btn){btn.textContent='✓ Done';btn.style.background='#059669'}
     // Inject into D.c.r (dashboard recently watched)
-    D.c.r.unshift({type:'movie',title:slug,detail:'',watched_at:watchedAt.substring(0,10),yr:watchedAt.substring(0,4)});
+    D.c.r.unshift({type:'movie',title:slug,detail:_mvLastMeta?_mvLastMeta.year:'',watched_at:watchedAt.substring(0,10),yr:watchedAt.substring(0,4)});
     // Inject into Up Next recently watched
     var ud=D.un||{};if(!ud.recent)ud.recent=[];
     ud.recent.unshift({show:slug,slug:slug,season:0,episode:0,ep_title:'movie',watched_at:watchedAt,ep_id:0,ep_aired:''});
+    // Instant stats update
+    if(_mvLastMeta)_irisInjectWatch('movie',_mvLastMeta);
     // Refresh watch history on movie page
     _unFetchMovieHistory(slug,traktId);
   })
@@ -8671,16 +8806,18 @@ function _unMarkMovieWatchedAt(slug,traktId,dateStr,btn){
     console.log('Movie synced at release:',d);
     if(btn){btn.textContent='✓ Done';btn.style.background='#059669'}
     var mvWatch=document.getElementById('un-mv-watch');if(mvWatch){mvWatch.textContent='✓ Done';mvWatch.style.background='#059669';mvWatch.disabled=true}
-    D.c.r.unshift({type:'movie',title:slug,detail:'',watched_at:dateStr,yr:dateStr.substring(0,4)});
+    D.c.r.unshift({type:'movie',title:slug,detail:_mvLastMeta?_mvLastMeta.year:'',watched_at:dateStr,yr:dateStr.substring(0,4)});
     var ud=D.un||{};if(!ud.recent)ud.recent=[];
     ud.recent.unshift({show:slug,slug:slug,season:0,episode:0,ep_title:'movie',watched_at:watchedAt,ep_id:0,ep_aired:''});
     _unFetchMovieHistory(slug,traktId);
+    if(_mvLastMeta)_irisInjectWatch('movie',_mvLastMeta);
   })
   .catch(function(e){alert('Failed: '+e.message);if(btn){btn.disabled=false;btn.textContent='Release Date'}});
 }
 
 // Movie date picker (reuses scroll-wheel pattern)
 var _mvDpSlug='',_mvDpTraktId=0;
+var _mvLastMeta=null; // Cached movie metadata for instant stats
 function _unShowMovieDatePicker(slug,traktId){
   _mvDpSlug=slug;_mvDpTraktId=traktId;
   // Reuse the episode date picker UI, hook into movie confirm
@@ -8721,7 +8858,8 @@ function _mvDpConfirm(){
   .then(function(d2){
     console.log('Movie synced:',d2);
     if(btn){btn.textContent='✓ Watched!';btn.style.background='#059669'}
-    D.c.r.unshift({type:'movie',title:_mvDpSlug,detail:'',watched_at:when.substring(0,10),yr:when.substring(0,4)});
+    D.c.r.unshift({type:'movie',title:_mvDpSlug,detail:_mvLastMeta?_mvLastMeta.year:'',watched_at:when.substring(0,10),yr:when.substring(0,4)});
+    if(_mvLastMeta)_irisInjectWatch('movie',_mvLastMeta);
   })
   .catch(function(e){alert('Failed: '+e.message);if(btn){btn.disabled=false;btn.textContent='✓ Mark as Watched'}});
 }
