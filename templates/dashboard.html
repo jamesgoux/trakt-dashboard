@@ -3166,8 +3166,20 @@ function baseCharts(){
       var prevYr=String(parseInt(curYr)-1);
       var newC=0,prevC=0,oldC=0;
       vyd.forEach(function(d){var t=(ct==='movie'?d.m:ct==='show'?d.s:d.m+d.s);if(d.yr===curYr)newC+=t;else if(d.yr===prevYr)prevC+=t;else oldC+=t});
-      var pieData=[{value:newC,name:curYr+' releases',itemStyle:{color:'#4ade80'}},{value:prevC,name:prevYr+' releases',itemStyle:{color:'#fb923c'}},{value:oldC,name:'Older releases',itemStyle:{color:'#14b8a6'}}];
+      var pieData=[{value:newC,name:curYr+' releases',itemStyle:{color:'#4ade80'}},{value:prevC,name:prevYr+' releases',itemStyle:{color:'#fbbf24'}},{value:oldC,name:'Older releases',itemStyle:{color:'#fb923c'}}];
       c10.setOption({tooltip:{trigger:'item',...tt},series:[{type:'pie',radius:['40%','70%'],center:['50%','55%'],data:pieData,label:{color:'#ccc',fontSize:12,formatter:'{b}\n{d}%'},emphasis:{itemStyle:{shadowBlur:10,shadowColor:'rgba(0,0,0,.5)'}}}]});
+      c10.on('click',function(p){
+        var ex=vyEl.parentElement.querySelector('.chart-detail');if(ex){ex.remove();if(ex.dataset.val===p.name)return}
+        var titles=[];
+        if(p.dataIndex===0){titles=findTitles('vy',curYr)}
+        else if(p.dataIndex===1){titles=findTitles('vy',prevYr)}
+        else{vyd.forEach(function(d){if(d.yr!==curYr&&d.yr!==prevYr){titles=titles.concat(findTitles('vy',d.yr))}});titles.sort(function(a,b){return b.ct-a.ct})}
+        if(!titles.length)return;
+        var d2=document.createElement('div');d2.className='chart-detail';d2.dataset.val=p.name;
+        var h='<span class="cd-close" onclick="this.parentElement.remove()">✕</span><b>'+p.name+' ('+titles.length+')</b>';
+        titles.slice(0,50).forEach(function(t){h+='<div class="cd-item"><span><span class="badge '+(t.type==='movie'?'b-m':'b-e')+'">'+t.type+'</span> '+t.t+'</span><span class="nm '+(t.type==='show'?'nm-b':'nm-a')+'">'+(t.type==='show'?t.ct+' eps':(t.ct>1?t.ct+'x':''))+'</span></div>'});
+        d2.innerHTML=h;vyEl.parentElement.appendChild(d2);
+      });
     }else if(vyMode==='decade'){
       var decades={};vyd.forEach(function(d){var dec=d.yr.substring(0,3)+'0s';if(!decades[dec])decades[dec]={m:0,s:0};decades[dec].m+=d.m;decades[dec].s+=d.s});
       var dkeys=Object.keys(decades).sort();
