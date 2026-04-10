@@ -6194,6 +6194,11 @@ function _unMakeEp(base,epNum){
   return ns;
 }
 
+function _crSnapBack(){
+  // Reset carousel to center position when navigation is blocked
+  var car=document.querySelector('.un-carousel');
+  if(car){car.classList.add('animating');car.style.transform='translateX(-33.333%)'}
+}
 function _unRenderDetail(allShows,idx){
   var show=allShows[idx];
   var _wasSlug=_crBase?_crBase.slug:'';var _wasEp=_crEp||0;
@@ -6204,6 +6209,22 @@ function _unRenderDetail(allShows,idx){
     var ck=_epCacheKey(show.tmdb_id,show.season,show.episode);
     if(!_epCache[ck]&&(show.ep_title||show.ep_still)){
       _epCache[ck]={ep_title:show.ep_title||'',ep_overview:show.ep_overview||'',ep_still:show.ep_still||'',ep_aired:show.ep_aired||'',ep_runtime:show.ep_runtime||0,_partial:true};
+    }
+  }
+  // Pre-fetch season episode count for carousel bounds checking
+  if(show.tmdb_id){
+    var _sk=show.tmdb_id+'|'+show.season;
+    if(!_seasonEpCache[_sk]){
+      var _tk=(D.un||{}).tmdb_key||'';
+      if(_tk)fetch('https://api.themoviedb.org/3/tv/'+show.tmdb_id+'/season/'+show.season+'?api_key='+_tk)
+        .then(function(r){return r.json()}).then(function(d){
+          if(d.status_code||!d.episodes)return;
+          _seasonEpCache[_sk]=d.episodes.length;
+          d.episodes.forEach(function(ep){
+            var ek=_epCacheKey(show.tmdb_id,show.season,ep.episode_number);
+            if(!_epCache[ek])_epCache[ek]={ep_title:ep.name||'',ep_overview:(ep.overview||'').substring(0,500),ep_still:ep.still_path?'https://image.tmdb.org/t/p/w780'+ep.still_path:'',ep_aired:ep.air_date||'',ep_runtime:ep.runtime||show.ep_runtime};
+          });
+        }).catch(function(){});
     }
   }
   var ov=document.getElementById('un-overlay');
@@ -6394,17 +6415,15 @@ var _seasonEpCache={};
 function _crNav(dir){
   var newEp=_crEp+dir;
   var newSeason=_crBase.season;
-  // Cross-season: going before E1 → previous season's last episode
+  var tk=(D.un||{}).tmdb_key||'';
+  // Cross-season backward: going before E1 → previous season's last episode
   if(newEp<1){
     if(newSeason<=1)return; // can't go before S1E1
     var prevSeason=newSeason-1;
     var sk=_crBase.tmdb_id+'|'+prevSeason;
     if(_seasonEpCache[sk]){
-      // We know the episode count — navigate immediately
       _crNavToSeason(prevSeason,_seasonEpCache[sk]);
     }else{
-      // Fetch previous season info from TMDB
-      var tk=(D.un||{}).tmdb_key||'';
       if(!tk)return;
       fetch('https://api.themoviedb.org/3/tv/'+_crBase.tmdb_id+'/season/'+prevSeason+'?api_key='+tk)
         .then(function(r){return r.json()})
@@ -6412,7 +6431,6 @@ function _crNav(dir){
           if(d.status_code||!d.episodes)return;
           var epCount=d.episodes.length;
           _seasonEpCache[sk]=epCount;
-          // Cache all episode data from this season
           d.episodes.forEach(function(ep){
             var ek=_epCacheKey(_crBase.tmdb_id,prevSeason,ep.episode_number);
             if(!_epCache[ek])_epCache[ek]={ep_title:ep.name||'',ep_overview:(ep.overview||'').substring(0,500),ep_still:ep.still_path?'https://image.tmdb.org/t/p/w780'+ep.still_path:'',ep_aired:ep.air_date||'',ep_runtime:ep.runtime||_crBase.ep_runtime};
@@ -6420,6 +6438,44 @@ function _crNav(dir){
           _crNavToSeason(prevSeason,epCount);
         }).catch(function(){});
     }
+    return;
+  }
+  // Check forward bounds: don't go past the last episode in the season
+  var curSk=_crBase.tmdb_id+'|'+newSeason;
+  var maxEp=_seasonEpCache[curSk];
+  if(maxEp&&newEp>maxEp){
+    // Cross-season forward: go to next season E1
+    var nextSeason=newSeason+1;
+    var nsk=_crBase.tmdb_id+'|'+nextSeason;
+    if(_seasonEpCache[nsk]){_crNavToSeason(nextSeason,1);return}
+    if(!tk){_crSnapBack();return}
+    fetch('https://api.themoviedb.org/3/tv/'+_crBase.tmdb_id+'/season/'+nextSeason+'?api_key='+tk)
+      .then(function(r){return r.json()})
+      .then(function(d){
+        if(d.status_code||!d.episodes||!d.episodes.length){_crSnapBack();return}
+        _seasonEpCache[nsk]=d.episodes.length;
+        d.episodes.forEach(function(ep){
+          var ek=_epCacheKey(_crBase.tmdb_id,nextSeason,ep.episode_number);
+          if(!_epCache[ek])_epCache[ek]={ep_title:ep.name||'',ep_overview:(ep.overview||'').substring(0,500),ep_still:ep.still_path?'https://image.tmdb.org/t/p/w780'+ep.still_path:'',ep_aired:ep.air_date||'',ep_runtime:ep.runtime||_crBase.ep_runtime};
+        });
+        _crNavToSeason(nextSeason,1);
+      }).catch(function(){_crSnapBack()});
+    return;
+  }
+  // If we don't know the episode count yet, fetch the season to learn it
+  if(!maxEp&&_crBase.tmdb_id&&tk){
+    fetch('https://api.themoviedb.org/3/tv/'+_crBase.tmdb_id+'/season/'+newSeason+'?api_key='+tk)
+      .then(function(r){return r.json()})
+      .then(function(d){
+        if(d.status_code||!d.episodes){_crSnapBack();return}
+        _seasonEpCache[curSk]=d.episodes.length;
+        d.episodes.forEach(function(ep){
+          var ek=_epCacheKey(_crBase.tmdb_id,newSeason,ep.episode_number);
+          if(!_epCache[ek])_epCache[ek]={ep_title:ep.name||'',ep_overview:(ep.overview||'').substring(0,500),ep_still:ep.still_path?'https://image.tmdb.org/t/p/w780'+ep.still_path:'',ep_aired:ep.air_date||'',ep_runtime:ep.runtime||_crBase.ep_runtime};
+        });
+        if(newEp>d.episodes.length){_crSnapBack();return}
+        _crNavToEp(newSeason,newEp);
+      }).catch(function(){_crSnapBack()});
     return;
   }
   _crNavToEp(newSeason,newEp);
