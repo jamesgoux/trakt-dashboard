@@ -5795,11 +5795,16 @@ function _renderUpNext(prerender){
   var ud=_unData();
   var recent=ud.recent||[];
   var recentSet={};recent.forEach(function(r){recentSet[r.slug+'|'+r.season+'|'+r.episode]=true});
+  // Air date threshold: midnight Eastern (most US streaming releases)
+  // T04:00Z = midnight EDT (9 PM Pacific), T05:00Z = midnight EST (9 PM Pacific)
+  // Use Intl to detect EDT vs EST for the correct offset
+  var _etFmt=new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',hour:'numeric',hour12:false});
+  function _etMidnight(d){var h=parseInt(_etFmt.format(new Date(d+'T12:00:00Z')));return new Date(d+'T'+String(12-h).padStart(2,'0')+':00:00Z')}
   var shows=ud.shows.filter(function(s){
     if(recentSet[s.slug+'|'+s.season+'|'+s.episode])return false;
     if(s.aired_total&&s.completed>=s.aired_total)return false;
     if(_isRemoved(s.slug,s.season,s.episode))return false;
-    if(s.ep_aired&&new Date(s.ep_aired+'T00:00:00')>new Date())return false;
+    if(s.ep_aired&&_etMidnight(s.ep_aired)>new Date())return false;
     return true;
   });
   // Companion filter: if active, only show series tagged with that companion
