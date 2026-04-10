@@ -5938,10 +5938,16 @@ function _renderUpNext(prerender){
       requestAnimationFrame(function(){ov.style.transform=''});
     });
   }else{
-    // Subsequent opens — restore last scroll position, slide in from right
+    // Subsequent opens — scroll to New Episodes anchor (user expects to see what's new)
     ov.style.visibility='hidden';ov.style.transition='none';ov.style.transform='translateX(100%)';
-    var _sp=_unScrollPos;_rwSuppressScroll();
-    requestAnimationFrame(function(){ov.scrollTop=_sp;ov.style.visibility='';ov.style.transition='transform .3s ease';requestAnimationFrame(function(){ov.style.transform=''})});
+    _rwSuppressScroll();
+    requestAnimationFrame(function(){
+      var anchor=document.getElementById('un-default-scroll');
+      if(anchor){var hdrH=ov.firstElementChild?ov.firstElementChild.offsetHeight:70;var anchorTop=anchor.getBoundingClientRect().top-ov.getBoundingClientRect().top+ov.scrollTop;ov.scrollTop=Math.max(0,anchorTop-hdrH)}
+      else ov.scrollTop=0;
+      ov.style.visibility='';ov.style.transition='transform .3s ease';
+      requestAnimationFrame(function(){ov.style.transform=''});
+    });
   }
   _lockBody();
 }
