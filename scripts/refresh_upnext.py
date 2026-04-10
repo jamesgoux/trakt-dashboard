@@ -112,7 +112,7 @@ def fetch_recent_history():
             "ep_title": ep.get("title", ""),
             "watched_at": e.get("watched_at", ""),
             "ep_id": e.get("id", 0),
-            "ep_aired": (ep.get("first_aired") or "")[:10],
+            "ep_aired": ep.get("first_aired") or "",
         })
     return items
 
@@ -333,7 +333,7 @@ def run():
             "ep_runtime": ep_runtime,
             "ep_overview": ep_overview[:500] if ep_overview else "",
             "ep_still": ep_still,
-            "ep_aired": ep_aired[:10] if ep_aired else "",
+            "ep_aired": ep_aired or "",
             "ep_trakt_id": next_ep.get("ids", {}).get("trakt", ""),
             "is_new": is_new,
             "last_watched": last_watched,
