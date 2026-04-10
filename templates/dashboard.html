@@ -5799,7 +5799,12 @@ function _renderUpNext(prerender){
     if(recentSet[s.slug+'|'+s.season+'|'+s.episode])return false;
     if(s.aired_total&&s.completed>=s.aired_total)return false;
     if(_isRemoved(s.slug,s.season,s.episode))return false;
-    if(s.ep_aired&&new Date(s.ep_aired+'T00:00:00')>new Date())return false;
+    // Air date: use full Trakt datetime when available (e.g. 2026-04-10T04:00:00.000Z = midnight ET),
+    // fall back to midnight Eastern for date-only strings
+    if(s.ep_aired){
+      var airDate=s.ep_aired.length>10?new Date(s.ep_aired):new Date(s.ep_aired+'T04:00:00Z');
+      if(airDate>new Date())return false;
+    }
     return true;
   });
   // Companion filter: if active, only show series tagged with that companion
