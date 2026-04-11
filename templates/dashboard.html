@@ -4569,12 +4569,19 @@ function loadTeamEvents(teamId,teamName,teamBadge){
     return;
   }
   window._spUsingCache=false;
-  // Fallback: live API fetch (uncached team)
-  _spLoadBatch(3);
+  // Uncached team: wait for user to select a year instead of auto-loading current season
+  // This saves API calls (user might want 2015, not 2026)
+  var loadEl=document.getElementById('sp-ev-loading');
+  if(loadEl)loadEl.textContent='Select a year to load games';
 }
 
 function jumpToSportsYear(yr){
-  if(yr==='all'){window._spYearFilter=null;filterSportsEvents();return}
+  if(yr==='all'){
+    window._spYearFilter=null;
+    // If no events loaded yet (uncached team, first interaction), load current season
+    if(!window._spAllEvents.length&&!window._spUsingCache){_spLoadBatch(3);return}
+    filterSportsEvents();return;
+  }
   window._spYearFilter=yr;
   // Check if we've already loaded this season (from cache or previous API fetch)
   var have=window._spAllEvents.some(function(ev){return(ev.dateEvent||'').startsWith(yr)});
