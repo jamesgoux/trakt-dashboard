@@ -1008,15 +1008,20 @@ function _irisAuthToast(msg){
 // Save JSON to Supabase Storage (authenticated)
 function _irisSaveToStorage(filename,data){
   if(!_irisSB||!_irisUser)return Promise.reject(new Error('Not authenticated'));
-  var path=_irisUser.id+'/'+filename;
-  var body=typeof data==='string'?data:JSON.stringify(data,null,2);
-  return fetch(_IRIS_SB_URL+'/storage/v1/object/user-data/'+path,{
-    method:'POST',
-    headers:{'apikey':_IRIS_SB_ANON,'Authorization':'Bearer '+_irisSB.auth.session?.access_token||'','Content-Type':'application/json','x-upsert':'true'},
-    body:body
-  }).then(function(r){
-    if(!r.ok)throw new Error('Storage upload failed: '+r.status);
-    return r.json();
+  // Get fresh session token (handles expired sessions)
+  return _irisSB.auth.getSession().then(function(s){
+    var token=(s.data&&s.data.session)?s.data.session.access_token:'';
+    if(!token)throw new Error('No auth session — try logging in again');
+    var path=_irisUser.id+'/'+filename;
+    var body=typeof data==='string'?data:JSON.stringify(data,null,2);
+    return fetch(_IRIS_SB_URL+'/storage/v1/object/user-data/'+path,{
+      method:'POST',
+      headers:{'apikey':_IRIS_SB_ANON,'Authorization':'Bearer '+token,'Content-Type':'application/json','x-upsert':'true'},
+      body:body
+    }).then(function(r){
+      if(!r.ok)throw new Error('Storage upload failed: '+r.status);
+      return r.json();
+    });
   });
 }
 
@@ -1048,7 +1053,11 @@ function _irisLSGet(key,fallback){
   return old!==null?old:(fallback||null);
 }
 function _irisLSSet(key,value){
-  localStorage.setItem(_irisLSKey(key),value);
+  try{localStorage.setItem(_irisLSKey(key),value)}
+  catch(e){console.warn('localStorage full, clearing old data:',e.message);
+    // Clear stale entries to free space
+    try{var prefix=_irisLSKey('');for(var i=localStorage.length-1;i>=0;i--){var k=localStorage.key(i);if(k&&k.startsWith(prefix)&&k.indexOf('_watched')<0&&k.indexOf('_removed')<0)localStorage.removeItem(k)}
+    localStorage.setItem(_irisLSKey(key),value)}catch(e2){console.error('localStorage write failed:',e2)}}
 }
 function _irisLSRemove(key){
   localStorage.removeItem(_irisLSKey(key));
