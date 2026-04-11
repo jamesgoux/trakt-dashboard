@@ -5628,9 +5628,14 @@ function openUpNext(skipSync){
       var watchChanged=_applyExternalWatches(res[0]);
       var progChanged=res[1];// _liveCheckProgress returns true if any show was updated
       if(watchChanged||progChanged){
-        _unScrollPos=document.getElementById('un-overlay').scrollTop;
         _unReturning=true;
         _renderUpNext();
+        // After sync re-render, scroll to New Episodes anchor (not stale scroll pos)
+        var _syncOv=document.getElementById('un-overlay');
+        requestAnimationFrame(function(){
+          var anchor=document.getElementById('un-default-scroll');
+          if(anchor){var hdrH=_syncOv.firstElementChild?_syncOv.firstElementChild.offsetHeight:70;var anchorTop=anchor.getBoundingClientRect().top-_syncOv.getBoundingClientRect().top+_syncOv.scrollTop;_syncOv.scrollTop=Math.max(0,anchorTop-hdrH)}
+        });
       }
     }).catch(function(e){console.error('Sync failed:',e)});
   }
