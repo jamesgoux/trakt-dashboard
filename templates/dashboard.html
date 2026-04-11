@@ -1588,11 +1588,12 @@ function _strmLoadFromSupabase(){
     if(res.error||!res.data)return;
     var arr=res.data.value;
     if(Array.isArray(arr)&&arr.length){
+      var _wasNull=!_strmSelected;
       _strmSelected=new Set(arr);
       console.log('Loaded streaming prefs:',arr.length,'services');
-      // Re-render open views so streaming filter applies retroactively
-      if(_unCurrentView==='home'&&document.getElementById('un-overlay').style.display!=='none')_renderUpNext();
-      if(_unCurrentView==='watchlist')_wlRender();
+      // Only re-render if prefs changed from unloaded→loaded (not on every auth event)
+      // Skip if Up Next pre-render is pending (will pick up prefs on first open)
+      if(!_wasNull)return;
     }
   });
 }
