@@ -4576,38 +4576,104 @@ function loadTeamEvents(teamId,teamName,teamBadge){
   if(loadEl)loadEl.textContent='Select a year to load games';
 }
 
-// MLB Stats API: free, no key, full season data (no 25-game limit)
+// League-specific free APIs: full seasons, no limits, no keys needed
 var _mlbTeams={"Arizona Diamondbacks":109,"Athletics":133,"Atlanta Braves":144,"Baltimore Orioles":110,"Boston Red Sox":111,"Chicago Cubs":112,"Chicago White Sox":145,"Cincinnati Reds":113,"Cleveland Guardians":114,"Colorado Rockies":115,"Detroit Tigers":116,"Houston Astros":117,"Kansas City Royals":118,"Los Angeles Angels":108,"Los Angeles Dodgers":119,"Miami Marlins":146,"Milwaukee Brewers":158,"Minnesota Twins":142,"New York Mets":121,"New York Yankees":147,"Philadelphia Phillies":143,"Pittsburgh Pirates":134,"San Diego Padres":135,"San Francisco Giants":137,"Seattle Mariners":136,"St. Louis Cardinals":138,"Tampa Bay Rays":139,"Texas Rangers":140,"Toronto Blue Jays":141,"Washington Nationals":120};
-function _isMLB(){return window._spTeamLeague==='MLB'||window._spTeamSport==='Baseball'||_mlbTeams[window._spTeamName]}
+var _nhlTeams={"Anaheim Ducks":"ANA","Arizona Coyotes":"ARI","Boston Bruins":"BOS","Buffalo Sabres":"BUF","Calgary Flames":"CGY","Carolina Hurricanes":"CAR","Chicago Blackhawks":"CHI","Colorado Avalanche":"COL","Columbus Blue Jackets":"CBJ","Dallas Stars":"DAL","Detroit Red Wings":"DET","Edmonton Oilers":"EDM","Florida Panthers":"FLA","Los Angeles Kings":"LAK","Minnesota Wild":"MIN","Montreal Canadiens":"MTL","Montréal Canadiens":"MTL","Nashville Predators":"NSH","New Jersey Devils":"NJD","New York Islanders":"NYI","New York Rangers":"NYR","Ottawa Senators":"OTT","Philadelphia Flyers":"PHI","Pittsburgh Penguins":"PIT","San Jose Sharks":"SJS","Seattle Kraken":"SEA","St. Louis Blues":"STL","Tampa Bay Lightning":"TBL","Toronto Maple Leafs":"TOR","Utah Mammoth":"UTA","Vancouver Canucks":"VAN","Vegas Golden Knights":"VGK","Washington Capitals":"WSH","Winnipeg Jets":"WPG"};
+var _nflTeams={"Arizona Cardinals":22,"Atlanta Falcons":1,"Baltimore Ravens":33,"Buffalo Bills":2,"Carolina Panthers":29,"Chicago Bears":3,"Cincinnati Bengals":4,"Cleveland Browns":5,"Dallas Cowboys":6,"Denver Broncos":7,"Detroit Lions":8,"Green Bay Packers":9,"Houston Texans":34,"Indianapolis Colts":11,"Jacksonville Jaguars":30,"Kansas City Chiefs":12,"Las Vegas Raiders":13,"Los Angeles Chargers":24,"Los Angeles Rams":14,"Miami Dolphins":15,"Minnesota Vikings":16,"New England Patriots":17,"New Orleans Saints":18,"New York Giants":19,"New York Jets":20,"Philadelphia Eagles":21,"Pittsburgh Steelers":23,"San Francisco 49ers":25,"Seattle Seahawks":26,"Tampa Bay Buccaneers":27,"Tennessee Titans":10,"Washington Commanders":28,"Oakland Raiders":13,"San Diego Chargers":24,"St. Louis Rams":14,"Washington Redskins":28,"Washington Football Team":28};
+var _nbaTeams={"Atlanta Hawks":1,"Boston Celtics":2,"Brooklyn Nets":17,"Charlotte Hornets":30,"Chicago Bulls":4,"Cleveland Cavaliers":5,"Dallas Mavericks":6,"Denver Nuggets":7,"Detroit Pistons":8,"Golden State Warriors":9,"Houston Rockets":10,"Indiana Pacers":11,"LA Clippers":12,"Los Angeles Clippers":12,"Los Angeles Lakers":13,"Memphis Grizzlies":29,"Miami Heat":14,"Milwaukee Bucks":15,"Minnesota Timberwolves":16,"New Orleans Pelicans":3,"New York Knicks":18,"Oklahoma City Thunder":25,"Orlando Magic":19,"Philadelphia 76ers":20,"Phoenix Suns":21,"Portland Trail Blazers":22,"Sacramento Kings":23,"San Antonio Spurs":24,"Toronto Raptors":28,"Utah Jazz":26,"Washington Wizards":27};
+function _isMLB(){return window._spTeamLeague==='MLB'||window._spTeamSport==='Baseball'||!!_mlbTeams[window._spTeamName]}
+function _isNHL(){return window._spTeamLeague==='NHL'||window._spTeamSport==='Ice Hockey'||!!_nhlTeams[window._spTeamName]}
+function _isNFL(){return window._spTeamLeague==='NFL'||(window._spTeamSport==='American Football'&&window._spTeamLeague!=='CFL')||!!_nflTeams[window._spTeamName]}
+function _isNBA(){return window._spTeamLeague==='NBA'||(window._spTeamSport==='Basketball'&&window._spTeamLeague!=='WNBA')||!!_nbaTeams[window._spTeamName]}
+function _hasNativeAPI(){return _isMLB()||_isNHL()||_isNFL()||_isNBA()}
+// Convert game to standard event format
+function _spMakeEvent(id,date,time,home,away,hs,as2,venue,league,sport,season,status){
+  return{idEvent:id,dateEvent:date,dateEventLocal:date,strTime:time||'',strSport:sport,strLeague:league,intRound:'',strHomeTeam:home,strAwayTeam:away,intHomeScore:hs!=null&&hs!==''?String(hs):'',intAwayScore:as2!=null&&as2!==''?String(as2):'',strVenue:venue,strHomeTeamBadge:'',strAwayTeamBadge:'',strSeason:season,strStatus:status||'',strEvent:away+' @ '+home};
+}
+function _spNativeLoad(yr){
+  if(_isMLB())return _spLoadMLB(yr);
+  if(_isNHL())return _spLoadNHL(yr);
+  if(_isNFL())return _spLoadNFL(yr);
+  if(_isNBA())return _spLoadNBA(yr);
+  return false;
+}
+function _spFinishLoad(added,loadEl){
+  window._spAllEvents.sort(function(a,b){return b.dateEvent.localeCompare(a.dateEvent)});
+  if(loadEl){loadEl._loading=false;loadEl.textContent=added+' games loaded'}
+  filterSportsEvents();
+}
 function _spLoadMLB(yr){
   var tid=_mlbTeams[window._spTeamName];if(!tid)return false;
   var loadEl=document.getElementById('sp-ev-loading');
-  if(loadEl){loadEl.textContent='Loading '+yr+' season...';loadEl._loading=true}
-  var url='https://statsapi.mlb.com/api/v1/schedule?teamId='+tid+'&season='+yr+'&sportId=1&startDate='+yr+'-01-01&endDate='+yr+'-12-31&gameType=R,F,D,L,W';
-  fetch(url).then(function(r){return r.json()}).then(function(d){
-    var existingIds={};window._spAllEvents.forEach(function(e){existingIds[e.idEvent]=true});
-    var added=0;var tn=window._spTeamName;
+  if(loadEl){loadEl.textContent='Loading '+yr+' MLB season...';loadEl._loading=true}
+  fetch('https://statsapi.mlb.com/api/v1/schedule?teamId='+tid+'&season='+yr+'&sportId=1&startDate='+yr+'-01-01&endDate='+yr+'-12-31&gameType=R,F,D,L,W')
+  .then(function(r){return r.json()}).then(function(d){
+    var existingIds={};window._spAllEvents.forEach(function(e){existingIds[e.idEvent]=true});var added=0;
     (d.dates||[]).forEach(function(dt){(dt.games||[]).forEach(function(g){
       var id='mlb_'+g.gamePk;if(existingIds[id])return;
-      var home=g.teams.home.team.name,away=g.teams.away.team.name;
-      var hs=g.teams.home.score,as2=g.teams.away.score;
-      var status=g.status?g.status.detailedState:'';
-      window._spAllEvents.push({
-        idEvent:id,dateEvent:g.gameDate.substring(0,10),dateEventLocal:g.gameDate.substring(0,10),
-        strTime:(g.gameDate||'').substring(11,16),strSport:'Baseball',strLeague:'MLB',
-        intRound:'',strHomeTeam:home,strAwayTeam:away,
-        intHomeScore:hs!=null?String(hs):'',intAwayScore:as2!=null?String(as2):'',
-        strVenue:(g.venue||{}).name||'',strHomeTeamBadge:'',strAwayTeamBadge:'',
-        strSeason:yr,strStatus:status,strEvent:away+' @ '+home
-      });
+      window._spAllEvents.push(_spMakeEvent(id,g.gameDate.substring(0,10),(g.gameDate||'').substring(11,16),g.teams.home.team.name,g.teams.away.team.name,g.teams.home.score,g.teams.away.score,(g.venue||{}).name||'','MLB','Baseball',yr,(g.status||{}).detailedState||''));
       added++;
-    })});
-    window._spAllEvents.sort(function(a,b){return b.dateEvent.localeCompare(a.dateEvent)});
-    if(loadEl){loadEl._loading=false;loadEl.textContent=added+' games loaded'}
-    filterSportsEvents();
-  }).catch(function(e){
-    if(loadEl){loadEl._loading=false;loadEl.textContent='Failed to load: '+e.message}
-  });
+    })});_spFinishLoad(added,loadEl);
+  }).catch(function(e){if(loadEl){loadEl._loading=false;loadEl.textContent='Failed: '+e.message}});
+  return true;
+}
+function _spLoadNHL(yr){
+  var abbr=_nhlTeams[window._spTeamName];if(!abbr)return false;
+  var loadEl=document.getElementById('sp-ev-loading');
+  if(loadEl){loadEl.textContent='Loading '+yr+' NHL season...';loadEl._loading=true}
+  // NHL season spans two years: 2015 → 20152016
+  var nhlSeason=yr+String(parseInt(yr)+1);
+  fetch('https://api-web.nhle.com/v1/club-schedule-season/'+abbr+'/'+nhlSeason)
+  .then(function(r){return r.json()}).then(function(d){
+    var existingIds={};window._spAllEvents.forEach(function(e){existingIds[e.idEvent]=true});var added=0;
+    (d.games||[]).forEach(function(g){
+      var id='nhl_'+g.id;if(existingIds[id])return;
+      var home=(g.homeTeam.placeName||{}).default+' '+(g.homeTeam.commonName||{}).default;
+      var away=(g.awayTeam.placeName||{}).default+' '+(g.awayTeam.commonName||{}).default;
+      window._spAllEvents.push(_spMakeEvent(id,g.gameDate.substring(0,10),(g.startTimeUTC||'').substring(11,16),home,away,g.homeTeam.score,g.awayTeam.score,(g.venue||{}).default||'','NHL','Ice Hockey',yr,''));
+      added++;
+    });_spFinishLoad(added,loadEl);
+  }).catch(function(e){if(loadEl){loadEl._loading=false;loadEl.textContent='Failed: '+e.message}});
+  return true;
+}
+function _spLoadNFL(yr){
+  var tid=_nflTeams[window._spTeamName];if(!tid)return false;
+  var loadEl=document.getElementById('sp-ev-loading');
+  if(loadEl){loadEl.textContent='Loading '+yr+' NFL season...';loadEl._loading=true}
+  fetch('https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams/'+tid+'/schedule?season='+yr)
+  .then(function(r){return r.json()}).then(function(d){
+    var existingIds={};window._spAllEvents.forEach(function(e){existingIds[e.idEvent]=true});var added=0;
+    (d.events||[]).forEach(function(ev){
+      var id='nfl_'+ev.id;if(existingIds[id])return;
+      var comp=(ev.competitions||[{}])[0];var teams=comp.competitors||[];
+      var home=teams.find(function(t){return t.homeAway==='home'})||{};
+      var away=teams.find(function(t){return t.homeAway==='away'})||{};
+      var hs=home.score?home.score.value||home.score.displayValue||home.score:'';
+      var as2=away.score?away.score.value||away.score.displayValue||away.score:'';
+      window._spAllEvents.push(_spMakeEvent(id,(ev.date||'').substring(0,10),(ev.date||'').substring(11,16),(home.team||{}).displayName||'',(away.team||{}).displayName||'',hs,as2,(comp.venue||{}).fullName||'','NFL','American Football',yr,(comp.status||{}).type?comp.status.type.description:''));
+      added++;
+    });_spFinishLoad(added,loadEl);
+  }).catch(function(e){if(loadEl){loadEl._loading=false;loadEl.textContent='Failed: '+e.message}});
+  return true;
+}
+function _spLoadNBA(yr){
+  var tid=_nbaTeams[window._spTeamName];if(!tid)return false;
+  var loadEl=document.getElementById('sp-ev-loading');
+  if(loadEl){loadEl.textContent='Loading '+yr+' NBA season...';loadEl._loading=true}
+  fetch('https://site.api.espn.com/apis/site/v2/sports/basketball/nba/teams/'+tid+'/schedule?season='+yr)
+  .then(function(r){return r.json()}).then(function(d){
+    var existingIds={};window._spAllEvents.forEach(function(e){existingIds[e.idEvent]=true});var added=0;
+    (d.events||[]).forEach(function(ev){
+      var id='nba_'+ev.id;if(existingIds[id])return;
+      var comp=(ev.competitions||[{}])[0];var teams=comp.competitors||[];
+      var home=teams.find(function(t){return t.homeAway==='home'})||{};
+      var away=teams.find(function(t){return t.homeAway==='away'})||{};
+      var hs=home.score?home.score.value||home.score.displayValue||home.score:'';
+      var as2=away.score?away.score.value||away.score.displayValue||away.score:'';
+      window._spAllEvents.push(_spMakeEvent(id,(ev.date||'').substring(0,10),(ev.date||'').substring(11,16),(home.team||{}).displayName||'',(away.team||{}).displayName||'',hs,as2,(comp.venue||{}).fullName||'','NBA','Basketball',yr,(comp.status||{}).type?comp.status.type.description:''));
+      added++;
+    });_spFinishLoad(added,loadEl);
+  }).catch(function(e){if(loadEl){loadEl._loading=false;loadEl.textContent='Failed: '+e.message}});
   return true;
 }
 
@@ -4615,7 +4681,7 @@ function jumpToSportsYear(yr){
   if(yr==='all'){
     window._spYearFilter=null;
     if(!window._spAllEvents.length&&!window._spUsingCache){
-      if(_isMLB()){_spLoadMLB(new Date().getFullYear().toString());return}
+      if(_hasNativeAPI()){_spNativeLoad(new Date().getFullYear().toString());return}
       _spLoadBatch(3);return;
     }
     filterSportsEvents();return;
@@ -4623,8 +4689,8 @@ function jumpToSportsYear(yr){
   window._spYearFilter=yr;
   var have=window._spAllEvents.some(function(ev){return(ev.dateEvent||'').startsWith(yr)});
   if(have){filterSportsEvents();return}
-  // MLB: use free unlimited API
-  if(_isMLB()&&_spLoadMLB(yr))return;
+  // MLB/NHL/NFL/NBA: use free native APIs (no 25-game limit)
+  if(_hasNativeAPI()&&_spNativeLoad(yr))return;
   // Other sports: TheSportsDB fallback
   window._spUsingCache=false;
   var targetSeasons=[yr+'-'+(parseInt(yr)+1),yr];
