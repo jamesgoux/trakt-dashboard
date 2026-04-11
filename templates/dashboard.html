@@ -4585,7 +4585,16 @@ function jumpToSportsYear(yr){
   var idx=-1;window._spSeasons.forEach(function(s,i){if(idx<0&&targetSeasons.indexOf(s)>=0)idx=i});
   if(idx>=0&&idx>=window._spSeasonIdx){
     window._spSeasonIdx=idx;
-    _spLoadBatch(2);
+    // If a batch is currently loading, wait for it to finish then load target year
+    var loadEl=document.getElementById('sp-ev-loading');
+    if(loadEl&&loadEl._loading){
+      loadEl.textContent='Loading '+yr+'...';
+      var _waitInt=setInterval(function(){
+        if(!loadEl._loading){clearInterval(_waitInt);_spLoadBatch(2)}
+      },200);
+    }else{
+      _spLoadBatch(2);
+    }
   }else{filterSportsEvents()}
 }
 
