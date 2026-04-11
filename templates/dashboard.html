@@ -4569,12 +4569,19 @@ function loadTeamEvents(teamId,teamName,teamBadge){
     return;
   }
   window._spUsingCache=false;
-  // Fallback: live API fetch (uncached team)
-  _spLoadBatch(3);
+  // Uncached team: wait for user to select a year instead of auto-loading current season
+  // This saves API calls (user might want 2015, not 2026)
+  var loadEl=document.getElementById('sp-ev-loading');
+  if(loadEl)loadEl.textContent='Select a year to load games';
 }
 
 function jumpToSportsYear(yr){
-  if(yr==='all'){window._spYearFilter=null;filterSportsEvents();return}
+  if(yr==='all'){
+    window._spYearFilter=null;
+    // If no events loaded yet (uncached team, first interaction), load current season
+    if(!window._spAllEvents.length&&!window._spUsingCache){_spLoadBatch(3);return}
+    filterSportsEvents();return;
+  }
   window._spYearFilter=yr;
   // Check if we've already loaded this season (from cache or previous API fetch)
   var have=window._spAllEvents.some(function(ev){return(ev.dateEvent||'').startsWith(yr)});
@@ -4585,7 +4592,16 @@ function jumpToSportsYear(yr){
   var idx=-1;window._spSeasons.forEach(function(s,i){if(idx<0&&targetSeasons.indexOf(s)>=0)idx=i});
   if(idx>=0&&idx>=window._spSeasonIdx){
     window._spSeasonIdx=idx;
-    _spLoadBatch(2);
+    // If a batch is currently loading, wait for it to finish then load target year
+    var loadEl=document.getElementById('sp-ev-loading');
+    if(loadEl&&loadEl._loading){
+      loadEl.textContent='Loading '+yr+'...';
+      var _waitInt=setInterval(function(){
+        if(!loadEl._loading){clearInterval(_waitInt);_spLoadBatch(2)}
+      },200);
+    }else{
+      _spLoadBatch(2);
+    }
   }else{filterSportsEvents()}
 }
 
