@@ -1588,11 +1588,12 @@ function _strmLoadFromSupabase(){
     if(res.error||!res.data)return;
     var arr=res.data.value;
     if(Array.isArray(arr)&&arr.length){
+      var _wasNull=!_strmSelected;
       _strmSelected=new Set(arr);
       console.log('Loaded streaming prefs:',arr.length,'services');
-      // Re-render open views so streaming filter applies retroactively
-      if(_unCurrentView==='home'&&document.getElementById('un-overlay').style.display!=='none')_renderUpNext();
-      if(_unCurrentView==='watchlist')_wlRender();
+      // Only re-render if prefs changed from unloaded→loaded (not on every auth event)
+      // Skip if Up Next pre-render is pending (will pick up prefs on first open)
+      if(!_wasNull)return;
     }
   });
 }
@@ -2288,9 +2289,10 @@ function _ptblToggleNew(id,pp,btn){
 }
 function ptbl(id,pp){var tb=document.getElementById(id);tb.innerHTML='';
 // Build recency map from D.c.r once (shared by row gain + detail green)
-// Key movies by title|year to disambiguate same-titled films (e.g. Anaconda 1997 vs 2025)
+// Key by slug when available (disambiguates same-titled reboots: Scrubs 2001 vs 2026, Anaconda 1997 vs 2025)
+// Falls back to title|year for movies without slugs, title for legacy show entries
 var _now=Date.now(),_7d=7*86400000,_tlw={},_tld={};
-(D.c.r||[]).forEach(function(r){if(!r.watched_at)return;var wa=new Date(r.watched_at).getTime();var k=r.type==='movie'?r.title+'|'+(r.detail||''):r.title;var d=r.watched_at.substring(0,10);if(!_tlw[k]||wa>_tlw[k]){_tlw[k]=wa;_tld[k]=d}});
+(D.c.r||[]).forEach(function(r){if(!r.watched_at)return;var wa=new Date(r.watched_at).getTime();var k=r.sl||( r.type==='movie'?r.title+'|'+(r.detail||''):r.title);var d=r.watched_at.substring(0,10);if(!_tlw[k]||wa>_tlw[k]){_tlw[k]=wa;_tld[k]=d}});
 var _cutoff7d=new Date(_now-_7d).toISOString().substring(0,10);
 // Pre-compute filtered counts and sort
 var items=[];pp.forEach(function(p){var m=p.m,s=p.s;if(cy!=='all'&&p.ti){m=0;s=0;p.ti.forEach(function(i){var t=TL[i];if(!t)return;if(t.type==='movie'){if(sm(fby(t.eby))>0)m++}else{
@@ -2336,7 +2338,7 @@ var gain=item.cg;
 var tr=document.createElement('tr');tr.className='pr';if(gain)tr.style.background='rgba(74,222,128,.06)';tr.innerHTML='<td style="color:var(--t2);font-size:10px;width:24px">'+rk+'</td><td><div class="pn">'+img+'<span>'+p.n+'</span></div></td><td class="nm" style="color:var(--mv)">'+m+'</td><td class="nm" style="color:var(--tv)">'+s+'</td><td class="nm" style="color:'+(gain?'#4ade80':'#999')+'">'+tot+(gain?'<span style="font-size:9px"> \u2191'+gain+'</span>':'')+'</td>';tr.onclick=function(){var nx=tr.nextElementSibling;if(nx&&nx.classList.contains('dr')){nx.remove();return}document.querySelectorAll('.dr').forEach(function(r){r.remove()});if(!p.ti)return;
 var _tItems=[];p.ti.forEach(function(i){var t=TL[i];if(!t)return;var eb=cy==='all'?t.eby:fby(t.eby);var ct2=sm(eb);if(ct2===0&&cy!=='all')return;
 if(cy!=='all'&&t.type!=='movie'&&p.eps&&t.sl&&p.eps[t.sl]&&!(p.eps[t.sl].y||{})[cy])return;
-var _tKey=t.type==='movie'?t.t+'|'+(t.yr||''):t.t;var rec=_tlw[_tKey]||0;var isGrn=_tld[_tKey]&&_tld[_tKey]>=_cutoff7d;
+var _tKey=t.sl||(t.type==='movie'?t.t+'|'+(t.yr||''):t.t);var rec=_tlw[_tKey]||0;var isGrn=_tld[_tKey]&&_tld[_tKey]>=_cutoff7d;
 if(isGrn&&t.type!=='movie'&&p.eps&&t.sl&&p.eps[t.sl]&&p.eps[t.sl].y){var wy=new Date(rec).getFullYear().toString();if(!p.eps[t.sl].y[wy])isGrn=false}
 if(!rec&&t.eby){var mk=Object.keys(t.eby).sort().pop();if(mk){rec=mk.length===4?new Date(mk+'-12-31').getTime():mk.length===7?new Date(mk+'-15').getTime():new Date(mk).getTime();if(isNaN(rec))rec=0}}
 var epLabel='';if(t.type==='show'&&p.eps&&t.sl&&p.eps[t.sl]){var epCount=cy==='all'?(p.eps[t.sl].t||0):((p.eps[t.sl].y||{})[cy]||0);if(epCount)epLabel='<span style="color:var(--t2);font-weight:400"> ('+epCount+' ep'+(epCount>1?'s':'')+')</span>'}else if(t.type==='movie'&&ct2>1){epLabel='<span style="color:var(--t2)"> '+ct2+'x</span>'}
@@ -6592,13 +6594,19 @@ function _irisInjectWatch(type,opts){
         var arr=isFemale?(D.x||[]):(D.a||[]);
         for(var ai=0;ai<arr.length;ai++){
           if(arr[ai].n===p.name){
-            if(isMovie)arr[ai].m=(arr[ai].m||0)+1;else arr[ai].s=(arr[ai].s||0)+1;
-            arr[ai].tt=(arr[ai].m||0)+(arr[ai].s||0);
-            if(arr[ai].ti&&tlIdx>=0&&arr[ai].ti.indexOf(tlIdx)<0)arr[ai].ti.push(tlIdx);
-            // Mark as climber
-            if(!arr[ai]['g+'])arr[ai]['g+']={};
-            arr[ai]['g+']['all']=(arr[ai]['g+']['all']||0)+1;
-            arr[ai]['g+'][yr]=(arr[ai]['g+'][yr]||0)+1;
+            var isNewTitle=arr[ai].ti&&tlIdx>=0&&arr[ai].ti.indexOf(tlIdx)<0;
+            // Only increment title count if this is a new title for the person
+            if(isNewTitle){
+              if(isMovie)arr[ai].m=(arr[ai].m||0)+1;else arr[ai].s=(arr[ai].s||0)+1;
+              arr[ai].tt=(arr[ai].m||0)+(arr[ai].s||0);
+              arr[ai].ti.push(tlIdx);
+            }
+            // Only mark as climber if this is a genuinely new title (not already in their list)
+            if(isNewTitle){
+              if(!arr[ai]['g+'])arr[ai]['g+']={};
+              arr[ai]['g+']['all']=(arr[ai]['g+']['all']||0)+1;
+              arr[ai]['g+'][yr]=(arr[ai]['g+'][yr]||0)+1;
+            }
             break;
           }
         }
@@ -6611,12 +6619,17 @@ function _irisInjectWatch(type,opts){
         if(!arr)return;
         for(var di=0;di<arr.length;di++){
           if(arr[di].n===p.name){
-            if(isMovie)arr[di].m=(arr[di].m||0)+1;else arr[di].s=(arr[di].s||0)+1;
-            arr[di].tt=(arr[di].m||0)+(arr[di].s||0);
-            if(arr[di].ti&&tlIdx>=0&&arr[di].ti.indexOf(tlIdx)<0)arr[di].ti.push(tlIdx);
-            if(!arr[di]['g+'])arr[di]['g+']={};
-            arr[di]['g+']['all']=(arr[di]['g+']['all']||0)+1;
-            arr[di]['g+'][yr]=(arr[di]['g+'][yr]||0)+1;
+            var isNewTitle2=arr[di].ti&&tlIdx>=0&&arr[di].ti.indexOf(tlIdx)<0;
+            if(isNewTitle2){
+              if(isMovie)arr[di].m=(arr[di].m||0)+1;else arr[di].s=(arr[di].s||0)+1;
+              arr[di].tt=(arr[di].m||0)+(arr[di].s||0);
+              arr[di].ti.push(tlIdx);
+            }
+            if(isNewTitle2){
+              if(!arr[di]['g+'])arr[di]['g+']={};
+              arr[di]['g+']['all']=(arr[di]['g+']['all']||0)+1;
+              arr[di]['g+'][yr]=(arr[di]['g+'][yr]||0)+1;
+            }
             break;
           }
         }
