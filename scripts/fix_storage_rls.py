@@ -82,7 +82,28 @@ def apply_rls_policies():
         import psycopg2
 
     print("Applying RLS policies to storage.objects...")
-    conn = psycopg2.connect(DB_URL)
+    # Supabase direct host resolves to IPv6 which may be unreachable from
+    # some runners. Resolve to IPv4 and connect with sslmode=require.
+    import socket
+    from urllib.parse import urlparse, parse_qs
+    parsed = urlparse(DB_URL)
+    host = parsed.hostname
+    port = parsed.port or 5432
+    try:
+        ipv4 = socket.getaddrinfo(host, port, socket.AF_INET)[0][4][0]
+        print(f"  Resolved {host} → {ipv4} (IPv4)")
+    except socket.gaierror:
+        ipv4 = host  # fallback to hostname
+
+    conn = psycopg2.connect(
+        host=ipv4,
+        port=port,
+        dbname=parsed.path.lstrip('/') or 'postgres',
+        user=parsed.username or 'postgres',
+        password=parsed.password,
+        sslmode='require',
+        connect_timeout=10,
+    )
     conn.autocommit = True
     cur = conn.cursor()
 
