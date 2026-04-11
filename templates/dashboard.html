@@ -4539,11 +4539,11 @@ function loadTeamEvents(teamId,teamName,teamBadge){
   window._spAllEvents=[];window._spSeasonIdx=0;window._spAwaySearched={};window._spRoundsDone={};
   var curYear=new Date().getFullYear();
   window._spSeasons=[];
-  for(var y=curYear;y>=curYear-10;y--){window._spSeasons.push(y+'-'+(y+1));window._spSeasons.push(String(y))}
+  for(var y=curYear;y>=curYear-25;y--){window._spSeasons.push(y+'-'+(y+1));window._spSeasons.push(String(y))}
   // Populate year selector
   var yrSel=document.getElementById('sp-ev-year');
   yrSel.innerHTML='<option value="all">All Years</option>';
-  for(var y2=curYear;y2>=curYear-10;y2--){var o=document.createElement('option');o.value=y2;o.textContent=y2;yrSel.appendChild(o)}
+  for(var y2=curYear;y2>=curYear-25;y2--){var o=document.createElement('option');o.value=y2;o.textContent=y2;yrSel.appendChild(o)}
   document.getElementById('sp-ev-list').innerHTML='';
   document.getElementById('sp-ev-search').value='';
   window._spYearFilter=null;
@@ -4738,13 +4738,23 @@ function filterSportsEvents(){
     Object.keys(knownTeams).forEach(function(t){if(t!==window._spTeamName&&t.toLowerCase().indexOf(ql)>=0)_spSearchAway(t)});
   }
   // Auto-load more seasons if search has no results but more seasons available
-  // Skip if using cached data (already has all seasons)
-  if(!window._spUsingCache&&ql&&filtered.length===0&&window._spSeasonIdx<window._spSeasons.length){
+  if(ql&&filtered.length===0&&window._spSeasonIdx<window._spSeasons.length){
+    // If using cache, check if the search looks like a year outside cached range
+    if(window._spUsingCache){
+      var _yrMatch=ql.match(/^(19|20)\d{2}$/);
+      if(_yrMatch){
+        // Year search on cached team — fall back to API for that year
+        window._spUsingCache=false;
+        jumpToSportsYear(ql);
+        return;
+      }
+    }else{
     var loadEl=document.getElementById('sp-ev-loading');
     if(loadEl&&!loadEl._loading){
       loadEl.textContent='Searching older seasons...';
       _spLoadBatch(4);
       return;
+    }
     }
   }
   var listEl=document.getElementById('sp-ev-list');if(!listEl)return;
