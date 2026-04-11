@@ -6593,13 +6593,19 @@ function _irisInjectWatch(type,opts){
         var arr=isFemale?(D.x||[]):(D.a||[]);
         for(var ai=0;ai<arr.length;ai++){
           if(arr[ai].n===p.name){
-            if(isMovie)arr[ai].m=(arr[ai].m||0)+1;else arr[ai].s=(arr[ai].s||0)+1;
-            arr[ai].tt=(arr[ai].m||0)+(arr[ai].s||0);
-            if(arr[ai].ti&&tlIdx>=0&&arr[ai].ti.indexOf(tlIdx)<0)arr[ai].ti.push(tlIdx);
-            // Mark as climber
-            if(!arr[ai]['g+'])arr[ai]['g+']={};
-            arr[ai]['g+']['all']=(arr[ai]['g+']['all']||0)+1;
-            arr[ai]['g+'][yr]=(arr[ai]['g+'][yr]||0)+1;
+            var isNewTitle=arr[ai].ti&&tlIdx>=0&&arr[ai].ti.indexOf(tlIdx)<0;
+            // Only increment title count if this is a new title for the person
+            if(isNewTitle){
+              if(isMovie)arr[ai].m=(arr[ai].m||0)+1;else arr[ai].s=(arr[ai].s||0)+1;
+              arr[ai].tt=(arr[ai].m||0)+(arr[ai].s||0);
+              arr[ai].ti.push(tlIdx);
+            }
+            // Only mark as climber if this is a genuinely new title (not already in their list)
+            if(isNewTitle){
+              if(!arr[ai]['g+'])arr[ai]['g+']={};
+              arr[ai]['g+']['all']=(arr[ai]['g+']['all']||0)+1;
+              arr[ai]['g+'][yr]=(arr[ai]['g+'][yr]||0)+1;
+            }
             break;
           }
         }
@@ -6612,12 +6618,17 @@ function _irisInjectWatch(type,opts){
         if(!arr)return;
         for(var di=0;di<arr.length;di++){
           if(arr[di].n===p.name){
-            if(isMovie)arr[di].m=(arr[di].m||0)+1;else arr[di].s=(arr[di].s||0)+1;
-            arr[di].tt=(arr[di].m||0)+(arr[di].s||0);
-            if(arr[di].ti&&tlIdx>=0&&arr[di].ti.indexOf(tlIdx)<0)arr[di].ti.push(tlIdx);
-            if(!arr[di]['g+'])arr[di]['g+']={};
-            arr[di]['g+']['all']=(arr[di]['g+']['all']||0)+1;
-            arr[di]['g+'][yr]=(arr[di]['g+'][yr]||0)+1;
+            var isNewTitle2=arr[di].ti&&tlIdx>=0&&arr[di].ti.indexOf(tlIdx)<0;
+            if(isNewTitle2){
+              if(isMovie)arr[di].m=(arr[di].m||0)+1;else arr[di].s=(arr[di].s||0)+1;
+              arr[di].tt=(arr[di].m||0)+(arr[di].s||0);
+              arr[di].ti.push(tlIdx);
+            }
+            if(isNewTitle2){
+              if(!arr[di]['g+'])arr[di]['g+']={};
+              arr[di]['g+']['all']=(arr[di]['g+']['all']||0)+1;
+              arr[di]['g+'][yr]=(arr[di]['g+'][yr]||0)+1;
+            }
             break;
           }
         }
