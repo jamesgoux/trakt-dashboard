@@ -1103,9 +1103,11 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
     # Recent: keep 200 most recent + last 5 per year (so year filter works for old years)
     sorted_entries = sorted(entries, key=lambda x: x["watched_at"], reverse=True)
     def _recent_entry(e):
-        return {"type": e["type"], "title": e["show_title"] or e["title"],
+        re = {"type": e["type"], "title": e["show_title"] or e["title"],
                 "detail": f"S{e['season']}E{e['episode_number']}" if e["type"] == "episode" else str(e["year"]),
                 "watched_at": e["watched_at"][:10], "yr": e["watched_at"][:4] if e["watched_at"] else ""}
+        if e.get("trakt_slug"): re["sl"] = e["trakt_slug"]
+        return re
     seen_ids = set()
     for e in sorted_entries[:200]:
         re_entry = _recent_entry(e)
