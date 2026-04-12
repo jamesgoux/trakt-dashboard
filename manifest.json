@@ -1,0 +1,16 @@
+{
+  "name": "Iris",
+  "short_name": "Iris",
+  "start_url": "/iris-stats/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0f0f0f",
+  "theme_color": "#0f0f0f",
+  "icons": [
+    {
+      "src": "iris-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    }
+  ]
+}
