@@ -4659,11 +4659,13 @@ var _mlbTeams={"Arizona Diamondbacks":109,"Athletics":133,"Atlanta Braves":144,"
 var _nhlTeams={"Anaheim Ducks":"ANA","Arizona Coyotes":"ARI","Boston Bruins":"BOS","Buffalo Sabres":"BUF","Calgary Flames":"CGY","Carolina Hurricanes":"CAR","Chicago Blackhawks":"CHI","Colorado Avalanche":"COL","Columbus Blue Jackets":"CBJ","Dallas Stars":"DAL","Detroit Red Wings":"DET","Edmonton Oilers":"EDM","Florida Panthers":"FLA","Los Angeles Kings":"LAK","Minnesota Wild":"MIN","Montreal Canadiens":"MTL","Montréal Canadiens":"MTL","Nashville Predators":"NSH","New Jersey Devils":"NJD","New York Islanders":"NYI","New York Rangers":"NYR","Ottawa Senators":"OTT","Philadelphia Flyers":"PHI","Pittsburgh Penguins":"PIT","San Jose Sharks":"SJS","Seattle Kraken":"SEA","St. Louis Blues":"STL","Tampa Bay Lightning":"TBL","Toronto Maple Leafs":"TOR","Utah Mammoth":"UTA","Vancouver Canucks":"VAN","Vegas Golden Knights":"VGK","Washington Capitals":"WSH","Winnipeg Jets":"WPG"};
 var _nflTeams={"Arizona Cardinals":22,"Atlanta Falcons":1,"Baltimore Ravens":33,"Buffalo Bills":2,"Carolina Panthers":29,"Chicago Bears":3,"Cincinnati Bengals":4,"Cleveland Browns":5,"Dallas Cowboys":6,"Denver Broncos":7,"Detroit Lions":8,"Green Bay Packers":9,"Houston Texans":34,"Indianapolis Colts":11,"Jacksonville Jaguars":30,"Kansas City Chiefs":12,"Las Vegas Raiders":13,"Los Angeles Chargers":24,"Los Angeles Rams":14,"Miami Dolphins":15,"Minnesota Vikings":16,"New England Patriots":17,"New Orleans Saints":18,"New York Giants":19,"New York Jets":20,"Philadelphia Eagles":21,"Pittsburgh Steelers":23,"San Francisco 49ers":25,"Seattle Seahawks":26,"Tampa Bay Buccaneers":27,"Tennessee Titans":10,"Washington Commanders":28,"Oakland Raiders":13,"San Diego Chargers":24,"St. Louis Rams":14,"Washington Redskins":28,"Washington Football Team":28};
 var _nbaTeams={"Atlanta Hawks":1,"Boston Celtics":2,"Brooklyn Nets":17,"Charlotte Hornets":30,"Chicago Bulls":4,"Cleveland Cavaliers":5,"Dallas Mavericks":6,"Denver Nuggets":7,"Detroit Pistons":8,"Golden State Warriors":9,"Houston Rockets":10,"Indiana Pacers":11,"LA Clippers":12,"Los Angeles Clippers":12,"Los Angeles Lakers":13,"Memphis Grizzlies":29,"Miami Heat":14,"Milwaukee Bucks":15,"Minnesota Timberwolves":16,"New Orleans Pelicans":3,"New York Knicks":18,"Oklahoma City Thunder":25,"Orlando Magic":19,"Philadelphia 76ers":20,"Phoenix Suns":21,"Portland Trail Blazers":22,"Sacramento Kings":23,"San Antonio Spurs":24,"Toronto Raptors":28,"Utah Jazz":26,"Washington Wizards":27};
+var _ncaaHockeyTeams={"Air Force Falcons":2005,"Alaska Nanooks":298,"American International Yellow Jackets":2022,"Arizona State Sun Devils":9,"Army Black Knights":349,"Bemidji State Beavers":132,"Bentley Falcons":2060,"Boston College Eagles":103,"Boston University Terriers":104,"Bowling Green Falcons":189,"Brown Bears":225,"Canisius Golden Griffins":2099,"Clarkson Golden Knights":2137,"Colgate Raiders":2142,"Colorado College Tigers":2144,"Cornell Big Red":172,"Dartmouth Big Green":159,"Denver Pioneers":2172,"Ferris State Bulldogs":2222,"Harvard Crimson":108,"Holy Cross Crusaders":107,"Lake Superior State Lakers":285,"Maine Black Bears":311,"Massachusetts Minutemen":113,"Mercyhurst Lakers":2385,"Merrimack Warriors":2771,"Miami (OH) RedHawks":193,"Michigan State Spartans":127,"Michigan Tech Huskies":2392,"Michigan Wolverines":130,"Minnesota Duluth Bulldogs":134,"Minnesota Golden Gophers":135,"Minnesota State Mavericks":2364,"New Hampshire Wildcats":160,"Niagara Purple Eagles":315,"North Dakota Fighting Hawks":155,"Northeastern Huskies":111,"Northern Michigan Wildcats":128,"Notre Dame Fighting Irish":87,"Ohio State Buckeyes":194,"Omaha Mavericks":2437,"Penn State Nittany Lions":213,"Princeton Tigers":163,"Providence Friars":2507,"Quinnipiac Bobcats":2514,"RIT Tigers":178,"Rensselaer Engineers":2528,"Robert Morris Colonials":2523,"Sacred Heart Pioneers":2529,"St. Cloud State Huskies":2594,"St. Lawrence Saints":2779,"St. Thomas-Minnesota Tommies":2900,"Stonehill Skyhawks":284,"UConn Huskies":41,"UMass Lowell River Hawks":2349,"Union Garnet Chargers":2785,"Vermont Catamounts":261,"Western Michigan Broncos":2711,"Wisconsin Badgers":275,"Yale Bulldogs":43};
+function _isNCAAHockey(){return window._spTeamLeague==='NCAA Hockey'||!!_ncaaHockeyTeams[window._spTeamName]}
 function _isMLB(){return window._spTeamLeague==='MLB'||window._spTeamSport==='Baseball'||!!_mlbTeams[window._spTeamName]}
 function _isNHL(){return window._spTeamLeague==='NHL'||window._spTeamSport==='Ice Hockey'||!!_nhlTeams[window._spTeamName]}
 function _isNFL(){return window._spTeamLeague==='NFL'||(window._spTeamSport==='American Football'&&window._spTeamLeague!=='CFL')||!!_nflTeams[window._spTeamName]}
 function _isNBA(){return window._spTeamLeague==='NBA'||(window._spTeamSport==='Basketball'&&window._spTeamLeague!=='WNBA')||!!_nbaTeams[window._spTeamName]}
-function _hasNativeAPI(){return _isMLB()||_isNHL()||_isNFL()||_isNBA()}
+function _hasNativeAPI(){return _isMLB()||_isNHL()||_isNFL()||_isNBA()||_isNCAAHockey()}
 // Convert game to standard event format
 function _spMakeEvent(id,date,time,home,away,hs,as2,venue,league,sport,season,status,playoffNote){
   return{idEvent:id,dateEvent:date,dateEventLocal:date,strTime:time||'',strSport:sport,strLeague:league,intRound:'',strHomeTeam:home,strAwayTeam:away,intHomeScore:hs!=null&&hs!==''?String(hs):'',intAwayScore:as2!=null&&as2!==''?String(as2):'',strVenue:venue,strHomeTeamBadge:'',strAwayTeamBadge:'',strSeason:season,strStatus:status||'',strEvent:away+' @ '+home,strPlayoff:playoffNote||''};
@@ -4673,6 +4675,7 @@ function _spNativeLoad(yr){
   if(_isNHL())return _spLoadNHL(yr);
   if(_isNFL())return _spLoadNFL(yr);
   if(_isNBA())return _spLoadNBA(yr);
+  if(_isNCAAHockey())return _spLoadNCAAHockey(yr);
   return false;
 }
 function _spFinishLoad(added,loadEl){
@@ -4763,6 +4766,17 @@ function _spLoadNBA(yr){
   return true;
 }
 
+function _spLoadNCAAHockey(yr){
+  var tid=_ncaaHockeyTeams[window._spTeamName];if(!tid)return false;
+  var loadEl=document.getElementById('sp-ev-loading');
+  if(loadEl){loadEl.textContent='Loading '+yr+' NCAA hockey...';loadEl._loading=true}
+  var base='https://site.api.espn.com/apis/site/v2/sports/hockey/mens-college-hockey/teams/'+tid+'/schedule?season='+yr;
+  fetch(base).then(function(r){return r.json()}).then(function(d){
+    var added=_spParseESPN(d.events,'nch_','NCAA Hockey','Ice Hockey',yr);
+    _spFinishLoad(added,loadEl);
+  }).catch(function(e){if(loadEl){loadEl._loading=false;loadEl.textContent='Failed: '+e.message}});
+  return true;
+}
 function jumpToSportsYear(yr){
   if(yr==='all'){
     window._spYearFilter=null;
@@ -7715,7 +7729,7 @@ function _irisSportsSearch(q){
   var el=document.getElementById('sp-team-results');
   // Instant: search local team dictionaries (NBA, NFL, MLB, NHL)
   var ql=q.toLowerCase(),localHits=[];
-  var localLists=[{d:_nbaTeams,league:'NBA',sport:'Basketball'},{d:_nflTeams,league:'NFL',sport:'American Football'},{d:_mlbTeams,league:'MLB',sport:'Baseball'},{d:_nhlTeams,league:'NHL',sport:'Ice Hockey'}];
+  var localLists=[{d:_nbaTeams,league:'NBA',sport:'Basketball'},{d:_nflTeams,league:'NFL',sport:'American Football'},{d:_mlbTeams,league:'MLB',sport:'Baseball'},{d:_nhlTeams,league:'NHL',sport:'Ice Hockey'},{d:_ncaaHockeyTeams,league:'NCAA Hockey',sport:'Ice Hockey'}];
   localLists.forEach(function(ll){Object.keys(ll.d).forEach(function(name){
     if(name.toLowerCase().indexOf(ql)>=0)localHits.push({strTeam:name,strLeague:ll.league,strSport:ll.sport,idTeam:ll.d[name],strTeamBadge:''});
   })});
