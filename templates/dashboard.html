@@ -4595,8 +4595,12 @@ function loadTeamEvents(teamId,teamName,teamBadge){
     return;
   }
   window._spUsingCache=false;
-  // Uncached team: wait for user to select a year instead of auto-loading current season
-  // This saves API calls (user might want 2015, not 2026)
+  // Auto-load current season for teams with free native APIs (ESPN/MLB/NHL)
+  if(_hasNativeAPI()){
+    _spNativeLoad(new Date().getFullYear().toString());
+    return;
+  }
+  // Other sports (TheSportsDB): wait for user to select a year
   var loadEl=document.getElementById('sp-ev-loading');
   if(loadEl)loadEl.textContent='Select a year to load games';
 }
