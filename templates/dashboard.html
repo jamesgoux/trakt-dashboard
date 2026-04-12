@@ -1063,7 +1063,12 @@ function _irisLSGet(key,fallback){
   return old!==null?old:(fallback||null);
 }
 function _irisLSSet(key,value){
-  try{localStorage.setItem(_irisLSKey(key),value)}
+  try{
+    localStorage.setItem(_irisLSKey(key),value);
+    // Also write to un-namespaced key so data survives auth timing gaps on reload
+    var baseKey='iris_'+key;
+    if(_irisLSKey(key)!==baseKey)try{localStorage.setItem(baseKey,value)}catch(e3){}
+  }
   catch(e){console.warn('localStorage full, clearing old data:',e.message);
     // Clear stale entries to free space
     try{var prefix=_irisLSKey('');for(var i=localStorage.length-1;i>=0;i--){var k=localStorage.key(i);if(k&&k.startsWith(prefix)&&k.indexOf('_watched')<0&&k.indexOf('_removed')<0)localStorage.removeItem(k)}
@@ -5386,8 +5391,8 @@ function renderSports(){
   if(wtData.length){var wtChart=echarts.init(wtEl);var wtCols=['#0ea5e9','#fb923c','#a78bfa'];wtChart.setOption({tooltip:{trigger:'item',...tt,formatter:'{b}: {c} ({d}%)'},series:[{type:'pie',radius:['30%','65%'],data:wtData.map(function(d,i){return{value:d.value,name:d.name,itemStyle:{color:wtCols[i%wtCols.length]}}}),label:{color:'#ccc',fontSize:11,formatter:'{b}\n{d}%'},emphasis:{itemStyle:{shadowBlur:10}}}]});ch.push(wtChart)}
   else{wtEl.innerHTML='<div style="text-align:center;color:var(--t2);padding:40px">No data</div>'}
 
-  // Venues chart (live events only)
-  var venCounts={};filtered.forEach(function(e){if(e.venue)venCounts[e.venue]=(venCounts[e.venue]||0)+1});
+  // Venues chart (live events only — TV/remote don't have a meaningful venue)
+  var venCounts={};filtered.forEach(function(e){if(e.venue&&e.watch_type==='live')venCounts[e.venue]=(venCounts[e.venue]||0)+1});
   var vens=Object.entries(venCounts).sort(function(a,b){return b[1]-a[1]}).slice(0,10).reverse();
   var vEl=document.getElementById('sp-venues');
   if(vens.length){var vChart=echarts.init(vEl);vChart.setOption({tooltip:{trigger:mob?'item':'axis',axisPointer:{type:'shadow'},...tt},grid:{left:gl(140),right:30,top:8,bottom:8},xAxis:{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},yAxis:{type:'category',data:vens.map(function(v){return v[0]}),axisLabel:{color:'#ccc',fontSize:10,interval:0},axisLine:{lineStyle:{color:'#333'}}},series:[{type:'bar',data:vens.map(function(v){return v[1]}),itemStyle:{color:LG('#0f3460','#4ade80')},barMaxWidth:18,label:{show:true,position:'right',color:'#4ade80',fontSize:10}}]});ch.push(vChart)}
