@@ -4949,7 +4949,7 @@ function filterSportsEvents(){
     var awayBadge=ev.strAwayTeamBadge&&ev.strAwayTeamBadge!=='null'?ev.strAwayTeamBadge:(ev.strAwayTeam===tn?window._spTeamBadge:'');
     h+='<tr id="sp-row-'+ev.idEvent+'" style="cursor:'+(added?'default':'pointer')+';opacity:'+(added?'.35':'1')+';background:'+rowColor+'" '+(added?'':'onclick="toggleSportsQuickSave(\''+ev.idEvent+'\',this)" ')+'data-ev="'+evJson+'">';
     var isPlayoff=_spIsPlayoff(ev);
-    h+='<td style="color:var(--t2);font-size:12px;padding:8px 4px;white-space:nowrap">'+(isPlayoff?'<span title="'+isPlayoff.replace(/"/g,'&quot;')+'" style="color:#fbbf24;font-size:10px">★ </span>':'')+localDate+'</td>';
+    h+='<td style="color:'+(isPlayoff?'#fbbf24':'var(--t2)')+';font-size:12px;padding:8px 4px;white-space:nowrap"'+(isPlayoff?' title="'+isPlayoff.replace(/"/g,'&quot;')+'"':'')+'>'+localDate+'</td>';
     h+='<td style="padding:8px 4px;white-space:nowrap"><span style="display:inline-flex;align-items:center;gap:2px;justify-content:center;width:100%;font-variant-numeric:tabular-nums">';
     h+='<span style="font-weight:'+(hasScore&&as2>hs?'700':'400')+';font-size:11px">'+_spAbbr(ev.strAwayTeam)+'</span>'+_spBadge(awayBadge,18);
     h+='<span style="font-weight:'+(hasScore&&as2>hs?'800':'500')+';min-width:14px;text-align:right">'+(added?'':(hasScore?as2:''))+'</span>';
@@ -5432,15 +5432,15 @@ function renderSports(){
     var hWin=Number(e.home_score)>Number(e.away_score);var aWin=Number(e.away_score)>Number(e.home_score);
     var hs2=e.home_score!=null&&e.home_score!==''?e.home_score:'';
     var as3=e.away_score!=null&&e.away_score!==''?e.away_score:'';
-    // Win/loss coloring based on my_team
+    // Win/loss coloring based on my_team — playoff games keep win/loss bg
     var rowBg='none';
     if(e.my_team&&hs2!==''){
       var myH=e.my_team===e.home_team;var myS=Number(myH?hs2:as3);var oppS=Number(myH?as3:hs2);
-      if(myS>oppS)rowBg=isPlayoffEv?'rgba(251,191,36,.1)':'rgba(74,222,128,.08)';else if(myS<oppS)rowBg=isPlayoffEv?'rgba(251,191,36,.06)':'rgba(239,68,68,.08)';
-      else if(isPlayoffEv)rowBg='rgba(251,191,36,.06)';
-    }else if(isPlayoffEv){rowBg='rgba(251,191,36,.06)'}
-    h+='<div style="display:grid;grid-template-columns:42px 28px 18px 18px auto 18px 18px 28px minmax(20px,80px) 16px 20px;align-items:center;padding:6px 4px;border-bottom:1px solid rgba(255,255,255,.04);font-size:11px;gap:2px;background:'+rowBg+';border-radius:4px;margin:1px 0;font-variant-numeric:tabular-nums">';
-    h+='<span style="color:var(--t2);font-size:10px">'+(isPlayoffEv?'<span style="color:#fbbf24" title="'+(typeof isPlayoffEv==='string'?isPlayoffEv:'Playoffs').replace(/"/g,'&quot;')+'">★</span>':'')+_spDate(e.date)+'</span>';
+      if(myS>oppS)rowBg='rgba(74,222,128,.08)';else if(myS<oppS)rowBg='rgba(239,68,68,.08)';
+    }
+    var pfBorder=isPlayoffEv?'border-left:2px solid #fbbf24;padding-left:2px':'';
+    h+='<div style="display:grid;grid-template-columns:42px 28px 18px 18px auto 18px 18px 28px minmax(20px,80px) 16px 20px;align-items:center;padding:6px 4px;border-bottom:1px solid rgba(255,255,255,.04);font-size:11px;gap:2px;background:'+rowBg+';border-radius:4px;margin:1px 0;font-variant-numeric:tabular-nums;'+pfBorder+'">';
+    h+='<span style="color:'+(isPlayoffEv?'#fbbf24':'var(--t2)')+';font-size:10px"'+(isPlayoffEv?' title="'+(typeof isPlayoffEv==='string'?isPlayoffEv:'Playoffs').replace(/"/g,'&quot;')+'"':'')+'>'+_spDate(e.date)+'</span>';
     h+='<span style="text-align:right;font-weight:'+(aWin?'700':'400')+'">'+_spAbbr(e.away_team)+'</span>';
     h+='<span style="text-align:center">'+_spBadge(e.away_badge,16)+'</span>';
     h+='<span style="text-align:right;font-weight:'+(aWin?'800':'500')+';color:'+(aWin?'#fff':'var(--t2)')+'">'+as3+'</span>';
