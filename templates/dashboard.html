@@ -4815,8 +4815,14 @@ function jumpToSportsYear(yr){
     filterSportsEvents();return;
   }
   window._spYearFilter=yr;
-  var have=window._spAllEvents.some(function(ev){return(ev.dateEvent||'').startsWith(yr)});
-  if(have){filterSportsEvents();return}
+  var yrEvents=window._spAllEvents.filter(function(ev){return(ev.dateEvent||'').startsWith(yr)});
+  // If using cache with few results for this year, also fetch from native API
+  if(yrEvents.length>0&&yrEvents.length<10&&window._spUsingCache&&_hasNativeAPI()){
+    filterSportsEvents();// show what we have immediately
+    _spNativeLoad(yr);// then backfill from API
+    return;
+  }
+  if(yrEvents.length>0){filterSportsEvents();return}
   // MLB/NHL/NFL/NBA: use free native APIs (no 25-game limit)
   if(_hasNativeAPI()&&_spNativeLoad(yr))return;
   // Other sports: TheSportsDB fallback
