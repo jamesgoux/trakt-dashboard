@@ -4493,14 +4493,42 @@ var _spPending=JSON.parse(_irisLSGet('sports_pending')||'[]');
 (function(){if(_spPending.length&&_spRepo.length){var repoIds={};_spRepo.forEach(function(e){repoIds[e.id]=true});var cleaned=_spPending.filter(function(e){return!repoIds[e.id]});if(cleaned.length!==_spPending.length){_spPending=cleaned;_irisLSSet('sports_pending',JSON.stringify(_spPending))}}})();
 var SP=(function(){var ids={};var merged=[];_spRepo.forEach(function(e){ids[e.id]=true;merged.push(e)});_spPending.forEach(function(e){if(!ids[e.id]){ids[e.id]=true;merged.push(e)}});return merged})();
 // Re-read pending events after auth loads (namespace changes with user ID)
+// Also fetch sports.json from Supabase Storage (syncs across Safari ↔ webapp)
 function _spReloadPending(){
+  // 1. Re-read localStorage with correct namespace
   var fresh=JSON.parse(_irisLSGet('sports_pending')||'[]');
-  if(!fresh.length)return;
   var ids={};SP.forEach(function(e){ids[e.id]=true});
   var added=false;
   fresh.forEach(function(e){if(!ids[e.id]){ids[e.id]=true;SP.push(e);added=true}});
   _spPending=fresh;
   if(added&&typeof renderSports==='function')renderSports();
+  // 2. Fetch from Supabase Storage (cross-context sync: Safari ↔ home screen app)
+  if(!_irisSB||!_irisUser)return;
+  _irisSB.auth.getSession().then(function(s){
+    var token=(s.data&&s.data.session)?s.data.session.access_token:'';
+    if(!token)return;
+    var path=_irisUser.id+'/sports.json';
+    return fetch(_IRIS_SB_URL+'/storage/v1/object/user-data/'+path,{
+      headers:{'apikey':_IRIS_SB_ANON,'Authorization':'Bearer '+token}
+    });
+  }).then(function(r){
+    if(!r||!r.ok)return;
+    return r.json();
+  }).then(function(cloudEvents){
+    if(!Array.isArray(cloudEvents)||!cloudEvents.length)return;
+    var ids2={};SP.forEach(function(e){ids2[e.id]=true});
+    var cloudAdded=false;
+    cloudEvents.forEach(function(e){
+      if(!ids2[e.id]){ids2[e.id]=true;SP.push(e);cloudAdded=true}
+    });
+    // Also merge into localStorage so they persist locally
+    if(cloudAdded){
+      var localIds={};_spPending.forEach(function(e){localIds[e.id]=true});
+      cloudEvents.forEach(function(e){if(!localIds[e.id]){_spPending.push(e)}});
+      _irisLSSet('sports_pending',JSON.stringify(_spPending));
+      renderSports();
+    }
+  }).catch(function(){});
 }
 window._spSelected=null;
 
