@@ -4489,9 +4489,17 @@ var _spRepo=D.sp||[];
 var _spPending=JSON.parse(_irisLSGet('sports_pending')||'[]');
 // Migrate old localStorage format (iris_sports) to pending if repo is empty
 (function(){var old=JSON.parse(_irisLSGet('sports')||'[]');if(old.length&&!_spRepo.length){_spPending=old;_irisLSSet('sports_pending',JSON.stringify(_spPending));_irisLSRemove('sports')}})();
-// Clean up: remove from pending any events already in repo data
-(function(){if(_spPending.length&&_spRepo.length){var repoIds={};_spRepo.forEach(function(e){repoIds[e.id]=true});var cleaned=_spPending.filter(function(e){return!repoIds[e.id]});if(cleaned.length!==_spPending.length){_spPending=cleaned;_irisLSSet('sports_pending',JSON.stringify(_spPending))}}})();
-var SP=(function(){var ids={};var merged=[];_spRepo.forEach(function(e){ids[e.id]=true;merged.push(e)});_spPending.forEach(function(e){if(!ids[e.id]){ids[e.id]=true;merged.push(e)}});return merged})();
+// Validate + clean up pending events
+function _spValid(e){return e&&e.id&&e.date&&(e.home_team||e.away_team)}
+(function(){
+  // Remove malformed events from pending
+  var before=_spPending.length;
+  _spPending=_spPending.filter(_spValid);
+  // Remove events already in repo data
+  if(_spPending.length&&_spRepo.length){var repoIds={};_spRepo.forEach(function(e){repoIds[e.id]=true});_spPending=_spPending.filter(function(e){return!repoIds[e.id]})}
+  if(_spPending.length!==before)_irisLSSet('sports_pending',JSON.stringify(_spPending));
+})();
+var SP=(function(){var ids={};var merged=[];_spRepo.forEach(function(e){if(_spValid(e)){ids[e.id]=true;merged.push(e)}});_spPending.forEach(function(e){if(!ids[e.id]){ids[e.id]=true;merged.push(e)}});return merged})();
 // Re-read pending events after auth loads (namespace changes with user ID)
 // Also fetch sports.json from Supabase Storage (syncs across Safari ↔ webapp)
 function _spReloadPending(){
@@ -4516,15 +4524,17 @@ function _spReloadPending(){
     return r.json();
   }).then(function(cloudEvents){
     if(!Array.isArray(cloudEvents)||!cloudEvents.length)return;
+    // Validate: only accept events with required fields
+    var valid=cloudEvents.filter(function(e){return e.id&&e.date&&(e.home_team||e.away_team)});
     var ids2={};SP.forEach(function(e){ids2[e.id]=true});
     var cloudAdded=false;
-    cloudEvents.forEach(function(e){
+    valid.forEach(function(e){
       if(!ids2[e.id]){ids2[e.id]=true;SP.push(e);cloudAdded=true}
     });
     // Also merge into localStorage so they persist locally
     if(cloudAdded){
       var localIds={};_spPending.forEach(function(e){localIds[e.id]=true});
-      cloudEvents.forEach(function(e){if(!localIds[e.id]){_spPending.push(e)}});
+      valid.forEach(function(e){if(!localIds[e.id]){_spPending.push(e)}});
       _irisLSSet('sports_pending',JSON.stringify(_spPending));
       renderSports();
     }
