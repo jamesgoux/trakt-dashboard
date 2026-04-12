@@ -4726,22 +4726,22 @@ function _spLoadMLB(yr){
   }).catch(function(e){if(loadEl){loadEl._loading=false;loadEl.textContent='Failed: '+e.message}});
   return true;
 }
+var _espnNhlTeams={"Anaheim Ducks":25,"Boston Bruins":1,"Buffalo Sabres":2,"Calgary Flames":3,"Carolina Hurricanes":7,"Chicago Blackhawks":4,"Colorado Avalanche":17,"Columbus Blue Jackets":29,"Dallas Stars":9,"Detroit Red Wings":5,"Edmonton Oilers":6,"Florida Panthers":26,"Los Angeles Kings":8,"Minnesota Wild":30,"Montreal Canadiens":10,"Montréal Canadiens":10,"Nashville Predators":27,"New Jersey Devils":11,"New York Islanders":12,"New York Rangers":13,"Ottawa Senators":14,"Philadelphia Flyers":15,"Pittsburgh Penguins":16,"San Jose Sharks":18,"Seattle Kraken":124292,"St. Louis Blues":19,"Tampa Bay Lightning":20,"Toronto Maple Leafs":21,"Utah Mammoth":129764,"Vancouver Canucks":22,"Vegas Golden Knights":37,"Washington Capitals":23,"Winnipeg Jets":28};
 function _spLoadNHL(yr){
-  var abbr=_nhlTeams[window._spTeamName];if(!abbr)return false;
+  // Use ESPN API (CORS-friendly) instead of api-web.nhle.com (CORS-blocked)
+  var tid=_espnNhlTeams[window._spTeamName];if(!tid)return false;
   var loadEl=document.getElementById('sp-ev-loading');
   if(loadEl){loadEl.textContent='Loading '+yr+' NHL season...';loadEl._loading=true}
-  // NHL season spans two years: 2015 → 20152016
-  var nhlSeason=yr+String(parseInt(yr)+1);
-  fetch('https://api-web.nhle.com/v1/club-schedule-season/'+abbr+'/'+nhlSeason)
-  .then(function(r){return r.json()}).then(function(d){
-    var existingIds={};window._spAllEvents.forEach(function(e){existingIds[e.idEvent]=true});var added=0;
-    (d.games||[]).forEach(function(g){
-      var id='nhl_'+g.id;if(existingIds[id])return;
-      var home=(g.homeTeam.placeName||{}).default+' '+(g.homeTeam.commonName||{}).default;
-      var away=(g.awayTeam.placeName||{}).default+' '+(g.awayTeam.commonName||{}).default;
-      window._spAllEvents.push(_spMakeEvent(id,g.gameDate.substring(0,10),(g.startTimeUTC||'').substring(11,16),home,away,g.homeTeam.score,g.awayTeam.score,(g.venue||{}).default||'','NHL','Ice Hockey',yr,''));
-      added++;
-    });_spFinishLoad(added,loadEl);
+  // NHL season spans two years: user picks 2021 → ESPN season=2022 (2021-2022)
+  var espnSeason=String(parseInt(yr)+1);
+  var base='https://site.api.espn.com/apis/site/v2/sports/hockey/nhl/teams/'+tid+'/schedule?season='+espnSeason;
+  Promise.all([
+    fetch(base).then(function(r){return r.json()}),
+    fetch(base+'&seasontype=3').then(function(r){return r.json()}).catch(function(){return{events:[]}})
+  ]).then(function(results){
+    var added=0;
+    results.forEach(function(d){added+=_spParseESPN(d.events,'nhl_','NHL','Ice Hockey',yr)});
+    _spFinishLoad(added,loadEl);
   }).catch(function(e){if(loadEl){loadEl._loading=false;loadEl.textContent='Failed: '+e.message}});
   return true;
 }
