@@ -4494,6 +4494,19 @@ window._spSelected=null;
 
 // League color map
 var _lgColors={'NBA':'#fb923c','MLB':'#3b82f6','NFL':'#4ade80','NHL':'#e2e8f0','MLS':'#a78bfa','NCAA':'#fbbf24','English Premier League':'#4ade80','La Liga':'#fb923c','Bundesliga':'#ef4444','Serie A':'#3b82f6','Ligue 1':'#a78bfa'};
+// Detect playoff games: explicit playoff field OR date-based heuristic
+function _spIsPlayoff(e){
+  var pf=e.playoff||e.strPlayoff||'';
+  if(pf)return pf;
+  var d=e.date||e.dateEvent||'';if(!d||d.length<7)return'';
+  var m=parseInt(d.substring(5,7)),day=parseInt(d.substring(8,10)||'1');
+  var lg=e.league||e.strLeague||'';
+  if((lg==='MLB'||lg==='Baseball')&&m>=10)return'Postseason';
+  if((lg==='NBA'||lg==='Basketball')&&((m===4&&day>=15)||m===5||m===6))return'Playoffs';
+  if((lg==='NHL'||lg==='Ice Hockey')&&((m===4&&day>=15)||m===5||m===6))return'Playoffs';
+  if((lg==='NFL'||lg==='American Football')&&(m===1||(m===2&&day<=15)))return'Playoffs';
+  return'';
+}
 function _lgColor(league){if(!league)return'#0ea5e9';for(var k in _lgColors){if(league.indexOf(k)>=0)return _lgColors[k]}return'#0ea5e9'}
 
 // Auto-commit sports.json to GitHub repo
@@ -4595,8 +4608,12 @@ function loadTeamEvents(teamId,teamName,teamBadge){
     return;
   }
   window._spUsingCache=false;
-  // Uncached team: wait for user to select a year instead of auto-loading current season
-  // This saves API calls (user might want 2015, not 2026)
+  // Auto-load current season for teams with free native APIs (ESPN/MLB/NHL)
+  if(_hasNativeAPI()){
+    _spNativeLoad(new Date().getFullYear().toString());
+    return;
+  }
+  // Other sports (TheSportsDB): wait for user to select a year
   var loadEl=document.getElementById('sp-ev-loading');
   if(loadEl)loadEl.textContent='Select a year to load games';
 }
@@ -4931,8 +4948,8 @@ function filterSportsEvents(){
     var homeBadge=ev.strHomeTeamBadge&&ev.strHomeTeamBadge!=='null'?ev.strHomeTeamBadge:(ev.strHomeTeam===tn?window._spTeamBadge:'');
     var awayBadge=ev.strAwayTeamBadge&&ev.strAwayTeamBadge!=='null'?ev.strAwayTeamBadge:(ev.strAwayTeam===tn?window._spTeamBadge:'');
     h+='<tr id="sp-row-'+ev.idEvent+'" style="cursor:'+(added?'default':'pointer')+';opacity:'+(added?'.35':'1')+';background:'+rowColor+'" '+(added?'':'onclick="toggleSportsQuickSave(\''+ev.idEvent+'\',this)" ')+'data-ev="'+evJson+'">';
-    var isPlayoff=ev.strPlayoff&&ev.strPlayoff.length>0;
-    h+='<td style="color:var(--t2);font-size:12px;padding:8px 4px;white-space:nowrap">'+(isPlayoff?'<span title="'+ev.strPlayoff.replace(/"/g,'&quot;')+'" style="color:#fbbf24;font-size:10px">★ </span>':'')+localDate+'</td>';
+    var isPlayoff=_spIsPlayoff(ev);
+    h+='<td style="color:var(--t2);font-size:12px;padding:8px 4px;white-space:nowrap">'+(isPlayoff?'<span title="'+isPlayoff.replace(/"/g,'&quot;')+'" style="color:#fbbf24;font-size:10px">★ </span>':'')+localDate+'</td>';
     h+='<td style="padding:8px 4px;white-space:nowrap"><span style="display:inline-flex;align-items:center;gap:2px;justify-content:center;width:100%;font-variant-numeric:tabular-nums">';
     h+='<span style="font-weight:'+(hasScore&&as2>hs?'700':'400')+';font-size:11px">'+_spAbbr(ev.strAwayTeam)+'</span>'+_spBadge(awayBadge,18);
     h+='<span style="font-weight:'+(hasScore&&as2>hs?'800':'500')+';min-width:14px;text-align:right">'+(added?'':(hasScore?as2:''))+'</span>';
@@ -5373,10 +5390,10 @@ function renderSports(){
 
   // Playoff stats
   var pfEl=document.getElementById('sp-playoffs');
-  var pfGames=filtered.filter(function(e){return e.playoff&&e.playoff.length>0});
+  var pfGames=filtered.filter(function(e){return _spIsPlayoff(e)});
   if(pfGames.length&&pfEl){
     var pfRounds={};pfGames.forEach(function(e){
-      var note=(e.playoff||'').toUpperCase();
+      var note=(_spIsPlayoff(e)||'').toUpperCase();
       var round='Playoffs';
       if(note.indexOf('FINAL')>=0&&note.indexOf('SEMI')<0&&note.indexOf('CONF')<0)round='Finals';
       else if(note.indexOf('CONFERENCE FINAL')>=0||note.indexOf('CONF. FINAL')>=0)round='Conf. Finals';
@@ -5411,7 +5428,7 @@ function renderSports(){
   var h='';
   sorted.forEach(function(e){
     var icon=e.watch_type==='live'?'🏟️':e.watch_type==='tv'?'📺':'📡';
-    var isPlayoffEv=e.playoff&&e.playoff.length>0;
+    var isPlayoffEv=_spIsPlayoff(e);
     var hWin=Number(e.home_score)>Number(e.away_score);var aWin=Number(e.away_score)>Number(e.home_score);
     var hs2=e.home_score!=null&&e.home_score!==''?e.home_score:'';
     var as3=e.away_score!=null&&e.away_score!==''?e.away_score:'';
@@ -5423,7 +5440,7 @@ function renderSports(){
       else if(isPlayoffEv)rowBg='rgba(251,191,36,.06)';
     }else if(isPlayoffEv){rowBg='rgba(251,191,36,.06)'}
     h+='<div style="display:grid;grid-template-columns:42px 28px 18px 18px auto 18px 18px 28px minmax(20px,80px) 16px 20px;align-items:center;padding:6px 4px;border-bottom:1px solid rgba(255,255,255,.04);font-size:11px;gap:2px;background:'+rowBg+';border-radius:4px;margin:1px 0;font-variant-numeric:tabular-nums">';
-    h+='<span style="color:var(--t2);font-size:10px">'+(isPlayoffEv?'<span style="color:#fbbf24" title="'+e.playoff.replace(/"/g,'&quot;')+'">★</span>':'')+_spDate(e.date)+'</span>';
+    h+='<span style="color:var(--t2);font-size:10px">'+(isPlayoffEv?'<span style="color:#fbbf24" title="'+(typeof isPlayoffEv==='string'?isPlayoffEv:'Playoffs').replace(/"/g,'&quot;')+'">★</span>':'')+_spDate(e.date)+'</span>';
     h+='<span style="text-align:right;font-weight:'+(aWin?'700':'400')+'">'+_spAbbr(e.away_team)+'</span>';
     h+='<span style="text-align:center">'+_spBadge(e.away_badge,16)+'</span>';
     h+='<span style="text-align:right;font-weight:'+(aWin?'800':'500')+';color:'+(aWin?'#fff':'var(--t2)')+'">'+as3+'</span>';
