@@ -748,7 +748,6 @@ if(_IRIS_SB_URL&&_IRIS_SB_URL.indexOf('__')!==0&&typeof supabase!=='undefined'){
       _irisLoadTraktToken();
       _compLoadFromSupabase();
       _strmLoadFromSupabase();
-      if(typeof _spLoadFromSupabase==='function')_spLoadFromSupabase();
       _irisUpdateUI();
     }else if(event==='SIGNED_OUT'){
       _irisUser=null;_irisProfile=null;_irisTraktToken=null;_irisTraktClientId=null;
@@ -764,7 +763,6 @@ if(_IRIS_SB_URL&&_IRIS_SB_URL.indexOf('__')!==0&&typeof supabase!=='undefined'){
       _irisLoadTraktToken();
       _compLoadFromSupabase();
       _strmLoadFromSupabase();
-      if(typeof _spLoadFromSupabase==='function')_spLoadFromSupabase();
       _irisUpdateUI();
     }
   });
@@ -1021,10 +1019,7 @@ function _irisSaveToStorage(filename,data){
       headers:{'apikey':_IRIS_SB_ANON,'Authorization':'Bearer '+token,'Content-Type':'application/json','x-upsert':'true'},
       body:body
     }).then(function(r){
-      if(!r.ok)return r.text().then(function(t){
-        console.error('Storage upload failed:',r.status,t);
-        throw new Error('Storage upload failed: '+r.status);
-      });
+      if(!r.ok)throw new Error('Storage upload failed: '+r.status);
       return r.json();
     });
   });
@@ -4486,42 +4481,20 @@ window._spSelected=null;
 var _lgColors={'NBA':'#fb923c','MLB':'#3b82f6','NFL':'#4ade80','NHL':'#e2e8f0','MLS':'#a78bfa','NCAA':'#fbbf24','English Premier League':'#4ade80','La Liga':'#fb923c','Bundesliga':'#ef4444','Serie A':'#3b82f6','Ligue 1':'#a78bfa'};
 function _lgColor(league){if(!league)return'#0ea5e9';for(var k in _lgColors){if(league.indexOf(k)>=0)return _lgColors[k]}return'#0ea5e9'}
 
-// Auto-commit sports events to Supabase user_preferences
+// Auto-commit sports.json to GitHub repo
 function _spCommitToRepo(){
   if(!_irisRequireAuth('save sports events')){return}
-  if(!_irisSB||!_irisUser)return;
+  // Save to Supabase Storage (replaces GitHub API write)
   var all=SP.slice();
-  _irisSB.from('user_preferences').upsert({
-    user_id:_irisUser.id,
-    key:'sports_events',
-    value:all
-  },{onConflict:'user_id,key'}).then(function(res){
-    if(res.error){console.warn('Sports sync error:',res.error.message);_spToast('Sync error: '+res.error.message,'#ef4444');return}
-    _spPending=[];_irisLSSet('sports_pending','[]');
-    _spToast('✓ Saved to cloud','#4ade80');
-  });
-}
-// Load sports events + teams from Supabase user_preferences (on login)
-function _spLoadFromSupabase(){
-  if(!_irisSB||!_irisUser)return;
-  _irisSB.from('user_preferences').select('key,value').eq('user_id',_irisUser.id).in('key',['sports_events','sports_teams']).then(function(res){
-    if(res.error||!res.data)return;
-    res.data.forEach(function(row){
-      if(row.key==='sports_events'&&Array.isArray(row.value)){
-        // Merge remote events into SP (remote is source of truth)
-        var ids={};row.value.forEach(function(e){ids[e.id]=true});
-        // Keep local pending that aren't in remote
-        var localOnly=_spPending.filter(function(e){return!ids[e.id]});
-        SP=row.value.concat(localOnly);
-        _spRepo=row.value;
-        if(!localOnly.length){_spPending=[];_irisLSSet('sports_pending','[]')}
-        renderSports();
-      }
-      if(row.key==='sports_teams'&&Array.isArray(row.value)){
-        _spTrackedTeams=row.value;
-      }
+  _irisSaveToStorage('sports.json',all)
+    .then(function(){
+      _spPending=[];_irisLSSet('sports_pending','[]');
+      _spToast('✓ Saved to cloud','#4ade80');
+    })
+    .catch(function(e){
+      console.warn('Sports sync error:',e);
+      _spToast('Sync error: '+e.message,'#ef4444');
     });
-  });
 }
 // CSV auto-commit to repo (reuses sports PAT)
 function _csvCommitToRepo(path,content,msg,cb){
@@ -4985,16 +4958,10 @@ function _spAutoTrackTeam(teamName){
   leagueId=leagueMap[league]||'';
   var newTeam={name:teamName,league:league,league_id:leagueId,team_id:teamId,sport:sport};
   _spTrackedTeams.push(newTeam);
-  // Save updated teams list to Supabase user_preferences
-  if(_irisSB&&_irisUser){
-    _irisSB.from('user_preferences').upsert({
-      user_id:_irisUser.id,
-      key:'sports_teams',
-      value:_spTrackedTeams
-    },{onConflict:'user_id,key'}).then(function(res){
-      if(!res.error)_spToast('Tracking '+teamName+' for schedule cache','#4ade80');
-    });
-  }
+  // Save updated teams list to Supabase Storage
+  _irisSaveToStorage('sports_teams.json',_spTrackedTeams)
+    .then(function(){_spToast('Tracking '+teamName+' for schedule cache','#4ade80')})
+    .catch(function(){});
 }
 
 // Adjust UTC event date to local: US evening games have strTime 00:00-09:59 UTC (= previous day local)
