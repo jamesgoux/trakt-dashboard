@@ -4528,10 +4528,10 @@ function quickLoadTeam(teamName){
     loadTeamEvents(cached.team_id,teamName,badge);
     return;
   }
-  // Fallback: live API search for uncached teams
+  // Fallback: live API search for uncached teams (wildcard + supported sports filter)
   document.getElementById('sp-team-results').innerHTML='<div style="color:var(--t2);padding:10px">Loading '+teamName+'...</div>';
-  fetch('https://www.thesportsdb.com/api/v1/json/3/searchteams.php?t='+encodeURIComponent(teamName)).then(function(r){return r.json()}).then(function(d){
-    var teams=d.teams||[];
+  fetch('https://www.thesportsdb.com/api/v1/json/3/searchteams.php?t='+encodeURIComponent('%'+teamName+'%')).then(function(r){return r.json()}).then(function(d){
+    var teams=(d.teams||[]).filter(function(t){return _spSupportedSports[t.strSport]});
     var match=teams.find(function(t){return t.strTeam===teamName})||teams[0];
     if(match){loadTeamEvents(match.idTeam,match.strTeam,match.strTeamBadge)}
     else{document.getElementById('sp-team-results').innerHTML='<div style="color:#ef4444;padding:10px">Team not found — try searching</div>'}
@@ -7571,19 +7571,35 @@ function _irisLoadFrequentTeams(){
   }else{fEl.innerHTML='<div style="color:var(--t2);padding:20px;text-align:center;font-size:13px">Search for a team to add sports events</div>'}
 }
 
+var _spSupportedSports={'Basketball':1,'Baseball':1,'American Football':1,'Ice Hockey':1,'Soccer':1};
+function _spTeamCard(t){
+  return '<div onclick="window._spTeamSport=\''+t.strSport+'\';window._spTeamLeague=\''+t.strLeague+'\';loadTeamEvents(\''+t.idTeam+'\',\''+t.strTeam.replace(/'/g,"\\'")+'\',\''+(t.strTeamBadge||'').replace(/'/g,"\\'")+'\');_irisTeamSelected()" style="padding:14px 16px;margin-bottom:8px;background:var(--sf);border:1px solid rgba(255,255,255,.06);border-radius:10px;cursor:pointer;display:flex;align-items:center;gap:12px;min-height:56px;-webkit-tap-highlight-color:transparent;transition:background .15s" ontouchstart="this.style.background=\'#1e1e3a\'" ontouchend="this.style.background=\'var(--sf)\'">'+(t.strTeamBadge?'<img src="'+t.strTeamBadge+'" style="width:32px;height:32px;object-fit:contain">':'')+'<div><div style="font-weight:600;font-size:15px">'+t.strTeam+'</div><div style="font-size:12px;color:var(--t2)">'+t.strSport+' · '+t.strLeague+'</div></div></div>';
+}
 function _irisSportsSearch(q){
   if(!q||q.length<2){document.getElementById('sp-team-results').innerHTML='';_irisLoadFrequentTeams();return}
-  document.getElementById('sp-team-results').innerHTML='<div style="color:var(--t2);padding:10px">Searching...</div>';
-  fetch('https://www.thesportsdb.com/api/v1/json/3/searchteams.php?t='+encodeURIComponent(q)).then(function(r){return r.json()}).then(function(d){
-    var teams=d.teams||[];
-    var el=document.getElementById('sp-team-results');
-    if(!teams.length){el.innerHTML='<div style="color:var(--t2);padding:10px">No teams found. Try the full name (e.g. "Los Angeles Lakers")</div>';return}
-    var h='';teams.slice(0,8).forEach(function(t){
-      h+='<div onclick="window._spTeamSport=\''+t.strSport+'\';window._spTeamLeague=\''+t.strLeague+'\';loadTeamEvents(\''+t.idTeam+'\',\''+t.strTeam.replace(/'/g,"\\'")+'\',\''+(t.strTeamBadge||'').replace(/'/g,"\\'")+'\');_irisTeamSelected()" style="padding:14px 16px;margin-bottom:8px;background:var(--sf);border:1px solid rgba(255,255,255,.06);border-radius:10px;cursor:pointer;display:flex;align-items:center;gap:12px;min-height:56px;-webkit-tap-highlight-color:transparent;transition:background .15s" ontouchstart="this.style.background=\'#1e1e3a\'" ontouchend="this.style.background=\'var(--sf)\'">';
-      if(t.strTeamBadge)h+='<img src="'+t.strTeamBadge+'" style="width:32px;height:32px;object-fit:contain">';
-      h+='<div><div style="font-weight:600;font-size:15px">'+t.strTeam+'</div><div style="font-size:12px;color:var(--t2)">'+t.strSport+' \u00b7 '+t.strLeague+'</div></div></div>';
-    });el.innerHTML=h;
-  }).catch(function(){document.getElementById('sp-team-results').innerHTML='<div style="color:#ef4444;padding:10px">Search failed</div>'});
+  var el=document.getElementById('sp-team-results');
+  // Instant: search local team dictionaries (NBA, NFL, MLB, NHL)
+  var ql=q.toLowerCase(),localHits=[];
+  var localLists=[{d:_nbaTeams,league:'NBA',sport:'Basketball'},{d:_nflTeams,league:'NFL',sport:'American Football'},{d:_mlbTeams,league:'MLB',sport:'Baseball'},{d:_nhlTeams,league:'NHL',sport:'Ice Hockey'}];
+  localLists.forEach(function(ll){Object.keys(ll.d).forEach(function(name){
+    if(name.toLowerCase().indexOf(ql)>=0)localHits.push({strTeam:name,strLeague:ll.league,strSport:ll.sport,idTeam:ll.d[name],strTeamBadge:''});
+  })});
+  // Show local hits immediately while API loads
+  if(localHits.length){var h='';localHits.slice(0,6).forEach(function(t){h+=_spTeamCard(t)});el.innerHTML=h}
+  else{el.innerHTML='<div style="color:var(--t2);padding:10px">Searching...</div>'}
+  // Also search TheSportsDB API with wildcard for broader results (badges, other leagues)
+  fetch('https://www.thesportsdb.com/api/v1/json/3/searchteams.php?t='+encodeURIComponent('%'+q+'%')).then(function(r){return r.json()}).then(function(d){
+    var apiTeams=(d.teams||[]).filter(function(t){return _spSupportedSports[t.strSport]});
+    // Merge: local hits first (no badges), then API results (with badges), deduplicate by name
+    var seen={};var merged=[];
+    apiTeams.forEach(function(t){if(!seen[t.strTeam]){seen[t.strTeam]=1;merged.push(t)}});
+    localHits.forEach(function(t){if(!seen[t.strTeam]){seen[t.strTeam]=1;merged.push(t)}});
+    if(!merged.length){el.innerHTML='<div style="color:var(--t2);padding:10px">No teams found for supported sports</div>';return}
+    var h='';merged.slice(0,8).forEach(function(t){h+=_spTeamCard(t)});el.innerHTML=h;
+  }).catch(function(){
+    // If API fails but we have local hits, keep showing them
+    if(!localHits.length)el.innerHTML='<div style="color:#ef4444;padding:10px">Search failed</div>';
+  });
 }
 
 function _irisTeamSelected(){
