@@ -749,6 +749,7 @@ if(_IRIS_SB_URL&&_IRIS_SB_URL.indexOf('__')!==0&&typeof supabase!=='undefined'){
       _irisLoadTraktToken();
       _compLoadFromSupabase();
       _strmLoadFromSupabase();
+      if(typeof _spReloadPending==='function')_spReloadPending();
       _irisUpdateUI();
     }else if(event==='SIGNED_OUT'){
       _irisUser=null;_irisProfile=null;_irisTraktToken=null;_irisTraktClientId=null;
@@ -764,6 +765,7 @@ if(_IRIS_SB_URL&&_IRIS_SB_URL.indexOf('__')!==0&&typeof supabase!=='undefined'){
       _irisLoadTraktToken();
       _compLoadFromSupabase();
       _strmLoadFromSupabase();
+      if(typeof _spReloadPending==='function')_spReloadPending();
       _irisUpdateUI();
     }
   });
@@ -4476,6 +4478,16 @@ var _spPending=JSON.parse(_irisLSGet('sports_pending')||'[]');
 // Migrate old localStorage format (iris_sports) to pending if repo is empty
 (function(){var old=JSON.parse(_irisLSGet('sports')||'[]');if(old.length&&!_spRepo.length){_spPending=old;_irisLSSet('sports_pending',JSON.stringify(_spPending));_irisLSRemove('sports')}})();
 var SP=(function(){var ids={};var merged=[];_spRepo.forEach(function(e){ids[e.id]=true;merged.push(e)});_spPending.forEach(function(e){if(!ids[e.id]){ids[e.id]=true;merged.push(e)}});return merged})();
+// Re-read pending events after auth loads (namespace changes with user ID)
+function _spReloadPending(){
+  var fresh=JSON.parse(_irisLSGet('sports_pending')||'[]');
+  if(!fresh.length)return;
+  var ids={};SP.forEach(function(e){ids[e.id]=true});
+  var added=false;
+  fresh.forEach(function(e){if(!ids[e.id]){ids[e.id]=true;SP.push(e);added=true}});
+  _spPending=fresh;
+  if(added&&typeof renderSports==='function')renderSports();
+}
 window._spSelected=null;
 
 // League color map
