@@ -4477,6 +4477,8 @@ var _spRepo=D.sp||[];
 var _spPending=JSON.parse(_irisLSGet('sports_pending')||'[]');
 // Migrate old localStorage format (iris_sports) to pending if repo is empty
 (function(){var old=JSON.parse(_irisLSGet('sports')||'[]');if(old.length&&!_spRepo.length){_spPending=old;_irisLSSet('sports_pending',JSON.stringify(_spPending));_irisLSRemove('sports')}})();
+// Clean up: remove from pending any events already in repo data
+(function(){if(_spPending.length&&_spRepo.length){var repoIds={};_spRepo.forEach(function(e){repoIds[e.id]=true});var cleaned=_spPending.filter(function(e){return!repoIds[e.id]});if(cleaned.length!==_spPending.length){_spPending=cleaned;_irisLSSet('sports_pending',JSON.stringify(_spPending))}}})();
 var SP=(function(){var ids={};var merged=[];_spRepo.forEach(function(e){ids[e.id]=true;merged.push(e)});_spPending.forEach(function(e){if(!ids[e.id]){ids[e.id]=true;merged.push(e)}});return merged})();
 // Re-read pending events after auth loads (namespace changes with user ID)
 function _spReloadPending(){
@@ -4497,11 +4499,12 @@ function _lgColor(league){if(!league)return'#0ea5e9';for(var k in _lgColors){if(
 // Auto-commit sports.json to GitHub repo
 function _spCommitToRepo(){
   if(!_irisRequireAuth('save sports events')){return}
-  // Save to Supabase Storage (replaces GitHub API write)
+  // Save to Supabase Storage (cloud backup)
   var all=SP.slice();
   _irisSaveToStorage('sports.json',all)
     .then(function(){
-      _spPending=[];_irisLSSet('sports_pending','[]');
+      // Keep events in _spPending (localStorage) — they're the source of truth
+      // until the pipeline includes them in D.sp. Dedup handles overlap.
       _spToast('✓ Saved to cloud','#4ade80');
     })
     .catch(function(e){
