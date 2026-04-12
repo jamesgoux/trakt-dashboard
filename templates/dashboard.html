@@ -4501,10 +4501,34 @@ function _spIsPlayoff(e){
   var d=e.date||e.dateEvent||'';if(!d||d.length<7)return'';
   var m=parseInt(d.substring(5,7)),day=parseInt(d.substring(8,10)||'1');
   var lg=e.league||e.strLeague||'';
-  if((lg==='MLB'||lg==='Baseball')&&m>=10)return'Postseason';
-  if((lg==='NBA'||lg==='Basketball')&&((m===4&&day>=15)||m===5||m===6))return'Playoffs';
-  if((lg==='NHL'||lg==='Ice Hockey')&&((m===4&&day>=15)||m===5||m===6))return'Playoffs';
-  if((lg==='NFL'||lg==='American Football')&&(m===1||(m===2&&day<=15)))return'Playoffs';
+  // MLB: Oct→Nov postseason with approximate round detection
+  if((lg==='MLB'||lg==='Baseball')&&(m>=10)){
+    if(m>=11||day>=24)return'World Series';
+    if(day>=14)return'Championship Series';
+    if(day>=7)return'Division Series';
+    return'Wild Card';
+  }
+  // NBA: mid-Apr→Jun with approximate round detection
+  if((lg==='NBA'||lg==='Basketball')&&((m===4&&day>=15)||m===5||m===6)){
+    if(m===6)return'NBA Finals';
+    if(m===5&&day>=16)return'Conference Finals';
+    if(m===5)return'Conference Semis';
+    return'1st Round';
+  }
+  // NHL: mid-Apr→Jun with approximate round detection
+  if((lg==='NHL'||lg==='Ice Hockey')&&((m===4&&day>=15)||m===5||m===6)){
+    if(m===6)return'Stanley Cup Final';
+    if(m===5&&day>=16)return'Conference Finals';
+    if(m===5)return'2nd Round';
+    return'1st Round';
+  }
+  // NFL: Jan→Feb with round detection
+  if((lg==='NFL'||lg==='American Football')&&(m===1||(m===2&&day<=15))){
+    if(m===2)return'Super Bowl';
+    if(day>=24)return'Conference Championship';
+    if(day>=16)return'Divisional';
+    return'Wild Card';
+  }
   return'';
 }
 function _lgColor(league){if(!league)return'#0ea5e9';for(var k in _lgColors){if(league.indexOf(k)>=0)return _lgColors[k]}return'#0ea5e9'}
@@ -5393,16 +5417,25 @@ function renderSports(){
   var pfGames=filtered.filter(function(e){return _spIsPlayoff(e)});
   if(pfGames.length&&pfEl){
     var pfRounds={};pfGames.forEach(function(e){
-      var note=(_spIsPlayoff(e)||'').toUpperCase();
-      var round='Playoffs';
-      if(note.indexOf('FINAL')>=0&&note.indexOf('SEMI')<0&&note.indexOf('CONF')<0)round='Finals';
-      else if(note.indexOf('CONFERENCE FINAL')>=0||note.indexOf('CONF. FINAL')>=0)round='Conf. Finals';
-      else if(note.indexOf('SEMIFINAL')>=0||note.indexOf('2ND ROUND')>=0)round='Semis';
-      else if(note.indexOf('1ST ROUND')>=0||note.indexOf('FIRST ROUND')>=0)round='1st Round';
-      else if(note.indexOf('WILD CARD')>=0)round='Wild Card';
-      else if(note.indexOf('DIVISIONAL')>=0||note.indexOf('DIVISION')>=0)round='Divisional';
-      else if(note.indexOf('CHAMPIONSHIP')>=0||note.indexOf('CONF')>=0)round='Championship';
-      else if(note.indexOf('SUPER BOWL')>=0||note.indexOf('WORLD SERIES')>=0||note.indexOf('STANLEY CUP')>=0)round='Finals';
+      // Use the label directly from _spIsPlayoff (already specific for both
+      // ESPN-sourced notes and date-heuristic games)
+      var note=_spIsPlayoff(e)||'Playoffs';
+      // Normalize ESPN verbose notes to shorter labels
+      var n=note.toUpperCase();
+      var round=note;
+      if(n.indexOf('SUPER BOWL')>=0)round='Super Bowl';
+      else if(n.indexOf('WORLD SERIES')>=0)round='World Series';
+      else if(n.indexOf('STANLEY CUP')>=0&&n.indexOf('FINAL')>=0)round='Stanley Cup Final';
+      else if(n.indexOf('NBA FINAL')>=0)round='NBA Finals';
+      else if(n.indexOf('CONFERENCE CHAMPIONSHIP')>=0||n.indexOf('CONF. CHAMPIONSHIP')>=0)round='Conf. Championship';
+      else if(n.indexOf('CONFERENCE FINAL')>=0||n.indexOf('CONF. FINAL')>=0)round='Conference Finals';
+      else if(n.indexOf('CONFERENCE SEMI')>=0||n.indexOf('CONF. SEMI')>=0)round='Conference Semis';
+      else if(n.indexOf('CHAMPIONSHIP SERIES')>=0||n.indexOf('NLCS')>=0||n.indexOf('ALCS')>=0)round='Championship Series';
+      else if(n.indexOf('DIVISION SERIES')>=0||n.indexOf('NLDS')>=0||n.indexOf('ALDS')>=0)round='Division Series';
+      else if(n.indexOf('DIVISIONAL')>=0)round='Divisional';
+      else if(n.indexOf('WILD CARD')>=0)round='Wild Card';
+      else if(n.indexOf('1ST ROUND')>=0||n.indexOf('FIRST ROUND')>=0)round='1st Round';
+      else if(n.indexOf('2ND ROUND')>=0||n.indexOf('SECOND ROUND')>=0)round='2nd Round';
       if(!pfRounds[round])pfRounds[round]={c:0,w:0,l:0,live:0};
       pfRounds[round].c++;
       if(e.watch_type==='live')pfRounds[round].live++;
@@ -5411,7 +5444,7 @@ function renderSports(){
         if(myS>oppS)pfRounds[round].w++;else if(myS<oppS)pfRounds[round].l++;
       }
     });
-    var pfOrder=['1st Round','Wild Card','Divisional','Semis','Championship','Conf. Finals','Finals','Playoffs'];
+    var pfOrder=['Wild Card','1st Round','Division Series','Divisional','2nd Round','Conference Semis','Championship Series','Conference Finals','Conf. Championship','NBA Finals','Stanley Cup Final','World Series','Super Bowl','Playoffs','Postseason'];
     var pfKeys=Object.keys(pfRounds).sort(function(a,b){return pfOrder.indexOf(a)-pfOrder.indexOf(b)});
     var pfLive=pfGames.filter(function(e){return e.watch_type==='live'}).length;
     var ph='<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px"><span style="color:#fbbf24;font-size:16px">★</span><span style="font-size:13px;font-weight:600;color:#fbbf24">'+pfGames.length+' Playoff Game'+(pfGames.length!==1?'s':'')+'</span>';
