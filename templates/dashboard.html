@@ -7,6 +7,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <link rel="apple-touch-icon" href="iris-icon.png">
 <link rel="icon" type="image/svg+xml" href="iris-icon.svg">
+<link rel="manifest" href="manifest.json">
 <title>Iris // jamesgoux</title>
 <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
@@ -286,6 +287,12 @@ body{overflow-x:hidden}
 .fbtn select{font-size:13px;padding:0 8px;line-height:44px;height:44px}
 .hbtn{min-height:44px;padding:8px 12px;font-size:20px}
 #crw-grid{column-count:2;column-gap:14px}
+}
+@media(max-width:932px) and (orientation:landscape){
+body,html{overflow-x:hidden!important;max-width:100vw}
+.dash{overflow-x:hidden;max-width:100vw}
+.cd{overflow:hidden;max-width:100%}
+.g2{grid-template-columns:1fr}
 }
 .iris-loader{position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity .5s ease;pointer-events:auto}
 .iris-loader.fade-out{opacity:0;pointer-events:none}
@@ -5436,9 +5443,11 @@ function renderSports(){
       else if(n.indexOf('WILD CARD')>=0)round='Wild Card';
       else if(n.indexOf('1ST ROUND')>=0||n.indexOf('FIRST ROUND')>=0)round='1st Round';
       else if(n.indexOf('2ND ROUND')>=0||n.indexOf('SECOND ROUND')>=0)round='2nd Round';
-      if(!pfRounds[round])pfRounds[round]={c:0,w:0,l:0,live:0};
+      if(!pfRounds[round])pfRounds[round]={c:0,w:0,l:0,live:0,tv:0,remote:0};
       pfRounds[round].c++;
       if(e.watch_type==='live')pfRounds[round].live++;
+      else if(e.watch_type==='tv')pfRounds[round].tv++;
+      else pfRounds[round].remote++;
       if(e.my_team&&e.home_score!=null&&e.home_score!==''){
         var myH=e.my_team===e.home_team;var myS=Number(myH?e.home_score:e.away_score);var oppS=Number(myH?e.away_score:e.home_score);
         if(myS>oppS)pfRounds[round].w++;else if(myS<oppS)pfRounds[round].l++;
@@ -5446,12 +5455,22 @@ function renderSports(){
     });
     var pfOrder=['Wild Card','1st Round','Division Series','Divisional','2nd Round','Conference Semis','Championship Series','Conference Finals','Conf. Championship','NBA Finals','Stanley Cup Final','World Series','Super Bowl','Playoffs','Postseason'];
     var pfKeys=Object.keys(pfRounds).sort(function(a,b){return pfOrder.indexOf(a)-pfOrder.indexOf(b)});
-    var pfLive=pfGames.filter(function(e){return e.watch_type==='live'}).length;
-    var ph='<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px"><span style="color:#fbbf24;font-size:16px">★</span><span style="font-size:13px;font-weight:600;color:#fbbf24">'+pfGames.length+' Playoff Game'+(pfGames.length!==1?'s':'')+'</span>';
-    if(pfLive)ph+='<span style="font-size:11px;color:var(--t2)">('+pfLive+' live)</span>';
-    ph+='</div><div style="display:flex;flex-wrap:wrap;gap:6px">';
-    pfKeys.forEach(function(r){var d=pfRounds[r];ph+='<div style="background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.15);border-radius:8px;padding:8px 12px;min-width:80px"><div style="font-size:12px;font-weight:600;color:#fbbf24">'+r+'</div><div style="font-size:18px;font-weight:700;color:var(--tx)">'+d.c+'</div><div style="font-size:10px;color:var(--t2)">'+(d.w?d.w+'W ':'')+(d.l?d.l+'L':'')+(d.live?' · '+d.live+'🏟️':'')+'</div></div>'});
-    ph+='</div>';
+    var ph='<h3 style="margin:0 0 8px"><span class="i">★</span>Playoffs <span style="font-size:12px;font-weight:400;color:var(--t2)">'+pfGames.length+' game'+(pfGames.length!==1?'s':'')+'</span></h3>';
+    ph+='<table style="width:100%;font-size:12px;border-collapse:collapse"><thead><tr style="color:var(--t2);font-size:10px;text-transform:uppercase;letter-spacing:.5px">';
+    ph+='<th style="text-align:left;padding:4px 0;font-weight:500">Round</th><th style="width:28px;text-align:center;padding:4px 2px;font-weight:500">#</th><th style="width:42px;text-align:center;padding:4px 2px;font-weight:500">W-L</th><th style="width:24px;text-align:center;padding:4px 2px;font-weight:500">🏟️</th><th style="width:24px;text-align:center;padding:4px 2px;font-weight:500">📺</th><th style="width:24px;text-align:center;padding:4px 2px;font-weight:500">📡</th></tr></thead><tbody>';
+    pfKeys.forEach(function(r){
+      var d=pfRounds[r];
+      var wl=d.w+'-'+d.l;
+      ph+='<tr style="border-top:1px solid rgba(255,255,255,.06)">';
+      ph+='<td style="padding:6px 0;color:#fbbf24;font-weight:600">'+r+'</td>';
+      ph+='<td style="text-align:center;font-weight:700;padding:6px 2px">'+d.c+'</td>';
+      ph+='<td style="text-align:center;padding:6px 2px;color:var(--t2)">'+wl+'</td>';
+      ph+='<td style="text-align:center;padding:6px 2px;color:'+(d.live?'var(--tx)':'rgba(255,255,255,.15)')+'">'+d.live+'</td>';
+      ph+='<td style="text-align:center;padding:6px 2px;color:'+(d.tv?'var(--tx)':'rgba(255,255,255,.15)')+'">'+d.tv+'</td>';
+      ph+='<td style="text-align:center;padding:6px 2px;color:'+(d.remote?'var(--tx)':'rgba(255,255,255,.15)')+'">'+d.remote+'</td>';
+      ph+='</tr>';
+    });
+    ph+='</tbody></table>';
     pfEl.innerHTML=ph;pfEl.style.display='';
   }else if(pfEl){pfEl.style.display='none'}
 
@@ -9837,6 +9856,10 @@ function _rz(){clearTimeout(_rzt);_rzt=setTimeout(function(){mob=window.innerWid
   // Resize only visible charts (skip hidden sections for performance)
   ch.forEach(function(c){try{var dom=c.getDom();if(dom&&dom.offsetParent)c.resize()}catch(e){}});
 },200)}
+// Lock to portrait in standalone/PWA mode
+if(window.navigator.standalone||window.matchMedia('(display-mode:standalone)').matches){
+  try{screen.orientation.lock('portrait').catch(function(){})}catch(e){}
+}
 window.addEventListener('resize',function(){
   var w=window.innerWidth;if(Math.abs(w-_lastW)>50){_lastW=w;clearTimeout(_rzt);_rzt=setTimeout(function(){mob=window.innerWidth<768;render()},400)}else{_rz()}
 });
