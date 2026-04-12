@@ -576,7 +576,7 @@ Drop GameTrack games.csv or <span style="color:#6366f1;text-decoration:underline
 <div style="flex:1;position:relative">
 <input type="text" id="iris-s-input" placeholder="Search movies & shows…" autocomplete="off" autocorrect="off" spellcheck="false" class="un-search-input" style="padding-left:14px">
 </div>
-<button id="iris-s-clear" onclick="_irisSearchClear()" style="display:none;flex-shrink:0;padding:8px;color:var(--t2);background:none;border:none;font-size:18px;cursor:pointer">✕</button>
+<button id="iris-s-clear" onclick="_irisSearchClearOrClose()" style="display:none;flex-shrink:0;padding:8px;color:var(--t2);background:none;border:none;font-size:18px;cursor:pointer">✕</button>
 </div>
 <div id="iris-s-tabs" style="display:flex;padding:0 16px;gap:0;border-bottom:1px solid rgba(255,255,255,.06)">
 <button id="iris-s-tab-media" onclick="_irisSetTab('media')" style="flex:1;padding:10px 0;background:none;border:none;border-bottom:2px solid var(--ac);color:var(--ac);font-size:13px;font-weight:700;cursor:pointer;transition:color .2s,border-color .2s">Movies & TV</button>
@@ -7737,6 +7737,11 @@ function _irisSearchClear(){
   }
   input.focus();
 }
+function _irisSearchClearOrClose(){
+  // On sports events/confirm sub-views, ✕ closes the overlay (input is hidden)
+  if(_irisActiveTab==='sports'&&_irisSportsView!=='teams'){_irisCloseSearch();return}
+  _irisSearchClear();
+}
 
 function _irisSearchSportsBack(){
   _irisSportsView='teams';
@@ -7800,6 +7805,8 @@ function _irisTeamSelected(){
   document.getElementById('iris-s-tabs').style.display='none';
   var input=document.getElementById('iris-s-input');
   input.style.display='none';
+  // Show ✕ as close button (input is hidden, so ✕ closes overlay)
+  document.getElementById('iris-s-clear').style.display='block';
 }
 
 // Unified search input handler
