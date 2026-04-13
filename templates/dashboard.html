@@ -6990,11 +6990,20 @@ function _irisReRenderPeople(){
   }catch(e){console.warn('People re-render:',e)}
 }
 
-function _traktSync(epTraktId,watchedAt,onDone){
+function _traktSync(epTraktId,watchedAt,onDone,slug,season,episode){
   var auth=_irisGetTraktAuth();
   var cid=auth.clientId,tok=auth.accessToken;
   if(!cid||!tok){console.warn('Trakt credentials not available');if(onDone)onDone(false);return}
-  var body=JSON.stringify({episodes:[{ids:{trakt:epTraktId},watched_at:watchedAt}]});
+  var body;
+  if(epTraktId){
+    // Preferred: sync by episode Trakt ID
+    body=JSON.stringify({episodes:[{ids:{trakt:epTraktId},watched_at:watchedAt}]});
+  }else if(slug&&season&&episode){
+    // Fallback: sync by show slug + season/episode number
+    body=JSON.stringify({shows:[{ids:{slug:slug},seasons:[{number:season,episodes:[{number:episode,watched_at:watchedAt}]}]}]});
+  }else{
+    console.warn('Trakt sync: no episode ID or slug/season/episode');if(onDone)onDone(false);return;
+  }
   fetch('https://api.trakt.tv/sync/history',{method:'POST',headers:{'Content-Type':'application/json','trakt-api-version':'2','trakt-api-key':cid,'Authorization':'Bearer '+tok},body:body})
   .then(function(r){if(!r.ok)throw new Error('Trakt '+r.status);return r.json()})
   .then(function(d){console.log('Trakt synced:',d);if(onDone)onDone(true)})
@@ -7304,7 +7313,7 @@ function markWatchedAt(slug,season,episode,epTraktId,when){
     _unScrollPos=document.getElementById('un-overlay').scrollTop;
     openUpNext(true);
   }
-  if(epTraktId)_traktSync(epTraktId,watchedAt);
+  _traktSync(epTraktId,watchedAt,null,slug,season,episode);
   // Instant stats for episode
   _irisInjectWatch('episode',{slug:slug,title:showTitle||slug,year:'',runtime:showObj?showObj.ep_runtime||0:0,genres:[],tmdbId:tmdbId||'',season:season,episode:episode});
 }
@@ -7406,7 +7415,7 @@ function markWatched(slug,season,episode,epTraktId,btn){
     card.parentNode.insertBefore(cw,card);cw.appendChild(card);
     requestAnimationFrame(function(){requestAnimationFrame(function(){cw.style.maxHeight='0'})});
     setTimeout(function(){cw.remove()},500);
-    if(epTraktId)_traktSync(epTraktId,watchedAt);
+    _traktSync(epTraktId,watchedAt,null,slug,season,episode);
     // Instant stats for episode
     _irisInjectWatch('episode',{slug:slug,title:showObj?showObj.show:slug,year:'',runtime:showObj?showObj.ep_runtime||0:0,genres:[],tmdbId:card.dataset.tmdb||'',season:season,episode:episode});
     return;
@@ -7455,7 +7464,7 @@ function markWatched(slug,season,episode,epTraktId,btn){
       card.style.opacity='1';card.style.pointerEvents='';
     }
   },250);
-  if(epTraktId)_traktSync(epTraktId,watchedAt);
+  _traktSync(epTraktId,watchedAt,null,slug,season,episode);
   // Instant stats for episode
   var _showTitle2=card.querySelector('.un-show');
   _irisInjectWatch('episode',{slug:slug,title:_showTitle2?_showTitle2.textContent:slug,year:'',runtime:showObj?showObj.ep_runtime||0:0,genres:[],tmdbId:card.dataset.tmdb||(showObj?showObj.tmdb_id:''),season:season,episode:episode});
