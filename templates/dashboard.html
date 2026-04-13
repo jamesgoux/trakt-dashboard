@@ -8014,13 +8014,35 @@ function _unDoSearch(query){
   if(_unCurrentView!=='search')_unSetView('search',{query:query});
   if(_searchCache[query]){_unShowSearchResults(query,_searchCache[query]);return}
   var el=document.getElementById('un-search-results');
-  el.innerHTML='<div class="un-loading">Searching Trakt…</div>';
-  _traktGet('/search/movie,show?query='+encodeURIComponent(query)+'&extended=full&limit=25')
-  .then(function(results){
-    _searchCache[query]=results;
-    if(_unCurrentView==='search')_unShowSearchResults(query,results);
-  })
-  .catch(function(e){
+  el.innerHTML='<div class="un-loading">Searching…</div>';
+  var tk=(D.un||{}).tmdb_key||'';
+  // Search Trakt + TMDB in parallel (TMDB catches shorts/obscure films Trakt misses)
+  var traktP=_traktGet('/search/movie,show?query='+encodeURIComponent(query)+'&extended=full&limit=25');
+  var tmdbP=tk?fetch('https://api.themoviedb.org/3/search/multi?query='+encodeURIComponent(query)+'&api_key='+tk+'&page=1')
+    .then(function(r){return r.json()}).catch(function(){return{results:[]}}):Promise.resolve({results:[]});
+  Promise.all([traktP,tmdbP]).then(function(both){
+    var traktResults=both[0]||[];
+    var tmdbResults=(both[1].results||[]).filter(function(m){return m.media_type==='movie'||m.media_type==='tv'});
+    // Build set of Trakt TMDB IDs to find gaps
+    var traktTmdbIds={};
+    traktResults.forEach(function(r){
+      var item=r.movie||r.show||{};
+      var tid=(item.ids||{}).tmdb;
+      if(tid)traktTmdbIds[tid]=true;
+    });
+    // Add TMDB-only results as lightweight entries (will resolve on tap)
+    tmdbResults.slice(0,10).forEach(function(m){
+      if(traktTmdbIds[m.id])return;// already in Trakt results
+      var type=m.media_type==='movie'?'movie':'show';
+      var entry={type:type,score:0};
+      entry[type]={title:m.title||m.name||'',year:parseInt((m.release_date||m.first_air_date||'').substring(0,4))||null,
+        ids:{tmdb:m.id,slug:null,trakt:null},overview:m.overview||'',
+        _poster:m.poster_path?'https://image.tmdb.org/t/p/w185'+m.poster_path:'',_fromTmdb:true};
+      traktResults.push(entry);
+    });
+    _searchCache[query]=traktResults;
+    if(_unCurrentView==='search')_unShowSearchResults(query,traktResults);
+  }).catch(function(e){
     if(_unCurrentView==='search'){
       el.innerHTML='<div class="un-empty">Search failed: '+e.message+'</div>';
     }
@@ -8065,8 +8087,10 @@ function _unShowSearchResults(query,results){
     h+='</div>';
     h+='<div class="un-sr-arrow">›</div>';
     h+='</div>';
-    // Async poster load from TMDB
-    if(tmdbId){
+    // Poster: use pre-fetched TMDB poster if available, else async load
+    if(item._poster){
+      (function(idx,url){setTimeout(function(){var ph=document.getElementById('srp-'+idx);if(ph){var img=document.createElement('img');img.className='un-sr-poster';img.src=url;img.onerror=function(){};ph.replaceWith(img)}},0)})(i,item._poster);
+    }else if(tmdbId){
       var tk=(D.un||{}).tmdb_key||'';
       if(tk){
         var _idx=i,_type=r.type;
