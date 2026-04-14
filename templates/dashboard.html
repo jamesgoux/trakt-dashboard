@@ -7528,8 +7528,6 @@ function removeRecent(epId,btn){
   requestAnimationFrame(function(){requestAnimationFrame(function(){wrap.style.maxHeight='0'})});
   setTimeout(function(){wrap.remove()},500);
   if(!slug)return;
-  // Persist removal in localStorage
-  _markRemoved(slug,season,episode);
   // Clear from _unWatched
   var lsKey=slug+'|'+season+'|'+episode;
   if(_unWatched[lsKey]){delete _unWatched[lsKey];_irisLSSet('un_watched',JSON.stringify(_unWatched))}
@@ -7538,6 +7536,10 @@ function removeRecent(epId,btn){
   if(ud.recent){ud.recent=ud.recent.filter(function(r){return !(r.slug===slug&&r.season==season&&r.episode==episode)})}
   // Clear history cache
   delete _epHistCache[slug+'|'+season+'|'+episode];
+  // Clear any removal marker for this episode so it isn't blocked from Up Next
+  // (the recently watched card is already removed from D.un.recent above)
+  delete _unRemoved[slug+'|'+season+'|'+episode];
+  _irisLSSet('un_removed',JSON.stringify(_unRemoved));
   // Move episode back to Up Next queue with metadata restoration
   var shows=ud.shows||[];
   var existing=shows.find(function(x){return x.slug===slug});
