@@ -6146,13 +6146,11 @@ function _renderUpNext(prerender){
     }
     return true;
   });
-  // Companion filter: if active, only show series tagged with that companion
+  // Companion filter: always build all cards in DOM, apply filter visually via _compApplyFilter()
+  // (Data-level filtering was removed — it caused cards to vanish from the DOM on background re-renders,
+  // making them unrecoverable when the filter was later cleared or changed)
   _compBuildTintMap();
   var _compAll=_compGetAll();
-  if(window._compFilter){
-    shows=shows.filter(function(s){var c=_compAll[s.slug];return c&&c.indexOf(window._compFilter)>=0});
-    recent=recent.filter(function(s){var c=_compAll[s.slug];return c&&c.indexOf(window._compFilter)>=0});
-  }
   var el=document.getElementById('un-content');
   var oldFg=document.getElementById('un-detail-fg');if(oldFg){oldFg.remove();document.getElementById('un-overlay').style.overflowY='auto'}
   if(!shows.length&&!recent.length){el.innerHTML='<div style="text-align:center;padding:60px;color:var(--t2)"><div style="font-size:40px;margin-bottom:12px">📺</div><div style="font-size:16px;margin-bottom:8px">No Up Next data yet</div><div style="font-size:12px;max-width:400px;margin:0 auto">Trigger a refresh from the <a href="https://github.com/jamesgoux/iris-stats/actions" style="color:var(--sp)">Actions tab</a>.</div></div>';if(prerender)return;document.getElementById('un-overlay').style.display='';_lockBody();return}
@@ -6245,6 +6243,9 @@ function _renderUpNext(prerender){
   }
   } // end default view
   el.innerHTML=h;
+  // Apply companion filter visually (hide non-matching cards via display:none)
+  // This runs AFTER innerHTML is set so all cards exist in the DOM
+  if(window._compFilter)_compApplyFilter();
   var ov=document.getElementById('un-overlay');
   _setupRWVirtualScroll(ov);
   // Pre-render mode: content built into hidden overlay, stop here
