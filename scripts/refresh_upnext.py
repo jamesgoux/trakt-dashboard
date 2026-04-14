@@ -279,13 +279,20 @@ def run():
             advanced = False
             if tmdb_id_val:
                 ep_info = fetch_tmdb_episode(tmdb_id_val, ne_s, ne_e + 1)
+                adv_s, adv_e = ne_s, ne_e + 1
+                # If same-season next episode doesn't exist, try next season E01 (season boundary)
+                if not ep_info:
+                    ep_info = fetch_tmdb_episode(tmdb_id_val, ne_s + 1, 1)
+                    adv_s, adv_e = ne_s + 1, 1
+                    if ep_info:
+                        print(f"  Season boundary: {slug} S{ne_s:02d} ended, advancing to S{adv_s:02d}E01")
                 if ep_info and ep_info.get("air_date"):
                     try:
                         ep_dt = datetime.fromisoformat(ep_info["air_date"] + "T00:00:00+00:00")
                         if ep_dt <= now:
                             still = ep_info.get("still_path", "")
                             next_ep = {
-                                "season": ne_s, "number": ne_e + 1,
+                                "season": adv_s, "number": adv_e,
                                 "title": ep_info.get("name", ""),
                                 "first_aired": ep_info["air_date"],
                                 "runtime": ep_info.get("runtime", 0),
@@ -295,7 +302,7 @@ def run():
                             }
                             completed += 1
                             aired_total = max(aired_total, completed + 1)
-                            print(f"  Advanced {slug} past stale S{ne_s:02d}E{ne_e:02d} → S{ne_s:02d}E{ne_e+1:02d}")
+                            print(f"  Advanced {slug} past stale S{ne_s:02d}E{ne_e:02d} → S{adv_s:02d}E{adv_e:02d}")
                             advanced = True
                     except Exception:
                         pass
