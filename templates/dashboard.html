@@ -6398,7 +6398,7 @@ function _unBuildPanel(show){
   h+='<div style="font-size:14px;color:var(--t2);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2">S'+String(show.season).padStart(2,'0')+'E'+String(show.episode).padStart(2,'0');
   if(show.ep_title)h+=' — '+show.ep_title;
   h+='</div>';
-  if(show.ep_aired)h+='<div style="font-size:12px;color:var(--t2);flex-shrink:0;line-height:1.2">'+show.ep_aired+'</div>';
+  if(show.ep_aired)h+='<div style="font-size:12px;color:var(--t2);flex-shrink:0;line-height:1.2">'+(show.ep_aired.length>10?show.ep_aired.substring(0,10):show.ep_aired)+'</div>';
   h+='</div>';
   // Runtime
   if(show.ep_runtime)h+='<div style="font-size:12px;color:var(--t2);margin-bottom:10px">⏱ '+_unFmtMin(show.ep_runtime)+'</div>';
