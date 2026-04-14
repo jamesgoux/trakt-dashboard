@@ -5892,7 +5892,7 @@ shows.forEach(function(s){
     if(_isRemoved(s.slug,s.season,s.episode,_unWatched[key])){delete _unWatched[key];pruned=true;break}
     var inRecent=recent.some(function(r){return r.slug===s.slug&&r.season===s.season&&r.episode===s.episode});
     if(!inRecent)recent.unshift({show:s.show,slug:s.slug,season:s.season,episode:s.episode,ep_title:s.ep_title||'',watched_at:_unWatched[key],ep_id:0,ep_aired:s.ep_aired||''});
-    s.episode++;s.completed=(s.completed||0)+1;
+    var _nb=_nextEpSeason(s,s.episode);s.season=_nb.season;s.episode=_nb.episode;s.completed=(s.completed||0)+1;
     s.eps_left=Math.max(0,(s.eps_left||1)-1);
     s.remaining_min=Math.max(0,(s.remaining_min||0)-(s.ep_runtime||0));
     s.ep_title='';s.ep_overview='';s.ep_still='';s.ep_trakt_id=0;s.is_new=false;
@@ -6751,6 +6751,47 @@ function _unSyncSeasonWatched(slug,season){
 
 // Season episode count cache: "tmdb|S" -> count
 var _seasonEpCache={};
+// Season-aware episode advance: checks _seasonEpCache to cross season boundaries
+// Guard: _seasonEpCache may be undefined at boot (var hoisted but not yet assigned)
+function _nextEpSeason(showObj,curEp){
+  var newEp=curEp+1;
+  if(showObj.tmdb_id&&typeof _seasonEpCache==='object'&&_seasonEpCache){
+    var sk=showObj.tmdb_id+'|'+showObj.season;
+    var maxEp=_seasonEpCache[sk];
+    if(maxEp&&newEp>maxEp){return{season:showObj.season+1,episode:1}}
+  }
+  return{season:showObj.season,episode:newEp};
+}
+// Async fallback: when TMDB episode fetch 404s, try next season E01 and update card+showObj
+function _tryNextSeasonFallback(showObj,tmdbId,card,epElSelector){
+  var tk=(D.un||{}).tmdb_key||'';if(!tk||!tmdbId)return;
+  var nextSeason=showObj.season+1;
+  fetch('https://api.themoviedb.org/3/tv/'+tmdbId+'/season/'+nextSeason+'?api_key='+tk)
+  .then(function(r){return r.json()}).then(function(d){
+    if(d.status_code||!d.episodes||!d.episodes.length)return;// no next season — show truly caught up
+    _seasonEpCache[tmdbId+'|'+showObj.season]=Math.max.apply(null,d.episodes.map(function(e){return e.episode_number}));
+    _seasonEpCache[tmdbId+'|'+nextSeason]=d.episodes.length;
+    d.episodes.forEach(function(ep){
+      var ek=_epCacheKey(tmdbId,nextSeason,ep.episode_number);
+      if(!_epCache[ek])_epCache[ek]={ep_title:ep.name||'',ep_overview:(ep.overview||'').substring(0,500),ep_still:ep.still_path?'https://image.tmdb.org/t/p/w780'+ep.still_path:'',ep_aired:ep.air_date||'',ep_runtime:ep.runtime||showObj.ep_runtime};
+    });
+    var firstEp=d.episodes[0];
+    showObj.season=nextSeason;showObj.episode=1;
+    showObj.ep_title=firstEp.name||'';showObj.ep_aired=firstEp.air_date||'';
+    // Update card display (no _unWatched change needed — the watched entry is for the episode that was watched, not the next one)
+    if(card){
+      var epEl=card.querySelector(epElSelector||'.un-ep');
+      if(epEl){
+        var txt='S'+String(nextSeason).padStart(2,'0')+'E01';
+        if(firstEp.name)txt+=' \u2014 '+firstEp.name;
+        epEl.innerHTML=txt;
+      }
+      card.dataset.s=nextSeason;card.dataset.e=1;
+      var wb=card.querySelector('.un-watch-btn');
+      if(wb)wb.setAttribute('onclick',"event.stopPropagation();markWatched('"+showObj.slug.replace(/'/g,"\\'")+"',"+nextSeason+",1,"+(showObj.ep_trakt_id||0)+",this)");
+    }
+  }).catch(function(){});
+}
 function _crNav(dir){
   var newEp=_crEp+dir;
   var newSeason=_crBase.season;
@@ -7301,7 +7342,7 @@ function markWatchedAt(slug,season,episode,epTraktId,when){
   if(showObj){
     _saveUndoState(showObj,season,episode);
     hasMore=!showObj.aired_total||showObj.completed+1<showObj.aired_total;
-    if(hasMore){showObj.episode=episode+1;showObj.completed=(showObj.completed||0)+1;showObj.eps_left=Math.max(0,(showObj.eps_left||1)-1);showObj.remaining_min=Math.max(0,(showObj.remaining_min||0)-(showObj.ep_runtime||0));showObj.ep_title='';showObj.ep_overview='';showObj.ep_still='';showObj.ep_aired='';showObj.ep_trakt_id=0;showObj.is_new=false}
+    if(hasMore){var _nxt=_nextEpSeason(showObj,episode);showObj.season=_nxt.season;showObj.episode=_nxt.episode;showObj.completed=(showObj.completed||0)+1;showObj.eps_left=Math.max(0,(showObj.eps_left||1)-1);showObj.remaining_min=Math.max(0,(showObj.remaining_min||0)-(showObj.ep_runtime||0));showObj.ep_title='';showObj.ep_overview='';showObj.ep_still='';showObj.ep_aired='';showObj.ep_trakt_id=0;showObj.is_new=false}
     else{showObj.completed=(showObj.completed||0)+1;showObj.eps_left=Math.max(0,(showObj.eps_left||1)-1)}
   }
   // Slide episode detail away, then animate queue update (no full re-render)
@@ -7358,7 +7399,8 @@ function _animateQueueUpdate(a){
       var tmdb=a.tmdb;if(tmdb){var tk=(D.un||{}).tmdb_key||'';if(tk){
         fetch('https://api.themoviedb.org/3/tv/'+tmdb+'/season/'+showObj.season+'/episode/'+showObj.episode+'?api_key='+tk)
         .then(function(r){return r.json()}).then(function(d){
-          if(d.status_code)return;showObj.ep_title=d.name||'';showObj.ep_aired=d.air_date||'';
+          if(d.status_code){_tryNextSeasonFallback(showObj,tmdb,c,'.un-ep');return}
+          showObj.ep_title=d.name||'';showObj.ep_aired=d.air_date||'';
           if(epEl)epEl.innerHTML='S'+String(showObj.season).padStart(2,'0')+'E'+String(showObj.episode).padStart(2,'0')+' \u2014 '+d.name;
         }).catch(function(){});
       }}
@@ -7399,7 +7441,7 @@ function markWatched(slug,season,episode,epTraktId,btn){
     _saveUndoState(showObj,season,episode);
     hasMore=!showObj.aired_total||showObj.completed+1<showObj.aired_total;
     if(hasMore){
-      showObj.episode=episode+1;showObj.completed=(showObj.completed||0)+1;
+      var _nxt2=_nextEpSeason(showObj,episode);showObj.season=_nxt2.season;showObj.episode=_nxt2.episode;showObj.completed=(showObj.completed||0)+1;
       showObj.ep_title='';showObj.ep_overview='';showObj.ep_still='';showObj.ep_aired='';showObj.ep_trakt_id=0;
       showObj.is_new=false;showObj.eps_left=Math.max(0,(showObj.eps_left||1)-1);
       showObj.remaining_min=Math.max(0,(showObj.remaining_min||0)-(showObj.ep_runtime||0));
@@ -7447,7 +7489,7 @@ function markWatched(slug,season,episode,epTraktId,btn){
         if(tk){
           fetch('https://api.themoviedb.org/3/tv/'+tmdbId+'/season/'+showObj.season+'/episode/'+showObj.episode+'?api_key='+tk)
           .then(function(r){return r.json()}).then(function(d){
-            if(d.status_code)return;
+            if(d.status_code){_tryNextSeasonFallback(showObj,tmdbId,card,'.un-ep');return}
             showObj.ep_title=d.name||'';showObj.ep_aired=d.air_date||'';
             var epEl2=card.querySelector('.un-ep');
             if(epEl2){
