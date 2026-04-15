@@ -2188,6 +2188,7 @@ function _irisOpenWatchlist(){
   document.querySelectorAll('.chart-detail').forEach(function(d){d.remove()});
   if(window.echarts){document.querySelectorAll('[_echarts_instance_]').forEach(function(el){var c=echarts.getInstanceByDom(el);if(c)c.dispatchAction({type:'hideTip'})})}
   var llOv=document.getElementById('ll-feed-overlay');if(llOv)llOv.style.display='none';
+  _unPreRendered=false;// Watchlist overwrites #un-content — invalidate pre-rendered Up Next
   _unCurrentView='watchlist';_unNavStack=[];
   _unUpdateHeader();
   var cf=document.getElementById('un-comp-filter');if(cf)cf.style.display='none';
