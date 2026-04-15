@@ -3,12 +3,14 @@
 import os, sys, json, time
 from datetime import datetime, timezone, timedelta
 from collections import defaultdict
+from zoneinfo import ZoneInfo
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 os.chdir(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from utils import retry_request, get_trakt_access_token
 from user_config import load_user_config, get_service
 _ucfg = load_user_config()
+LOCAL_TZ = ZoneInfo(_ucfg.get("_timezone", "America/Los_Angeles"))
 
 
 CLIENT_ID = get_service(_ucfg, "trakt", "client_id") or os.environ.get("TRAKT_CLIENT_ID")
@@ -87,8 +89,9 @@ def run():
         except Exception:
             continue
 
-        # Only include future or today
-        date_str = aired_dt.strftime("%Y-%m-%d")
+        # Convert to local timezone for date grouping (e.g. Thu 9pm ET = Thu 6pm PT, not Fri UTC)
+        local_dt = aired_dt.astimezone(LOCAL_TZ)
+        date_str = local_dt.strftime("%Y-%m-%d")
 
         slug = show.get("ids", {}).get("slug", "")
         if not slug:
