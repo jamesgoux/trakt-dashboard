@@ -8505,7 +8505,7 @@ function _wlGetItems(){
     return src.slice();
   }
   if(_wlSort==='title')return src.slice().sort(function(a,b){return(a.title||'').localeCompare(b.title||'')});
-  if(_wlSort==='runtime')return src.slice().sort(function(a,b){return(b.runtime||0)-(a.runtime||0)});
+  if(_wlSort==='runtime')return src.slice().sort(function(a,b){return(a.runtime||0)-(b.runtime||0)});
   if(_wlSort==='rating')return src.slice().sort(function(a,b){return(b.rating||0)-(a.rating||0)});
   return src.slice();
 }
