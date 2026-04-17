@@ -297,7 +297,12 @@ def run():
                                 "first_aired": ep_info["air_date"],
                                 "runtime": ep_info.get("runtime", 0),
                                 "overview": (ep_info.get("overview", "") or "")[:500],
-                                "ids": {"trakt": ep_info.get("id", "")},
+                                # Don't populate trakt ID from TMDB — ep_info.get("id") is the
+                                # TMDB episode ID, NOT the Trakt ID. Leaving this empty forces
+                                # the client's _traktSync to fall back to slug/season/episode
+                                # lookup, which is correct. Setting a wrong ID here causes
+                                # Trakt to log the wrong episode (possibly a coincidental match).
+                                "ids": {"trakt": ""},
                                 "_still": f"https://image.tmdb.org/t/p/w780{still}" if still else "",
                             }
                             completed += 1
