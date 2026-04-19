@@ -1817,9 +1817,14 @@ if missing_slugs:
             tmdb_to_slug = json.load(f)
         print(f"  Loaded {len(tmdb_to_slug)} cached TMDB→Trakt slug mappings")
     # Also add from existing entries (in case cache is stale)
+    # Key by "tmdb_id:type" to avoid collisions (TMDB movie & TV IDs overlap)
     for e2 in entries:
         if e2.get("tmdb_id") and e2.get("trakt_slug"):
-            tmdb_to_slug[str(e2["tmdb_id"])] = e2["trakt_slug"]
+            _mtype = "movie" if e2["type"] == "movie" else "show"
+            tmdb_to_slug[f"{e2['tmdb_id']}:{_mtype}"] = e2["trakt_slug"]
+            # Keep untyped key as fallback for old cache entries
+            if str(e2["tmdb_id"]) not in tmdb_to_slug:
+                tmdb_to_slug[str(e2["tmdb_id"])] = e2["trakt_slug"]
 
     # 2) Load TMDB ID cache (title|year → tmdb_id)
     tmdb_cache_path = "data/lb_tmdb_cache.json"
@@ -1874,9 +1879,9 @@ if missing_slugs:
             except Exception:
                 tmdb_cache[cache_key] = ""
 
-        # Step D: Look up Trakt slug via TMDB ID
+        # Step D: Look up Trakt slug via TMDB ID (prefer typed key to avoid movie/TV collision)
         if tmdb_id:
-            slug = tmdb_to_slug.get(str(tmdb_id), "")
+            slug = tmdb_to_slug.get(f"{tmdb_id}:movie", "") or tmdb_to_slug.get(str(tmdb_id), "")
             # If not in our map, try Trakt lookup by TMDB ID (one API call)
             if not slug and trakt_api_budget > 0:
                 try:
@@ -1886,7 +1891,9 @@ if missing_slugs:
                         results = r.json()
                         if results:
                             slug = results[0].get("movie", {}).get("ids", {}).get("slug", "")
-                            if slug: tmdb_to_slug[str(tmdb_id)] = slug
+                            if slug:
+                                tmdb_to_slug[f"{tmdb_id}:movie"] = slug
+                                tmdb_to_slug[str(tmdb_id)] = slug
                     trakt_api_budget -= 1
                     time.sleep(0.15)
                 except Exception:
