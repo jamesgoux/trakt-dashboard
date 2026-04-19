@@ -824,7 +824,7 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
                 if days < 0: days = 0
                 delays.append(days)
             except Exception: pass
-        if not delays or len(delays) < 4: continue
+        if not delays or len(delays) < 2: continue
         avg_delay = sum(delays) / len(delays)
         watch_year = max(ep["year"] for ep in eps if ep.get("year"))
         # Exclude June 2016 bulk import
