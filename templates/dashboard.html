@@ -2746,8 +2746,10 @@ function movieCharts(animate){
   if(mode==='rewatch'){
     ra.sort(function(a,b){return b.w-a.w});items=ra.slice(0,mob?20:24);
   }else{
-    if(mode==='short') da.sort(function(a,b){return a.min-b.min}); else da.sort(function(a,b){return b.min-a.min});
-    items=da.slice(0,mob?20:24);
+    // Exclude movies with 0 runtime from duration ranking
+    var daFiltered=da.filter(function(d){return d.min>0});
+    if(mode==='short') daFiltered.sort(function(a,b){return a.min-b.min}); else daFiltered.sort(function(a,b){return b.min-a.min});
+    items=daFiltered.slice(0,mob?20:24);
   }
   document.querySelectorAll('.mv-mode').forEach(function(b){b.classList.toggle('vb-on',b.dataset.v===mode)});
   function mvSlug(n){return n.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')}
@@ -9361,10 +9363,10 @@ function _unMarkMovieWatched(slug,traktId,btn){
     console.log('Movie synced:',d);
     if(btn){btn.textContent='✓ Done';btn.style.background='#059669'}
     // Inject into D.c.r (dashboard recently watched)
-    D.c.r.unshift({type:'movie',title:slug,detail:_mvLastMeta?_mvLastMeta.year:'',watched_at:watchedAt.substring(0,10),yr:watchedAt.substring(0,4)});
+    D.c.r.unshift({type:'movie',title:_mvLastMeta?_mvLastMeta.title:slug,detail:_mvLastMeta?_mvLastMeta.year:'',watched_at:watchedAt.substring(0,10),yr:watchedAt.substring(0,4)});
     // Inject into Up Next recently watched
     var ud=D.un||{};if(!ud.recent)ud.recent=[];
-    ud.recent.unshift({show:slug,slug:slug,season:0,episode:0,ep_title:'movie',watched_at:watchedAt,ep_id:0,ep_aired:''});
+    ud.recent.unshift({show:_mvLastMeta?_mvLastMeta.title:slug,slug:slug,season:0,episode:0,ep_title:'movie',watched_at:watchedAt,ep_id:0,ep_aired:''});
     // Instant stats update
     if(_mvLastMeta)_irisInjectWatch('movie',_mvLastMeta);
     // Refresh watch history on movie page
@@ -9389,9 +9391,9 @@ function _unMarkMovieWatchedAt(slug,traktId,dateStr,btn){
     console.log('Movie synced at release:',d);
     if(btn){btn.textContent='✓ Done';btn.style.background='#059669'}
     var mvWatch=document.getElementById('un-mv-watch');if(mvWatch){mvWatch.textContent='✓ Done';mvWatch.style.background='#059669';mvWatch.disabled=true}
-    D.c.r.unshift({type:'movie',title:slug,detail:_mvLastMeta?_mvLastMeta.year:'',watched_at:dateStr,yr:dateStr.substring(0,4)});
+    D.c.r.unshift({type:'movie',title:_mvLastMeta?_mvLastMeta.title:slug,detail:_mvLastMeta?_mvLastMeta.year:'',watched_at:dateStr,yr:dateStr.substring(0,4)});
     var ud=D.un||{};if(!ud.recent)ud.recent=[];
-    ud.recent.unshift({show:slug,slug:slug,season:0,episode:0,ep_title:'movie',watched_at:watchedAt,ep_id:0,ep_aired:''});
+    ud.recent.unshift({show:_mvLastMeta?_mvLastMeta.title:slug,slug:slug,season:0,episode:0,ep_title:'movie',watched_at:watchedAt,ep_id:0,ep_aired:''});
     _unFetchMovieHistory(slug,traktId);
     if(_mvLastMeta)_irisInjectWatch('movie',_mvLastMeta);
   })
@@ -9441,7 +9443,7 @@ function _mvDpConfirm(){
   .then(function(d2){
     console.log('Movie synced:',d2);
     if(btn){btn.textContent='✓ Watched!';btn.style.background='#059669'}
-    D.c.r.unshift({type:'movie',title:_mvDpSlug,detail:_mvLastMeta?_mvLastMeta.year:'',watched_at:when.substring(0,10),yr:when.substring(0,4)});
+    D.c.r.unshift({type:'movie',title:_mvLastMeta?_mvLastMeta.title:_mvDpSlug,detail:_mvLastMeta?_mvLastMeta.year:'',watched_at:when.substring(0,10),yr:when.substring(0,4)});
     if(_mvLastMeta)_irisInjectWatch('movie',_mvLastMeta);
   })
   .catch(function(e){alert('Failed: '+e.message);if(btn){btn.disabled=false;btn.textContent='✓ Mark as Watched'}});
