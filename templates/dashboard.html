@@ -6919,6 +6919,7 @@ function _crNav(dir){
 function _crNavToSeason(season,episode){
   var ns=JSON.parse(JSON.stringify(_crBase));
   ns.season=season;ns.episode=episode;
+  ns.ep_trakt_id=0; // Clear stale Trakt ID — fallback to slug/season/episode sync
   var k=_epCacheKey(ns.tmdb_id,season,episode);
   var c=_epCache[k];
   if(c){ns.ep_title=c.ep_title;ns.ep_overview=c.ep_overview;ns.ep_still=c.ep_still;ns.ep_aired=c.ep_aired;ns.ep_runtime=c.ep_runtime}
@@ -6932,6 +6933,7 @@ function _crNavToEp(season,newEp){
   var c=_epCache[k];
   var ns=JSON.parse(JSON.stringify(_crBase));
   ns.season=season;ns.episode=newEp;
+  ns.ep_trakt_id=0; // Clear stale Trakt ID — fallback to slug/season/episode sync
   if(c){ns.ep_title=c.ep_title;ns.ep_overview=c.ep_overview;ns.ep_still=c.ep_still;ns.ep_aired=c.ep_aired;ns.ep_runtime=c.ep_runtime}
   else{ns.ep_title='';ns.ep_overview='';ns.ep_still='';ns.ep_aired=''}
   _crEp=newEp;
