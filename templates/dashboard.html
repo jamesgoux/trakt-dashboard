@@ -294,11 +294,17 @@ body,html{overflow-x:hidden!important;max-width:100vw}
 .cd{overflow:hidden;max-width:100%}
 .g2{grid-template-columns:1fr}
 }
+.iris-rotate-msg{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg);z-index:99999;align-items:center;justify-content:center;flex-direction:column;gap:16px;color:var(--tx);font-size:16px;font-weight:600}
+.iris-rotate-msg span{font-size:48px}
+@media(max-width:932px) and (orientation:landscape){
+.iris-rotate-msg{display:flex}
+}
 .iris-loader{position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity .5s ease;pointer-events:auto}
 .iris-loader.fade-out{opacity:0;pointer-events:none}
 .iris-loader svg{margin-bottom:16px;animation:iris-pulse 2s ease-in-out infinite}
 @keyframes iris-pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.05);opacity:.85}}
 </style></head><body>
+<div class="iris-rotate-msg"><span>📱</span>Please rotate to portrait</div>
 <div id="iris-loader" class="iris-loader">
 <svg viewBox="0 0 512 512" width="80" height="80"><defs><radialGradient id="igl" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#e94560"/><stop offset="45%" stop-color="#7c3aed"/><stop offset="100%" stop-color="#c4b5fd"/></radialGradient></defs><path d="M256 96C128 96 32 256 32 256s96 160 224 160 224-160 224-160S384 96 256 96z" fill="#c4b5fd"/><circle cx="256" cy="256" r="200" fill="url(#igl)"/><circle cx="256" cy="256" r="80" fill="#0f0f0f"/><circle cx="220" cy="220" r="28" fill="rgba(255,255,255,0.4)"/><circle cx="280" cy="240" r="12" fill="rgba(255,255,255,0.2)"/></svg>
 <div style="font-size:24px;font-weight:800;color:var(--ac)">iris</div>
