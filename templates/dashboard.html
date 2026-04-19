@@ -7115,7 +7115,14 @@ function _traktSync(epTraktId,watchedAt,onDone,slug,season,episode){
   }
   fetch('https://api.trakt.tv/sync/history',{method:'POST',headers:{'Content-Type':'application/json','trakt-api-version':'2','trakt-api-key':cid,'Authorization':'Bearer '+tok},body:body})
   .then(function(r){if(!r.ok)throw new Error('Trakt '+r.status);return r.json()})
-  .then(function(d){console.log('Trakt synced:',d);if(onDone)onDone(true)})
+  .then(function(d){
+    console.log('Trakt synced:',d);
+    // Detect stale episode: if Trakt says 0 episodes added, it was already watched
+    if(d&&d.added&&d.added.episodes===0&&d.not_found&&d.not_found.episodes&&d.not_found.episodes.length===0){
+      console.warn('Episode already watched on Trakt (stale Up Next data)');
+    }
+    if(onDone)onDone(true)
+  })
   .catch(function(e){console.error('Trakt sync failed:',e);alert('Failed to sync to Trakt: '+e.message);if(onDone)onDone(false)});
 }
 
@@ -7476,8 +7483,14 @@ function _animateQueueUpdate(a){
   }
 }
 
+var _markWatchedLock={};
 function markWatched(slug,season,episode,epTraktId,btn){
   if(!_irisRequireAuth('mark watched')){return}
+  // Debounce: prevent double-tap on iOS (touch events can queue before pointerEvents='none' takes effect)
+  var lockKey=slug+'|'+season+'|'+episode;
+  if(_markWatchedLock[lockKey])return;
+  _markWatchedLock[lockKey]=true;
+  setTimeout(function(){delete _markWatchedLock[lockKey]},1000);
   var key=slug+'|'+season+'|'+episode;
   var card=btn.closest('.un-card');
   card.style.opacity='0.3';card.style.pointerEvents='none';
