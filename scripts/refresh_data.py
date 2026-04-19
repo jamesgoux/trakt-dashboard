@@ -1935,7 +1935,10 @@ if os.path.exists(meta_cache_path):
     with open(meta_cache_path) as f:
         meta_cache = json.load(f)
 needs_meta = [e for e in entries if e["type"] == "movie" and e.get("trakt_slug") and not e.get("country") and not e.get("language")]
-slugs_to_fetch = set(e["trakt_slug"] for e in needs_meta) - set(meta_cache.keys())
+# Also fetch for entries that have a slug but no runtime (even if lang/country cached)
+needs_rt = [e for e in entries if e["type"] == "movie" and e.get("trakt_slug") and not e.get("runtime")]
+_rt_slugs_needing_fetch = set(e["trakt_slug"] for e in needs_rt) - set(s for s, m in meta_cache.items() if m.get("rt"))
+slugs_to_fetch = (set(e["trakt_slug"] for e in needs_meta) - set(meta_cache.keys())) | _rt_slugs_needing_fetch
 if slugs_to_fetch:
     print(f"  Fetching metadata for {len(slugs_to_fetch)} movies (language/country)...")
     for i, slug in enumerate(slugs_to_fetch):
@@ -1943,7 +1946,7 @@ if slugs_to_fetch:
             r = retry_request("get", f"{BASE_URL}/movies/{slug}?extended=full", headers=HEADERS, timeout=10)
             if r and r.status_code == 200:
                 d = r.json()
-                meta_cache[slug] = {"lang": d.get("language", ""), "ctry": d.get("country", "")}
+                meta_cache[slug] = {"lang": d.get("language", ""), "ctry": d.get("country", ""), "rt": d.get("runtime", 0)}
             else:
                 meta_cache[slug] = {"lang": "", "ctry": ""}
             time.sleep(0.15)
@@ -1965,6 +1968,16 @@ for e in needs_meta:
         if m.get("ctry"): e["country"] = m["ctry"]
 if meta_applied:
     print(f"  Applied language/country to {meta_applied} Letterboxd entries")
+# Backfill runtime from meta cache for any movie entries missing it
+rt_fixed = 0
+for e in entries:
+    if e["type"] == "movie" and e.get("trakt_slug") and not e.get("runtime"):
+        m = meta_cache.get(e["trakt_slug"])
+        if m and m.get("rt"):
+            e["runtime"] = m["rt"]
+            rt_fixed += 1
+if rt_fixed:
+    print(f"  Backfilled runtime for {rt_fixed} entries from meta cache")
 
 os.makedirs("data", exist_ok=True)
 
