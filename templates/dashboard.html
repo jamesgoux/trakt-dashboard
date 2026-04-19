@@ -7834,8 +7834,20 @@ function _irisSetTab(tab,skipSearch){
 
 function _irisSearchBack(){
   if(_irisActiveTab==='media'){
-    // Media: if on detail sub-page, go back through nav stack
-    if(_unCurrentView!=='home'&&_unNavStack.length){_unNavBack()}
+    // Media: if on detail sub-page, go back to search results (not Up Next)
+    if(_unCurrentView!=='home'&&_unNavStack.length){
+      // Check if going back would land on Up Next home — if so, return to search results instead
+      var _peek=_unNavStack[_unNavStack.length-1];
+      if(_peek&&(_peek.view==='home'||_peek.view==='search')){
+        _unNavStack.pop();
+        _unCurrentView='home';_unUpdateHeader();
+        // Re-show search results if we have a cached query
+        var _q=document.getElementById('iris-s-input');
+        var _qv=_q?_q.value.trim():'';
+        if(_qv&&_searchCache[_qv])_unShowSearchResults(_qv,_searchCache[_qv]);
+        else{document.getElementById('un-search-results').innerHTML='';_unLoadTrending()}
+      }else{_unNavBack()}
+    }
     else{_irisCloseSearch()}
   }else{
     // Sports: navigate back through sub-views
