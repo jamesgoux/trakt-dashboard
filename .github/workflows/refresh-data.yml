@@ -99,6 +99,23 @@ jobs:
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
         run: python scripts/refresh_data.py
 
+      # ── Drain diary sync queues (Iris → Letterboxd + Serializd) ──
+      - name: Sync Letterboxd diary queue
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: python scripts/sync_letterboxd.py
+        timeout-minutes: 5
+        continue-on-error: true
+
+      - name: Sync Serializd review queue
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: python scripts/sync_serializd.py
+        timeout-minutes: 5
+        continue-on-error: true
+
       - name: Commit and push
         run: |
           git config user.name "github-actions[bot]"
