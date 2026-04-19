@@ -3708,6 +3708,7 @@ function renderLetterboxd(){
   var catTitles=(tags.ct||{});
   function renderTagChart(elId,catData,colors,label,catKey){
     var el=document.getElementById(elId);if(!el)return;
+    var existing=echarts.getInstanceByDom(el);if(existing)existing.dispose();
     var tc=echarts.init(el);
     if(cy!=='all'){
       var yd=catData.y&&catData.y[cy]?catData.y[cy]:[];
