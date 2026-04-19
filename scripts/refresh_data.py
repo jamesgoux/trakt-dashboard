@@ -191,6 +191,8 @@ def fetch_cast_and_studios(entries):
             people[pid]["name"] = info["name"]
             people[pid]["gender"] = info["gender"]
             people[pid]["titles"] = set(info.get("titles", []))
+            if info.get("tmdb_person_id"):
+                people[pid]["tmdb_person_id"] = info["tmdb_person_id"]
             # Load existing billing data (merge: keep best order per slug)
             for slug, order in info.get("billing", {}).items():
                 if slug not in people[pid]["billing"] or order < people[pid]["billing"][slug]:
@@ -265,9 +267,12 @@ def fetch_cast_and_studios(entries):
                         for c in sorted(data.get("cast", []), key=lambda x: x.get("order", 999))[:40]:
                             name = c.get("name", "")
                             if not name: continue
-                            pid = _slugify(name)
+                            # Use TMDB person ID as pid when available for disambiguation
+                            _tmdb_pid = c.get("id")
+                            pid = f"tmdb-{_tmdb_pid}" if _tmdb_pid else _slugify(name)
                             if not pid: continue
                             people[pid]["name"] = name
+                            if _tmdb_pid: people[pid]["tmdb_person_id"] = _tmdb_pid
                             # TMDB gender: 1=female, 2=male, 0/3=other
                             g = c.get("gender", 0)
                             if g in (1, 2): people[pid]["gender"] = g
@@ -280,7 +285,8 @@ def fetch_cast_and_studios(entries):
                         for c in data.get("crew", []):
                             name = c.get("name", "")
                             if not name: continue
-                            pid = _slugify(name)
+                            _tmdb_pid = c.get("id")
+                            pid = f"tmdb-{_tmdb_pid}" if _tmdb_pid else _slugify(name)
                             if not pid: continue
                             job = c.get("job", "")
                             dept = c.get("department", "")
@@ -344,7 +350,7 @@ def fetch_cast_and_studios(entries):
             print(f"  ⚠️ Trakt budget reached ({trakt_calls} calls) — skipping remaining Trakt calls, TMDB continues")
         if done % 50 == 0:
             print(f"  cast+studios: {done}/{total} (skipped {skipped}, TMDB: {tmdb_ok}, Trakt: {trakt_fallback}, Trakt calls: {trakt_calls}/{trakt_budget})")
-            _p = {pid: {"name": i["name"], "gender": i["gender"], "titles": list(i["titles"]), "billing": i.get("billing", {})} for pid, i in people.items()}
+            _p = {pid: {"name": i["name"], "gender": i["gender"], "titles": list(i["titles"]), "billing": i.get("billing", {}), **({} if not i.get("tmdb_person_id") else {"tmdb_person_id": i["tmdb_person_id"]})} for pid, i in people.items()}
             with open("data/people.json", "w") as f: json.dump(_p, f, separators=(',', ':'))
             with open("data/studios.json", "w") as f: json.dump(slug_studios, f, separators=(',', ':'))
             with open("data/tmdb_credits_done.json", "w") as f: json.dump(sorted(tmdb_credits_done), f, separators=(',', ':'))
@@ -498,7 +504,7 @@ def fetch_cast_and_studios(entries):
     for pid, shows in ep_credits.items():
         ep_credits_out[pid] = {slug: sorted([list(t) for t in eps]) for slug, eps in shows.items()}
 
-    people_out = {pid: {"name": i["name"], "gender": i["gender"], "titles": list(i["titles"]), "billing": i.get("billing", {})} for pid, i in people.items()}
+    people_out = {pid: {"name": i["name"], "gender": i["gender"], "titles": list(i["titles"]), "billing": i.get("billing", {}), **({} if not i.get("tmdb_person_id") else {"tmdb_person_id": i["tmdb_person_id"]})} for pid, i in people.items()}
     # Add ep_credits to people_out
     for pid in people_out:
         if pid in ep_credits_out:
@@ -612,13 +618,18 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
         _sl = _tmdb_to_slug.get(_tid, "")
         if _sl: _shows_with_sc.add(_sl)
     ism = lambda g: g in (2, 'male'); isf = lambda g: g in (1, 'female')
-    # Merge people with same name (TMDB vs Trakt use different PIDs)
-    _people_by_name = {}
+    # Merge people by TMDB person ID (preferred) or name (fallback).
+    # Using TMDB person ID prevents different people with the same name
+    # (e.g. multiple "Jack O'Connell"s) from being merged incorrectly.
+    _people_dedup = {}
+    def _person_dedup_key(info):
+        tid = info.get("tmdb_person_id")
+        return f"tmdb:{tid}" if tid else info["name"]
     for pid, info in people.items():
         if not ism(info["gender"]) and not isf(info["gender"]): continue
-        name = info["name"]
-        if name in _people_by_name:
-            p = _people_by_name[name]
+        key = _person_dedup_key(info)
+        if key in _people_dedup:
+            p = _people_dedup[key]
             for t in info["titles"]:
                 if t not in p["titles"]: p["titles"].append(t)
             # Merge episode credits
@@ -635,10 +646,10 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
                 if slug not in p["billing"] or order < p["billing"][slug]:
                     p["billing"][slug] = order
         else:
-            _people_by_name[name] = {"name": name, "gender": info["gender"],
-                                      "titles": list(info["titles"]),
-                                      "eps": {s: list(e) for s, e in info.get("eps", {}).items()},
-                                      "billing": dict(info.get("billing", {}))}
+            _people_dedup[key] = {"name": info["name"], "gender": info["gender"],
+                                   "titles": list(info["titles"]),
+                                   "eps": {s: list(e) for s, e in info.get("eps", {}).items()},
+                                   "billing": dict(info.get("billing", {}))}
     # Billing order → tiebreaker weight (5-tier)
     def _billing_weight(order):
         if order == 0: return 5    # Top billed
@@ -648,7 +659,7 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
         return 1                   # Cameo / guest star only (order 100+ offset)
 
     pd = []
-    for name, info in _people_by_name.items():
+    for _dedup_key, info in _people_dedup.items():
         tis = []; bws = []; mc = sc = 0
         max_recency = 0
         person_billing = info.get("billing", {})
@@ -1702,7 +1713,7 @@ if os.path.exists("data/letterboxd.json"):
         key = (title.lower(), year)
         
         for lb_date in lb_entry.get("dates", []):
-            if not lb_date or lb_date[:4] < "2015" or lb_date[:4] > "2022":
+            if not lb_date:
                 continue
             
             # Check if Trakt already has a watch within 30 days
@@ -1739,7 +1750,7 @@ if os.path.exists("data/letterboxd.json"):
     
     if lb_added:
         entries.sort(key=lambda x: x["watched_at"], reverse=True)
-        print(f"  Letterboxd backfill: +{lb_added} watches merged (2015-2022, deduped within 30 days)")
+        print(f"  Letterboxd backfill: +{lb_added} watches merged (deduped within 30 days)")
     else:
         print(f"  Letterboxd backfill: no new watches to merge")
     
@@ -1887,6 +1898,18 @@ if missing_slugs:
                     e["trakt_slug"] = slug
                     if tmdb_id and not e.get("tmdb_id"): e["tmdb_id"] = tmdb_id
             resolved += 1
+        # Backfill resolved TMDB ID into letterboxd.json so future runs skip the search
+        if tmdb_id and os.path.exists("data/letterboxd.json"):
+            with open("data/letterboxd.json") as _lf:
+                _lb_backfill = json.load(_lf)
+            _lb_updated = False
+            for _lk, _lv in _lb_backfill.items():
+                if _lv.get("title") == title and str(_lv.get("year", "")) == year and not _lv.get("tmdb_id"):
+                    _lv["tmdb_id"] = int(tmdb_id)
+                    _lb_updated = True
+            if _lb_updated:
+                with open("data/letterboxd.json", "w") as _lf:
+                    json.dump(_lb_backfill, _lf, separators=(",", ":"))
 
         if (i + 1) % 50 == 0:
             print(f"    {i+1}/{len(unique_missing)} processed, {resolved} resolved, {searched} TMDB searches")
