@@ -7068,6 +7068,7 @@ function _irisInjectWatch(type,opts){
   // 7. Targeted re-renders (non-people — these don't need credits)
   _irisReRenderStats();
   _irisReRenderRecent();
+  try{if(typeof movieCharts==='function')movieCharts()}catch(e){console.warn('Chart re-render:',e)}
 }
 
 function _irisReRenderStats(){
