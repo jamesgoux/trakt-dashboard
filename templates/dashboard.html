@@ -10575,6 +10575,8 @@ function _rtOpen(type,params){
 
   // Existing modal? Remove first
   var old=document.getElementById('rt-modal');if(old)old.remove();
+  // Dismiss any ECharts tooltips so they don't bleed through
+  try{document.querySelectorAll('[_echarts_instance_]').forEach(function(el){var c=echarts.getInstanceByDom(el);if(c)c.dispatchAction({type:'hideTip'})})}catch(_e){}
 
   var ov=document.createElement('div');ov.id='rt-modal';
   ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100000;display:flex;align-items:center;justify-content:center;padding:20px;animation:rtFadeIn .2s ease';
@@ -10591,16 +10593,15 @@ function _rtOpen(type,params){
   h+='<div style="font-size:20px;font-weight:700;line-height:1.2;margin-bottom:2px">'+_rtEsc(title||'Untitled')+'</div>';
   h+='<div style="font-size:13px;color:#9ca3af;margin-bottom:16px">'+_rtEsc(subtitle)+'</div>';
 
-  // Stars row
+  // Stars row — 5 tappable stars, tap = full, tap last filled = half, tap again = clear
   h+='<div style="margin-bottom:14px">';
   h+='<div style="font-size:11px;font-weight:600;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Rating</div>';
-  h+='<div id="rt-stars" style="display:flex;gap:2px;font-size:32px;line-height:1;user-select:none">';
-  for(var i=1;i<=10;i++){
-    h+='<span class="rt-star" data-r="'+i+'" onclick="_rtSetRating('+i+')" style="cursor:pointer;width:14px;overflow:hidden;color:#374151;transition:color .1s">'+(i%2?'★':'★')+'</span>';
+  h+='<div id="rt-stars" style="display:flex;gap:6px;user-select:none">';
+  for(var i=1;i<=5;i++){
+    h+='<span class="rt-star" data-star="'+i+'" onclick="_rtTapStar('+i+')" style="cursor:pointer;font-size:36px;line-height:1;color:#374151;transition:color .15s;-webkit-tap-highlight-color:transparent">★</span>';
   }
-  // Second row overlay with half-width clipping handled via JS render
   h+='</div>';
-  h+='<div id="rt-rating-label" style="font-size:12px;color:#9ca3af;margin-top:4px;min-height:16px">Not rated</div>';
+  h+='<div id="rt-rating-label" style="font-size:13px;color:#9ca3af;margin-top:6px;min-height:16px">Tap to rate</div>';
   h+='</div>';
 
   // Heart row
@@ -10614,9 +10615,9 @@ function _rtOpen(type,params){
   h+='<div style="margin-bottom:14px">';
   h+='<div style="font-size:11px;font-weight:600;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Tags</div>';
   h+='<div id="rt-tag-wrap" style="background:#1f2937;border:1px solid #374151;border-radius:8px;padding:6px;min-height:38px;display:flex;flex-wrap:wrap;gap:4px;align-items:center">';
-  h+='<input id="rt-tag-input" type="text" placeholder="Add tags…" autocomplete="off" style="flex:1;min-width:120px;background:transparent;border:none;outline:none;color:#e5e7eb;font-size:14px;padding:4px" oninput="_rtTagOnInput()" onkeydown="_rtTagOnKey(event)">';
+  h+='<input id="rt-tag-input" type="text" placeholder="Add tags…" autocomplete="off" style="flex:1;min-width:120px;background:transparent;border:none;outline:none;color:#e5e7eb;font-size:14px;padding:4px" oninput="_rtTagOnInput()" onfocus="_rtTagOnInput()" onkeydown="_rtTagOnKey(event)">';
   h+='</div>';
-  h+='<div id="rt-tag-suggest" style="display:none;background:#1f2937;border:1px solid #374151;border-radius:8px;margin-top:4px;max-height:140px;overflow-y:auto"></div>';
+  h+='<div id="rt-tag-suggest" style="display:none;background:#1f2937;border:1px solid #374151;border-radius:8px;margin-top:4px;max-height:140px;overflow-y:auto;-webkit-overflow-scrolling:touch"></div>';
   h+='</div>';
 
   // Diary textarea (seasons only)
@@ -10665,24 +10666,43 @@ function _rtEsc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;
 function _rtClose(){var m=document.getElementById('rt-modal');if(m)m.remove();_rtCurrent=null}
 function _rtSkip(){_rtClose()}
 
-function _rtSetRating(r){
+function _rtTapStar(n){
+  // n = star number 1-5. Tapping cycles: empty→full, already-full-and-last→half, half→clear
   if(!_rtCurrent)return;
-  // Tap same star twice → clear; tap half-position if user taps left half via doubleclick? Keep simple: tap sets exact value.
-  if(_rtCurrent.rating===r)_rtCurrent.rating=Math.max(0,r-1);
-  else _rtCurrent.rating=r;
+  var cur=_rtCurrent.rating||0; // 0-10 half-star scale
+  var full=n*2, half=n*2-1;
+  if(cur===full) _rtCurrent.rating=half;        // full → half
+  else if(cur===half) _rtCurrent.rating=(n-1)*2; // half → clear this star (keep prev)
+  else _rtCurrent.rating=full;                   // anything else → fill to this star
   _rtRenderStars();
 }
 function _rtRenderStars(){
   if(!_rtCurrent)return;
-  var r=_rtCurrent.rating||0;
+  var r=_rtCurrent.rating||0; // 0-10 half-star scale
   var stars=document.querySelectorAll('#rt-stars .rt-star');
-  stars.forEach(function(el,i){
-    var v=i+1;el.textContent=(v%2)?'½':'★';
-    el.style.color=(v<=r)?'#fbbf24':'#374151';
-    el.style.marginLeft=(v%2&&v>1)?'-4px':'0';
+  stars.forEach(function(el){
+    var n=parseInt(el.dataset.star,10);
+    var full=n*2, half=n*2-1;
+    if(r>=full){
+      el.textContent='\u2605'; el.style.color='#fbbf24'; // filled gold
+    }else if(r>=half){
+      el.textContent='\u2605'; // half-star: use gradient text
+      el.style.color='transparent';
+      el.style.backgroundImage='linear-gradient(90deg,#fbbf24 50%,#374151 50%)';
+      el.style.webkitBackgroundClip='text';el.style.backgroundClip='text';
+      return;
+    }else{
+      el.textContent='\u2605'; el.style.color='#374151'; // empty gray
+    }
+    el.style.backgroundImage='none';el.style.webkitBackgroundClip='unset';el.style.backgroundClip='unset';
   });
-  var label=r?((r/2).toFixed(1).replace(/\.0$/,'')+' stars'):'Not rated';
-  var lbl=document.getElementById('rt-rating-label');if(lbl)lbl.textContent=label;
+  var display=r?(str_stars(r)):'Tap to rate';
+  var lbl=document.getElementById('rt-rating-label');if(lbl)lbl.textContent=display;
+}
+function str_stars(r){
+  var full=Math.floor(r/2),half=r%2;
+  var s='';for(var i=0;i<full;i++)s+='\u2605';if(half)s+='\u00BD';
+  return s+' ('+((r/2).toFixed(1).replace(/\.0$/,''))+')';
 }
 function _rtToggleLiked(){
   if(!_rtCurrent)return;
