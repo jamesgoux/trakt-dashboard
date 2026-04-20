@@ -128,12 +128,13 @@ def make_session(email, password):
 # Season ID resolution
 # ---------------------------------------------------------------------------
 
-def resolve_season_id(session, tmdb_show_id, season_number, cache):
+def resolve_season_id(session, tmdb_show_id, season_number, expected_title, cache):
+    """Resolve TMDB show + season number → Serializd season_id.
+
+    Validates the show name matches expected_title to catch wrong TMDB IDs.
+    """
     key = str(tmdb_show_id)
     snum_key = str(season_number)
-    show_map = cache.get(key, {})
-    if snum_key in show_map:
-        return show_map[snum_key]
 
     r = session.get(f"{BASE}/show/{tmdb_show_id}", timeout=15)
     if r.status_code != 200:
@@ -145,6 +146,14 @@ def resolve_season_id(session, tmdb_show_id, season_number, cache):
     except Exception:
         raise SerializdTransientError(
             f"show lookup {tmdb_show_id} non-JSON"
+        )
+
+    # Validate: does Serializd's show name match what we expect?
+    serializd_name = (data.get("name") or "").lower().strip()
+    expected_lower = (expected_title or "").lower().strip()
+    if expected_lower and serializd_name and expected_lower not in serializd_name and serializd_name not in expected_lower:
+        raise SerializdTransientError(
+            f"TMDB ID mismatch: expected '{expected_title}' but Serializd says '{data.get('name')}' (tmdb_id={tmdb_show_id}). Skipping to avoid wrong-show post."
         )
 
     seasons = data.get("seasons") or []
@@ -199,7 +208,7 @@ def post_review(session, *, show_id, season_id, rating_half_stars, liked,
         "rating": int(rating_half_stars) if rating_half_stars else 0,
         "contains_spoiler": bool(contains_spoilers),
         "backdate": backdate,
-        "is_log": False,           # false = review row (not log-only)
+        "is_log": True,           # false = review row (not log-only)
         "is_rewatch": bool(is_rewatch),
         "episode_number": None,    # season-level
         "tags": tags_arr,
@@ -238,7 +247,7 @@ def sync_job(session, job, cache, *, dry_run=False):
     season_id = job.get("serializd_season_id")
     if not season_id:
         try:
-            season_id = resolve_season_id(session, tmdb_show_id, season_number, cache)
+            season_id = resolve_season_id(session, tmdb_show_id, season_number, job.get("show_title",""), cache)
         except SerializdAuthError as e:
             return {"status": "auth_failed", "error": f"{e}"}
         except SerializdTransientError as e:
