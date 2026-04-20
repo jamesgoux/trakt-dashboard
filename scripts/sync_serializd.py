@@ -199,7 +199,7 @@ def post_review(session, *, show_id, season_id, rating_half_stars, liked,
         "rating": int(rating_half_stars) if rating_half_stars else 0,
         "contains_spoiler": bool(contains_spoilers),
         "backdate": backdate,
-        "is_log": False,           # false = review row (not log-only)
+        "is_log": True,           # false = review row (not log-only)
         "is_rewatch": bool(is_rewatch),
         "episode_number": None,    # season-level
         "tags": tags_arr,
