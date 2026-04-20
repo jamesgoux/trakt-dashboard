@@ -10860,8 +10860,8 @@ function _rtSubmit(){
     if(res&&res.error){throw res.error}
     if(isMovie){
       // Show tappable Letterboxd link — iOS standalone blocks ALL programmatic navigation
-      var lbUrl=_rtCurrent.slug?('https://letterboxd.com/film/'+_rtCurrent.slug+'/'):
-                _rtCurrent.tmdb_id?('https://letterboxd.com/tmdb/'+_rtCurrent.tmdb_id+'/'):null;
+      // Always use TMDB redirect — Trakt slugs don't match Letterboxd slugs
+      var lbUrl=_rtCurrent.tmdb_id?('https://letterboxd.com/tmdb/'+_rtCurrent.tmdb_id+'/'):null;
       _rtShowSuccessWithLink(lbUrl);
     }else{
       _rtShowToast('Queued for Serializd sync');
