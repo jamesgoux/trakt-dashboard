@@ -10859,19 +10859,10 @@ function _rtSubmit(){
   promise.then(function(res){
     if(res&&res.error){throw res.error}
     if(isMovie){
-      // Open Letterboxd film page — works in iOS standalone/home screen apps
+      // Show tappable Letterboxd link — iOS standalone blocks ALL programmatic navigation
       var lbUrl=_rtCurrent.slug?('https://letterboxd.com/film/'+_rtCurrent.slug+'/'):
                 _rtCurrent.tmdb_id?('https://letterboxd.com/tmdb/'+_rtCurrent.tmdb_id+'/'):null;
-      _rtClose();
-      if(lbUrl){
-        _rtShowToast('Opening Letterboxd…');
-        // Use <a> tag click — most reliable on iOS standalone (window.open blocked in async)
-        var a=document.createElement('a');a.href=lbUrl;a.target='_blank';
-        a.rel='noopener';a.style.display='none';document.body.appendChild(a);
-        a.click();a.remove();
-      }else{
-        _rtShowToast('Rating saved');
-      }
+      _rtShowSuccessWithLink(lbUrl);
     }else{
       _rtShowToast('Queued for Serializd sync');
       _rtClose();
@@ -10881,6 +10872,23 @@ function _rtSubmit(){
     if(btn){btn.disabled=false;btn.textContent='Retry'}
     alert('Failed to save: '+(e&&e.message||'unknown error'));
   });
+}
+function _rtShowSuccessWithLink(lbUrl){
+  // Replace the modal content with a success screen + tappable Letterboxd link
+  // iOS standalone requires a REAL user tap to open external URLs
+  var modal=document.getElementById('rt-modal');
+  if(!modal){_rtClose();return}
+  var card=modal.querySelector('div');if(!card)card=modal.firstElementChild;
+  var h='<div style="text-align:center;padding:20px 10px">';
+  h+='<div style="font-size:48px;margin-bottom:12px">✓</div>';
+  h+='<div style="font-size:18px;font-weight:700;color:#e5e7eb;margin-bottom:8px">Rating saved</div>';
+  if(lbUrl){
+    h+='<div style="font-size:13px;color:#9ca3af;margin-bottom:20px">Tap below to log on Letterboxd</div>';
+    h+='<a href="'+lbUrl+'" target="_blank" rel="noopener" style="display:block;padding:14px 20px;background:#fb923c;color:#000;border-radius:12px;font-size:16px;font-weight:700;text-decoration:none;margin-bottom:12px">Open in Letterboxd ↗</a>';
+  }
+  h+='<button onclick="_rtClose()" style="padding:10px 20px;background:#1f2937;border:1px solid #374151;border-radius:10px;color:#9ca3af;cursor:pointer;font-size:14px;width:100%">Done</button>';
+  h+='</div>';
+  if(card)card.innerHTML=h;
 }
 function _rtShowToast(msg){
   var t=document.createElement('div');
