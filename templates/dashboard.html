@@ -7546,7 +7546,6 @@ function markWatched(slug,season,episode,epTraktId,btn){
     try{_rtPromptSeasonIfFinale(card.dataset.tmdb,slug,showObj?showObj.show:slug,season,episode,watchedAt)}catch(_e){}
     // Instant stats for episode
     _irisInjectWatch('episode',{slug:slug,title:showObj?showObj.show:slug,year:'',runtime:showObj?showObj.ep_runtime||0:0,genres:[],tmdbId:card.dataset.tmdb||'',season:season,episode:episode});
-    try{_rtPromptSeasonIfFinale(card.dataset.tmdb,slug,showObj?showObj.show:slug,season,episode,watchedAt)}catch(_e){}
     return;
   }
   card.style.transition='opacity .2s';card.style.opacity='0.2';
