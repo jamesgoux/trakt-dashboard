@@ -10614,14 +10614,17 @@ function _rtOpen(type,params){
   h+='<div id="rt-rating-label" style="font-size:13px;color:#9ca3af;margin-top:2px;min-height:16px">Tap or drag to rate</div>';
   h+='</div>';
 
-  // Heart row
+  // Heart row (Serializd only — Letterboxd gets just the rating)
+  if(!isMovie){
   h+='<div style="margin-bottom:14px">';
   h+='<button id="rt-heart" onclick="_rtToggleLiked()" style="display:flex;align-items:center;gap:8px;padding:8px 14px;background:#1f2937;border:1px solid #374151;border-radius:20px;color:#e5e7eb;cursor:pointer;font-size:14px">';
   h+='<span id="rt-heart-icon" style="font-size:18px">♡</span><span id="rt-heart-label">Not liked</span>';
   h+='</button>';
   h+='</div>';
+  }
 
-  // Tags row
+  // Tags row (Serializd only)
+  if(!isMovie){
   h+='<div style="margin-bottom:14px">';
   h+='<div style="font-size:11px;font-weight:600;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Tags</div>';
   h+='<div id="rt-tag-wrap" style="background:#1f2937;border:1px solid #374151;border-radius:8px;padding:6px;min-height:38px;display:flex;flex-wrap:wrap;gap:4px;align-items:center">';
@@ -10629,6 +10632,7 @@ function _rtOpen(type,params){
   h+='</div>';
   h+='<div id="rt-tag-suggest" style="display:none;background:#1f2937;border:1px solid #374151;border-radius:8px;margin-top:4px;max-height:140px;overflow-y:auto;-webkit-overflow-scrolling:touch"></div>';
   h+='</div>';
+  }
 
   // Diary textarea (seasons only)
   if(!isMovie){
@@ -10641,19 +10645,18 @@ function _rtOpen(type,params){
     h+='</div>';
   }
 
-  // Watched date
+  // Watched date (Serializd only — movies just use current date)
+  if(!isMovie){
   h+='<div style="margin-bottom:16px">';
   h+='<div style="font-size:11px;font-weight:600;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Watched</div>';
   h+='<input type="date" id="rt-date" value="'+dateStr+'" onchange="_rtOnDateChange(this.value)" style="width:100%;background:#1f2937;border:1px solid #374151;border-radius:8px;padding:8px 10px;color:#e5e7eb;font-size:14px;box-sizing:border-box">';
-  if(isMovie){
-    h+='<div style="font-size:11px;color:#6b7280;margin-top:4px">Letterboxd stores date only (no time of day)</div>';
-  }
   h+='</div>';
+  }
 
   // Actions
   h+='<div style="display:flex;gap:8px">';
   h+='<button onclick="_rtSkip()" style="flex:1;padding:12px;background:#1f2937;border:1px solid #374151;border-radius:10px;color:#9ca3af;cursor:pointer;font-size:14px;font-weight:600">Skip</button>';
-  h+='<button id="rt-submit" onclick="_rtSubmit()" style="flex:2;padding:12px;background:'+destColor+';border:none;border-radius:10px;color:#000;cursor:pointer;font-size:14px;font-weight:700">'+(isMovie?'Rate & Open Letterboxd':'Log to Serializd')+'</button>';
+  h+='<button id="rt-submit" onclick="_rtSubmit()" style="flex:2;padding:12px;background:'+destColor+';border:none;border-radius:10px;color:#000;cursor:pointer;font-size:14px;font-weight:700">'+(isMovie?'Rate':'Log to Serializd')+'</button>';
   h+='</div>';
 
   card.innerHTML=h;
@@ -10859,8 +10862,20 @@ function _rtSubmit(){
   promise.then(function(res){
     if(res&&res.error){throw res.error}
     if(isMovie){
-      // Show tappable Letterboxd link — iOS standalone blocks ALL programmatic navigation
-      // Always use TMDB redirect — Trakt slugs don't match Letterboxd slugs
+      // Also sync rating to Trakt (backup — lives there regardless of Letterboxd)
+      if(_rtCurrent.rating>0&&_rtCurrent.tmdb_id){
+        try{
+          var traktRating=Math.round(_rtCurrent.rating/2*2); // convert 1-10 half-star to 1-10 Trakt scale
+          var cid=D._tc,tok=D._tt;
+          if(cid&&tok){
+            fetch('https://api.trakt.tv/sync/ratings',{method:'POST',
+              headers:{'Content-Type':'application/json','trakt-api-version':'2','trakt-api-key':cid,'Authorization':'Bearer '+tok},
+              body:JSON.stringify({movies:[{rating:traktRating,ids:{tmdb:_rtCurrent.tmdb_id}}]})
+            }).then(function(r){console.log('Trakt rating synced:',r.status)}).catch(function(){});
+          }
+        }catch(_e){}
+      }
+      // Show tappable Letterboxd link
       var lbUrl=_rtCurrent.tmdb_id?('https://letterboxd.com/tmdb/'+_rtCurrent.tmdb_id+'/'):null;
       _rtShowSuccessWithLink(lbUrl);
     }else{
@@ -10881,7 +10896,15 @@ function _rtShowSuccessWithLink(lbUrl){
   var card=modal.querySelector('div');if(!card)card=modal.firstElementChild;
   var h='<div style="text-align:center;padding:20px 10px">';
   h+='<div style="font-size:48px;margin-bottom:12px">✓</div>';
-  h+='<div style="font-size:18px;font-weight:700;color:#e5e7eb;margin-bottom:8px">Rating saved</div>';
+  h+='<div style="font-size:18px;font-weight:700;color:#e5e7eb;margin-bottom:12px">Rating saved</div>';
+  // Show rating summary so user can replicate on Letterboxd
+  if(_rtCurrent){
+    var r=_rtCurrent.rating||0;
+    var summary='';
+    if(r){var full=Math.floor(r/2),half=r%2;for(var i=0;i<full;i++)summary+='\u2605';if(half)summary+='\u00BD';summary+=' ('+(r/2).toFixed(1).replace(/\.0$/,'')+')'}
+    else{summary='No rating'}
+    h+='<div style="font-size:24px;color:#fbbf24;margin-bottom:12px">'+summary+'</div>';
+  }
   if(lbUrl){
     h+='<div style="font-size:13px;color:#9ca3af;margin-bottom:20px">Tap below to log on Letterboxd</div>';
     h+='<a href="'+lbUrl+'" target="_blank" rel="noopener" style="display:block;padding:14px 20px;background:#fb923c;color:#000;border-radius:12px;font-size:16px;font-weight:700;text-decoration:none;margin-bottom:12px">Open in Letterboxd ↗</a>';
