@@ -10859,22 +10859,23 @@ function _rtSubmit(){
   promise.then(function(res){
     if(res&&res.error){throw res.error}
     if(isMovie){
-      // Open Letterboxd film page in new tab — user completes the diary entry there
-      var slug=_rtCurrent.slug;
-      var tmdbId=_rtCurrent.tmdb_id;
-      if(slug){
-        window.open('https://letterboxd.com/film/'+slug+'/','_blank');
-        _rtShowToast('Saved to Iris — complete your log on Letterboxd');
-      }else if(tmdbId){
-        window.open('https://letterboxd.com/tmdb/'+tmdbId+'/','_blank');
-        _rtShowToast('Saved to Iris — complete your log on Letterboxd');
+      // Open Letterboxd film page — works in iOS standalone/home screen apps
+      var lbUrl=_rtCurrent.slug?('https://letterboxd.com/film/'+_rtCurrent.slug+'/'):
+                _rtCurrent.tmdb_id?('https://letterboxd.com/tmdb/'+_rtCurrent.tmdb_id+'/'):null;
+      _rtClose();
+      if(lbUrl){
+        _rtShowToast('Opening Letterboxd…');
+        // Use <a> tag click — most reliable on iOS standalone (window.open blocked in async)
+        var a=document.createElement('a');a.href=lbUrl;a.target='_blank';
+        a.rel='noopener';a.style.display='none';document.body.appendChild(a);
+        a.click();a.remove();
       }else{
-        _rtShowToast('Saved to Iris (could not resolve Letterboxd link)');
+        _rtShowToast('Rating saved');
       }
     }else{
       _rtShowToast('Queued for Serializd sync');
+      _rtClose();
     }
-    _rtClose();
   }).catch(function(e){
     console.error('Queue write failed:',e);
     if(btn){btn.disabled=false;btn.textContent='Retry'}
