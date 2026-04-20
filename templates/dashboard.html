@@ -6191,7 +6191,7 @@ function _renderUpNext(prerender){
   var recentSet={};recent.forEach(function(r){recentSet[r.slug+'|'+r.season+'|'+r.episode]=true});
   var shows=ud.shows.filter(function(s){
     if(recentSet[s.slug+'|'+s.season+'|'+s.episode])return false;
-    if(s.aired_total&&s.completed>=s.aired_total)return false;
+    if(s.aired_total&&s.completed>=s.aired_total&&s.eps_left<=0)return false;
     if(_isRemoved(s.slug,s.season,s.episode))return false;
     // Air date: use full Trakt datetime when available (e.g. 2026-04-10T04:00:00.000Z = midnight ET),
     // fall back to midnight Eastern for date-only strings
@@ -10652,7 +10652,7 @@ function _rtOpen(type,params){
   // Actions
   h+='<div style="display:flex;gap:8px">';
   h+='<button onclick="_rtSkip()" style="flex:1;padding:12px;background:#1f2937;border:1px solid #374151;border-radius:10px;color:#9ca3af;cursor:pointer;font-size:14px;font-weight:600">Skip</button>';
-  h+='<button id="rt-submit" onclick="_rtSubmit()" style="flex:2;padding:12px;background:'+destColor+';border:none;border-radius:10px;color:#000;cursor:pointer;font-size:14px;font-weight:700">Log to '+(isMovie?'Letterboxd':'Serializd')+'</button>';
+  h+='<button id="rt-submit" onclick="_rtSubmit()" style="flex:2;padding:12px;background:'+destColor+';border:none;border-radius:10px;color:#000;cursor:pointer;font-size:14px;font-weight:700">'+(isMovie?'Rate & Open Letterboxd':'Log to Serializd')+'</button>';
   h+='</div>';
 
   card.innerHTML=h;
@@ -10848,20 +10848,36 @@ function _rtSubmit(){
   var btn=document.getElementById('rt-submit');
   if(btn){btn.disabled=true;btn.textContent='Saving…'}
 
+  var isMovie=_rtCurrent.type==='letterboxd';
   var promise;
-  if(_rtCurrent.type==='letterboxd'){
+  if(isMovie){
     promise=_lbQueueAdd(_rtCurrent);
   }else{
     promise=_szQueueAdd(_rtCurrent);
   }
   promise.then(function(res){
     if(res&&res.error){throw res.error}
-    _rtShowToast('Queued for '+(_rtCurrent.type==='letterboxd'?'Letterboxd':'Serializd')+' sync');
+    if(isMovie){
+      // Open Letterboxd film page in new tab — user completes the diary entry there
+      var slug=_rtCurrent.slug;
+      var tmdbId=_rtCurrent.tmdb_id;
+      if(slug){
+        window.open('https://letterboxd.com/film/'+slug+'/','_blank');
+        _rtShowToast('Saved to Iris — complete your log on Letterboxd');
+      }else if(tmdbId){
+        window.open('https://letterboxd.com/tmdb/'+tmdbId+'/','_blank');
+        _rtShowToast('Saved to Iris — complete your log on Letterboxd');
+      }else{
+        _rtShowToast('Saved to Iris (could not resolve Letterboxd link)');
+      }
+    }else{
+      _rtShowToast('Queued for Serializd sync');
+    }
     _rtClose();
   }).catch(function(e){
     console.error('Queue write failed:',e);
     if(btn){btn.disabled=false;btn.textContent='Retry'}
-    alert('Failed to queue: '+(e&&e.message||'unknown error'));
+    alert('Failed to save: '+(e&&e.message||'unknown error'));
   });
 }
 function _rtShowToast(msg){
