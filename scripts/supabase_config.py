@@ -114,6 +114,9 @@ class SupabaseClient:
             json=params or {},
         )
         r.raise_for_status()
+        # Handle void functions (empty body)
+        if not r.text or not r.text.strip():
+            return None
         return r.json()
 
     def upload_file(self, bucket, path, data, content_type='application/json'):
