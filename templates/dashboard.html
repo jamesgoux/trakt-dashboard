@@ -1477,7 +1477,7 @@ var _irisIntegrations={}; // service -> {id, config, is_enabled, last_sync_at, l
 // Service definitions
 var _irisSvcDefs=[
   {id:'trakt',name:'Trakt',icon:'📺',type:'oauth',desc:'TV & movie watch history',fields:[]},
-  {id:'letterboxd',name:'Letterboxd',icon:'🎞️',type:'username',desc:'Movie diary & ratings',fields:[{key:'username',label:'Username',placeholder:'e.g. jamesgoux'}]},
+  {id:'letterboxd',name:'Letterboxd',icon:'🎞️',type:'credentials',desc:'Movie diary & ratings (diary sync requires password)',fields:[{key:'username',label:'Username',placeholder:'e.g. jamesgoux'},{key:'password',label:'Password',placeholder:'Letterboxd password (optional; needed for diary sync)',password:true}]},
   {id:'lastfm',name:'Last.fm',icon:'🎧',type:'fields',desc:'Music scrobbles',fields:[{key:'username',label:'Username',placeholder:'e.g. jamesgoux'},{key:'api_key',label:'API Key',placeholder:'Last.fm API key',password:true}]},
   {id:'goodreads',name:'Goodreads',icon:'📚',type:'username',desc:'Books & reading',fields:[{key:'user_id',label:'User ID',placeholder:'e.g. 2645271'}]},
   {id:'pocketcasts',name:'Pocket Casts',icon:'🎙️',type:'credentials',desc:'Podcast listening',fields:[{key:'email',label:'Email',placeholder:'email@example.com'},{key:'password',label:'Password',placeholder:'Password',password:true}]},
@@ -7434,6 +7434,8 @@ function markWatchedAt(slug,season,episode,epTraktId,when){
   _traktSync(epTraktId,watchedAt,null,slug,season,episode);
   // Instant stats for episode
   _irisInjectWatch('episode',{slug:slug,title:showTitle||slug,year:'',runtime:showObj?showObj.ep_runtime||0:0,genres:[],tmdbId:tmdbId||'',season:season,episode:episode});
+  // Iris→Serializd: prompt season-finale rating
+  try{_rtPromptSeasonIfFinale(tmdbId,slug,showTitle,season,episode,watchedAt)}catch(_e){}
 }
 
 // Targeted animated queue update: slides tiles down, reveals new card, updates show in-place
@@ -7541,8 +7543,10 @@ function markWatched(slug,season,episode,epTraktId,btn){
     requestAnimationFrame(function(){requestAnimationFrame(function(){cw.style.maxHeight='0'})});
     setTimeout(function(){cw.remove()},500);
     _traktSync(epTraktId,watchedAt,null,slug,season,episode);
+    try{_rtPromptSeasonIfFinale(card.dataset.tmdb,slug,showObj?showObj.show:slug,season,episode,watchedAt)}catch(_e){}
     // Instant stats for episode
     _irisInjectWatch('episode',{slug:slug,title:showObj?showObj.show:slug,year:'',runtime:showObj?showObj.ep_runtime||0:0,genres:[],tmdbId:card.dataset.tmdb||'',season:season,episode:episode});
+    try{_rtPromptSeasonIfFinale(card.dataset.tmdb,slug,showObj?showObj.show:slug,season,episode,watchedAt)}catch(_e){}
     return;
   }
   card.style.transition='opacity .2s';card.style.opacity='0.2';
@@ -9398,6 +9402,8 @@ function _unMarkMovieWatched(slug,traktId,btn){
     if(_mvLastMeta)_irisInjectWatch('movie',_mvLastMeta);
     // Refresh watch history on movie page
     _unFetchMovieHistory(slug,traktId);
+    // Iris→Letterboxd: prompt rating
+    try{_rtPromptMovie({slug:slug,tmdb_id:_mvLastMeta?_mvLastMeta.tmdbId:null,title:_mvLastMeta?_mvLastMeta.title:slug,year:_mvLastMeta?_mvLastMeta.year:null,watched_at:watchedAt})}catch(_e){}
   })
   .catch(function(e){
     alert('Failed to sync: '+e.message);
@@ -9423,6 +9429,7 @@ function _unMarkMovieWatchedAt(slug,traktId,dateStr,btn){
     ud.recent.unshift({show:_mvLastMeta?_mvLastMeta.title:slug,slug:slug,season:0,episode:0,ep_title:'movie',watched_at:watchedAt,ep_id:0,ep_aired:''});
     _unFetchMovieHistory(slug,traktId);
     if(_mvLastMeta)_irisInjectWatch('movie',_mvLastMeta);
+    try{_rtPromptMovie({slug:slug,tmdb_id:_mvLastMeta?_mvLastMeta.tmdbId:null,title:_mvLastMeta?_mvLastMeta.title:slug,year:_mvLastMeta?_mvLastMeta.year:null,watched_at:watchedAt})}catch(_e){}
   })
   .catch(function(e){alert('Failed: '+e.message);if(btn){btn.disabled=false;btn.textContent='Release Date'}});
 }
@@ -9472,6 +9479,7 @@ function _mvDpConfirm(){
     if(btn){btn.textContent='✓ Watched!';btn.style.background='#059669'}
     D.c.r.unshift({type:'movie',title:_mvLastMeta?_mvLastMeta.title:_mvDpSlug,detail:_mvLastMeta?_mvLastMeta.year:'',watched_at:when.substring(0,10),yr:when.substring(0,4)});
     if(_mvLastMeta)_irisInjectWatch('movie',_mvLastMeta);
+    try{_rtPromptMovie({slug:_mvDpSlug,tmdb_id:_mvLastMeta?_mvLastMeta.tmdbId:null,title:_mvLastMeta?_mvLastMeta.title:_mvDpSlug,year:_mvLastMeta?_mvLastMeta.year:null,watched_at:when})}catch(_e){}
   })
   .catch(function(e){alert('Failed: '+e.message);if(btn){btn.disabled=false;btn.textContent='✓ Mark as Watched'}});
 }
@@ -10452,4 +10460,399 @@ function processGT(file){
   reader.readAsText(file);
 }
 })();
+
+// ─── IRIS SYNC MODULE (inserted by 005) ────────────────────────────
+// ════════════════════════════════════════════════════════════════
+// IRIS → LETTERBOXD / SERIALIZD DIARY SYNC  (v1)
+// Rating modal + tag chips + season-finale detection + queue writers
+// All state is global (follows existing Iris style). Prefix: _rt*.
+// ════════════════════════════════════════════════════════════════
+
+// ── Tag autocomplete source: build frequency list from existing Letterboxd data ──
+var _rtTagSuggestionsCache=null;
+function _rtGetTagSuggestions(){
+  if(_rtTagSuggestionsCache)return _rtTagSuggestionsCache;
+  var freq={},lb=(D&&D.lb)||{};
+  Object.keys(lb).forEach(function(k){
+    var tags=lb[k]&&lb[k].tags;
+    if(tags&&tags.length){tags.forEach(function(t){if(t){freq[t]=(freq[t]||0)+1}})}
+  });
+  // Session-added tags persisted in localStorage
+  try{
+    var sess=JSON.parse(_irisLSGet('rt_session_tags')||'[]');
+    sess.forEach(function(t){if(t&&!freq[t])freq[t]=1});
+  }catch(e){}
+  _rtTagSuggestionsCache=Object.keys(freq).sort(function(a,b){return freq[b]-freq[a]||a.localeCompare(b)});
+  return _rtTagSuggestionsCache;
+}
+function _rtRememberTag(t){
+  if(!t)return;
+  try{
+    var sess=JSON.parse(_irisLSGet('rt_session_tags')||'[]');
+    if(sess.indexOf(t)<0){sess.push(t);_irisLSSet('rt_session_tags',JSON.stringify(sess))}
+  }catch(e){}
+  _rtTagSuggestionsCache=null;
+}
+function _rtNormTag(s){return(s||'').trim().toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9\-]/g,'')}
+
+// ── Modal state ──
+var _rtCurrent=null;
+// {type:'letterboxd'|'serializd', rating:0..10, liked:false, tags:[], review:'',
+//  watched_at:ISO, contains_spoilers:false, rewatch:false,
+//  // type-specific source refs:
+//  tmdb_id, title, year  (letterboxd)
+//  tmdb_show_id, show_slug, show_title, season_number  (serializd)
+// }
+
+// ── Season finale detection (returns Promise<bool>) ──
+function _isSeasonFinale(tmdbId,season,episode){
+  if(!tmdbId||!season||!episode)return Promise.resolve(false);
+  if(season===0)return Promise.resolve(false);      // specials
+  var sk=tmdbId+'|'+season;
+  if(typeof _seasonEpCache==='object'&&_seasonEpCache&&_seasonEpCache[sk]){
+    return Promise.resolve(parseInt(episode,10)>=parseInt(_seasonEpCache[sk],10));
+  }
+  var tk=(D.un||{}).tmdb_key||'';
+  if(!tk)return Promise.resolve(false);
+  return fetch('https://api.themoviedb.org/3/tv/'+tmdbId+'/season/'+season+'?api_key='+tk)
+    .then(function(r){return r.json()})
+    .then(function(d){
+      if(d&&d.episodes&&d.episodes.length){
+        try{_seasonEpCache[sk]=d.episodes.length}catch(e){}
+        return parseInt(episode,10)>=d.episodes.length;
+      }
+      return false;
+    })
+    .catch(function(){return false});
+}
+
+// ── Entry points from mark-watched hooks ──
+function _rtPromptMovie(params){
+  if(!_irisUser)return;  // unauthenticated users: no prompt
+  _rtOpen('letterboxd',{
+    tmdb_id:params.tmdb_id||null,
+    title:params.title||params.slug||'',
+    year:params.year||null,
+    slug:params.slug||'',
+    watched_at:params.watched_at||new Date().toISOString()
+  });
+}
+function _rtPromptSeasonIfFinale(tmdbId,slug,show_title,season,episode,watched_at){
+  if(!_irisUser)return;
+  if(!tmdbId||!season||!episode)return;
+  _isSeasonFinale(tmdbId,season,episode).then(function(isFinale){
+    if(!isFinale)return;
+    _rtOpen('serializd',{
+      tmdb_show_id:parseInt(tmdbId,10),
+      show_slug:slug,
+      show_title:show_title||slug,
+      season_number:parseInt(season,10),
+      watched_at:watched_at||new Date().toISOString()
+    });
+  });
+}
+
+// ── Modal: open/close/submit ──
+function _rtOpen(type,params){
+  // Build fresh state
+  _rtCurrent=Object.assign({
+    type:type,rating:0,liked:false,tags:[],review:'',
+    contains_spoilers:false,rewatch:false
+  },params);
+
+  var isMovie=type==='letterboxd';
+  var title=isMovie?_rtCurrent.title:_rtCurrent.show_title;
+  var subtitle=isMovie?
+    (_rtCurrent.year?String(_rtCurrent.year):'Movie'):
+    ('Season '+_rtCurrent.season_number+' finale');
+  var destLabel=isMovie?'Letterboxd diary':'Serializd review';
+  var destIcon=isMovie?'🎞️':'📡';
+  var destColor=isMovie?'#fb923c':'#14b8a6';
+
+  // Default watched date for the picker (YYYY-MM-DD)
+  var dt=_rtCurrent.watched_at?new Date(_rtCurrent.watched_at):new Date();
+  var dateStr=dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0');
+
+  // Existing modal? Remove first
+  var old=document.getElementById('rt-modal');if(old)old.remove();
+
+  var ov=document.createElement('div');ov.id='rt-modal';
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100000;display:flex;align-items:center;justify-content:center;padding:20px;animation:rtFadeIn .2s ease';
+  ov.onclick=function(e){if(e.target===ov)_rtSkip()};
+
+  var card=document.createElement('div');
+  card.style.cssText='background:#111827;border:1px solid #374151;border-radius:16px;padding:20px;max-width:440px;width:100%;max-height:90vh;overflow-y:auto;color:#e5e7eb;box-shadow:0 20px 50px rgba(0,0,0,.5)';
+
+  var h='';
+  h+='<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">';
+  h+='<span style="font-size:18px">'+destIcon+'</span>';
+  h+='<div style="font-size:12px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:'+destColor+'">Log to '+destLabel+'</div>';
+  h+='</div>';
+  h+='<div style="font-size:20px;font-weight:700;line-height:1.2;margin-bottom:2px">'+_rtEsc(title||'Untitled')+'</div>';
+  h+='<div style="font-size:13px;color:#9ca3af;margin-bottom:16px">'+_rtEsc(subtitle)+'</div>';
+
+  // Stars row
+  h+='<div style="margin-bottom:14px">';
+  h+='<div style="font-size:11px;font-weight:600;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Rating</div>';
+  h+='<div id="rt-stars" style="display:flex;gap:2px;font-size:32px;line-height:1;user-select:none">';
+  for(var i=1;i<=10;i++){
+    h+='<span class="rt-star" data-r="'+i+'" onclick="_rtSetRating('+i+')" style="cursor:pointer;width:14px;overflow:hidden;color:#374151;transition:color .1s">'+(i%2?'★':'★')+'</span>';
+  }
+  // Second row overlay with half-width clipping handled via JS render
+  h+='</div>';
+  h+='<div id="rt-rating-label" style="font-size:12px;color:#9ca3af;margin-top:4px;min-height:16px">Not rated</div>';
+  h+='</div>';
+
+  // Heart row
+  h+='<div style="margin-bottom:14px">';
+  h+='<button id="rt-heart" onclick="_rtToggleLiked()" style="display:flex;align-items:center;gap:8px;padding:8px 14px;background:#1f2937;border:1px solid #374151;border-radius:20px;color:#e5e7eb;cursor:pointer;font-size:14px">';
+  h+='<span id="rt-heart-icon" style="font-size:18px">♡</span><span id="rt-heart-label">Not liked</span>';
+  h+='</button>';
+  h+='</div>';
+
+  // Tags row
+  h+='<div style="margin-bottom:14px">';
+  h+='<div style="font-size:11px;font-weight:600;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Tags</div>';
+  h+='<div id="rt-tag-wrap" style="background:#1f2937;border:1px solid #374151;border-radius:8px;padding:6px;min-height:38px;display:flex;flex-wrap:wrap;gap:4px;align-items:center">';
+  h+='<input id="rt-tag-input" type="text" placeholder="Add tags…" autocomplete="off" style="flex:1;min-width:120px;background:transparent;border:none;outline:none;color:#e5e7eb;font-size:14px;padding:4px" oninput="_rtTagOnInput()" onkeydown="_rtTagOnKey(event)">';
+  h+='</div>';
+  h+='<div id="rt-tag-suggest" style="display:none;background:#1f2937;border:1px solid #374151;border-radius:8px;margin-top:4px;max-height:140px;overflow-y:auto"></div>';
+  h+='</div>';
+
+  // Diary textarea (seasons only)
+  if(!isMovie){
+    h+='<div style="margin-bottom:14px">';
+    h+='<div style="font-size:11px;font-weight:600;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Diary entry <span style="color:#6b7280;font-weight:400;text-transform:none">(optional)</span></div>';
+    h+='<textarea id="rt-review" rows="3" placeholder="Thoughts on the season…" style="width:100%;background:#1f2937;border:1px solid #374151;border-radius:8px;padding:8px 10px;color:#e5e7eb;font-size:14px;font-family:inherit;resize:vertical;box-sizing:border-box" oninput="_rtCurrent.review=this.value"></textarea>';
+    h+='<label style="display:flex;align-items:center;gap:6px;margin-top:6px;font-size:12px;color:#9ca3af;cursor:pointer">';
+    h+='<input type="checkbox" id="rt-spoilers" onchange="_rtCurrent.contains_spoilers=this.checked"> Contains spoilers';
+    h+='</label>';
+    h+='</div>';
+  }
+
+  // Watched date
+  h+='<div style="margin-bottom:16px">';
+  h+='<div style="font-size:11px;font-weight:600;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Watched</div>';
+  h+='<input type="date" id="rt-date" value="'+dateStr+'" onchange="_rtOnDateChange(this.value)" style="width:100%;background:#1f2937;border:1px solid #374151;border-radius:8px;padding:8px 10px;color:#e5e7eb;font-size:14px;box-sizing:border-box">';
+  if(isMovie){
+    h+='<div style="font-size:11px;color:#6b7280;margin-top:4px">Letterboxd stores date only (no time of day)</div>';
+  }
+  h+='</div>';
+
+  // Actions
+  h+='<div style="display:flex;gap:8px">';
+  h+='<button onclick="_rtSkip()" style="flex:1;padding:12px;background:#1f2937;border:1px solid #374151;border-radius:10px;color:#9ca3af;cursor:pointer;font-size:14px;font-weight:600">Skip</button>';
+  h+='<button id="rt-submit" onclick="_rtSubmit()" style="flex:2;padding:12px;background:'+destColor+';border:none;border-radius:10px;color:#000;cursor:pointer;font-size:14px;font-weight:700">Log to '+(isMovie?'Letterboxd':'Serializd')+'</button>';
+  h+='</div>';
+
+  card.innerHTML=h;
+  ov.appendChild(card);
+  document.body.appendChild(ov);
+  _rtRenderStars();
+  _rtRenderHeart();
+  // Ensure CSS animation keyframes exist
+  if(!document.getElementById('rt-styles')){
+    var st=document.createElement('style');st.id='rt-styles';
+    st.textContent='@keyframes rtFadeIn{from{opacity:0}to{opacity:1}}'+
+      '.rt-chip{display:inline-flex;align-items:center;gap:4px;background:#374151;color:#e5e7eb;padding:3px 8px;border-radius:12px;font-size:12px}'+
+      '.rt-chip-x{cursor:pointer;opacity:.6;font-size:14px;line-height:1}.rt-chip-x:hover{opacity:1}'+
+      '.rt-sug{padding:7px 10px;cursor:pointer;font-size:13px;color:#e5e7eb;border-bottom:1px solid #374151}.rt-sug:hover{background:#374151}.rt-sug:last-child{border-bottom:none}'+
+      '.rt-sug-new{color:#60a5fa;font-style:italic}';
+    document.head.appendChild(st);
+  }
+}
+function _rtEsc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function _rtClose(){var m=document.getElementById('rt-modal');if(m)m.remove();_rtCurrent=null}
+function _rtSkip(){_rtClose()}
+
+function _rtSetRating(r){
+  if(!_rtCurrent)return;
+  // Tap same star twice → clear; tap half-position if user taps left half via doubleclick? Keep simple: tap sets exact value.
+  if(_rtCurrent.rating===r)_rtCurrent.rating=Math.max(0,r-1);
+  else _rtCurrent.rating=r;
+  _rtRenderStars();
+}
+function _rtRenderStars(){
+  if(!_rtCurrent)return;
+  var r=_rtCurrent.rating||0;
+  var stars=document.querySelectorAll('#rt-stars .rt-star');
+  stars.forEach(function(el,i){
+    var v=i+1;el.textContent=(v%2)?'½':'★';
+    el.style.color=(v<=r)?'#fbbf24':'#374151';
+    el.style.marginLeft=(v%2&&v>1)?'-4px':'0';
+  });
+  var label=r?((r/2).toFixed(1).replace(/\.0$/,'')+' stars'):'Not rated';
+  var lbl=document.getElementById('rt-rating-label');if(lbl)lbl.textContent=label;
+}
+function _rtToggleLiked(){
+  if(!_rtCurrent)return;
+  _rtCurrent.liked=!_rtCurrent.liked;
+  _rtRenderHeart();
+}
+function _rtRenderHeart(){
+  if(!_rtCurrent)return;
+  var ic=document.getElementById('rt-heart-icon');var lb=document.getElementById('rt-heart-label');
+  var btn=document.getElementById('rt-heart');
+  if(_rtCurrent.liked){
+    if(ic)ic.textContent='♥';if(ic)ic.style.color='#ef4444';
+    if(lb)lb.textContent='Liked';
+    if(btn)btn.style.borderColor='#ef4444';
+  }else{
+    if(ic)ic.textContent='♡';if(ic)ic.style.color='#9ca3af';
+    if(lb)lb.textContent='Not liked';
+    if(btn)btn.style.borderColor='#374151';
+  }
+}
+function _rtOnDateChange(v){if(!_rtCurrent)return;
+  if(_rtCurrent.type==='letterboxd'){
+    _rtCurrent.watched_at=v+'T12:00:00.000Z';
+  }else{
+    // preserve time-of-day for serializd if original had one
+    var prev=_rtCurrent.watched_at?new Date(_rtCurrent.watched_at):new Date();
+    prev.setFullYear(parseInt(v.substr(0,4),10));
+    prev.setMonth(parseInt(v.substr(5,2),10)-1);
+    prev.setDate(parseInt(v.substr(8,2),10));
+    _rtCurrent.watched_at=prev.toISOString();
+  }
+}
+
+// ── Tag chip input ──
+function _rtRenderTagChips(){
+  var wrap=document.getElementById('rt-tag-wrap');if(!wrap)return;
+  // Remove existing chips, keep the input
+  Array.prototype.slice.call(wrap.querySelectorAll('.rt-chip')).forEach(function(c){c.remove()});
+  var input=document.getElementById('rt-tag-input');
+  (_rtCurrent.tags||[]).forEach(function(t){
+    var c=document.createElement('span');c.className='rt-chip';
+    c.innerHTML=_rtEsc(t)+'<span class="rt-chip-x" onclick="_rtRemoveTag(\''+t.replace(/'/g,"\\'")+'\')">×</span>';
+    wrap.insertBefore(c,input);
+  });
+}
+function _rtAddTag(t){
+  t=_rtNormTag(t);if(!t)return;
+  if(!_rtCurrent.tags)_rtCurrent.tags=[];
+  if(_rtCurrent.tags.indexOf(t)>=0)return;
+  _rtCurrent.tags.push(t);
+  _rtRememberTag(t);
+  _rtRenderTagChips();
+  var inp=document.getElementById('rt-tag-input');if(inp)inp.value='';
+  _rtShowSuggestions('');
+}
+function _rtRemoveTag(t){
+  if(!_rtCurrent||!_rtCurrent.tags)return;
+  var i=_rtCurrent.tags.indexOf(t);if(i>=0)_rtCurrent.tags.splice(i,1);
+  _rtRenderTagChips();
+}
+function _rtTagOnInput(){
+  var inp=document.getElementById('rt-tag-input');if(!inp)return;
+  _rtShowSuggestions(inp.value);
+}
+function _rtTagOnKey(e){
+  var inp=document.getElementById('rt-tag-input');if(!inp)return;
+  var v=inp.value;
+  if(e.key==='Enter'||e.key===','){
+    e.preventDefault();
+    if(v.trim())_rtAddTag(v);
+    return;
+  }
+  if(e.key==='Backspace'&&!v&&_rtCurrent.tags&&_rtCurrent.tags.length){
+    _rtCurrent.tags.pop();_rtRenderTagChips();
+  }
+}
+function _rtShowSuggestions(filter){
+  var box=document.getElementById('rt-tag-suggest');if(!box)return;
+  var all=_rtGetTagSuggestions();
+  var q=_rtNormTag(filter);
+  var current=_rtCurrent.tags||[];
+  var matches=all.filter(function(t){return t.indexOf(q)>=0&&current.indexOf(t)<0}).slice(0,8);
+  var html='';
+  matches.forEach(function(t){
+    html+='<div class="rt-sug" onclick="_rtAddTag(\''+t.replace(/'/g,"\\'")+'\')">'+_rtEsc(t)+'</div>';
+  });
+  // "Create new" option if query doesn't match any existing tag
+  if(q&&all.indexOf(q)<0&&current.indexOf(q)<0){
+    html+='<div class="rt-sug rt-sug-new" onclick="_rtAddTag(\''+q.replace(/'/g,"\\'")+'\')">+ Create "'+_rtEsc(q)+'"</div>';
+  }
+  if(!html){box.style.display='none';return}
+  box.innerHTML=html;box.style.display='';
+}
+
+// ── Submit: queue write ──
+function _rtSubmit(){
+  if(!_rtCurrent)return;
+  // Flush pending tag input
+  var inp=document.getElementById('rt-tag-input');
+  if(inp&&inp.value.trim()){_rtAddTag(inp.value)}
+  var btn=document.getElementById('rt-submit');
+  if(btn){btn.disabled=true;btn.textContent='Saving…'}
+
+  var promise;
+  if(_rtCurrent.type==='letterboxd'){
+    promise=_lbQueueAdd(_rtCurrent);
+  }else{
+    promise=_szQueueAdd(_rtCurrent);
+  }
+  promise.then(function(res){
+    if(res&&res.error){throw res.error}
+    _rtShowToast('Queued for '+(_rtCurrent.type==='letterboxd'?'Letterboxd':'Serializd')+' sync');
+    _rtClose();
+  }).catch(function(e){
+    console.error('Queue write failed:',e);
+    if(btn){btn.disabled=false;btn.textContent='Retry'}
+    alert('Failed to queue: '+(e&&e.message||'unknown error'));
+  });
+}
+function _rtShowToast(msg){
+  var t=document.createElement('div');
+  t.style.cssText='position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:#111827;border:1px solid #374151;color:#e5e7eb;padding:12px 18px;border-radius:10px;font-size:13px;z-index:100001;box-shadow:0 10px 30px rgba(0,0,0,.4);animation:rtFadeIn .2s';
+  t.textContent=msg;
+  document.body.appendChild(t);
+  setTimeout(function(){t.style.transition='opacity .3s';t.style.opacity='0'},2500);
+  setTimeout(function(){t.remove()},2900);
+}
+
+// ── Queue writers ──
+function _lbQueueAdd(c){
+  var wd=(c.watched_at||new Date().toISOString()).substring(0,10);
+  return _irisSB.from('letterboxd_queue').insert({
+    user_id:_irisUser.id,
+    tmdb_id:c.tmdb_id||null,
+    film_slug:c.slug||null,
+    title:c.title||null,
+    year:c.year||null,
+    rating_half_stars:c.rating||null,
+    liked:!!c.liked,
+    watched_date:wd,
+    review_text:c.review||null,
+    tags:c.tags||[],
+    contains_spoilers:!!c.contains_spoilers,
+    rewatch:!!c.rewatch
+  });
+}
+function _szQueueAdd(c){
+  return _irisSB.from('serializd_queue').insert({
+    user_id:_irisUser.id,
+    tmdb_show_id:c.tmdb_show_id,
+    show_slug:c.show_slug||null,
+    show_title:c.show_title||null,
+    season_number:c.season_number,
+    rating_half_stars:c.rating||null,
+    liked:!!c.liked,
+    review_text:c.review||null,
+    tags:c.tags||[],
+    contains_spoilers:!!c.contains_spoilers,
+    is_rewatch:!!c.rewatch,
+    watched_at:c.watched_at||new Date().toISOString()
+  });
+}
+
+// ── Sync status summary (for settings UI) ──
+function _rtFetchSyncSummary(){
+  if(!_irisUser||!_irisSB)return Promise.resolve(null);
+  return _irisSB.rpc('get_my_sync_queue_summary').then(function(res){
+    if(res&&res.error)return null;
+    return(res&&res.data)||null;
+  }).catch(function(){return null});
+}
+
 </script></body></html>
