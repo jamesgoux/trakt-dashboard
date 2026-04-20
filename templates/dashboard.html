@@ -10472,9 +10472,9 @@ function processGT(file){
 var _rtTagSuggestionsCache=null;
 function _rtGetTagSuggestions(){
   if(_rtTagSuggestionsCache)return _rtTagSuggestionsCache;
-  var freq={},lb=(D&&D.lb)||{};
-  Object.keys(lb).forEach(function(k){
-    var tags=lb[k]&&lb[k].tags;
+  var freq={},ratings=(D&&D.lb&&D.lb.ratings)||{};
+  Object.keys(ratings).forEach(function(k){
+    var tags=ratings[k]&&ratings[k].tags;
     if(tags&&tags.length){tags.forEach(function(t){if(t){freq[t]=(freq[t]||0)+1}})}
   });
   // Session-added tags persisted in localStorage
@@ -10593,15 +10593,24 @@ function _rtOpen(type,params){
   h+='<div style="font-size:20px;font-weight:700;line-height:1.2;margin-bottom:2px">'+_rtEsc(title||'Untitled')+'</div>';
   h+='<div style="font-size:13px;color:#9ca3af;margin-bottom:16px">'+_rtEsc(subtitle)+'</div>';
 
-  // Stars row — 5 tappable stars, tap = full, tap last filled = half, tap again = clear
+  // Stars row — 5 stars, each split into L/R halves for half-star precision + drag support
   h+='<div style="margin-bottom:14px">';
   h+='<div style="font-size:11px;font-weight:600;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Rating</div>';
-  h+='<div id="rt-stars" style="display:flex;gap:6px;user-select:none">';
+  h+='<div id="rt-stars" ontouchstart="_rtDragStart(event)" ontouchmove="_rtDragMove(event)" ontouchend="_rtDragEnd(event)" onmousedown="_rtDragStart(event)" onmousemove="_rtDragMove(event)" onmouseup="_rtDragEnd(event)" onmouseleave="_rtDragEnd(event)" style="display:flex;gap:0;user-select:none;touch-action:none;cursor:pointer;padding:8px 0">';
   for(var i=1;i<=5;i++){
-    h+='<span class="rt-star" data-star="'+i+'" onclick="_rtTapStar('+i+')" style="cursor:pointer;font-size:36px;line-height:1;color:#374151;transition:color .15s;-webkit-tap-highlight-color:transparent">★</span>';
+    // Each star is two tap zones: left half = half star, right half = full star
+    h+='<div class="rt-star-wrap" data-star="'+i+'" style="position:relative;width:52px;height:48px;display:flex;align-items:center;justify-content:center">';
+    h+='<span class="rt-star-glyph" style="font-size:42px;line-height:1;color:#374151;pointer-events:none;position:relative;z-index:1">★</span>';
+    // Left half zone (half star)
+    h+='<div class="rt-zone" data-r="'+(i*2-1)+'" style="position:absolute;left:0;top:0;width:50%;height:100%;z-index:2" onclick="_rtSetRating('+(i*2-1)+')"></div>';
+    // Right half zone (full star)
+    h+='<div class="rt-zone" data-r="'+(i*2)+'" style="position:absolute;right:0;top:0;width:50%;height:100%;z-index:2" onclick="_rtSetRating('+(i*2)+')"></div>';
+    h+='</div>';
   }
+  // Clear rating button
+  h+='<div onclick="_rtSetRating(0)" style="display:flex;align-items:center;justify-content:center;width:36px;height:48px;color:#6b7280;font-size:18px;cursor:pointer;margin-left:4px" title="Clear rating">✕</div>';
   h+='</div>';
-  h+='<div id="rt-rating-label" style="font-size:13px;color:#9ca3af;margin-top:6px;min-height:16px">Tap to rate</div>';
+  h+='<div id="rt-rating-label" style="font-size:13px;color:#9ca3af;margin-top:2px;min-height:16px">Tap or drag to rate</div>';
   h+='</div>';
 
   // Heart row
@@ -10666,43 +10675,74 @@ function _rtEsc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;
 function _rtClose(){var m=document.getElementById('rt-modal');if(m)m.remove();_rtCurrent=null}
 function _rtSkip(){_rtClose()}
 
-function _rtTapStar(n){
-  // n = star number 1-5. Tapping cycles: empty→full, already-full-and-last→half, half→clear
+// ── Star rating: tap zones + drag ──
+var _rtDragging=false;
+function _rtSetRating(r){
   if(!_rtCurrent)return;
-  var cur=_rtCurrent.rating||0; // 0-10 half-star scale
-  var full=n*2, half=n*2-1;
-  if(cur===full) _rtCurrent.rating=half;        // full → half
-  else if(cur===half) _rtCurrent.rating=(n-1)*2; // half → clear this star (keep prev)
-  else _rtCurrent.rating=full;                   // anything else → fill to this star
+  r=parseInt(r,10)||0;
+  // Tap same value → clear
+  if(_rtCurrent.rating===r)_rtCurrent.rating=0;
+  else _rtCurrent.rating=Math.max(0,Math.min(10,r));
+  _rtRenderStars();
+}
+function _rtDragStart(e){
+  _rtDragging=true;
+  _rtDragUpdate(e);
+}
+function _rtDragMove(e){
+  if(!_rtDragging)return;
+  _rtDragUpdate(e);
+}
+function _rtDragEnd(e){
+  if(_rtDragging){_rtDragUpdate(e);_rtDragging=false}
+}
+function _rtDragUpdate(e){
+  if(!_rtCurrent)return;
+  var container=document.getElementById('rt-stars');if(!container)return;
+  var rect=container.getBoundingClientRect();
+  // Get X position (touch or mouse)
+  var clientX=e.touches?e.touches[0].clientX:(e.clientX||0);
+  var x=clientX-rect.left;
+  // Each of the 5 stars is 52px wide, total star area = 260px
+  var starWidth=52;
+  var totalWidth=starWidth*5;
+  if(x<=0){_rtCurrent.rating=0;_rtRenderStars();return}
+  if(x>=totalWidth){_rtCurrent.rating=10;_rtRenderStars();return}
+  // Map x → 1-10 (half-star increments)
+  var raw=x/starWidth; // 0-5 float
+  var half=Math.ceil(raw*2); // 1-10
+  half=Math.max(1,Math.min(10,half));
+  _rtCurrent.rating=half;
   _rtRenderStars();
 }
 function _rtRenderStars(){
   if(!_rtCurrent)return;
-  var r=_rtCurrent.rating||0; // 0-10 half-star scale
-  var stars=document.querySelectorAll('#rt-stars .rt-star');
-  stars.forEach(function(el){
-    var n=parseInt(el.dataset.star,10);
+  var r=_rtCurrent.rating||0;
+  var wraps=document.querySelectorAll('#rt-stars .rt-star-wrap');
+  wraps.forEach(function(wrap){
+    var n=parseInt(wrap.dataset.star,10);
+    var glyph=wrap.querySelector('.rt-star-glyph');if(!glyph)return;
     var full=n*2, half=n*2-1;
     if(r>=full){
-      el.textContent='\u2605'; el.style.color='#fbbf24'; // filled gold
+      glyph.style.color='#fbbf24';
+      glyph.style.backgroundImage='none';glyph.style.webkitBackgroundClip='unset';glyph.style.backgroundClip='unset';
     }else if(r>=half){
-      el.textContent='\u2605'; // half-star: use gradient text
-      el.style.color='transparent';
-      el.style.backgroundImage='linear-gradient(90deg,#fbbf24 50%,#374151 50%)';
-      el.style.webkitBackgroundClip='text';el.style.backgroundClip='text';
-      return;
+      glyph.style.color='transparent';
+      glyph.style.backgroundImage='linear-gradient(90deg,#fbbf24 50%,#374151 50%)';
+      glyph.style.webkitBackgroundClip='text';glyph.style.backgroundClip='text';
     }else{
-      el.textContent='\u2605'; el.style.color='#374151'; // empty gray
+      glyph.style.color='#374151';
+      glyph.style.backgroundImage='none';glyph.style.webkitBackgroundClip='unset';glyph.style.backgroundClip='unset';
     }
-    el.style.backgroundImage='none';el.style.webkitBackgroundClip='unset';el.style.backgroundClip='unset';
   });
-  var display=r?(str_stars(r)):'Tap to rate';
-  var lbl=document.getElementById('rt-rating-label');if(lbl)lbl.textContent=display;
+  var lbl=document.getElementById('rt-rating-label');
+  if(lbl)lbl.textContent=r?_rtStarLabel(r):'Tap or drag to rate';
 }
-function str_stars(r){
+function _rtStarLabel(r){
+  var v=(r/2).toFixed(1).replace(/\.0$/,'');
   var full=Math.floor(r/2),half=r%2;
   var s='';for(var i=0;i<full;i++)s+='\u2605';if(half)s+='\u00BD';
-  return s+' ('+((r/2).toFixed(1).replace(/\.0$/,''))+')';
+  return s+' '+v;
 }
 function _rtToggleLiked(){
   if(!_rtCurrent)return;
