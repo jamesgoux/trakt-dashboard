@@ -25,7 +25,13 @@ import re
 import sys
 import time
 
-import requests
+# Use curl_cffi for TLS impersonation (bypasses Cloudflare)
+try:
+    from curl_cffi import requests
+    _USE_CFFI = True
+except ImportError:
+    import requests
+    _USE_CFFI = False
 
 # Allow running as `python scripts/sync_letterboxd.py` from repo root
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -78,22 +84,32 @@ def resolve_film_id(session, tmdb_id, cache):
     if cached and cached.get("filmId"):
         return cached["filmId"], cached.get("slug")
 
-    url = f"{LETTERBOXD_BASE}/tmdb/{tmdb_id}/"
-    r = session.get(url, allow_redirects=True, timeout=15)
-    if r.status_code != 200:
-        return None, None
+    # Strategy: derive slug from title, fetch /film/{slug}/ (Cloudflare-safe when logged in)
+    # /tmdb/{id}/ redirects are blocked by Cloudflare, so we avoid them
+    title = cache.get(key, {}).get("title") or ""
+    year = cache.get(key, {}).get("year")
 
-    # Capture final slug from the redirected URL
-    slug_match = _FILM_SLUG_RE.search(r.url)
-    slug = slug_match.group(1) if slug_match else None
+    # Try multiple slug patterns
+    import re as _re
+    base_slug = _re.sub(r"[^a-z0-9\s\-]", "", title.lower()).strip()
+    base_slug = _re.sub(r"\s+", "-", base_slug).strip("-")
+    candidates = [base_slug]
+    if year:
+        candidates.append(f"{base_slug}-{year}")
 
-    id_match = _FILM_ID_RE.search(r.text)
-    if not id_match:
-        return None, slug
+    for slug in candidates:
+        if not slug:
+            continue
+        r = session.get(f"{LETTERBOXD_BASE}/film/{slug}/", allow_redirects=True, timeout=15)
+        if r.status_code != 200:
+            continue
+        id_match = _FILM_ID_RE.search(r.text)
+        if id_match:
+            film_id = int(id_match.group(1))
+            cache[key] = {"filmId": film_id, "slug": slug, "title": title, "year": year}
+            return film_id, slug
 
-    film_id = int(id_match.group(1))
-    cache[key] = {"filmId": film_id, "slug": slug}
-    return film_id, slug
+    return None, None
 
 
 # ---------------------------------------------------------------------------
@@ -109,7 +125,10 @@ class LetterboxdTransientError(Exception):
 
 
 def make_session():
-    s = requests.Session()
+    if _USE_CFFI:
+        s = requests.Session(impersonate="chrome120")
+    else:
+        s = requests.Session()
     s.headers.update({
         "User-Agent": USER_AGENT,
         "Accept-Language": "en-US,en;q=0.9",
@@ -242,6 +261,12 @@ def sync_job(session, job, cache, *, dry_run=False):
     film_id = job.get("letterboxd_film_id")
     slug = job.get("film_slug")
     if not film_id:
+        # Prime cache with title+year for slug derivation
+        k = str(tmdb_id)
+        if k not in cache:
+            cache[k] = {}
+        cache[k]["title"] = job.get("title") or ""
+        cache[k]["year"] = job.get("year")
         film_id, slug = resolve_film_id(session, tmdb_id, cache)
         if not film_id:
             return {
