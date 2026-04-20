@@ -120,7 +120,7 @@ def make_session(email, password):
     if not token:
         raise SerializdAuthError(f"login no token in response: {data}")
 
-    s.cookies.set("tvproject_credentials", token, domain=".serializd.com")
+    s.cookies.set("tvproject_credentials", token, domain="serializd.onrender.com")
     return s, data.get("username")
 
 
