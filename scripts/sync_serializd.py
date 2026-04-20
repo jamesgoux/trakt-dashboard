@@ -29,7 +29,7 @@ import requests
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from supabase_config import get_admin_client  # noqa: E402
 
-BASE = "https://www.serializd.com/api"
+BASE = "https://serializd.onrender.com/api"
 HEADERS = {
     "Origin": "https://www.serializd.com",
     "Referer": "https://www.serializd.com",

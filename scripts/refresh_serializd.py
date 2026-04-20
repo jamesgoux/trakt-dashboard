@@ -8,7 +8,7 @@ from user_config import load_user_config, get_service
 _ucfg = load_user_config()
 
 
-BASE = "https://www.serializd.com/api"
+BASE = "https://serializd.onrender.com/api"
 HEADERS = {
     "Origin": "https://www.serializd.com",
     "Referer": "https://www.serializd.com",
