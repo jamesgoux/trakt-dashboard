@@ -10694,7 +10694,9 @@ function _rtDragMove(e){
   _rtDragUpdate(e);
 }
 function _rtDragEnd(e){
-  if(_rtDragging){_rtDragUpdate(e);_rtDragging=false}
+  _rtDragging=false;
+  // Don't call _rtDragUpdate — on touchend, e.touches is empty (finger lifted),
+  // which would map clientX=0 → rating=0. The last touchmove already set the value.
 }
 function _rtDragUpdate(e){
   if(!_rtCurrent)return;
