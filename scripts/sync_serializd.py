@@ -35,7 +35,6 @@ HEADERS = {
     "Referer": "https://www.serializd.com",
     "X-Requested-With": "serializd_vercel",
     "Content-Type": "application/json",
-    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
 }
 MAX_RETRIES = 3
 RETRY_BACKOFF_S = 2
@@ -103,7 +102,7 @@ def make_session(email, password):
     s.headers.update(HEADERS)
 
     r = s.post(f"{BASE}/login",
-               data=json.dumps({"email": email, "password": password}),
+               json={"email": email, "password": password},
                timeout=15)
     if r.status_code == 401 or r.status_code == 403:
         raise SerializdAuthError(f"login rejected ({r.status_code})")
@@ -209,7 +208,7 @@ def post_review(session, *, show_id, season_id, rating_half_stars, liked,
     }
 
     r = session.post(f"{BASE}/show/reviews/add",
-                     data=json.dumps(payload), timeout=20)
+                     json=payload, timeout=20)
     if r.status_code in (401, 403):
         raise SerializdAuthError(f"reviews/add rejected session ({r.status_code})")
     if r.status_code >= 500:
