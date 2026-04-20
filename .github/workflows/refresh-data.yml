@@ -100,12 +100,20 @@ jobs:
         run: python scripts/refresh_data.py
 
       # ── Drain diary sync queues (Iris → Letterboxd + Serializd) ──
-      - name: Sync Letterboxd diary queue
+      - name: Sync Letterboxd diary queue (Playwright)
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
-        run: python scripts/sync_letterboxd.py
-        timeout-minutes: 5
+        run: |
+          python scripts/sync_letterboxd.py --limit 0 2>/dev/null && HAS_JOBS=0 || HAS_JOBS=1
+          if python -c "import sys;sys.path.insert(0,'scripts');from supabase_config import get_admin_client;jobs=get_admin_client().rpc('get_pending_letterboxd_jobs',{'p_limit':1});sys.exit(0 if jobs else 1)" 2>/dev/null; then
+            echo "Pending Letterboxd jobs found, installing Playwright..."
+            playwright install chromium --with-deps
+            python scripts/sync_letterboxd.py
+          else
+            echo "No pending Letterboxd jobs, skipping browser install."
+          fi
+        timeout-minutes: 8
         continue-on-error: true
 
       - name: Sync Serializd review queue
