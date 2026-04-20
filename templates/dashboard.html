@@ -6191,7 +6191,7 @@ function _renderUpNext(prerender){
   var recentSet={};recent.forEach(function(r){recentSet[r.slug+'|'+r.season+'|'+r.episode]=true});
   var shows=ud.shows.filter(function(s){
     if(recentSet[s.slug+'|'+s.season+'|'+s.episode])return false;
-    if(s.aired_total&&s.completed>=s.aired_total)return false;
+    if(s.aired_total&&s.completed>=s.aired_total&&s.eps_left<=0)return false;
     if(_isRemoved(s.slug,s.season,s.episode))return false;
     // Air date: use full Trakt datetime when available (e.g. 2026-04-10T04:00:00.000Z = midnight ET),
     // fall back to midnight Eastern for date-only strings
