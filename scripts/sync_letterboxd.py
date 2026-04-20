@@ -25,13 +25,7 @@ import re
 import sys
 import time
 
-# Use curl_cffi for TLS impersonation (bypasses Cloudflare)
-try:
-    from curl_cffi import requests
-    _USE_CFFI = True
-except ImportError:
-    import requests
-    _USE_CFFI = False
+from curl_cffi import requests
 
 # Allow running as `python scripts/sync_letterboxd.py` from repo root
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -125,10 +119,7 @@ class LetterboxdTransientError(Exception):
 
 
 def make_session():
-    if _USE_CFFI:
-        s = requests.Session(impersonate="chrome120")
-    else:
-        s = requests.Session()
+    s = requests.Session(impersonate="chrome")
     s.headers.update({
         "User-Agent": USER_AGENT,
         "Accept-Language": "en-US,en;q=0.9",
