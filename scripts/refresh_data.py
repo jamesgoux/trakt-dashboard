@@ -2307,11 +2307,61 @@ def categorize_tags(lb_data, tag_cats):
 tag_data = categorize_tags(lb, tag_cats)
 
 # Personal rating lists from Letterboxd
-my_rated = [{"t": e["title"], "yr": e.get("year"), "r": e["rating"],
-             "wy": sorted(set(d[:4] for d in e.get("dates",[]) if d))}
-            for e in lb.values() if e.get("rating")]
-my_rated_high = sorted(my_rated, key=lambda x: x["r"], reverse=True)
-my_rated_low = sorted(my_rated, key=lambda x: x["r"])
+# (my_rated_high / my_rated_low computed below after Trakt fallback merge)
+
+# Trakt user ratings (fallback for movies not rated on Letterboxd)
+trakt_ratings = {}
+try:
+    access_token = get_trakt_access_token()
+    if access_token:
+        auth_headers = dict(HEADERS)
+        auth_headers["Authorization"] = f"Bearer {access_token}"
+        tr = retry_request("get", f"{BASE_URL}/users/{USERNAME}/ratings/movies",
+                           headers=auth_headers, timeout=15)
+        if tr and tr.status_code == 200:
+            for item in tr.json():
+                movie = item.get("movie", {})
+                tmdb_id = movie.get("ids", {}).get("tmdb")
+                rating = item.get("rating")  # 1-10 scale
+                if tmdb_id and rating:
+                    trakt_ratings[str(tmdb_id)] = rating
+            print(f"  Trakt ratings: {len(trakt_ratings)} movies")
+except Exception as e:
+    print(f"  Trakt ratings fetch failed: {e}")
+
+# Merge: for movies rated on Trakt but NOT on Letterboxd, add to lb_ratings with source flag
+trakt_only_count = 0
+for tmdb_id, rating in trakt_ratings.items():
+    if tmdb_id not in lb_ratings or not lb_ratings[tmdb_id].get("r"):
+        # Convert Trakt 1-10 to Letterboxd 0.5-5.0 scale (divide by 2)
+        lb_rating = round(rating / 2, 1)
+        if tmdb_id in lb_ratings:
+            lb_ratings[tmdb_id]["r"] = lb_rating
+            lb_ratings[tmdb_id]["src"] = "trakt"
+        else:
+            lb_ratings[tmdb_id] = {"r": lb_rating, "liked": False, "tags": [], "src": "trakt"}
+        # Also add to rating distribution
+        lb_rating_dist[str(lb_rating)] = lb_rating_dist.get(str(lb_rating), 0) + 1
+        trakt_only_count += 1
+if trakt_only_count:
+    print(f"  Trakt fallback: {trakt_only_count} movies added to ratings (not on Letterboxd)")
+
+# Update my_rated lists with Trakt-sourced ratings
+my_rated_all = [{"t": e["title"], "yr": e.get("year"), "r": e["rating"],
+                 "wy": sorted(set(d[:4] for d in e.get("dates",[]) if d))}
+                for e in lb.values() if e.get("rating")]
+# Add Trakt-only ratings (title lookup via entries)
+_tmdb_to_title = {}
+for e in entries:
+    if e.get("tmdb_id") and e.get("type") == "movie":
+        _tmdb_to_title[str(e["tmdb_id"])] = (e.get("title",""), e.get("year",""))
+for tmdb_id, r in trakt_ratings.items():
+    if tmdb_id not in lb_ratings or lb_ratings[tmdb_id].get("src") != "trakt":
+        continue
+    title_info = _tmdb_to_title.get(tmdb_id, ("Unknown", ""))
+    my_rated_all.append({"t": title_info[0], "yr": title_info[1], "r": round(r/2, 1), "wy": []})
+my_rated_high = sorted(my_rated_all, key=lambda x: x["r"], reverse=True)
+my_rated_low = sorted(my_rated_all, key=lambda x: x["r"])
 
 data["lb"] = {
     "ratings": lb_ratings,

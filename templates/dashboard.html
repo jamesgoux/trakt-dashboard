@@ -10853,40 +10853,34 @@ function _rtSubmit(){
   if(btn){btn.disabled=true;btn.textContent='Saving…'}
 
   var isMovie=_rtCurrent.type==='letterboxd';
-  var promise;
   if(isMovie){
-    promise=_lbQueueAdd(_rtCurrent);
+    // Sync rating to Trakt (primary backup — no Letterboxd queue, Cloudflare blocks it)
+    if(_rtCurrent.rating>0&&_rtCurrent.tmdb_id){
+      try{
+        var traktRating=_rtCurrent.rating; // 1-10 half-star scale matches Trakt's 1-10
+        var cid=D._tc,tok=D._tt;
+        if(cid&&tok){
+          fetch('https://api.trakt.tv/sync/ratings',{method:'POST',
+            headers:{'Content-Type':'application/json','trakt-api-version':'2','trakt-api-key':cid,'Authorization':'Bearer '+tok},
+            body:JSON.stringify({movies:[{rating:traktRating,ids:{tmdb:_rtCurrent.tmdb_id}}]})
+          }).then(function(r){console.log('Trakt rating synced:',r.status)}).catch(function(){});
+        }
+      }catch(_e){}
+    }
+    var lbUrl=_rtCurrent.tmdb_id?('https://letterboxd.com/tmdb/'+_rtCurrent.tmdb_id+'/'):null;
+    _rtShowSuccessWithLink(lbUrl);
   }else{
-    promise=_szQueueAdd(_rtCurrent);
-  }
-  promise.then(function(res){
-    if(res&&res.error){throw res.error}
-    if(isMovie){
-      // Also sync rating to Trakt (backup — lives there regardless of Letterboxd)
-      if(_rtCurrent.rating>0&&_rtCurrent.tmdb_id){
-        try{
-          var traktRating=Math.round(_rtCurrent.rating/2*2); // convert 1-10 half-star to 1-10 Trakt scale
-          var cid=D._tc,tok=D._tt;
-          if(cid&&tok){
-            fetch('https://api.trakt.tv/sync/ratings',{method:'POST',
-              headers:{'Content-Type':'application/json','trakt-api-version':'2','trakt-api-key':cid,'Authorization':'Bearer '+tok},
-              body:JSON.stringify({movies:[{rating:traktRating,ids:{tmdb:_rtCurrent.tmdb_id}}]})
-            }).then(function(r){console.log('Trakt rating synced:',r.status)}).catch(function(){});
-          }
-        }catch(_e){}
-      }
-      // Show tappable Letterboxd link
-      var lbUrl=_rtCurrent.tmdb_id?('https://letterboxd.com/tmdb/'+_rtCurrent.tmdb_id+'/'):null;
-      _rtShowSuccessWithLink(lbUrl);
-    }else{
+    // Serializd: write to queue (pipeline syncs it)
+    _szQueueAdd(_rtCurrent).then(function(res){
+      if(res&&res.error){throw res.error}
       _rtShowToast('Queued for Serializd sync');
       _rtClose();
-    }
-  }).catch(function(e){
-    console.error('Queue write failed:',e);
-    if(btn){btn.disabled=false;btn.textContent='Retry'}
-    alert('Failed to save: '+(e&&e.message||'unknown error'));
-  });
+    }).catch(function(e){
+      console.error('Queue write failed:',e);
+      if(btn){btn.disabled=false;btn.textContent='Retry'}
+      alert('Failed to save: '+(e&&e.message||'unknown error'));
+    });
+  }
 }
 function _rtShowSuccessWithLink(lbUrl){
   // Replace the modal content with a success screen + tappable Letterboxd link
