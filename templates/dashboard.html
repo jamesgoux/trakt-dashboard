@@ -10596,7 +10596,7 @@ function _rtOpen(type,params){
   // Stars row — 5 stars, each split into L/R halves for half-star precision + drag support
   h+='<div style="margin-bottom:14px">';
   h+='<div style="font-size:11px;font-weight:600;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Rating</div>';
-  h+='<div id="rt-stars" ontouchstart="_rtDragStart(event)" ontouchmove="_rtDragMove(event)" ontouchend="_rtDragEnd(event)" onmousedown="_rtDragStart(event)" onmousemove="_rtDragMove(event)" onmouseup="_rtDragEnd(event)" onmouseleave="_rtDragEnd(event)" style="display:flex;gap:0;user-select:none;touch-action:none;cursor:pointer;padding:8px 0">';
+  h+='<div id="rt-stars" ontouchstart="_rtDragStart(event);event.preventDefault()" ontouchmove="_rtDragMove(event);event.preventDefault()" ontouchend="_rtDragEnd(event)" onmousedown="_rtDragStart(event)" onmousemove="_rtDragMove(event)" onmouseup="_rtDragEnd(event)" onmouseleave="_rtDragEnd(event)" style="display:flex;gap:0;user-select:none;touch-action:none;cursor:pointer;padding:8px 0">';
   for(var i=1;i<=5;i++){
     // Each star is two tap zones: left half = half star, right half = full star
     h+='<div class="rt-star-wrap" data-star="'+i+'" style="position:relative;width:52px;height:48px;display:flex;align-items:center;justify-content:center">';
