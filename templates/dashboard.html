@@ -7597,6 +7597,8 @@ function markWatched(slug,season,episode,epTraktId,btn){
   // Instant stats for episode
   var _showTitle2=card.querySelector('.un-show');
   _irisInjectWatch('episode',{slug:slug,title:_showTitle2?_showTitle2.textContent:slug,year:'',runtime:showObj?showObj.ep_runtime||0:0,genres:[],tmdbId:card.dataset.tmdb||(showObj?showObj.tmdb_id:''),season:season,episode:episode});
+  // Iris→Serializd: prompt season-finale rating (hasMore branch)
+  try{_rtPromptSeasonIfFinale(card.dataset.tmdb||(showObj?showObj.tmdb_id:''),slug,_showTitle2?_showTitle2.textContent:slug,season,episode,watchedAt)}catch(_e){}
 }
 
 function removeRecent(epId,btn){
