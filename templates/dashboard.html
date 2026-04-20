@@ -10472,9 +10472,9 @@ function processGT(file){
 var _rtTagSuggestionsCache=null;
 function _rtGetTagSuggestions(){
   if(_rtTagSuggestionsCache)return _rtTagSuggestionsCache;
-  var freq={},lb=(D&&D.lb)||{};
-  Object.keys(lb).forEach(function(k){
-    var tags=lb[k]&&lb[k].tags;
+  var freq={},ratings=(D&&D.lb&&D.lb.ratings)||{};
+  Object.keys(ratings).forEach(function(k){
+    var tags=ratings[k]&&ratings[k].tags;
     if(tags&&tags.length){tags.forEach(function(t){if(t){freq[t]=(freq[t]||0)+1}})}
   });
   // Session-added tags persisted in localStorage
