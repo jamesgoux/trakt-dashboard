@@ -8578,6 +8578,11 @@ var _wlDirty=false; // true when custom order changed but not yet synced
   var wl=D.wlst||{};
   if(wl.custom_order)_wlCustomOrder=wl.custom_order;
   try{var ls=localStorage.getItem('iris-wl-order');if(ls){var p=JSON.parse(ls);if(p.movies||p.shows)_wlCustomOrder=p}}catch(e){}
+  // Pre-load watchlist poster images into browser cache so scroll is instant
+  setTimeout(function(){
+    var items=(wl.movies||[]).concat(wl.shows||[]);
+    items.forEach(function(m){if(m.poster){var img=new Image();img.src=m.poster}});
+  },2000); // delay 2s — let main dashboard render first
 })();
 
 function _unOpenWatchlist(){
@@ -8643,7 +8648,7 @@ function _wlCardHtml(item,i,isCustom){
       h+='<div class="un-wl-drag" ontouchstart="event.stopPropagation();_wlDragStart(event,'+i+')" onmousedown="event.stopPropagation();_wlDragStart(event,'+i+')">⋮⋮</div>';
     }
     if(poster){
-      h+='<img class="un-wl-poster" src="'+poster+'" loading="lazy" onerror="this.className=\'un-wl-poster-ph\';this.innerHTML=\''+(isMovie?'🎞️':'📺')+'\';this.removeAttribute(\'src\')">';
+      h+='<img class="un-wl-poster" src="'+poster+'" onerror="this.className=\'un-wl-poster-ph\';this.innerHTML=\''+(isMovie?'🎞️':'📺')+'\';this.removeAttribute(\'src\')">';
     }else{
       h+='<div class="un-wl-poster-ph" id="wlp-'+i+'">'+(isMovie?'🎞️':'📺')+'</div>';
     }
