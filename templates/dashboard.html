@@ -1614,10 +1614,11 @@ function _strmLoadFromSupabase(){
     if(Array.isArray(arr)&&arr.length){
       var _wasNull=!_strmSelected;
       _strmSelected=new Set(arr);
-      console.log('Loaded streaming prefs:',arr.length,'services');
-      // Only re-render if prefs changed from unloaded→loaded (not on every auth event)
-      // Skip if Up Next pre-render is pending (will pick up prefs on first open)
+      console.log('Loaded streaming prefs:',arr.length,'services',Array.from(_strmSelected));
       if(!_wasNull)return;
+      // Re-render active overlay views so streaming filter takes effect
+      if(_unCurrentView==='home')_renderUpNext();
+      else if(_unCurrentView==='watchlist')_wlRender();
     }
   });
 }
@@ -8696,7 +8697,7 @@ function _wlRender(){
     h+='<div class="un-wl-jw">';
     if(jw.s&&jw.s.length){
       h+='<div class="un-wl-jw-icons">';
-      jw.s.slice(0,4).forEach(function(svc){
+      _strmFilterStream(jw.s).slice(0,4).forEach(function(svc){
         if(svc.i)h+='<img class="un-wl-jw-icon" src="'+svc.i+'" alt="'+svc.n+'" title="'+svc.n+'" loading="lazy" onerror="this.style.display=\'none\'">';
       });
       h+='</div>';
