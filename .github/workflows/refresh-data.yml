@@ -138,20 +138,10 @@ jobs:
         timeout-minutes: 5
         continue-on-error: true
 
-      - name: Commit and push
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add index.html templates/ scripts/ .gitignore data/
-          git diff --quiet --staged && exit 0
-          git commit -m "Core build $(date -u +'%Y-%m-%d %H:%M UTC')"
-          for i in 1 2 3; do
-            git fetch --depth=1 origin main
-            git rebase origin/main --strategy-option=ours || git rebase --abort
-            git push && break
-            echo "Push attempt $i failed, retrying in 5s..."
-            sleep 5
-          done
+      - name: Push via GitHub API
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python scripts/push_to_github.py "Core build $(date -u +'%Y-%m-%d %H:%M UTC')"
 
       # ── Process pending refresh requests ────────────────────
       - name: Process pending user refreshes
