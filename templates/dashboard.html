@@ -859,9 +859,9 @@ function _earlyTraktSync(){
   Promise.all([histP,progP]).then(function(res){
     _applyExternalWatches(res[0]);
     _unPreSynced=true;
-    if(!_unPreRendered){_renderUpNext(true);_unPreRendered=true}
+    if(!_unPreRendered&&_unCurrentView==='home'){_renderUpNext(true);_unPreRendered=true}
   }).catch(function(){
-    if(!_unPreRendered){_renderUpNext(true);_unPreRendered=true}
+    if(!_unPreRendered&&_unCurrentView==='home'){_renderUpNext(true);_unPreRendered=true}
   });
 }
 
@@ -10091,12 +10091,12 @@ function _bgPreload(){
       // If early sync (from _irisLoadTraktToken) already ran, skip — it's already done or in-flight
       if(_earlyTraktSyncRan){
         // Early sync handled it; just pre-render if not already done
-        if(!_unPreRendered){_renderUpNext(true);_unPreRendered=true}
+        if(!_unPreRendered&&_unCurrentView==='home'){_renderUpNext(true);_unPreRendered=true}
       } else if(D._tc&&D._tt){
         _earlyTraktSync();// delegate to the same function
       } else {
         // No Trakt auth — still pre-render with cached data
-        if(!_unPreRendered){_renderUpNext(true);_unPreRendered=true}
+        if(!_unPreRendered&&_unCurrentView==='home'){_renderUpNext(true);_unPreRendered=true}
       }
     }catch(e){}
   },{timeout:3000});
