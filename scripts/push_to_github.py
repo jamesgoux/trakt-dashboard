@@ -77,6 +77,8 @@ def get_changed_files():
         "data/headshots.json", "data/posters.json", "data/logos.json",
         "data/book_genres.json", "data/artist_genres.json",
         "data/pocketcasts_history.json",
+        "data/tmdb_credits_done.json", "data/tmdb_trakt_cache.json",
+        "data/lb_tmdb_cache.json", "data/slug_recency.json", "data/slug_tmdb.json",
         "templates/dashboard.html",
         "scripts/",
         ".gitignore",
