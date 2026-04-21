@@ -33,11 +33,6 @@ jobs:
             data/writers.json
             data/studios.json
             data/crew_episodes.json
-            data/tmdb_credits_done.json
-            data/tmdb_trakt_cache.json
-            data/lb_tmdb_cache.json
-            data/slug_recency.json
-            data/slug_tmdb.json
             data/visible_priority.json
             data/migration_candidates.json
           key: pipeline-cache-${{ github.run_id }}
