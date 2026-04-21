@@ -60,16 +60,16 @@ def fetch_letterboxd_watchlist():
             break
 
         # Extract film data from HTML attributes
+        # Note: data-film-id was removed from Letterboxd's HTML ~April 2026
         films = _re.findall(
             r'data-item-name="([^"]+)"\s+data-item-slug="([^"]+)"\s+'
-            r'data-item-link="([^"]+)"\s+data-item-full-display-name="([^"]+)"\s+'
-            r'data-film-id="(\d+)"',
+            r'data-item-link="([^"]+)"\s+data-item-full-display-name="([^"]+)"',
             r.text
         )
         if not films:
             break
 
-        for name, slug, link, full_name, film_id in films:
+        for name, slug, link, full_name in films:
             # Parse "Title (Year)" from full display name
             ym = _re.match(r'^(.+)\s+\((\d{4})\)$', full_name)
             title = ym.group(1) if ym else name
