@@ -306,15 +306,29 @@ def _jw_search_title(title, media_type="movie", year=None):
         edges = (d.get("data") or {}).get("popularTitles", {}).get("edges", [])
         if not edges:
             return None
-        # Pick best match (prefer year match if available)
-        best = edges[0].get("node", {})
-        if year:
-            for e in edges:
-                n = e.get("node", {})
-                c = n.get("content", {})
-                if c.get("originalReleaseYear") == year:
-                    best = n
-                    break
+        # Pick best match — require year match (±1) or title match to avoid wrong movies
+        best = None
+        title_lower = title.lower().strip() if title else ""
+        for e in edges:
+            n = e.get("node", {})
+            c = n.get("content", {})
+            jw_year = c.get("originalReleaseYear")
+            jw_title = (c.get("title") or "").lower().strip()
+            # Exact year match — best case
+            if year and jw_year == year:
+                best = n
+                break
+            # Year within ±1 (release year can differ by region)
+            if year and jw_year and abs(jw_year - year) <= 1:
+                best = n
+                break
+            # Title match (no year info available)
+            if not year and jw_title == title_lower:
+                best = n
+                break
+        if not best:
+            # No good match — don't return wrong data
+            return None
         offers = best.get("offers", [])
         if not offers:
             return None
