@@ -1612,13 +1612,10 @@ function _strmLoadFromSupabase(){
     if(res.error||!res.data)return;
     var arr=res.data.value;
     if(Array.isArray(arr)&&arr.length){
-      var _wasNull=!_strmSelected;
       _strmSelected=new Set(arr);
       console.log('Loaded streaming prefs:',arr.length,'services',Array.from(_strmSelected));
-      if(!_wasNull)return;
-      // Re-render active overlay views so streaming filter takes effect
-      if(_unCurrentView==='home')_renderUpNext();
-      else if(_unCurrentView==='watchlist')_wlRender();
+      // Filter takes effect on next overlay open/render — no re-render here
+      // to avoid stomping the active view with a race condition
     }
   });
 }
