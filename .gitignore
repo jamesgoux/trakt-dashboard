@@ -4,8 +4,8 @@ __pycache__/
 data/trakt_auth.json
 data/.token_refresh_result
 
-# Intermediate pipeline caches — persisted via actions/cache, NOT git
-# These are rebuilt each run from TMDB/Trakt APIs; too large to merge every 10min
+# Large intermediate caches — persisted via actions/cache, NOT git
+# These are 30MB+ total, rebuilt each run from TMDB/Trakt APIs
 data/people.json
 data/season_credits.json
 data/entries_cache.json
@@ -14,15 +14,11 @@ data/directors.json
 data/writers.json
 data/studios.json
 data/crew_episodes.json
-data/tmdb_credits_done.json
-data/tmdb_trakt_cache.json
-data/lb_tmdb_cache.json
-data/slug_recency.json
-data/slug_tmdb.json
 data/visible_priority.json
 data/migration_candidates.json
-# NOTE: headshots.json, posters.json, logos.json are NOT gitignored —
-# they accumulate over many runs and can't be rebuilt quickly
+# NOTE: Small lookup caches (tmdb_credits_done, tmdb_trakt_cache, etc.)
+# stay in git — they're tiny (<200KB each) and critical for build speed.
+# headshots.json, posters.json, logos.json also stay in git (accumulated data).
 
 # Environment and secrets
 .env
