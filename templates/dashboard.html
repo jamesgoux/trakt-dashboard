@@ -8695,7 +8695,7 @@ function _wlRender(){
     h+='<div class="un-wl-jw">';
     if(jw.s&&jw.s.length){
       h+='<div class="un-wl-jw-icons">';
-      _strmFilterStream(jw.s).slice(0,4).forEach(function(svc){
+      jw.s.slice(0,4).forEach(function(svc){
         if(svc.i)h+='<img class="un-wl-jw-icon" src="'+svc.i+'" alt="'+svc.n+'" title="'+svc.n+'" loading="lazy" onerror="this.style.display=\'none\'">';
       });
       h+='</div>';
