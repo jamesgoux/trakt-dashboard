@@ -6017,6 +6017,7 @@ function openUpNext(skipSync){
       var watchChanged=_applyExternalWatches(res[0]);
       var progChanged=res[1];// _liveCheckProgress returns true if any show was updated
       if(watchChanged||progChanged){
+        if(_unCurrentView!=='home'){console.log('Sync: skipping re-render (view='+_unCurrentView+')');return}
         _unReturning=true;
         _renderUpNext();
         // After sync re-render, scroll to New Episodes anchor (not stale scroll pos)
