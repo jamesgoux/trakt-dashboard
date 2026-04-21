@@ -33,9 +33,6 @@ jobs:
             data/writers.json
             data/studios.json
             data/crew_episodes.json
-            data/headshots.json
-            data/posters.json
-            data/logos.json
             data/tmdb_credits_done.json
             data/tmdb_trakt_cache.json
             data/lb_tmdb_cache.json
