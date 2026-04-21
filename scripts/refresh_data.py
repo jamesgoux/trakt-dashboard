@@ -621,30 +621,44 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
     # Merge people by TMDB person ID (preferred) or name (fallback).
     # Using TMDB person ID prevents different people with the same name
     # (e.g. multiple "Jack O'Connell"s) from being merged incorrectly.
+    # Two-pass: first build name→TMDB lookup so legacy name-keyed entries
+    # merge with newer TMDB-keyed entries for the same person.
     _people_dedup = {}
+    _name_to_tmdb_key = {}  # "Elle Fanning" → "tmdb:18050"
+    # Pass 1: collect name→TMDB key mapping from entries that have tmdb_person_id
+    for pid, info in people.items():
+        tid = info.get("tmdb_person_id")
+        if tid:
+            _name_to_tmdb_key[info["name"]] = f"tmdb:{tid}"
     def _person_dedup_key(info):
         tid = info.get("tmdb_person_id")
-        return f"tmdb:{tid}" if tid else info["name"]
+        if tid:
+            return f"tmdb:{tid}"
+        # Legacy entry without TMDB ID — check if a TMDB-keyed entry exists for same name
+        tmdb_key = _name_to_tmdb_key.get(info["name"])
+        if tmdb_key:
+            return tmdb_key
+        return info["name"]
+    def _merge_into(p, info):
+        """Merge info into existing dedup entry p."""
+        for t in info["titles"]:
+            if t not in p["titles"]: p["titles"].append(t)
+        for slug, eps in info.get("eps", {}).items():
+            if slug not in p["eps"]:
+                p["eps"][slug] = eps
+            else:
+                existing = set((e[0], e[1]) for e in p["eps"][slug])
+                for ep in eps:
+                    if (ep[0], ep[1]) not in existing:
+                        p["eps"][slug].append(ep)
+        for slug, order in info.get("billing", {}).items():
+            if slug not in p["billing"] or order < p["billing"][slug]:
+                p["billing"][slug] = order
     for pid, info in people.items():
         if not ism(info["gender"]) and not isf(info["gender"]): continue
         key = _person_dedup_key(info)
         if key in _people_dedup:
-            p = _people_dedup[key]
-            for t in info["titles"]:
-                if t not in p["titles"]: p["titles"].append(t)
-            # Merge episode credits
-            for slug, eps in info.get("eps", {}).items():
-                if slug not in p["eps"]:
-                    p["eps"][slug] = eps
-                else:
-                    existing = set((e[0], e[1]) for e in p["eps"][slug])
-                    for ep in eps:
-                        if (ep[0], ep[1]) not in existing:
-                            p["eps"][slug].append(ep)
-            # Merge billing (keep best/lowest order per slug)
-            for slug, order in info.get("billing", {}).items():
-                if slug not in p["billing"] or order < p["billing"][slug]:
-                    p["billing"][slug] = order
+            _merge_into(_people_dedup[key], info)
         else:
             _people_dedup[key] = {"name": info["name"], "gender": info["gender"],
                                    "titles": list(info["titles"]),

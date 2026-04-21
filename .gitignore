@@ -4,6 +4,27 @@ __pycache__/
 data/trakt_auth.json
 data/.token_refresh_result
 
+# Intermediate pipeline caches — persisted via actions/cache, NOT git
+# These files are 36MB+ total and change every build, causing 10min+ git merge times
+data/people.json
+data/season_credits.json
+data/entries_cache.json
+data/other_crew.json
+data/directors.json
+data/writers.json
+data/studios.json
+data/crew_episodes.json
+data/headshots.json
+data/posters.json
+data/logos.json
+data/tmdb_credits_done.json
+data/tmdb_trakt_cache.json
+data/lb_tmdb_cache.json
+data/slug_recency.json
+data/slug_tmdb.json
+data/visible_priority.json
+data/migration_candidates.json
+
 # Environment and secrets
 .env
 .env.*

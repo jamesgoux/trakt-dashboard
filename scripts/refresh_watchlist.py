@@ -464,6 +464,20 @@ def run():
     lb_movies = fetch_letterboxd_watchlist()
     trakt_movies, trakt_shows = fetch_trakt_watchlist()
 
+    # Safety guard: don't overwrite non-empty data with empty results
+    prev_movie_count = len(existing.get("movies", []))
+    prev_show_count = len(existing.get("shows", []))
+    if prev_movie_count > 0 and len(lb_movies) == 0 and len(trakt_movies) == 0:
+        print(f"  ⚠️ Both Letterboxd and Trakt returned 0 movies (previous had {prev_movie_count}) — keeping previous movie data")
+    if prev_show_count > 0 and len(trakt_shows) == 0:
+        print(f"  ⚠️ Trakt returned 0 shows (previous had {prev_show_count}) — keeping previous show data")
+        trakt_shows = [{"title": s["title"], "year": s.get("year"), "slug": s["slug"],
+                        "tmdb_id": s.get("tmdb_id"), "imdb_id": s.get("imdb_id", ""),
+                        "runtime": s.get("runtime", 0), "genres": s.get("genres", []),
+                        "rating": s.get("rating"), "status": s.get("status", ""),
+                        "aired_episodes": s.get("aired_episodes", 0),
+                        "added_at": s.get("added_at", "")} for s in existing.get("shows", [])]
+
     # 2. Deduplicate movies (Letterboxd + Trakt by TMDB ID)
     movies_by_tmdb = {}
 
@@ -698,6 +712,11 @@ def run():
                         break
         except Exception as e:
             print(f"  Custom order read failed: {e}")
+
+    # If movie fetch totally failed but we had previous data, keep it
+    if not final_movies and prev_movie_count > 0:
+        print(f"  Using previous {prev_movie_count} movies (fetch returned empty)")
+        final_movies = existing.get("movies", [])
 
     output = {
         "movies": final_movies,
