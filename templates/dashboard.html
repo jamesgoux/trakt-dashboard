@@ -567,7 +567,7 @@ Drop GameTrack games.csv or <span style="color:#6366f1;text-decoration:underline
 <div id="un-comp-filter" style="display:none;padding:6px 0 2px;overflow-x:auto;white-space:nowrap;-webkit-overflow-scrolling:touch"></div>
 </div>
 <div id="un-content"></div>
-<div id="wl-content" style="display:none"></div>
+<div id="wl-content" style="display:none;min-height:100%"></div>
 </div>
 <!-- Unified Search Overlay -->
 <div id="iris-search-ov" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg);z-index:9700;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;will-change:transform">
@@ -1614,9 +1614,8 @@ function _strmLoadFromSupabase(){
     var arr=res.data.value;
     if(Array.isArray(arr)&&arr.length){
       _strmSelected=new Set(arr);
+      _strmPrefsLoaded=true;
       console.log('Loaded streaming prefs:',arr.length,'services',Array.from(_strmSelected));
-      // Filter takes effect on next overlay open/render — no re-render here
-      // to avoid stomping the active view with a race condition
     }
   });
 }
@@ -2183,6 +2182,7 @@ function _jmpFloatSync(){
   _jmpFloat.style.top=_fbarHidden?'12px':((fbar?fbar.offsetHeight:64)+4)+'px';
 }
 // Watchlist: open directly without loading Up Next queue
+var _strmPrefsLoaded=false;
 function _irisOpenWatchlist(){
   document.querySelectorAll('.chart-detail').forEach(function(d){d.remove()});
   if(window.echarts){document.querySelectorAll('[_echarts_instance_]').forEach(function(el){var c=echarts.getInstanceByDom(el);if(c)c.dispatchAction({type:'hideTip'})})}
@@ -2193,7 +2193,18 @@ function _irisOpenWatchlist(){
   var _unc=document.getElementById('un-content');if(_unc)_unc.style.display='none';
   var _wlc=document.getElementById('wl-content');if(_wlc)_wlc.style.display='';
   var cf=document.getElementById('un-comp-filter');if(cf)cf.style.display='none';
-  _wlRender();
+  // Ensure streaming prefs are loaded before rendering
+  if(!_strmPrefsLoaded&&_irisSB&&_irisUser){
+    _irisSB.from('user_preferences').select('value').eq('user_id',_irisUser.id).eq('key','streaming_services').single().then(function(res){
+      if(res.data&&Array.isArray(res.data.value)&&res.data.value.length){
+        _strmSelected=new Set(res.data.value);
+      }
+      _strmPrefsLoaded=true;
+      _wlRender();
+    }).catch(function(){_strmPrefsLoaded=true;_wlRender()});
+  }else{
+    _wlRender();
+  }
   var ov=document.getElementById('un-overlay');
   _unEverOpened=true;
   ov.style.display='';ov.style.visibility='hidden';ov.style.transition='none';ov.style.transform='translateX(100%)';
@@ -8583,7 +8594,18 @@ var _wlDirty=false; // true when custom order changed but not yet synced
 function _unOpenWatchlist(){
   _unSetView('watchlist',{});
   var ov=document.getElementById('un-overlay');ov.scrollTop=0;
-  _wlRender();
+  // Ensure streaming prefs loaded before rendering
+  if(!_strmPrefsLoaded&&_irisSB&&_irisUser){
+    _irisSB.from('user_preferences').select('value').eq('user_id',_irisUser.id).eq('key','streaming_services').single().then(function(res){
+      if(res.data&&Array.isArray(res.data.value)&&res.data.value.length){
+        _strmSelected=new Set(res.data.value);
+      }
+      _strmPrefsLoaded=true;
+      _wlRender();
+    }).catch(function(){_strmPrefsLoaded=true;_wlRender()});
+  }else{
+    _wlRender();
+  }
 }
 
 function _fmtRuntime(m){
