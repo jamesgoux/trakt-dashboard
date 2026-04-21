@@ -8733,8 +8733,9 @@ function _wlRender(){
     el.innerHTML=h;return;
   }
 
-  // Progressive render: first 15 cards instantly, rest in background batch
+  // Progressive render: first 15 cards instantly, rest in small batches
   var FIRST_BATCH=15;
+  var CHUNK_SIZE=20;
   h+='<div class="un-wl-list" id="wl-list">';
   items.slice(0,FIRST_BATCH).forEach(function(item,i){
     h+=_wlCardHtml(item,i,isCustom);
@@ -8742,22 +8743,27 @@ function _wlRender(){
   h+='</div>';
   el.innerHTML=h;
 
-  // Render remaining cards in a background batch (non-blocking)
+  // Append remaining cards in small chunks with rAF between each
   if(items.length>FIRST_BATCH){
-    _wlBatchTimer=setTimeout(function(){
+    var _wlChunkIdx=FIRST_BATCH;
+    function _wlAppendChunk(){
+      if(_wlChunkIdx>=items.length||_unCurrentView!=='watchlist')return;
       var list=document.getElementById('wl-list');
-      if(!list||_unCurrentView!=='watchlist')return;
-      var frag=document.createDocumentFragment();
+      if(!list)return;
+      var end=Math.min(_wlChunkIdx+CHUNK_SIZE,items.length);
       var tmp=document.createElement('div');
       var batchHtml='';
-      for(var i=FIRST_BATCH;i<items.length;i++){
+      for(var i=_wlChunkIdx;i<end;i++){
         batchHtml+=_wlCardHtml(items[i],i,isCustom);
       }
       tmp.innerHTML=batchHtml;
+      var frag=document.createDocumentFragment();
       while(tmp.firstChild)frag.appendChild(tmp.firstChild);
       list.appendChild(frag);
-      _wlBatchTimer=null;
-    },50);
+      _wlChunkIdx=end;
+      if(_wlChunkIdx<items.length)requestAnimationFrame(_wlAppendChunk);
+    }
+    requestAnimationFrame(_wlAppendChunk);
   }
   if(isCustom){
     var spacer=document.createElement('div');spacer.style.height='80px';
