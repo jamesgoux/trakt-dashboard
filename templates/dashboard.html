@@ -211,10 +211,10 @@ tr:hover td{background:rgba(255,255,255,.02)}
 .wl-sort-menu div:hover{background:rgba(255,255,255,.06)}
 .wl-sort-menu div.active{color:var(--tv);font-weight:600}
 .un-wl-list{padding:8px 16px;max-width:600px;margin:0 auto}
-.un-wl-card{display:flex;gap:0;padding:0;background:var(--sf);border-radius:12px;border:1px solid rgba(255,255,255,.06);margin-bottom:10px;cursor:pointer;transition:background .15s;position:relative;overflow:hidden;min-height:128px}
+.un-wl-card{display:flex;gap:0;padding:0;background:var(--sf);border-radius:12px;border:1px solid rgba(255,255,255,.06);margin-bottom:10px;cursor:pointer;transition:background .15s;position:relative;overflow:hidden}
 .un-wl-card:active{background:#1e1e3a}
-.un-wl-poster{width:85px;min-height:128px;border-radius:0;object-fit:cover;background:#222;flex-shrink:0;align-self:stretch}
-.un-wl-poster-ph{width:85px;min-height:128px;border-radius:0;background:linear-gradient(135deg,#1a1a2e,#0f3460);display:flex;align-items:center;justify-content:center;font-size:22px;color:var(--t2);flex-shrink:0;align-self:stretch}
+.un-wl-poster{width:85px;border-radius:0;object-fit:cover;background:#222;flex-shrink:0;align-self:stretch}
+.un-wl-poster-ph{width:85px;border-radius:0;background:linear-gradient(135deg,#1a1a2e,#0f3460);display:flex;align-items:center;justify-content:center;font-size:22px;color:var(--t2);flex-shrink:0;align-self:stretch}
 .un-wl-info{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;padding:10px 12px}
 .un-wl-title{font-weight:700;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .un-wl-meta{font-size:12px;color:var(--t2);display:flex;align-items:center;justify-content:space-between}
@@ -8722,42 +8722,13 @@ function _wlRender(){
     el.innerHTML=h;return;
   }
 
-  // Progressive render: first 15 cards instantly, rest in small batches
-  var FIRST_BATCH=15;
-  var CHUNK_SIZE=20;
   h+='<div class="un-wl-list" id="wl-list">';
-  items.slice(0,FIRST_BATCH).forEach(function(item,i){
+  items.forEach(function(item,i){
     h+=_wlCardHtml(item,i,isCustom);
   });
   h+='</div>';
+  if(isCustom)h+='<div style="height:80px"></div>';
   el.innerHTML=h;
-
-  // Append remaining cards in small chunks with rAF between each
-  if(items.length>FIRST_BATCH){
-    var _wlChunkIdx=FIRST_BATCH;
-    function _wlAppendChunk(){
-      if(_wlChunkIdx>=items.length||_unCurrentView!=='watchlist')return;
-      var list=document.getElementById('wl-list');
-      if(!list)return;
-      var end=Math.min(_wlChunkIdx+CHUNK_SIZE,items.length);
-      var tmp=document.createElement('div');
-      var batchHtml='';
-      for(var i=_wlChunkIdx;i<end;i++){
-        batchHtml+=_wlCardHtml(items[i],i,isCustom);
-      }
-      tmp.innerHTML=batchHtml;
-      var frag=document.createDocumentFragment();
-      while(tmp.firstChild)frag.appendChild(tmp.firstChild);
-      list.appendChild(frag);
-      _wlChunkIdx=end;
-      if(_wlChunkIdx<items.length)requestAnimationFrame(_wlAppendChunk);
-    }
-    requestAnimationFrame(_wlAppendChunk);
-  }
-  if(isCustom){
-    var spacer=document.createElement('div');spacer.style.height='80px';
-    el.appendChild(spacer);
-  }
   _wlUpdateSaveBar();
 }
 
