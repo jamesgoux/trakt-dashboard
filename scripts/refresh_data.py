@@ -1711,12 +1711,17 @@ if os.path.exists("data/letterboxd.json"):
     with open("data/letterboxd.json") as f:
         lb_data = json.load(f)
     
-    # Build lookup: (title_lower, year) -> set of watched dates from Trakt
+    # Build lookup: multiple keys per entry for robust dedup
+    # (title+year can mismatch: festival year vs release year)
     trakt_watches = defaultdict(set)
     for e in entries:
         if e["type"] == "movie" and e["title"] and e["watched_at"]:
-            key = (e["title"].lower(), str(e.get("year", "")))
-            trakt_watches[key].add(e["watched_at"][:10])
+            d = e["watched_at"][:10]
+            trakt_watches[(e["title"].lower(), str(e.get("year", "")))].add(d)
+            if e.get("tmdb_id"):
+                trakt_watches[("tmdb", str(e["tmdb_id"]))].add(d)
+            if e.get("trakt_slug"):
+                trakt_watches[("slug", e["trakt_slug"])].add(d)
     
     lb_added = 0
     for lb_key, lb_entry in lb_data.items():
@@ -1730,16 +1735,22 @@ if os.path.exists("data/letterboxd.json"):
             if not lb_date:
                 continue
             
-            # Check if Trakt already has a watch within 30 days
+            # Check if Trakt already has a watch within 30 days (by title+year, TMDB ID, or slug)
             is_dupe = False
-            for trakt_date in trakt_watches[key]:
-                try:
-                    td = abs((datetime.strptime(lb_date, "%Y-%m-%d") - datetime.strptime(trakt_date, "%Y-%m-%d")).days)
-                    if td <= 30:
-                        is_dupe = True
-                        break
-                except Exception:
-                    pass
+            check_keys = [key]
+            if lb_entry.get("tmdb_id"):
+                check_keys.append(("tmdb", str(lb_entry["tmdb_id"])))
+            for ck in check_keys:
+                for trakt_date in trakt_watches.get(ck, set()):
+                    try:
+                        td = abs((datetime.strptime(lb_date, "%Y-%m-%d") - datetime.strptime(trakt_date, "%Y-%m-%d")).days)
+                        if td <= 30:
+                            is_dupe = True
+                            break
+                    except Exception:
+                        pass
+                if is_dupe:
+                    break
             
             if not is_dupe:
                 entries.append({
