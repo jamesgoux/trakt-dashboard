@@ -698,6 +698,17 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
                 sc += 1
                 bws.append(_billing_weight(person_billing.get(ts, 999)))
         if mc + sc >= 2:
+            # Sort titles by recency (most recently watched first)
+            # tis and bws are parallel arrays — sort together by max watch year of each title
+            if tis:
+                def _ti_recency(idx):
+                    t = tl[idx] if idx < len(tl) else {}
+                    eby = t.get("eby", {})
+                    return max((int(y) for y in eby.keys()), default=0) if eby else 0
+                paired = list(zip(tis, bws)) if bws else [(t, 3) for t in tis]
+                paired.sort(key=lambda x: _ti_recency(x[0]), reverse=True)
+                tis = [p[0] for p in paired]
+                bws = [p[1] for p in paired]
             entry = {"n": info["name"], "g": "m" if ism(info["gender"]) else "f", "m": mc, "s": sc, "tt": mc+sc, "ti": tis, "_rec": max_recency}
             # Billing weights: only include if not all default (3=supporting fallback)
             if any(w != 3 for w in bws):
@@ -1260,6 +1271,13 @@ def build_data(entries, people, headshots, posters, slug_studios, directors_raw,
                             continue
                     tis.append(ti[k]); mc += (1 if typ == "movie" else 0); sc += (1 if typ == "show" else 0)
             if mc + sc >= 2:
+                # Sort titles by recency
+                if tis:
+                    def _dti_rec(idx):
+                        t = tl[idx] if idx < len(tl) else {}
+                        eby = t.get("eby", {})
+                        return max((int(y) for y in eby.keys()), default=0) if eby else 0
+                    tis.sort(key=_dti_rec, reverse=True)
                 entry = {"n": info["name"], "m": mc, "s": sc, "tt": mc + sc, "ti": tis, "_rec": max_rec}
                 # Add per-episode crew credits (for episode counts + green highlights)
                 cpid = _slugify(info["name"])
