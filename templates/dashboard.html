@@ -567,6 +567,7 @@ Drop GameTrack games.csv or <span style="color:#6366f1;text-decoration:underline
 <div id="un-comp-filter" style="display:none;padding:6px 0 2px;overflow-x:auto;white-space:nowrap;-webkit-overflow-scrolling:touch"></div>
 </div>
 <div id="un-content"></div>
+<div id="wl-content" style="display:none"></div>
 </div>
 <!-- Unified Search Overlay -->
 <div id="iris-search-ov" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg);z-index:9700;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;will-change:transform">
@@ -2188,6 +2189,8 @@ function _irisOpenWatchlist(){
   var llOv=document.getElementById('ll-feed-overlay');if(llOv)llOv.style.display='none';
   _unCurrentView='watchlist';_unNavStack=[];
   _unUpdateHeader();
+  var _unc=document.getElementById('un-content');if(_unc)_unc.style.display='none';
+  var _wlc=document.getElementById('wl-content');if(_wlc)_wlc.style.display='';
   var cf=document.getElementById('un-comp-filter');if(cf)cf.style.display='none';
   // Ensure streaming prefs are loaded before rendering
   if(!_strmPrefsLoaded&&_irisSB&&_irisUser){
@@ -8443,6 +8446,13 @@ function _unSetView(view,data){
   }
   _unCurrentView=view;
   _unUpdateHeader();
+  // Toggle containers
+  var _unc=document.getElementById('un-content');
+  var _wlc=document.getElementById('wl-content');
+  if(_wlc){
+    if(view==='watchlist'){_unc.style.display='none';_wlc.style.display=''}
+    else{_unc.style.display='';_wlc.style.display='none'}
+  }
   // Hide companion filter bar on non-home views
   if(view!=='home'){var cf=document.getElementById('un-comp-filter');if(cf)cf.style.display='none'}
 }
@@ -8708,7 +8718,7 @@ function _wlCardHtml(item,i,isCustom){
 }
 function _wlRender(){
   if(_wlBatchTimer){clearTimeout(_wlBatchTimer);_wlBatchTimer=null}
-  var el=document.getElementById('un-content');
+  var el=document.getElementById('wl-content');
   var wl=D.wlst||{};
   var items=_wlGetItems();
   _wlItems=items;
