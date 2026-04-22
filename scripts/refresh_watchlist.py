@@ -640,11 +640,16 @@ def run():
         if not slug:
             continue
 
-        # Use cache if available (stale refresh handled by refresh_jw_stale.py)
+        # Use cache if available — but treat TMDB fallback (no prices) as stale
         if slug in jw_cache:
-            item["jw"] = jw_cache[slug]
-            item["jw_ts"] = jw_ts_cache.get(slug, 0)
-            continue
+            cached = jw_cache[slug]
+            has_prices = any(s.get("p") for s in (cached.get("r") or []) + (cached.get("b") or []))
+            is_tmdb_fallback = cached and not has_prices and (cached.get("r") or cached.get("b"))
+            if not is_tmdb_fallback:
+                item["jw"] = cached
+                item["jw_ts"] = jw_ts_cache.get(slug, 0)
+                continue
+            # TMDB fallback — re-fetch from JustWatch to get prices
 
         if jw_fetched >= JW_BUDGET:
             continue
