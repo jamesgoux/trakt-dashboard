@@ -209,48 +209,81 @@ def _looks_like_initial(n):
     """BGG often stores player names as initials like 'A.' or 'N.' — short + ends with a period."""
     return bool(n) and len(n) <= 3 and n.endswith('.')
 
+def _build_canonical_names(mapping):
+    """From the positional mapping, build {base_name: preferred_display_name}.
+
+    Prefer the longer form (which usually includes the emoji) so that
+    'James Goux' gets canonicalized to 'James Goux 🧔🏻' everywhere, even in
+    plays where positional mapping didn't apply.
+    """
+    canon = {}
+    for _, names in mapping.items():
+        for n in names:
+            if not n or n == 'Anonymous player':
+                continue
+            base = _base_name(n)
+            if not base or _looks_like_initial(base):
+                continue
+            existing = canon.get(base)
+            if existing is None or len(n) > len(existing):
+                canon[base] = n
+    return canon
+
 def apply_name_mapping(plays, mapping):
-    """Override players[].name with full names from the BG Stats mapping where available.
+    """Override players[].name with full names from the BG Stats mapping.
 
-    Rules (in order):
-      1. Skip if the mapped name is empty or 'Anonymous player' (March 13 rebuild filtered those;
-         BGG's initial like 'A.' is more useful than a generic placeholder).
-      2. If BGG's name is an initial ('A.'), only apply the mapped name when first letters match
-         — guards against seat-order mismatches between BGG and BG Stats assigning wrong people.
-      3. If BGG's name is already full (e.g. 'James Goux'), only override when the mapped name's
-         base matches (e.g. 'James Goux 🧔🏻' → same base 'James Goux') — this upgrades to the
-         emoji version without swapping identities.
+    Two passes:
+      1. Positional — for each play in the mapping, try to match by seat order:
+         - Skip if mapped name is empty or 'Anonymous player' (March 13 rebuild filtered those).
+         - If BGG's name is an initial ('A.'): only apply when first letters match (guards
+           against seat-order mismatches between BGG and BG Stats).
+         - If BGG's name is already a full name: only 'upgrade' when the base matches
+           (e.g. 'James Goux' → 'James Goux 🧔🏻').
+      2. Canonical normalization — across ALL plays, replace any player whose base name
+         matches a known person (e.g. 'James Goux' → 'James Goux 🧔🏻') so top_players
+         doesn't split one person into emoji'd and non-emoji'd rows.
 
-    Returns (overridden_plays_count, overridden_player_records_count).
+    Returns (overridden_plays_count, total_player_records_touched).
     """
     if not mapping:
         return 0, 0
+    canonical = _build_canonical_names(mapping)
     overridden_plays = 0
     overridden_players = 0
     for p in plays:
-        full_names = mapping.get(p.get('play_id', 0))
-        if not full_names:
-            continue
-        if len(p['players']) != len(full_names):
-            continue  # Count mismatch — skip entire play
         touched = False
-        for i, player in enumerate(p['players']):
-            new_name = full_names[i]
+
+        # Pass 1: positional mapping (exact match by seat order)
+        full_names = mapping.get(p.get('play_id', 0))
+        if full_names and len(p['players']) == len(full_names):
+            for i, player in enumerate(p['players']):
+                new_name = full_names[i]
+                cur_name = player.get('name', '')
+                if not new_name or new_name == 'Anonymous player':
+                    continue
+                if _looks_like_initial(cur_name):
+                    if cur_name[:1].upper() != (new_name[:1] or '').upper():
+                        continue
+                else:
+                    if _base_name(cur_name) != _base_name(new_name):
+                        continue
+                if new_name != cur_name:
+                    player['name'] = new_name
+                    overridden_players += 1
+                    touched = True
+
+        # Pass 2: canonical normalization — any full name whose base matches a known person
+        # gets the canonical (usually emoji'd) display form. Keeps identities from splitting.
+        for player in p['players']:
             cur_name = player.get('name', '')
-            if not new_name or new_name == 'Anonymous player':
+            if _looks_like_initial(cur_name) or not cur_name:
                 continue
-            if _looks_like_initial(cur_name):
-                # Only expand when first letters agree — prevents wrong-person mapping on seat-order mismatches
-                if (cur_name[:1].upper() != (new_name[:1] or '').upper()):
-                    continue
-            else:
-                # BGG already has a real name — only "upgrade" when the base matches (adds emoji)
-                if _base_name(cur_name) != _base_name(new_name):
-                    continue
-            if new_name != cur_name:
-                player['name'] = new_name
+            canon = canonical.get(_base_name(cur_name))
+            if canon and canon != cur_name:
+                player['name'] = canon
                 overridden_players += 1
                 touched = True
+
         if touched:
             overridden_plays += 1
     return overridden_plays, overridden_players
