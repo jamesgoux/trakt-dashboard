@@ -109,6 +109,7 @@ def build_aggregates(plays):
     by_game = {}
     by_year = {}
     by_month = {}
+    by_date = {}  # date (YYYY-MM-DD) -> total quantity — drives weekly Activity chart bucketing
     players_count = {}
     locations = {}
 
@@ -125,11 +126,13 @@ def build_aggregates(plays):
         by_game[game]['count'] += qty
         by_game[game]['total_time'] += p['length'] * qty
 
-        # Year/month counts
+        # Year/month/day counts
         if yr:
             by_year[yr] = by_year.get(yr, 0) + qty
         if mo:
             by_month[mo] = by_month.get(mo, 0) + qty
+        if date:
+            by_date[date] = by_date.get(date, 0) + qty
 
         # Players
         for pl in p['players']:
@@ -156,6 +159,7 @@ def build_aggregates(plays):
         'top_players': [[name, v['plays'], v['wins']] for name, v in top_players],
         'by_year': by_year,
         'by_month': by_month,
+        'by_date': by_date,
         'locations': sorted(locations.items(), key=lambda x: -x[1]),
     }
 

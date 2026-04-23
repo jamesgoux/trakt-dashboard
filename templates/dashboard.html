@@ -2954,8 +2954,12 @@ function baseCharts(){
   if((_isAll()||ct==='boardgame')&&D.bg&&D.bg.total){
     var bgMByM=(D.bg.agg||{}).by_month||{};
     var bgMData;
-    // Weekly: use bg.recent dates (limited to ~30 most recent plays); older months may undercount.
-    if(window._tlRes==='weekly'){bgMData=[];for(var _i=0;_i<tlLabels.length;_i++)bgMData.push(0);((D.bg&&D.bg.recent)||[]).forEach(function(p){if(!p.date||!p.date.startsWith(cy))return;var idx=_wkIdx(p.date);if(idx>=0)bgMData[idx]+=(p.quantity||1)})}
+    // Weekly: use bg.agg.by_date (per-day play counts). Falls back to bg.recent on blobs built before by_date was added.
+    if(window._tlRes==='weekly'){bgMData=[];for(var _i=0;_i<tlLabels.length;_i++)bgMData.push(0);
+      var _bgBD=(D.bg&&D.bg.agg&&D.bg.agg.by_date)||null;
+      if(_bgBD){for(var _d in _bgBD){if(!_d.startsWith(cy))continue;var idx=_wkIdx(_d);if(idx>=0)bgMData[idx]+=_bgBD[_d]}}
+      else{((D.bg&&D.bg.recent)||[]).forEach(function(p){if(!p.date||!p.date.startsWith(cy))return;var idx=_wkIdx(p.date);if(idx>=0)bgMData[idx]+=(p.quantity||1)})}
+    }
     else{bgMData=mf.map(function(d){return bgMByM[d.month]||0})}
     if(bgMData.some(function(v){return v>0})){
       tlSeries.push({name:'Board Games',type:'bar',stack:'t',data:bgMData,itemStyle:{color:'#ec4899'},barMaxWidth:tlBarW});
