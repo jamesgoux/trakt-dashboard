@@ -196,12 +196,32 @@ def load_name_mapping():
     print(f'  Name mapping loaded: {len(mapping):,} BGG plays with full names from BG Stats export')
     return mapping
 
+import re as _re_names
+
+def _base_name(n):
+    """Return the full name with emoji/decorations stripped, for comparing 'James Goux' vs 'James Goux 🧔🏻'."""
+    if not n:
+        return ''
+    # Keep word chars, spaces, apostrophes, periods, hyphens; drop everything else (emoji, etc.)
+    return _re_names.sub(r'[^\w\s\'\.\-]', '', n, flags=_re_names.UNICODE).strip()
+
+def _looks_like_initial(n):
+    """BGG often stores player names as initials like 'A.' or 'N.' — short + ends with a period."""
+    return bool(n) and len(n) <= 3 and n.endswith('.')
+
 def apply_name_mapping(plays, mapping):
     """Override players[].name with full names from the BG Stats mapping where available.
 
-    Positional match by seat order. Unmatched plays or players keep their BGG names (typically
-    initials). "Anonymous player" entries from the BG Stats export are treated as no-mapping
-    (user historically filtered those out of the dashboard). Returns (overridden_count, total_players_overridden).
+    Rules (in order):
+      1. Skip if the mapped name is empty or 'Anonymous player' (March 13 rebuild filtered those;
+         BGG's initial like 'A.' is more useful than a generic placeholder).
+      2. If BGG's name is an initial ('A.'), only apply the mapped name when first letters match
+         — guards against seat-order mismatches between BGG and BG Stats assigning wrong people.
+      3. If BGG's name is already full (e.g. 'James Goux'), only override when the mapped name's
+         base matches (e.g. 'James Goux 🧔🏻' → same base 'James Goux') — this upgrades to the
+         emoji version without swapping identities.
+
+    Returns (overridden_plays_count, overridden_player_records_count).
     """
     if not mapping:
         return 0, 0
@@ -212,16 +232,22 @@ def apply_name_mapping(plays, mapping):
         if not full_names:
             continue
         if len(p['players']) != len(full_names):
-            # Count mismatch — BGG and BG Stats disagree on seating. Skip to be safe.
-            continue
+            continue  # Count mismatch — skip entire play
         touched = False
         for i, player in enumerate(p['players']):
             new_name = full_names[i]
-            # Don't override with "Anonymous player" — March 13 rebuild deliberately filtered these,
-            # and BGG's initial (e.g. "A.") is more useful than a generic label.
+            cur_name = player.get('name', '')
             if not new_name or new_name == 'Anonymous player':
                 continue
-            if new_name != player.get('name'):
+            if _looks_like_initial(cur_name):
+                # Only expand when first letters agree — prevents wrong-person mapping on seat-order mismatches
+                if (cur_name[:1].upper() != (new_name[:1] or '').upper()):
+                    continue
+            else:
+                # BGG already has a real name — only "upgrade" when the base matches (adds emoji)
+                if _base_name(cur_name) != _base_name(new_name):
+                    continue
+            if new_name != cur_name:
                 player['name'] = new_name
                 overridden_players += 1
                 touched = True
