@@ -3267,13 +3267,13 @@ function baseCharts(){
   });
   ch.push(c10);
 
-  // Episodes Watched — yearly (all), monthly (year, default), or weekly (year, toggle)
+  // Episodes Watched — yearly (all), weekly (year, default), or monthly (year, toggle)
   var epc=D.c.epc||{};
   var epEl=document.getElementById('epcc');
   if(ct!=='all'&&ct!=='show'){epEl.parentElement.parentElement.style.display='none'}
   else{
     epEl.parentElement.parentElement.style.display='';
-    window._epRes=window._epRes||'monthly';var epRes=window._epRes;
+    window._epRes=window._epRes||'weekly';var epRes=window._epRes;
     // Show toggle only when year is selected
     var epResWrap=document.getElementById('ep-res-wrap');
     if(isYear&&epResWrap){
@@ -3287,14 +3287,21 @@ function baseCharts(){
       // Yearly
       allMonths.forEach(function(m){var yr=m.substring(0,4);if(!epBuckets[yr])epBuckets[yr]=0;if(!epDetail[yr])epDetail[yr]={};epBuckets[yr]+=Object.values(epc[m]).reduce(function(s,v){return s+v},0);Object.entries(epc[m]).forEach(function(e){epDetail[yr][e[0]]=(epDetail[yr][e[0]]||0)+e[1]})});
     }else if(epRes==='weekly'){
-      // Weekly: group months into ~weekly buckets (4 per month)
+      // Weekly: real per-day episode counts from D.ll (W1=1-7, W2=8-14, W3=15-21, W4=22-end).
+      // Click-through detail falls back to month-level shows since D.ll has no per-show per-day data.
       var yrMonths=allMonths.filter(function(m){return m.startsWith(cy)});
       yrMonths.forEach(function(m){
-        var total=Object.values(epc[m]).reduce(function(s,v){return s+v},0);
-        // Split month into ~4 weeks
-        var perWeek=Math.ceil(total/4);
-        for(var w=1;w<=4;w++){var wk=m+'-W'+w;epBuckets[wk]=w<4?perWeek:total-perWeek*3;epDetail[wk]=epDetail[wk]||{};Object.entries(epc[m]).forEach(function(e){epDetail[wk][e[0]]=(epDetail[wk][e[0]]||0)+Math.ceil(e[1]/4)})}
+        var monthDet={};Object.entries(epc[m]).forEach(function(e){monthDet[e[0]]=e[1]});
+        for(var w=1;w<=4;w++){var wk=m+'-W'+w;epBuckets[wk]=0;epDetail[wk]=monthDet}
       });
+      if(D.ll){for(var _day in D.ll){
+        if(!_day.startsWith(cy))continue;
+        var _mo=_day.substring(0,7),_dy=parseInt(_day.substring(8,10),10);
+        if(!_dy)continue;
+        var _wk=_mo+'-W'+(_dy<=7?1:_dy<=14?2:_dy<=21?3:4);
+        if(epBuckets[_wk]===undefined)continue;
+        epBuckets[_wk]+=(D.ll[_day].ep||0);
+      }}
     }else{
       // Monthly
       allMonths.filter(function(m){return m.startsWith(cy)}).forEach(function(m){epBuckets[m]=Object.values(epc[m]).reduce(function(s,v){return s+v},0);epDetail[m]={};Object.entries(epc[m]).forEach(function(e){epDetail[m][e[0]]=(epDetail[m][e[0]]||0)+e[1]})});
