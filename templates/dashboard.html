@@ -2854,7 +2854,7 @@ function baseCharts(){
   var isYear=cy!=='all';
   document.getElementById('tlc').style.display=isYear?'':'none';
   document.getElementById('yrc').style.display=isYear?'none':'';
-  window._tlRes=window._tlRes||'monthly';
+  window._tlRes=window._tlRes||'weekly';
   if(isYear){
     document.getElementById('tlh').innerHTML='<span class="i">📊</span>Activity ('+cy+') <span class="vtog" style="float:right"><button class="vb tl-res '+(window._tlRes==='monthly'?'vb-on':'')+'" data-v="monthly" style="font-size:9px">Monthly</button><button class="vb tl-res '+(window._tlRes==='weekly'?'vb-on':'')+'" data-v="weekly" style="font-size:9px">Weekly</button></span>';
     document.querySelectorAll('.tl-res').forEach(function(btn){btn.onclick=function(){window._tlRes=btn.dataset.v;render()}});
