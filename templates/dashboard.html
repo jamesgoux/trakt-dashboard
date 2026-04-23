@@ -2874,28 +2874,28 @@ function baseCharts(){
   var showSe=_isShow(),showMo=_isMov(),showBk=_isAll()||ct==='book',showCo=_isAll()||ct==='concert',showTh=_isAll()||ct==='theater',showPc=_isAll()||ct==='podcast';
   
   var tlLabels,tlBarW;
+  // Weekly mode: build genuine week-of-month buckets (W1=days 1-7, W2=8-14, W3=15-21, W4=22-end)
+  // from per-day data sources (D.ll for movies/ep/books/concerts/theater/podcasts/scrobbles).
+  // Workouts/sports/bg/gt below use their own per-event date arrays.
+  var _wkMonthStart={},_wkIdx=null,wkData=null;
   if(window._tlRes==='weekly'){
-    // Split monthly into ~4 weekly buckets
     tlLabels=[];
-    var wkData={movies:[],seasons:[],books:[],concerts:[],theater:[],podcasts:[]};
-    mf.forEach(function(d){
-      for(var w=1;w<=4;w++){
-        tlLabels.push(d.month+'-W'+w);
-        var div=w<4?4:1;// last week gets remainder
-        wkData.movies.push(Math.round(d.movies/4));
-        wkData.seasons.push(Math.round((d.seasons||0)/4));
-        wkData.books.push(Math.round((grM[d.month]||0)/4));
-        wkData.concerts.push(Math.round((conM[d.month]||0)/4));
-        wkData.theater.push(Math.round((thM[d.month]||0)/4));
-        wkData.podcasts.push(Math.round((pcM[d.month]||0)/4));
-      }
-    });
+    mf.forEach(function(d,i){_wkMonthStart[d.month]=i*4;for(var w=1;w<=4;w++)tlLabels.push(d.month+'-W'+w)});
+    _wkIdx=function(s){if(!s||s.length<10)return -1;var start=_wkMonthStart[s.substring(0,7)];if(start===undefined)return -1;var dy=parseInt(s.substring(8,10),10);if(!dy)return -1;return start+(dy<=7?0:dy<=14?1:dy<=21?2:3)};
+    var _wkLen=tlLabels.length,_zeros=function(){var a=[];for(var i=0;i<_wkLen;i++)a.push(0);return a};
+    wkData={movies:_zeros(),episodes:_zeros(),books:_zeros(),concerts:_zeros(),theater:_zeros(),podcasts:_zeros(),scrobbles:_zeros()};
+    if(D.ll){for(var _day in D.ll){if(!_day.startsWith(cy))continue;var _i=_wkIdx(_day);if(_i<0)continue;var _e=D.ll[_day];
+      wkData.movies[_i]+=(_e.mv||0);wkData.episodes[_i]+=(_e.ep||0);wkData.books[_i]+=(_e.bk||0);
+      wkData.concerts[_i]+=(_e.co||0);wkData.theater[_i]+=(_e.th||0);wkData.podcasts[_i]+=(_e.pc||0);
+      wkData.scrobbles[_i]+=(_e.sc||0);
+    }}
     tlBarW=8;
+    var _anyPos=function(a){return a.some(function(v){return v>0})};
     if(showMo){tlSeries.push({name:'Movies',type:'bar',stack:'t',data:wkData.movies,itemStyle:{color:'#fb923c'},barMaxWidth:tlBarW});tlLeg.push('Movies')}
-    if(showSe){tlSeries.push({name:'Seasons',type:'bar',stack:'t',data:wkData.seasons,itemStyle:{color:'#14b8a6'},barMaxWidth:tlBarW});tlLeg.push('Seasons')}
-    if(showBk){tlSeries.push({name:'Books',type:'bar',stack:'t',data:wkData.books,itemStyle:{color:'#fbbf24'},barMaxWidth:tlBarW});tlLeg.push('Books')}
-    if(showCo){tlSeries.push({name:'Concerts',type:'bar',stack:'t',data:wkData.concerts,itemStyle:{color:'#3b82f6'},barMaxWidth:tlBarW});tlLeg.push('Concerts')}
-    if(showTh){tlSeries.push({name:'Theater',type:'bar',stack:'t',data:wkData.theater,itemStyle:{color:'#a78bfa'},barMaxWidth:tlBarW});tlLeg.push('Theater')}
+    if(showSe){tlSeries.push({name:'Episodes',type:'bar',stack:'t',data:wkData.episodes,itemStyle:{color:'#14b8a6'},barMaxWidth:tlBarW});tlLeg.push('Episodes')}
+    if(showBk&&_anyPos(wkData.books)){tlSeries.push({name:'Books',type:'bar',stack:'t',data:wkData.books,itemStyle:{color:'#fbbf24'},barMaxWidth:tlBarW});tlLeg.push('Books')}
+    if(showCo&&_anyPos(wkData.concerts)){tlSeries.push({name:'Concerts',type:'bar',stack:'t',data:wkData.concerts,itemStyle:{color:'#3b82f6'},barMaxWidth:tlBarW});tlLeg.push('Concerts')}
+    if(showTh&&_anyPos(wkData.theater)){tlSeries.push({name:'Theater',type:'bar',stack:'t',data:wkData.theater,itemStyle:{color:'#a78bfa'},barMaxWidth:tlBarW});tlLeg.push('Theater')}
   }else{
     tlLabels=mf.map(function(d){return d.month});tlBarW=30;
     if(showMo){tlSeries.push({name:'Movies',type:'bar',stack:'t',data:mf.map(function(d){return d.movies}),itemStyle:{color:'#fb923c'},barMaxWidth:tlBarW});tlLeg.push('Movies')}
@@ -2910,7 +2910,7 @@ function baseCharts(){
   if((_isAll()||ct==='music')&&lfmMo.length){
     var scrobData;
     if(window._tlRes==='weekly'){
-      scrobData=[];mf.forEach(function(d){var v=lfmMoMap[d.month]||0;for(var w=1;w<=4;w++)scrobData.push(Math.round(v/4))});
+      scrobData=wkData.scrobbles.slice();
     }else{
       scrobData=mf.map(function(d){return lfmMoMap[d.month]||0});
     }
@@ -2921,7 +2921,7 @@ function baseCharts(){
   if((_isAll()||ct==='podcast')&&Object.keys(pcM).length){
     var pcLineData;
     if(window._tlRes==='weekly'){
-      pcLineData=[];mf.forEach(function(d){var v=pcM[d.month]||0;for(var w=1;w<=4;w++)pcLineData.push(Math.round(v/4))});
+      pcLineData=wkData.podcasts.slice();
     }else{
       pcLineData=mf.map(function(d){return pcM[d.month]||0});
     }
@@ -2932,7 +2932,7 @@ function baseCharts(){
   var hwByM=(D.health||{}).by_month||{};
   if((_isAll()||ct==='health')&&Object.keys(hwByM).length){
     var hwMData;
-    if(window._tlRes==='weekly'){hwMData=[];mf.forEach(function(d){var v=(hwByM[d.month]||{}).count||0;for(var w=1;w<=4;w++)hwMData.push(Math.round(v/4))})}
+    if(window._tlRes==='weekly'){hwMData=[];for(var _i=0;_i<tlLabels.length;_i++)hwMData.push(0);(D._hwAll||[]).forEach(function(w){if(!w.date||!w.date.startsWith(cy))return;var idx=_wkIdx(w.date);if(idx>=0)hwMData[idx]++})}
     else{hwMData=mf.map(function(d){return(hwByM[d.month]||{}).count||0})}
     if(hwMData.some(function(v){return v>0})){
       tlSeries.push({name:'Workouts',type:'bar',stack:'t',data:hwMData,itemStyle:{color:'#1db954'},barMaxWidth:tlBarW});
@@ -2943,7 +2943,7 @@ function baseCharts(){
   if((_isAll()||ct==='sports')&&SP.length){
     var spByM={};SP.forEach(function(e){if(e.date){var m=e.date.substring(0,7);spByM[m]=(spByM[m]||0)+1}});
     var spMData;
-    if(window._tlRes==='weekly'){spMData=[];mf.forEach(function(d){var v=spByM[d.month]||0;for(var w=1;w<=4;w++)spMData.push(Math.round(v/4))})}
+    if(window._tlRes==='weekly'){spMData=[];for(var _i=0;_i<tlLabels.length;_i++)spMData.push(0);SP.forEach(function(e){if(!e.date||!e.date.startsWith(cy))return;var idx=_wkIdx(e.date);if(idx>=0)spMData[idx]++})}
     else{spMData=mf.map(function(d){return spByM[d.month]||0})}
     if(spMData.some(function(v){return v>0})){
       tlSeries.push({name:'Sports',type:'bar',stack:'t',data:spMData,itemStyle:{color:'#0ea5e9'},barMaxWidth:tlBarW});
@@ -2954,7 +2954,8 @@ function baseCharts(){
   if((_isAll()||ct==='boardgame')&&D.bg&&D.bg.total){
     var bgMByM=(D.bg.agg||{}).by_month||{};
     var bgMData;
-    if(window._tlRes==='weekly'){bgMData=[];mf.forEach(function(d){var v=bgMByM[d.month]||0;for(var w=1;w<=4;w++)bgMData.push(Math.round(v/4))})}
+    // Weekly: use bg.recent dates (limited to ~30 most recent plays); older months may undercount.
+    if(window._tlRes==='weekly'){bgMData=[];for(var _i=0;_i<tlLabels.length;_i++)bgMData.push(0);((D.bg&&D.bg.recent)||[]).forEach(function(p){if(!p.date||!p.date.startsWith(cy))return;var idx=_wkIdx(p.date);if(idx>=0)bgMData[idx]+=(p.quantity||1)})}
     else{bgMData=mf.map(function(d){return bgMByM[d.month]||0})}
     if(bgMData.some(function(v){return v>0})){
       tlSeries.push({name:'Board Games',type:'bar',stack:'t',data:bgMData,itemStyle:{color:'#ec4899'},barMaxWidth:tlBarW});
@@ -2965,7 +2966,7 @@ function baseCharts(){
   if((_isAll()||ct==='game')&&D.gt&&D.gt.total){
     var gtByM={};(D.gt.all||[]).forEach(function(g){var d=g.finish_date||g.start_date;if(d){var m=d.substring(0,7);gtByM[m]=(gtByM[m]||0)+1}});
     var gtMData;
-    if(window._tlRes==='weekly'){gtMData=[];mf.forEach(function(d){var v=gtByM[d.month]||0;for(var w=1;w<=4;w++)gtMData.push(Math.round(v/4))})}
+    if(window._tlRes==='weekly'){gtMData=[];for(var _i=0;_i<tlLabels.length;_i++)gtMData.push(0);(D.gt.all||[]).forEach(function(g){var gd=g.finish_date||g.start_date;if(!gd||!gd.startsWith(cy))return;var idx=_wkIdx(gd);if(idx>=0)gtMData[idx]++})}
     else{gtMData=mf.map(function(d){return gtByM[d.month]||0})}
     if(gtMData.some(function(v){return v>0})){
       tlSeries.push({name:'Video Games',type:'bar',stack:'t',data:gtMData,itemStyle:{color:'#6366f1'},barMaxWidth:tlBarW});
