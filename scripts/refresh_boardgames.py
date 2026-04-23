@@ -83,6 +83,7 @@ def fetch_plays(session):
                 })
 
             play_data = {
+                'play_id': int(play.get('id', '0') or '0'),  # BGG's unique play ID — used for name mapping
                 'date': play.get('date', ''),
                 'quantity': int(play.get('quantity', '1')),
                 'length': int(play.get('length', '0')),
@@ -163,6 +164,63 @@ def build_aggregates(plays):
         'locations': sorted(locations.items(), key=lambda x: -x[1]),
     }
 
+def load_name_mapping():
+    """Build a {bgg_play_id: [full_player_names_in_seat_order]} map from the BG Stats export.
+
+    BGG's XML API only returns whatever text was typed into the `name` attribute (often just
+    initials like 'N.' or 'I.'), losing the rich player names that BG Stats tracks. The
+    BG Stats export has the ground truth with full names + emoji, keyed by BGG play id.
+
+    Missing or absent `data/bgstats_export.json` is not fatal — plays simply keep BGG names.
+    """
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'data', 'bgstats_export.json')
+    if not os.path.exists(path):
+        print('  (no bgstats_export.json — player names will come straight from BGG)')
+        return {}
+    try:
+        with open(path) as f:
+            bgs = json.load(f)
+    except Exception as e:
+        print(f'  WARNING: failed to parse bgstats_export.json ({e}) — skipping name mapping')
+        return {}
+    players_by_ref = {pl['id']: pl.get('name', '') for pl in bgs.get('players', [])}
+    mapping = {}
+    for play in bgs.get('plays', []):
+        pid = play.get('bggId', 0)
+        if not pid:
+            continue  # play never synced to BGG
+        scores = sorted(play.get('playerScores', []), key=lambda s: s.get('seatOrder', 0))
+        names = [players_by_ref.get(s.get('playerRefId'), '') for s in scores]
+        if any(names):
+            mapping[pid] = names
+    print(f'  Name mapping loaded: {len(mapping):,} BGG plays with full names from BG Stats export')
+    return mapping
+
+def apply_name_mapping(plays, mapping):
+    """Override players[].name with full names from the BG Stats mapping where available.
+
+    Positional match by seat order. Unmatched plays or players keep their BGG names (typically
+    initials). Returns (overridden_count, total_players_overridden).
+    """
+    if not mapping:
+        return 0, 0
+    overridden_plays = 0
+    overridden_players = 0
+    for p in plays:
+        full_names = mapping.get(p.get('play_id', 0))
+        if not full_names:
+            continue
+        if len(p['players']) != len(full_names):
+            # Count mismatch — BGG and BG Stats disagree on seating. Skip to be safe.
+            continue
+        for i, player in enumerate(p['players']):
+            new_name = full_names[i]
+            if new_name and new_name != player.get('name'):
+                player['name'] = new_name
+                overridden_players += 1
+        overridden_plays += 1
+    return overridden_plays, overridden_players
+
 def main():
     if not PASSWORD:
         print('ERROR: BGG_PASSWORD must be set')
@@ -182,6 +240,11 @@ def main():
     if not plays:
         print('No plays found!')
         return
+
+    print('\n[Name mapping from BG Stats export]')
+    mapping = load_name_mapping()
+    op, opl = apply_name_mapping(plays, mapping)
+    print(f'  Overrode names on {op:,} plays ({opl:,} player records)')
 
     print('\n[Aggregating...]')
     agg = build_aggregates(plays)
