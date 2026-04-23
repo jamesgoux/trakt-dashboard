@@ -1,6 +1,9 @@
 name: Refresh Board Games
 on:
   workflow_dispatch:
+  schedule:
+    # Daily at 08:00 UTC (~00:00 Pacific during DST, 01:00 PST)
+    - cron: '0 8 * * *'
 
 permissions:
   contents: write
