@@ -200,7 +200,8 @@ def apply_name_mapping(plays, mapping):
     """Override players[].name with full names from the BG Stats mapping where available.
 
     Positional match by seat order. Unmatched plays or players keep their BGG names (typically
-    initials). Returns (overridden_count, total_players_overridden).
+    initials). "Anonymous player" entries from the BG Stats export are treated as no-mapping
+    (user historically filtered those out of the dashboard). Returns (overridden_count, total_players_overridden).
     """
     if not mapping:
         return 0, 0
@@ -213,12 +214,19 @@ def apply_name_mapping(plays, mapping):
         if len(p['players']) != len(full_names):
             # Count mismatch — BGG and BG Stats disagree on seating. Skip to be safe.
             continue
+        touched = False
         for i, player in enumerate(p['players']):
             new_name = full_names[i]
-            if new_name and new_name != player.get('name'):
+            # Don't override with "Anonymous player" — March 13 rebuild deliberately filtered these,
+            # and BGG's initial (e.g. "A.") is more useful than a generic label.
+            if not new_name or new_name == 'Anonymous player':
+                continue
+            if new_name != player.get('name'):
                 player['name'] = new_name
                 overridden_players += 1
-        overridden_plays += 1
+                touched = True
+        if touched:
+            overridden_plays += 1
     return overridden_plays, overridden_players
 
 def main():
