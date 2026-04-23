@@ -1,0 +1,61 @@
+name: Sync BG Stats to BGG
+
+# Manual-only. Pushes local BG Stats plays (bggId=0) to BoardGameGeek via
+# geekplay.php. Starts in dry-run by default; flip the input to 'commit'
+# when you're ready to actually write to BGG.
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'dry-run (preview only) or commit (actually POST to BGG)'
+        required: true
+        default: 'dry-run'
+        type: choice
+        options:
+          - dry-run
+          - commit
+      limit:
+        description: 'Stop after N plays (0 = all)'
+        required: false
+        default: '0'
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install requests
+      - name: Sync plays
+        env:
+          BGG_USERNAME: jamesgoux
+          BGG_PASSWORD: ${{ secrets.BGG_PASSWORD }}
+        run: |
+          if [ "${{ inputs.mode }}" = "commit" ]; then
+            python scripts/sync_bgstats_to_bgg.py --commit --limit ${{ inputs.limit }}
+          else
+            python scripts/sync_bgstats_to_bgg.py --dry-run --limit ${{ inputs.limit }}
+          fi
+      - name: Commit updated bgstats_export.json
+        if: ${{ inputs.mode == 'commit' }}
+        run: |
+          if git diff --quiet data/bgstats_export.json; then
+            echo "No bggId updates to commit"
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git pull --no-rebase -X ours origin main || true
+          git add data/bgstats_export.json
+          git commit -m "Sync BG Stats local plays to BGG — update bggIds [skip ci]"
+          for i in 1 2 3; do
+            git pull --no-rebase -X ours origin main || true
+            git push && break
+            echo "Push attempt $i failed, retrying in 5s..."
+            sleep 5
+          done
