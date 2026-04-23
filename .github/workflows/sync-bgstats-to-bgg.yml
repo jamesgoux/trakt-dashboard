@@ -1,23 +1,34 @@
 name: Sync BG Stats to BGG
 
 # Manual-only. Pushes local BG Stats plays (bggId=0) to BoardGameGeek via
-# geekplay.php. Starts in dry-run by default; flip the input to 'commit'
-# when you're ready to actually write to BGG.
+# geekplay.php. Defaults to dry-run. Also supports cleanup mode for deleting
+# duplicate plays (e.g. after parallel sync runs created duplicates).
+#
+# Concurrency: `group: bgg-sync` + cancel-in-progress prevents parallel runs.
+concurrency:
+  group: bgg-sync
+  cancel-in-progress: false
 on:
   workflow_dispatch:
     inputs:
       mode:
-        description: 'dry-run (preview only) or commit (actually POST to BGG)'
+        description: 'sync:dry-run / sync:commit / cleanup:dry-run / cleanup:commit'
         required: true
-        default: 'dry-run'
+        default: 'sync:dry-run'
         type: choice
         options:
-          - dry-run
-          - commit
+          - sync:dry-run
+          - sync:commit
+          - cleanup:dry-run
+          - cleanup:commit
       limit:
-        description: 'Stop after N plays (0 = all)'
+        description: 'Stop after N plays/deletes (0 = all)'
         required: false
         default: '0'
+      delete_manifest:
+        description: 'Path to delete manifest JSON (cleanup mode only)'
+        required: false
+        default: 'data/cleanup_targets.json'
 
 permissions:
   contents: write
@@ -31,18 +42,19 @@ jobs:
         with:
           python-version: '3.11'
       - run: pip install requests
-      - name: Sync plays
+      - name: Run
         env:
           BGG_USERNAME: jamesgoux
           BGG_PASSWORD: ${{ secrets.BGG_PASSWORD }}
         run: |
-          if [ "${{ inputs.mode }}" = "commit" ]; then
-            python scripts/sync_bgstats_to_bgg.py --commit --limit ${{ inputs.limit }}
-          else
-            python scripts/sync_bgstats_to_bgg.py --dry-run --limit ${{ inputs.limit }}
-          fi
+          case "${{ inputs.mode }}" in
+            sync:dry-run) python scripts/sync_bgstats_to_bgg.py --dry-run --limit ${{ inputs.limit }} ;;
+            sync:commit)  python scripts/sync_bgstats_to_bgg.py --commit  --limit ${{ inputs.limit }} ;;
+            cleanup:dry-run) python scripts/cleanup_bgg_duplicates.py --input ${{ inputs.delete_manifest }} --limit ${{ inputs.limit }} ;;
+            cleanup:commit)  python scripts/cleanup_bgg_duplicates.py --input ${{ inputs.delete_manifest }} --commit --limit ${{ inputs.limit }} ;;
+          esac
       - name: Commit updated bgstats_export.json
-        if: ${{ inputs.mode == 'commit' }}
+        if: ${{ inputs.mode == 'sync:commit' }}
         run: |
           if git diff --quiet data/bgstats_export.json; then
             echo "No bggId updates to commit"
