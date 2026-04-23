@@ -232,16 +232,20 @@ def _build_canonical_names(mapping):
 def apply_name_mapping(plays, mapping):
     """Override players[].name with full names from the BG Stats mapping.
 
-    Two passes:
-      1. Positional — for each play in the mapping, try to match by seat order:
-         - Skip if mapped name is empty or 'Anonymous player' (March 13 rebuild filtered those).
-         - If BGG's name is an initial ('A.'): only apply when first letters match (guards
-           against seat-order mismatches between BGG and BG Stats).
-         - If BGG's name is already a full name: only 'upgrade' when the base matches
-           (e.g. 'James Goux' → 'James Goux 🧔🏻').
-      2. Canonical normalization — across ALL plays, replace any player whose base name
-         matches a known person (e.g. 'James Goux' → 'James Goux 🧔🏻') so top_players
-         doesn't split one person into emoji'd and non-emoji'd rows.
+    Three passes per play:
+      1. Full-name base match — for BGG players already named (e.g. 'James Goux'),
+         upgrade to the mapping's full form (e.g. 'James Goux 🧔🏻'). Robust to order.
+      2. Letter-grouped initial match — for BGG players stored as initials ('I.', 'M.'),
+         match within-play against BG Stats full names starting with the same letter. When
+         counts align (e.g. 1 'I.' in BGG and 1 I-named player in BGS) assign positionally
+         within that letter group. BG Stats seat orders are often all-zero (user didn't set
+         them), so this first-letter approach sidesteps that.
+      3. Canonical normalization — any BGG full name whose base matches a known person
+         gets the emoji'd canonical form (fallback for plays with no mapping or partial
+         matches). Prevents top_players from splitting 'James Goux' across emoji'd and
+         non-emoji'd rows.
+
+    Anonymous player entries are never used as overrides (March 13 rebuild filtered those).
 
     Returns (overridden_plays_count, total_player_records_touched).
     """
@@ -252,34 +256,64 @@ def apply_name_mapping(plays, mapping):
     overridden_players = 0
     for p in plays:
         touched = False
+        full_names = mapping.get(p.get('play_id', 0), []) or []
+        usable = [n for n in full_names if n and n != 'Anonymous player']
 
-        # Pass 1: positional mapping (exact match by seat order)
-        full_names = mapping.get(p.get('play_id', 0))
-        if full_names and len(p['players']) == len(full_names):
-            for i, player in enumerate(p['players']):
-                new_name = full_names[i]
-                cur_name = player.get('name', '')
-                if not new_name or new_name == 'Anonymous player':
+        # Pass 1 — upgrade already-named BGG players when a same-base full name exists in BGS.
+        # Track which BGS names have been consumed so we don't double-assign them in pass 2.
+        consumed = set()
+        for player in p['players']:
+            cur = player.get('name', '')
+            if not cur or _looks_like_initial(cur):
+                continue
+            base = _base_name(cur)
+            # Prefer the longest matching full name for this base
+            match = None
+            for idx, cand in enumerate(usable):
+                if idx in consumed:
                     continue
-                if _looks_like_initial(cur_name):
-                    if cur_name[:1].upper() != (new_name[:1] or '').upper():
-                        continue
-                else:
-                    if _base_name(cur_name) != _base_name(new_name):
-                        continue
-                if new_name != cur_name:
-                    player['name'] = new_name
+                if _base_name(cand) == base:
+                    if match is None or len(cand) > len(usable[match]):
+                        match = idx
+            if match is not None:
+                if usable[match] != cur:
+                    player['name'] = usable[match]
                     overridden_players += 1
                     touched = True
+                consumed.add(match)
 
-        # Pass 2: canonical normalization — any full name whose base matches a known person
-        # gets the canonical (usually emoji'd) display form. Keeps identities from splitting.
+        # Pass 2 — assign BGG initials to remaining BGS full names by first-letter grouping.
+        # Available pool: BGS names not already consumed AND that aren't initials themselves.
+        remaining = [(idx, usable[idx]) for idx in range(len(usable)) if idx not in consumed and not _looks_like_initial(usable[idx])]
+        remaining_by_letter = {}
+        for idx, n in remaining:
+            remaining_by_letter.setdefault(n[:1].upper(), []).append((idx, n))
+        # Collect BGG initial players per-letter (preserving order)
+        bgg_initials_by_letter = {}
+        for i, player in enumerate(p['players']):
+            cur = player.get('name', '')
+            if _looks_like_initial(cur):
+                bgg_initials_by_letter.setdefault(cur[:1].upper(), []).append(i)
+        # For each letter, pair up within BGG order ↔ BGS order. Assign as many as we have candidates for.
+        for letter, bgg_positions in bgg_initials_by_letter.items():
+            cands = remaining_by_letter.get(letter, [])
+            pair_count = min(len(bgg_positions), len(cands))
+            for k in range(pair_count):
+                bgg_i = bgg_positions[k]
+                bgs_idx, bgs_name = cands[k]
+                if p['players'][bgg_i].get('name') != bgs_name:
+                    p['players'][bgg_i]['name'] = bgs_name
+                    overridden_players += 1
+                    touched = True
+                consumed.add(bgs_idx)
+
+        # Pass 3 — canonical normalization for any full names not already matched above.
         for player in p['players']:
-            cur_name = player.get('name', '')
-            if _looks_like_initial(cur_name) or not cur_name:
+            cur = player.get('name', '')
+            if _looks_like_initial(cur) or not cur:
                 continue
-            canon = canonical.get(_base_name(cur_name))
-            if canon and canon != cur_name:
+            canon = canonical.get(_base_name(cur))
+            if canon and canon != cur:
                 player['name'] = canon
                 overridden_players += 1
                 touched = True
