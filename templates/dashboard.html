@@ -560,14 +560,24 @@ Drop GameTrack games.csv or <span style="color:#6366f1;text-decoration:underline
 <button onclick="_unHomeBtn()" class="un-back" id="un-back-btn" style="flex-shrink:0">←</button>
 <h2 id="un-header-title" style="font-size:18px;font-weight:700;margin:0;flex:1;text-align:center"><span class="i">📺</span> Up Next</h2>
 <button onclick="_unNavToHome()" class="un-back" id="un-home-btn" style="display:none;flex-shrink:0;font-size:16px">📺</button>
-<button onclick="_unOpenWatchlist()" class="un-back" id="un-wl-btn" style="flex-shrink:0;font-size:16px">📋</button>
+<button onclick="_unJumpToWatchlist()" class="un-back" id="un-wl-btn" style="flex-shrink:0;font-size:16px">📋</button>
 <button onclick="_unOpenCalendar()" class="un-back" id="un-cal-btn" style="flex-shrink:0;font-size:16px">📅</button>
 <button onclick="_unOpenSearchOverlay()" class="un-back" id="un-search-btn" style="flex-shrink:0;font-size:16px">🔍</button>
 </div>
 <div id="un-comp-filter" style="display:none;padding:6px 0 2px;overflow-x:auto;white-space:nowrap;-webkit-overflow-scrolling:touch"></div>
 </div>
 <div id="un-content"></div>
-<div id="wl-content" style="display:none"></div>
+</div>
+<!-- Watchlist Overlay (separate from Up Next) -->
+<div id="wl-overlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg);z-index:9000;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;transition:transform .3s ease;will-change:transform;scroll-padding-top:70px;contain:layout style">
+<div id="wl-hdr" style="position:sticky;top:0;z-index:9001;background:rgba(15,15,15,.97);backdrop-filter:blur(8px);padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.06)">
+<div style="display:flex;align-items:center">
+<button onclick="_wlBack()" class="un-back" style="flex-shrink:0">←</button>
+<h2 id="wl-header-title" style="font-size:18px;font-weight:700;margin:0;flex:1;text-align:center"><span class="i">📋</span> Watchlist</h2>
+<button onclick="_wlOpenUpNext()" class="un-back" id="wl-un-btn" style="flex-shrink:0;font-size:16px">📺</button>
+</div>
+</div>
+<div id="wl-content"></div>
 </div>
 <!-- Unified Search Overlay -->
 <div id="iris-search-ov" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg);z-index:9700;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;will-change:transform">
@@ -1605,7 +1615,7 @@ function _strmSave(){
   _strmClose();
   // Re-render Up Next and Watchlist if open
   if(_unCurrentView==='home')_renderUpNext();
-  if(_unCurrentView==='watchlist')_wlRender();
+  if(_wlOverlayOpen)_wlRender();
 }
 function _strmLoadFromSupabase(){
   if(!_irisSB||!_irisUser)return;
@@ -2181,17 +2191,14 @@ function _jmpFloatSync(){
   var fbar=document.querySelector('.fbar');
   _jmpFloat.style.top=_fbarHidden?'12px':((fbar?fbar.offsetHeight:64)+4)+'px';
 }
-// Watchlist: open directly without loading Up Next queue
+// Watchlist: open the dedicated watchlist overlay (separate from Up Next)
 var _strmPrefsLoaded=false;
-function _irisOpenWatchlist(){
+var _wlOverlayOpen=false; // true while #wl-overlay is visible
+function _irisOpenWatchlist(){openWatchlist(false)}
+function openWatchlist(skipAnim){
   document.querySelectorAll('.chart-detail').forEach(function(d){d.remove()});
   if(window.echarts){document.querySelectorAll('[_echarts_instance_]').forEach(function(el){var c=echarts.getInstanceByDom(el);if(c)c.dispatchAction({type:'hideTip'})})}
   var llOv=document.getElementById('ll-feed-overlay');if(llOv)llOv.style.display='none';
-  _unCurrentView='watchlist';_unNavStack=[];
-  _unUpdateHeader();
-  var _unc=document.getElementById('un-content');if(_unc)_unc.style.display='none';
-  var _wlc=document.getElementById('wl-content');if(_wlc)_wlc.style.display='';
-  var cf=document.getElementById('un-comp-filter');if(cf)cf.style.display='none';
   // Ensure streaming prefs are loaded before rendering
   if(!_strmPrefsLoaded&&_irisSB&&_irisUser){
     _irisSB.from('user_preferences').select('value').eq('user_id',_irisUser.id).eq('key','streaming_services').single().then(function(res){
@@ -2204,13 +2211,51 @@ function _irisOpenWatchlist(){
   }else{
     _wlRender();
   }
-  var ov=document.getElementById('un-overlay');
-  _unEverOpened=true;
-  ov.style.display='';ov.style.visibility='hidden';ov.style.transition='none';ov.style.transform='translateX(100%)';
-  requestAnimationFrame(function(){ov.scrollTop=0;ov.style.visibility='';ov.style.transition='transform .3s ease';requestAnimationFrame(function(){ov.style.transform=''})});
+  var ov=document.getElementById('wl-overlay');
+  _wlOverlayOpen=true;
+  if(skipAnim){
+    ov.style.display='';ov.style.transform='';ov.scrollTop=0;
+  }else{
+    ov.style.display='';ov.style.visibility='hidden';ov.style.transition='none';ov.style.transform='translateX(100%)';
+    requestAnimationFrame(function(){ov.scrollTop=0;ov.style.visibility='';ov.style.transition='transform .3s ease';requestAnimationFrame(function(){ov.style.transform=''})});
+  }
   _lockBody();
 }
-// Navigate from watchlist/calendar to Up Next home (with back navigation)
+function closeWatchlist(){
+  // Auto-save dirty custom order before closing
+  if(_wlDirty){_wlDirty=false;_wlSyncToTrakt()}
+  var sb=document.getElementById('wl-save-bar');if(sb)sb.remove();
+  var ov=document.getElementById('wl-overlay');
+  if(!ov||ov.style.display==='none'){_wlOverlayOpen=false;return}
+  ov.style.transition='transform .3s ease';
+  ov.style.transform='translateX(100%)';
+  var done=false;
+  function cleanup(){
+    if(done)return;done=true;
+    ov.removeEventListener('transitionend',onEnd);
+    ov.style.display='none';ov.style.transition='';ov.style.transform='';
+    _wlOverlayOpen=false;
+    // Also dismiss any search overlay that may have been opened from watchlist
+    var sov=document.getElementById('iris-search-ov');if(sov)sov.style.display='none';
+    _unlockBody();
+  }
+  function onEnd(e){if(e.target===ov&&e.propertyName==='transform')cleanup()}
+  ov.addEventListener('transitionend',onEnd);
+  setTimeout(cleanup,350);
+}
+// Watchlist back button: just close. Detail pages render in the search overlay
+// which has its own back button — when search overlay is open it covers wl header.
+function _wlBack(){closeWatchlist()}
+// Cross-overlay handoff: from Watchlist header, jump to Up Next home
+function _wlOpenUpNext(){
+  // Hide watchlist instantly; let Up Next slide in normally
+  var wlOv=document.getElementById('wl-overlay');
+  if(wlOv){wlOv.style.display='none';wlOv.style.transition='';wlOv.style.transform=''}
+  _wlOverlayOpen=false;
+  var sb=document.getElementById('wl-save-bar');if(sb)sb.remove();
+  openUpNext(false);
+}
+// Navigate from calendar to Up Next home (with back navigation) — used by 📺 button in calendar header
 function _unNavToHome(){
   _unSetView('home',{});
   _unScrollPos=0;_unReturning=true;
@@ -8089,8 +8134,8 @@ function closeSportsAdd(){_irisCloseSearch()}
     sx=e.touches[0].clientX;sy=e.touches[0].clientY;dir=null;moved=false;
     inScroll=!!e.target.closest('.un-cast-scroll');
     isSubPage=(_irisActiveTab==='media'&&_unCurrentView!=='home');
-    // If back target is watchlist/calendar, slide entire overlay to reveal content underneath
-    var backToUnder=isSubPage&&_unNavStack.length&&(_unNavStack[_unNavStack.length-1].view==='watchlist'||_unNavStack[_unNavStack.length-1].view==='calendar');
+    // If back target is calendar, or if watchlist overlay is open underneath, slide entire overlay to reveal content
+    var backToUnder=isSubPage&&((_unNavStack.length&&_unNavStack[_unNavStack.length-1].view==='calendar')||_wlOverlayOpen);
     slideTarget=(isSubPage&&!backToUnder&&scnt)?scnt:sov;
     if(!inScroll){slideTarget.style.transition='none'}
   },{passive:true});
@@ -8458,13 +8503,6 @@ function _unSetView(view,data){
   }
   _unCurrentView=view;
   _unUpdateHeader();
-  // Toggle containers
-  var _unc=document.getElementById('un-content');
-  var _wlc=document.getElementById('wl-content');
-  if(_wlc){
-    if(view==='watchlist'){_unc.style.display='none';_wlc.style.display=''}
-    else{_unc.style.display='';_wlc.style.display='none'}
-  }
   // Hide companion filter bar on non-home views
   if(view!=='home'){var cf=document.getElementById('un-comp-filter');if(cf)cf.style.display='none'}
 }
@@ -8487,10 +8525,6 @@ function _unUpdateHeader(){
     if(calBtn)calBtn.style.display='';
   }else if(_unCurrentView==='calendar'){
     title.innerHTML='<span class="i">📅</span> Upcoming';
-  }else if(_unCurrentView==='watchlist'){
-    title.innerHTML='<span class="i">📋</span> Watchlist';
-    if(homeBtn)homeBtn.style.display='';
-    if(searchBtn)searchBtn.style.display='';
   }else if(_unCurrentView==='search'){
     title.innerHTML='<span class="i">🔍</span> Search';
   }else if(_unCurrentView==='show'){
@@ -8511,9 +8545,6 @@ function _unNavBack(){
     _unCloseSearchOverlay();
     return;
   }
-  // Auto-save watchlist order silently when navigating away
-  if(_unCurrentView==='watchlist'&&_wlDirty){_wlDirty=false;_wlSyncToTrakt()}
-  var sb=document.getElementById('wl-save-bar');if(sb)sb.remove();
   if(_unNavStack.length){
     var prev=_unNavStack.pop();
     _unCurrentView=prev.view;
@@ -8527,13 +8558,6 @@ function _unNavBack(){
       var q=input?input.value.trim():'';
       if(q&&_searchCache[q])_unShowSearchResults(q,_searchCache[q]);
       else _unGoHome();
-    }else if(prev.view==='watchlist'){
-      // Return to watchlist view — close search overlay if open
-      _unHideSearchOverlay();
-      _unCurrentView='watchlist';
-      _unUpdateHeader();
-      // Only re-render if watchlist content was replaced (e.g. by search); skip if already in DOM
-      if(!document.getElementById('wl-list'))_wlRender();
     }else if(prev.view==='calendar'){
       // Return to calendar view — close search overlay if open
       _unHideSearchOverlay();
@@ -8607,21 +8631,15 @@ var _wlDirty=false; // true when custom order changed but not yet synced
   },2000); // delay 2s — let main dashboard render first
 })();
 
-function _unOpenWatchlist(){
-  _unSetView('watchlist',{});
-  var ov=document.getElementById('un-overlay');ov.scrollTop=0;
-  // Ensure streaming prefs loaded before rendering
-  if(!_strmPrefsLoaded&&_irisSB&&_irisUser){
-    _irisSB.from('user_preferences').select('value').eq('user_id',_irisUser.id).eq('key','streaming_services').single().then(function(res){
-      if(res.data&&Array.isArray(res.data.value)&&res.data.value.length){
-        _strmSelected=new Set(res.data.value);
-      }
-      _strmPrefsLoaded=true;
-      _wlRender();
-    }).catch(function(){_strmPrefsLoaded=true;_wlRender()});
-  }else{
-    _wlRender();
-  }
+// Up Next header 📋 button: cross-overlay handoff to standalone watchlist overlay
+function _unJumpToWatchlist(){
+  // Hide Up Next instantly; let Watchlist slide in normally
+  var unOv=document.getElementById('un-overlay');
+  if(unOv){unOv.style.display='none';unOv.style.transition='';unOv.style.transform=''}
+  _unCurrentView='home';_unNavStack=[];_unUpdateHeader();
+  // Close any search overlay that was open
+  var sov=document.getElementById('iris-search-ov');if(sov)sov.style.display='none';
+  openWatchlist(false);
 }
 
 function _fmtRuntime(m){
@@ -8821,7 +8839,7 @@ function _wlDragStart(e,idx){
 
   // Cache card refs + overlay at start (not on every move)
   _wlDragCards=Array.from(document.querySelectorAll('#wl-list .un-wl-card'));
-  _wlDragOv=document.getElementById('un-overlay');
+  _wlDragOv=document.getElementById('wl-overlay');
 
   // Create ghost
   _wlDragGhost=card.cloneNode(true);
@@ -9896,9 +9914,6 @@ function _unToggleEpWatched(ev,slug,season,episode,epTraktId,btn){
 // ═══════════════════════════════════════════════════════════════════
 
 function closeUpNext(){
-  // Auto-save watchlist order silently if leaving with unsaved changes
-  if(_wlDirty){_wlDirty=false;_wlSyncToTrakt()}
-  var sb=document.getElementById('wl-save-bar');if(sb)sb.remove();
   _unCurrentView='home';
   _unNavStack=[];
   _unUpdateHeader();
@@ -9939,8 +9954,8 @@ function closeUpNext(){
     var adx=Math.abs(dx),ady=Math.abs(dy);
     if(!_dir&&(adx>10||ady>10)){
       if(_onSub){
-        // Sub-page: horizontal (right) swipe-back; vertical dismiss only on detail pages (not watchlist/calendar)
-        var _noVert=_unCurrentView==='watchlist'||_unCurrentView==='calendar';
+        // Sub-page: horizontal (right) swipe-back; vertical dismiss only on detail pages (not calendar)
+        var _noVert=_unCurrentView==='calendar';
         if(adx>ady&&dx>0){_dir='h'}
         else if(!_noVert&&ady>adx&&dy>0&&_atTop){_dir='v'}
         else if(!_noVert&&ady>adx&&dy<0&&_atBot){_dir='v'}
@@ -9980,8 +9995,6 @@ function closeUpNext(){
           ov.style.transform='translateX(100%)';
           var _cuDone2=false;
           function _cuClean2(){if(_cuDone2)return;_cuDone2=true;ov.removeEventListener('transitionend',_cuEnd2);
-            if(_unCurrentView==='watchlist'&&_wlDirty){_wlDirty=false;_wlSyncToTrakt()}
-            var sb=document.getElementById('wl-save-bar');if(sb)sb.remove();
             ov.style.display='none';ov.style.transition='';ov.style.transform='';
             _unCurrentView='home';_unNavStack=[];_unUpdateHeader();_unlockBody();
             var sov=document.getElementById('iris-search-ov');if(sov)sov.style.display='none';
@@ -10033,13 +10046,49 @@ function closeUpNext(){
   },{passive:true});
 })();
 
+// Watchlist overlay: swipe-right to dismiss (no vertical pull, no sub-page transforms — search overlay handles its own back)
+(function(){
+  var ov=document.getElementById('wl-overlay');if(!ov)return;
+  var sx=0,sy=0,tracking=false,_dir=null;
+  ov.addEventListener('touchstart',function(e){
+    // Don't intercept swipes that start inside horizontally-scrollable containers or drag handles
+    if(e.target.closest('.un-cast-scroll,.un-stream,.un-wl-drag')){tracking=false;return}
+    // If the search overlay is open on top of watchlist, don't track on this overlay
+    if(document.getElementById('iris-search-ov').style.display!=='none'){tracking=false;return}
+    sx=e.touches[0].clientX;sy=e.touches[0].clientY;
+    tracking=true;_dir=null;
+    ov.style.transition='none';
+  },{passive:true});
+  ov.addEventListener('touchmove',function(e){
+    if(!tracking)return;
+    var dx=e.touches[0].clientX-sx,dy=e.touches[0].clientY-sy;
+    var adx=Math.abs(dx),ady=Math.abs(dy);
+    if(!_dir&&(adx>10||ady>10)){
+      if(dx>10&&adx>ady){_dir='h'}
+      else{_dir='none';tracking=false;return}
+    }
+    if(_dir==='h'){ov.style.transform='translateX('+Math.max(0,dx)+'px)'}
+  },{passive:true});
+  ov.addEventListener('touchend',function(e){
+    if(!tracking||_dir==='none'||!_dir){tracking=false;return}
+    tracking=false;
+    var dx=e.changedTouches[0].clientX-sx;
+    if(_dir==='h'){
+      var ovDx=parseInt(ov.style.transform.replace(/[^0-9.-]/g,''))||0;
+      ov.style.transition='transform .3s ease';
+      if(ovDx>window.innerWidth*0.35){closeWatchlist()}
+      else{ov.style.transform=''}
+    }
+  },{passive:true});
+})();
+
 
 function renderStatus(){
   var total_people=D.a.length+D.x.length;
   var hs_count=Object.keys(D.hs||{}).length;
   var ps_count=Object.keys(D.ps||{}).length;
   var el=document.getElementById('status');
-  el.innerHTML='<span>Actors: '+total_people+'</span><span>Headshots: '+hs_count+'</span><span>Posters: '+ps_count+'</span><span>Updated: __BUILD_TIME__</span><span>v64</span>';
+  el.innerHTML='<span>Actors: '+total_people+'</span><span>Headshots: '+hs_count+'</span><span>Posters: '+ps_count+'</span><span>Updated: __BUILD_TIME__</span><span>v65</span>';
 }
 
 function render(){
