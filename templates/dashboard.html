@@ -2421,12 +2421,14 @@ var _tItems=[];p.ti.forEach(function(i){var t=TL[i];if(!t)return;var eb=cy==='al
 if(cy!=='all'&&t.type!=='movie'&&p.eps&&t.sl&&p.eps[t.sl]&&!(p.eps[t.sl].y||{})[cy])return;
 var _tKey=t.sl||(t.type==='movie'?t.t+'|'+(t.yr||''):t.t);var rec=_tlw[_tKey]||0;var isGrn=_tld[_tKey]&&_tld[_tKey]>=_cutoff7d;
 if(isGrn&&t.type!=='movie'&&p.eps&&t.sl&&p.eps[t.sl]&&p.eps[t.sl].y){var wy=new Date(rec).getFullYear().toString();if(!p.eps[t.sl].y[wy])isGrn=false}
-if(!rec&&t.eby){var mk=Object.keys(t.eby).sort().pop();if(mk){rec=mk.length===4?new Date(mk+'-12-31').getTime():mk.length===7?new Date(mk+'-15').getTime():new Date(mk).getTime();if(isNaN(rec))rec=0}}
+// Fallback for titles missing from D.c.r (curated list capped at ~277): use year-START (Jan 1) so undated watches sort BELOW dated ones in the same year
+var _recApprox=false;
+if(!rec&&t.eby){var mk=Object.keys(t.eby).sort().pop();if(mk){rec=mk.length===4?new Date(mk+'-01-01').getTime():mk.length===7?new Date(mk+'-01').getTime():new Date(mk).getTime();if(isNaN(rec))rec=0;_recApprox=true}}
 var epLabel='';if(t.type==='show'&&p.eps&&t.sl&&p.eps[t.sl]){var epCount=cy==='all'?(p.eps[t.sl].t||0):((p.eps[t.sl].y||{})[cy]||0);if(epCount)epLabel='<span style="color:var(--t2);font-weight:400"> ('+epCount+' ep'+(epCount>1?'s':'')+')</span>'}else if(t.type==='movie'&&ct2>1){epLabel='<span style="color:var(--t2)"> '+ct2+'x</span>'}
-_tItems.push({t:t,ep:epLabel,rec:rec,grn:isGrn})});
+_tItems.push({t:t,ep:epLabel,rec:rec,grn:isGrn,approx:_recApprox})});
 _tItems.sort(function(a,b){return b.rec-a.rec});
 var dr=document.createElement('tr');dr.className='dr';var h='<td colspan="5"><table>';
-_tItems.forEach(function(it){h+='<tr'+(it.grn?' style="background:rgba(74,222,128,.08)"':'')+'><td><span class="badge '+(it.t.type==='movie'?'b-m':'b-e')+'">'+it.t.type+'</span></td><td style="font-weight:600'+(it.grn?';color:#4ade80':'')+'">'+it.t.t+it.ep+'</td><td style="color:var(--t2)">'+(it.t.yr||'')+'</td></tr>'});
+_tItems.forEach(function(it){var _yrCell=it.approx?'<span title="Approximate date — exact watch not in recent history">~'+(it.t.yr||'')+'</span>':(it.t.yr||'');h+='<tr'+(it.grn?' style="background:rgba(74,222,128,.08)"':'')+'><td><span class="badge '+(it.t.type==='movie'?'b-m':'b-e')+'">'+it.t.type+'</span></td><td style="font-weight:600'+(it.grn?';color:#4ade80':'')+'">'+it.t.t+it.ep+'</td><td style="color:var(--t2)">'+_yrCell+'</td></tr>'});
 h+='</table></td>';dr.innerHTML=h;tr.after(dr)};return tr}
 // Render capped list
 _showList.forEach(function(item){tb.appendChild(_mkRow(item))});
@@ -10110,7 +10112,7 @@ function renderStatus(){
   var hs_count=Object.keys(D.hs||{}).length;
   var ps_count=Object.keys(D.ps||{}).length;
   var el=document.getElementById('status');
-  el.innerHTML='<span>Actors: '+total_people+'</span><span>Headshots: '+hs_count+'</span><span>Posters: '+ps_count+'</span><span>Updated: __BUILD_TIME__</span><span>v66</span>';
+  el.innerHTML='<span>Actors: '+total_people+'</span><span>Headshots: '+hs_count+'</span><span>Posters: '+ps_count+'</span><span>Updated: __BUILD_TIME__</span><span>v67</span>';
 }
 
 function render(){
