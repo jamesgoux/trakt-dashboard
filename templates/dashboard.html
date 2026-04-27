@@ -7139,10 +7139,27 @@ function _irisInjectWatch(type,opts){
     }).catch(function(e){console.warn('Credits fetch for instant stats failed:',e)});
   }
 
-  // 7. Targeted re-renders (non-people — these don't need credits)
+  // 7. Update D.ll (lifeline heatmap) for today
+  try{
+    var today=new Date();
+    var dayKey=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
+    var timeStr=String(today.getHours()).padStart(2,'0')+':'+String(today.getMinutes()).padStart(2,'0');
+    if(!D.ll)D.ll={};
+    if(!D.ll[dayKey])D.ll[dayKey]={ep:0,mv:0,bk:0,sc:0,co:0,th:0,pc:0,e:[]};
+    var llEntry=D.ll[dayKey];
+    var llKey=isMovie?'mv':'ep';
+    llEntry[llKey]=(llEntry[llKey]||0)+1;
+    if(!llEntry.e)llEntry.e=[];
+    var evtName=opts.title||opts.slug;
+    if(!isMovie&&opts.season&&opts.episode)evtName+=' S'+opts.season+'E'+opts.episode;
+    llEntry.e.push({t:timeStr,n:evtName,ty:llKey});
+  }catch(_llErr){console.warn('Lifeline update:',_llErr)}
+
+  // 8. Targeted re-renders (non-people — these don't need credits)
   _irisReRenderStats();
   _irisReRenderRecent();
   try{if(typeof movieCharts==='function')movieCharts()}catch(e){console.warn('Chart re-render:',e)}
+  try{if(typeof renderLifeline==='function')renderLifeline()}catch(e){console.warn('Lifeline re-render:',e)}
 }
 
 function _irisReRenderStats(){
@@ -9433,19 +9450,22 @@ function _unMarkMovieWatched(slug,traktId,btn){
   fetch('https://api.trakt.tv/sync/history',{method:'POST',headers:{'Content-Type':'application/json','trakt-api-version':'2','trakt-api-key':cid,'Authorization':'Bearer '+tok},body:body})
   .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json()})
   .then(function(d){
-    console.log('Movie synced:',d);
+    console.log('Movie synced:',d,'_mvLastMeta:',_mvLastMeta);
     if(btn){btn.textContent='✓ Done';btn.style.background='#059669'}
+    // Build meta — fall back to a minimal stub if _mvLastMeta is null/stale,
+    // so the re-render path ALWAYS fires (otherwise dashboard stays stale until pipeline rebuild)
+    var meta=(_mvLastMeta&&_mvLastMeta.slug===slug)?_mvLastMeta:{slug:slug,title:slug,year:'',runtime:0,genres:[],tmdbId:0};
     // Inject into D.c.r (dashboard recently watched)
-    D.c.r.unshift({type:'movie',title:_mvLastMeta?_mvLastMeta.title:slug,detail:_mvLastMeta?_mvLastMeta.year:'',watched_at:watchedAt.substring(0,10),yr:watchedAt.substring(0,4)});
+    D.c.r.unshift({type:'movie',title:meta.title,detail:meta.year,watched_at:watchedAt.substring(0,10),yr:watchedAt.substring(0,4),sl:slug});
     // Inject into Up Next recently watched
     var ud=D.un||{};if(!ud.recent)ud.recent=[];
-    ud.recent.unshift({show:_mvLastMeta?_mvLastMeta.title:slug,slug:slug,season:0,episode:0,ep_title:'movie',watched_at:watchedAt,ep_id:0,ep_aired:''});
-    // Instant stats update
-    if(_mvLastMeta)_irisInjectWatch('movie',_mvLastMeta);
+    ud.recent.unshift({show:meta.title,slug:slug,season:0,episode:0,ep_title:'movie',watched_at:watchedAt,ep_id:0,ep_aired:''});
+    // Instant stats update — always called now (no _mvLastMeta gate)
+    _irisInjectWatch('movie',meta);
     // Refresh watch history on movie page
     _unFetchMovieHistory(slug,traktId);
     // Iris→Letterboxd: prompt rating
-    try{_rtPromptMovie({slug:slug,tmdb_id:_mvLastMeta?_mvLastMeta.tmdbId:null,title:_mvLastMeta?_mvLastMeta.title:slug,year:_mvLastMeta?_mvLastMeta.year:null,watched_at:watchedAt})}catch(_e){}
+    try{_rtPromptMovie({slug:slug,tmdb_id:meta.tmdbId||null,title:meta.title,year:meta.year||null,watched_at:watchedAt})}catch(_e){}
   })
   .catch(function(e){
     alert('Failed to sync: '+e.message);
@@ -9463,15 +9483,16 @@ function _unMarkMovieWatchedAt(slug,traktId,dateStr,btn){
   fetch('https://api.trakt.tv/sync/history',{method:'POST',headers:{'Content-Type':'application/json','trakt-api-version':'2','trakt-api-key':cid,'Authorization':'Bearer '+tok},body:body})
   .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json()})
   .then(function(d){
-    console.log('Movie synced at release:',d);
+    console.log('Movie synced at release:',d,'_mvLastMeta:',_mvLastMeta);
     if(btn){btn.textContent='✓ Done';btn.style.background='#059669'}
     var mvWatch=document.getElementById('un-mv-watch');if(mvWatch){mvWatch.textContent='✓ Done';mvWatch.style.background='#059669';mvWatch.disabled=true}
-    D.c.r.unshift({type:'movie',title:_mvLastMeta?_mvLastMeta.title:slug,detail:_mvLastMeta?_mvLastMeta.year:'',watched_at:dateStr,yr:dateStr.substring(0,4)});
+    var meta=(_mvLastMeta&&_mvLastMeta.slug===slug)?_mvLastMeta:{slug:slug,title:slug,year:'',runtime:0,genres:[],tmdbId:0};
+    D.c.r.unshift({type:'movie',title:meta.title,detail:meta.year,watched_at:dateStr,yr:dateStr.substring(0,4),sl:slug});
     var ud=D.un||{};if(!ud.recent)ud.recent=[];
-    ud.recent.unshift({show:_mvLastMeta?_mvLastMeta.title:slug,slug:slug,season:0,episode:0,ep_title:'movie',watched_at:watchedAt,ep_id:0,ep_aired:''});
+    ud.recent.unshift({show:meta.title,slug:slug,season:0,episode:0,ep_title:'movie',watched_at:watchedAt,ep_id:0,ep_aired:''});
     _unFetchMovieHistory(slug,traktId);
-    if(_mvLastMeta)_irisInjectWatch('movie',_mvLastMeta);
-    try{_rtPromptMovie({slug:slug,tmdb_id:_mvLastMeta?_mvLastMeta.tmdbId:null,title:_mvLastMeta?_mvLastMeta.title:slug,year:_mvLastMeta?_mvLastMeta.year:null,watched_at:watchedAt})}catch(_e){}
+    _irisInjectWatch('movie',meta);
+    try{_rtPromptMovie({slug:slug,tmdb_id:meta.tmdbId||null,title:meta.title,year:meta.year||null,watched_at:watchedAt})}catch(_e){}
   })
   .catch(function(e){alert('Failed: '+e.message);if(btn){btn.disabled=false;btn.textContent='Release Date'}});
 }
@@ -9517,11 +9538,12 @@ function _mvDpConfirm(){
   fetch('https://api.trakt.tv/sync/history',{method:'POST',headers:{'Content-Type':'application/json','trakt-api-version':'2','trakt-api-key':cid,'Authorization':'Bearer '+tok},body:body})
   .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json()})
   .then(function(d2){
-    console.log('Movie synced:',d2);
+    console.log('Movie synced:',d2,'_mvLastMeta:',_mvLastMeta);
     if(btn){btn.textContent='✓ Watched!';btn.style.background='#059669'}
-    D.c.r.unshift({type:'movie',title:_mvLastMeta?_mvLastMeta.title:_mvDpSlug,detail:_mvLastMeta?_mvLastMeta.year:'',watched_at:when.substring(0,10),yr:when.substring(0,4)});
-    if(_mvLastMeta)_irisInjectWatch('movie',_mvLastMeta);
-    try{_rtPromptMovie({slug:_mvDpSlug,tmdb_id:_mvLastMeta?_mvLastMeta.tmdbId:null,title:_mvLastMeta?_mvLastMeta.title:_mvDpSlug,year:_mvLastMeta?_mvLastMeta.year:null,watched_at:when})}catch(_e){}
+    var meta=(_mvLastMeta&&_mvLastMeta.slug===_mvDpSlug)?_mvLastMeta:{slug:_mvDpSlug,title:_mvDpSlug,year:'',runtime:0,genres:[],tmdbId:0};
+    D.c.r.unshift({type:'movie',title:meta.title,detail:meta.year,watched_at:when.substring(0,10),yr:when.substring(0,4),sl:_mvDpSlug});
+    _irisInjectWatch('movie',meta);
+    try{_rtPromptMovie({slug:_mvDpSlug,tmdb_id:meta.tmdbId||null,title:meta.title,year:meta.year||null,watched_at:when})}catch(_e){}
   })
   .catch(function(e){alert('Failed: '+e.message);if(btn){btn.disabled=false;btn.textContent='✓ Mark as Watched'}});
 }
@@ -10088,7 +10110,7 @@ function renderStatus(){
   var hs_count=Object.keys(D.hs||{}).length;
   var ps_count=Object.keys(D.ps||{}).length;
   var el=document.getElementById('status');
-  el.innerHTML='<span>Actors: '+total_people+'</span><span>Headshots: '+hs_count+'</span><span>Posters: '+ps_count+'</span><span>Updated: __BUILD_TIME__</span><span>v65</span>';
+  el.innerHTML='<span>Actors: '+total_people+'</span><span>Headshots: '+hs_count+'</span><span>Posters: '+ps_count+'</span><span>Updated: __BUILD_TIME__</span><span>v66</span>';
 }
 
 function render(){
