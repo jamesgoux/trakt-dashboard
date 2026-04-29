@@ -97,12 +97,13 @@ for pdata in top_artists:
             except Exception:
                 fetched_artist_tags[a["n"]] = []
         artist_plays = a["c"] or 1  # artist's play count for this period
-        for t in fetched_artist_tags[a["n"]][:5]:
+        for t in fetched_artist_tags[a["n"]][:3]:
             name = t["name"].lower()
             if name not in SKIP_TAGS:
-                # tag "count" is a 0-100 relevance weight, not plays — scale by actual plays
-                tag_weight = int(t.get("count", 1)) / 100
-                genre_counter[name] = genre_counter.get(name, 0) + int(tag_weight * artist_plays)
+                # Count all of this artist's plays toward each of their top genres.
+                # Using top 3 tags (highest relevance) keeps genres focused; an artist
+                # tagged "rock" at 100 and "post-punk" at 80 both get the full play count.
+                genre_counter[name] = genre_counter.get(name, 0) + artist_plays
     top_genres = sorted(genre_counter.items(), key=lambda x: x[1], reverse=True)[:15]
     genres_by_period[period] = [{"n": g, "c": c} for g, c in top_genres]
 genres = genres_by_period.get("overall", [])
@@ -317,12 +318,11 @@ for yr in sorted(yearly_artist_plays.keys()):
                 time.sleep(0.3)
             except Exception:
                 fetched_artist_tags[artist_name] = []
-        for t in fetched_artist_tags[artist_name][:5]:
+        for t in fetched_artist_tags[artist_name][:3]:
             name = t["name"].lower()
             if name not in SKIP_TAGS:
-                # tag "count" is a 0-100 relevance weight, not plays — scale by actual plays
-                tag_weight = int(t.get("count", 1)) / 100
-                genre_counter[name] = genre_counter.get(name, 0) + int(tag_weight * play_count)
+                # Count all of this artist's plays toward each of their top genres
+                genre_counter[name] = genre_counter.get(name, 0) + play_count
     yearly_genres[yr] = [{"n": g, "c": c} for g, c in sorted(genre_counter.items(), key=lambda x: x[1], reverse=True)[:15]]
 print(f"  Genres computed for {len(yearly_genres)} years")
 
