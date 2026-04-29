@@ -443,7 +443,7 @@ body,html{overflow-x:hidden!important;max-width:100vw}
 <!-- MUSIC (Last.fm) -->
 <div class="g2 med-s" data-med="all music" id="lfm-wrap" style="display:none">
 <div id="sec-lfm" class="cd s-lfm"><h3><span class="i">🎧</span>Listening Activity <span class="vtog" style="float:right"><button class="vb vb-on lfm-met" data-v="s">Scrobbles</button><button class="vb lfm-met" data-v="a">Artists</button><button class="vb lfm-met" data-v="al">Albums</button></span></h3><div id="lfm-weekly" style="height:280px"></div></div>
-<div class="cd s-lfm"><h3><span class="i">🏷️</span>Genres</h3><div id="lfm-genres" style="height:280px"></div></div>
+<div class="cd s-lfm"><h3><span class="i">🏷️</span>Genres</h3><div id="lfm-genres-wrap" style="overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch"><div id="lfm-genres" style="height:0"></div></div></div>
 <div class="cd s-lfm"><h3><span class="i">🎤</span>Top Artists <span class="vtog" id="lfm-range-wrap" style="float:right"></span></h3><div id="lfm-artists-wrap" style="overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch"><div id="lfm-artists" style="height:0"></div></div></div>
 <div class="cd s-lfm"><h3><span class="i">🎵</span>Top Tracks</h3><div id="lfm-tracks-wrap" style="overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch"><div id="lfm-tracks" style="height:0"></div></div></div>
 <div class="cd fw s-lfm"><h3><span class="i">💿</span>Top Albums</h3><div id="lfm-albums" style="height:auto"></div></div>
@@ -4382,20 +4382,24 @@ function renderLastfm(){
     alEl.parentElement.style.display='';
   }else{alEl.innerHTML='';alEl.parentElement.style.display='none'}
 
-  // Genres (period-based only, hidden when year-filtered)
+  // Genres — scrollable like Top Artists
   var gEl=document.getElementById('lfm-genres');
   if(genres.length){
-    var gSlice=genres.slice(0,10).reverse();
-    gEl.parentElement.style.display='';
+    var gSlice=genres.slice(0,50).reverse();
+    var gChartH=gSlice.length*18+20;
+    gEl.style.height=gChartH+'px';
+    var gWrap=document.getElementById('lfm-genres-wrap');
+    gWrap.style.height=Math.min(gChartH,500)+'px';
+    gEl.parentElement.parentElement.style.display='';
     var gChart=echarts.init(gEl);
     var gCols=['#15803d','#60a5fa','#a78bfa','#e94560','#fb923c','#4ade80','#f472b6','#38bdf8','#fbbf24','#22d3ee'];
-    gChart.setOption({tooltip:{trigger:mob?'item':'axis',axisPointer:{type:'shadow'},...tt},
-      grid:{left:gl(110),right:30,top:8,bottom:8},
+    gChart.setOption({tooltip:{trigger:mob?'item':'axis',axisPointer:{type:'shadow'},...tt,formatter:function(p){var idx=gSlice.length-p.dataIndex;return'<b>#'+idx+' '+tp(p).name+'</b>: '+tp(p).value+' plays'}},
+      grid:{left:gl(110),right:36,top:4,bottom:4},
       xAxis:{type:'value',axisLabel:{color:'#666'},splitLine:{lineStyle:{color:'#222'}}},
-      yAxis:{type:'category',data:gSlice.map(function(d){return d.n}),axisLabel:{color:'#ccc',fontSize:10,interval:0},axisLine:{lineStyle:{color:'#333'}}},
-      series:[{type:'bar',data:gSlice.map(function(d,i){return{value:d.c,itemStyle:{color:gCols[i%gCols.length]}}}),barMaxWidth:18,label:{show:true,position:'right',color:'#ccc',fontSize:10}}]});
+      yAxis:{type:'category',data:gSlice.map(function(d,i){return(gSlice.length-i)+'. '+d.n}),axisLabel:{color:'#ccc',fontSize:10,interval:0},axisLine:{lineStyle:{color:'#333'}}},
+      series:[{type:'bar',data:gSlice.map(function(d,i){return{value:d.c,itemStyle:{color:gCols[i%gCols.length]}}}),barMaxWidth:14,barCategoryGap:'20%',label:{show:true,position:'right',color:'#ccc',fontSize:9}}]});
     ch.push(gChart);
-  }else{gEl.parentElement.style.display='none'}
+  }else{gEl.parentElement.parentElement.style.display='none'}
 
 }
 
@@ -10112,7 +10116,7 @@ function renderStatus(){
   var hs_count=Object.keys(D.hs||{}).length;
   var ps_count=Object.keys(D.ps||{}).length;
   var el=document.getElementById('status');
-  el.innerHTML='<span>Actors: '+total_people+'</span><span>Headshots: '+hs_count+'</span><span>Posters: '+ps_count+'</span><span>Updated: __BUILD_TIME__</span><span>v69</span>';
+  el.innerHTML='<span>Actors: '+total_people+'</span><span>Headshots: '+hs_count+'</span><span>Posters: '+ps_count+'</span><span>Updated: __BUILD_TIME__</span><span>v67</span>';
 }
 
 function render(){
