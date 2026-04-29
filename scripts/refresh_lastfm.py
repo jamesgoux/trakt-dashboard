@@ -108,7 +108,7 @@ for pdata in top_artists:
             except Exception:
                 fetched_artist_tags[a["n"]] = []
 
-_genre_api_budget = 100  # max new track.gettoptags calls per run
+_genre_api_budget = 300  # max new track.gettoptags calls per run
 _genre_api_calls = 0
 
 def _get_track_genres(artist, track_name):
@@ -366,11 +366,34 @@ except Exception as e:
 print(f"  Recent tracks: {len(recent)}")
 
 # ── 4b. Per-year genres from per-track tags ──
+# First, ensure artist tags are fetched for each year's top artists so that
+# _get_track_genres has a working fallback when the per-track API budget runs out.
+# Without this, tracks by year-specific artists (e.g., kids' music) return []
+# and their plays don't count toward any genre.
+print("  Fetching artist tags for yearly genre fallback...")
+_artist_tag_budget = 50  # extra artist lookups allowed for yearly coverage
+_artist_tag_calls = 0
+for yr in sorted(yearly_artist_plays.keys()):
+    top_yr_artists = sorted(yearly_artist_plays[yr].items(), key=lambda x: x[1], reverse=True)[:30]
+    for artist_name, _ in top_yr_artists:
+        if artist_name not in fetched_artist_tags:
+            if _artist_tag_calls >= _artist_tag_budget:
+                break
+            try:
+                data = api("artist.gettoptags", artist=artist_name)
+                fetched_artist_tags[artist_name] = data.get("toptags", {}).get("tag", [])
+                _artist_tag_calls += 1
+                time.sleep(0.3)
+            except Exception:
+                fetched_artist_tags[artist_name] = []
+                _artist_tag_calls += 1
+print(f"  Artist tags: {len(fetched_artist_tags)} artists cached ({_artist_tag_calls} new lookups)")
+
 print("  Computing per-year genres...")
 yearly_genres = {}
 for yr in sorted(yearly_track_plays.keys()):
     yearly_genres[yr] = _compute_genres_from_tracks(yearly_track_plays[yr])
-print(f"  Genres computed for {len(yearly_genres)} years, track genre cache: {len(_track_genres_cache)} entries ({_genre_api_calls} API calls this run)")
+print(f"  Genres computed for {len(yearly_genres)} years, track genre cache: {len(_track_genres_cache)} entries ({_genre_api_calls} track API calls this run)")
 
 # Save track genres cache
 with open(_TRACK_GENRES_FILE, "w") as f:
