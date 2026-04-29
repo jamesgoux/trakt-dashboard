@@ -81,13 +81,24 @@ for period in ["overall", "12month", "3month", "1month"]:
     top_albums.append({"period": period, "albums": albums})
     time.sleep(0.3)
 
-# ── 2. Genres from top artists' tags (always refresh) ──
-print("  Fetching artist tags for genres...")
-genres_by_period = {}
+# ── 2. Per-track genre tagging (with persistent cache) ──
+# Each scrobble counts toward the genres of the specific TRACK (not just the artist).
+# Cache maps "artist\ttrack" → ["genre1", "genre2", "genre3"].
+# Falls back to artist-level tags for tracks Last.fm doesn't have tags for.
+_TRACK_GENRES_FILE = "data/track_genres_cache.json"
+_track_genres_cache = {}
+if os.path.exists(_TRACK_GENRES_FILE):
+    try:
+        with open(_TRACK_GENRES_FILE) as f:
+            _track_genres_cache = json.load(f)
+        print(f"  Track genres cache: {len(_track_genres_cache)} entries loaded")
+    except Exception:
+        pass
+
+# Also fetch artist-level tags (used as fallback + for artist_genres.py compatibility)
+print("  Fetching artist tags for genre fallback...")
 fetched_artist_tags = {}
 for pdata in top_artists:
-    period = pdata["period"]
-    genre_counter = {}
     for a in pdata["artists"][:15]:
         if a["n"] not in fetched_artist_tags:
             try:
@@ -96,16 +107,57 @@ for pdata in top_artists:
                 time.sleep(0.3)
             except Exception:
                 fetched_artist_tags[a["n"]] = []
-        artist_plays = a["c"] or 1  # artist's play count for this period
-        for t in fetched_artist_tags[a["n"]][:3]:
-            name = t["name"].lower()
-            if name not in SKIP_TAGS:
-                # Count all of this artist's plays toward each of their top genres.
-                # Using top 3 tags (highest relevance) keeps genres focused; an artist
-                # tagged "rock" at 100 and "post-punk" at 80 both get the full play count.
-                genre_counter[name] = genre_counter.get(name, 0) + artist_plays
-    top_genres = sorted(genre_counter.items(), key=lambda x: x[1], reverse=True)[:15]
-    genres_by_period[period] = [{"n": g, "c": c} for g, c in top_genres]
+
+_genre_api_budget = 100  # max new track.gettoptags calls per run
+_genre_api_calls = 0
+
+def _get_track_genres(artist, track_name):
+    """Get top 3 genre tags for a track. Cache → API → artist fallback."""
+    global _genre_api_calls
+    key = artist + "\t" + track_name
+    if key in _track_genres_cache:
+        return _track_genres_cache[key]
+    # Try API if within budget
+    if _genre_api_calls < _genre_api_budget:
+        try:
+            data = api("track.gettoptags", artist=artist, track=track_name)
+            tags = data.get("toptags", {}).get("tag", [])
+            genres = [t["name"].lower() for t in tags[:5] if t["name"].lower() not in SKIP_TAGS][:3]
+            _genre_api_calls += 1
+            if genres:
+                _track_genres_cache[key] = genres
+                return genres
+            time.sleep(0.25)
+        except Exception:
+            _genre_api_calls += 1
+    # Fallback: artist-level tags
+    if artist in fetched_artist_tags:
+        genres = [t["name"].lower() for t in fetched_artist_tags[artist][:5] if t["name"].lower() not in SKIP_TAGS][:3]
+        if genres:
+            _track_genres_cache[key] = genres
+            return genres
+    return []
+
+def _compute_genres_from_tracks(track_plays):
+    """Given {artist\\ttrack: play_count}, return top 15 genres by scrobble count."""
+    genre_counter = {}
+    for key, plays in sorted(track_plays.items(), key=lambda x: x[1], reverse=True)[:100]:
+        parts = key.split("\t", 1)
+        artist = parts[0]
+        track_name = parts[1] if len(parts) > 1 else parts[0]
+        for g in _get_track_genres(artist, track_name):
+            genre_counter[g] = genre_counter.get(g, 0) + plays
+    return [{"n": g, "c": c} for g, c in sorted(genre_counter.items(), key=lambda x: x[1], reverse=True)[:15]]
+
+# Period-based genres (overall, 12month, 3month, 1month) from top_tracks API data
+print("  Computing per-track genres...")
+genres_by_period = {}
+for pdata in top_tracks:
+    period = pdata["period"]
+    track_plays = {}
+    for t in pdata.get("tracks", []):
+        track_plays[t["a"] + "\t" + t["n"]] = t["c"]
+    genres_by_period[period] = _compute_genres_from_tracks(track_plays)
 genres = genres_by_period.get("overall", [])
 
 # ── 3. Weekly charts — INCREMENTAL ──
@@ -304,27 +356,16 @@ except Exception as e:
     print(f"  Recent tracks error: {e}")
 print(f"  Recent tracks: {len(recent)}")
 
-# ── 4b. Per-year genres from yearly top artists' tags ──
+# ── 4b. Per-year genres from per-track tags ──
 print("  Computing per-year genres...")
 yearly_genres = {}
-for yr in sorted(yearly_artist_plays.keys()):
-    top_yr = sorted(yearly_artist_plays[yr].items(), key=lambda x: x[1], reverse=True)[:15]
-    genre_counter = {}
-    for artist_name, play_count in top_yr:
-        if artist_name not in fetched_artist_tags:
-            try:
-                data = api("artist.gettoptags", artist=artist_name)
-                fetched_artist_tags[artist_name] = data.get("toptags", {}).get("tag", [])
-                time.sleep(0.3)
-            except Exception:
-                fetched_artist_tags[artist_name] = []
-        for t in fetched_artist_tags[artist_name][:3]:
-            name = t["name"].lower()
-            if name not in SKIP_TAGS:
-                # Count all of this artist's plays toward each of their top genres
-                genre_counter[name] = genre_counter.get(name, 0) + play_count
-    yearly_genres[yr] = [{"n": g, "c": c} for g, c in sorted(genre_counter.items(), key=lambda x: x[1], reverse=True)[:15]]
-print(f"  Genres computed for {len(yearly_genres)} years")
+for yr in sorted(yearly_track_plays.keys()):
+    yearly_genres[yr] = _compute_genres_from_tracks(yearly_track_plays[yr])
+print(f"  Genres computed for {len(yearly_genres)} years, track genre cache: {len(_track_genres_cache)} entries ({_genre_api_calls} API calls this run)")
+
+# Save track genres cache
+with open(_TRACK_GENRES_FILE, "w") as f:
+    json.dump(_track_genres_cache, f, separators=(",", ":"))
 
 # ── 5. Build output ──
 # Album image cache from period-based top_albums (already fetched with covers)
