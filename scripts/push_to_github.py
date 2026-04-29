@@ -83,27 +83,45 @@ def get_changed_files():
         "scripts/",
         ".gitignore",
     ]
-    # Use git status to find what changed
+    # Use git diff to find what changed (more reliable than git status in shallow clones)
     result = subprocess.run(
-        ["git", "status", "--porcelain", "-u"],
-        capture_output=True, text=True, timeout=10
+        ["git", "diff", "--name-only", "HEAD"],
+        capture_output=True, text=True, timeout=30
     )
-    changed = []
+    status_stderr = result.stderr.strip()
+    if status_stderr:
+        print(f"  git diff stderr: {status_stderr[:200]}")
+
+    changed_set = set()
     for line in result.stdout.strip().split("\n"):
-        if not line.strip():
+        filepath = line.strip()
+        if not filepath:
             continue
-        status = line[:2].strip()
-        filepath = line[3:].strip()
-        # Only include files we care about
-        include = False
         for pattern in tracked_patterns:
             if pattern.endswith("/"):
                 if filepath.startswith(pattern):
-                    include = True; break
+                    changed_set.add(filepath); break
             elif filepath == pattern:
-                include = True; break
-        if include and os.path.exists(filepath):
-            changed.append(filepath)
+                changed_set.add(filepath); break
+
+    # Also check for new untracked files we care about
+    result2 = subprocess.run(
+        ["git", "ls-files", "--others", "--exclude-standard"],
+        capture_output=True, text=True, timeout=10
+    )
+    for line in result2.stdout.strip().split("\n"):
+        filepath = line.strip()
+        if not filepath:
+            continue
+        for pattern in tracked_patterns:
+            if pattern.endswith("/"):
+                if filepath.startswith(pattern):
+                    changed_set.add(filepath); break
+            elif filepath == pattern:
+                changed_set.add(filepath); break
+
+    changed = [f for f in changed_set if os.path.exists(f)]
+    print(f"  Detected {len(changed)} changed files (git diff: {result.stdout.count(chr(10))} lines)")
     return changed
 
 
