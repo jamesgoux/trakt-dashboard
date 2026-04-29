@@ -365,6 +365,47 @@ lfm_monthly = sorted([{"m": m, "s": monthly_scrobbles[m],
                        "tt": top_n_tracks(monthly_track_plays[m])}
                        for m in monthly_scrobbles], key=lambda x: x["m"])
 
+# ── 5b. Fill missing album covers via album.getinfo ──
+# Year-aggregated albums may not appear in any period top-20, so they miss
+# the _alb_img_cache built from period-based data. Fetch covers for up to
+# 30 uncovered albums per run (budgeted to stay under ~10s extra).
+_cover_budget = 30
+_cover_fetched = 0
+_cover_filled = 0
+_cover_fail_cache = set()  # avoid re-fetching known failures within this run
+print("  Filling missing album covers...")
+for entry_list in [lfm_yearly, lfm_monthly]:
+    for entry in entry_list:
+        for a in entry.get("tal", []):
+            if a.get("img") or _cover_fetched >= _cover_budget:
+                continue
+            parts = a["n"].split(" — ", 1)
+            artist = parts[0] if len(parts) > 1 else ""
+            name = parts[1] if len(parts) > 1 else parts[0]
+            cache_key = name + "\t" + artist
+            if cache_key in _cover_fail_cache:
+                continue
+            if cache_key in _alb_img_cache:
+                a["img"] = _alb_img_cache[cache_key]
+                _cover_filled += 1
+                continue
+            try:
+                ainfo = api("album.getinfo", album=name, artist=artist)
+                images = ainfo.get("album", {}).get("image", [])
+                img_url = images[-1].get("#text", "") if images else ""
+                _cover_fetched += 1
+                if img_url:
+                    a["img"] = img_url
+                    _alb_img_cache[cache_key] = img_url
+                    _cover_filled += 1
+                else:
+                    _cover_fail_cache.add(cache_key)
+                time.sleep(0.3)
+            except Exception:
+                _cover_fail_cache.add(cache_key)
+                _cover_fetched += 1
+print(f"  Album covers: {_cover_filled} filled, {_cover_fetched} API calls, {len(_cover_fail_cache)} unavailable")
+
 output = {
     "total": total_scrobbles,
     "artists": total_artists,
