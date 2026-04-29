@@ -157,7 +157,7 @@ def _compute_genres_from_tracks(track_plays):
         track_name = parts[1] if len(parts) > 1 else parts[0]
         for g in _get_track_genres(artist, track_name):
             genre_counter[g] = genre_counter.get(g, 0) + plays
-    return [{"n": g, "c": c} for g, c in sorted(genre_counter.items(), key=lambda x: x[1], reverse=True)[:15]]
+    return [{"n": g, "c": c} for g, c in sorted(genre_counter.items(), key=lambda x: x[1], reverse=True)[:50]]
 
 # Period-based genres (overall, 12month, 3month, 1month) from top_tracks API data
 print("  Computing per-track genres...")
@@ -500,7 +500,7 @@ for yr in set(list(yearly_genre_plays.keys()) + list(yearly_scrobbles.keys())):
             genres = [t["name"].lower() for t in tags[:5] if t["name"].lower() not in SKIP_TAGS][:3]
             for g in genres:
                 genre_data[g] = genre_data.get(g, 0) + play_count
-    top = sorted(genre_data.items(), key=lambda x: x[1], reverse=True)[:15]
+    top = sorted(genre_data.items(), key=lambda x: x[1], reverse=True)[:50]
     yearly_genres[yr] = [{"n": g, "c": c} for g, c in top]
 print(f"  Genres: {len(yearly_genres)} years, track cache: {len(_track_genres_cache)} entries ({_genre_api_calls} track API calls)")
 
@@ -513,7 +513,7 @@ def _sum_months_genres(months):
     for mo in months:
         for g, c in monthly_genre_plays.get(mo, {}).items():
             combined[g] += c
-    return [{"n": g, "c": c} for g, c in sorted(combined.items(), key=lambda x: x[1], reverse=True)[:15]]
+    return [{"n": g, "c": c} for g, c in sorted(combined.items(), key=lambda x: x[1], reverse=True)[:50]]
 
 # Determine month ranges for each period
 _recent_3m = [mo for mo in _all_months if mo >= (_now - __import__('datetime').timedelta(days=90)).strftime("%Y-%m")]
