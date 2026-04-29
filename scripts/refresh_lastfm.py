@@ -385,16 +385,30 @@ print(f"  Recent tracks: {len(recent)}")
 # fall back to artist-level genre computation from yearly_artist_plays which
 # covers 100% of scrobbles.
 print("  Computing per-year genres...")
-# Ensure artist tags exist for all yearly top artists (for fallback)
-for yr in sorted(yearly_artist_plays.keys()):
-    for artist_name in list(yearly_artist_plays[yr].keys())[:50]:
-        if artist_name not in fetched_artist_tags and time.time() < _genre_time_limit:
-            try:
-                data = api("artist.gettoptags", artist=artist_name)
-                fetched_artist_tags[artist_name] = data.get("toptags", {}).get("tag", [])
-                time.sleep(0.25)
-            except Exception:
-                fetched_artist_tags[artist_name] = []
+# Ensure artist tags exist for yearly + period artists (for genre fallback)
+_all_genre_artists = set()
+for yr in yearly_artist_plays:
+    _all_genre_artists.update(list(yearly_artist_plays[yr].keys())[:50])
+for pdata in top_artists:
+    for a in pdata["artists"]:
+        _all_genre_artists.add(a["n"])
+for artist_name in _all_genre_artists:
+    if artist_name not in fetched_artist_tags and time.time() < _genre_time_limit:
+        try:
+            data = api("artist.gettoptags", artist=artist_name)
+            fetched_artist_tags[artist_name] = data.get("toptags", {}).get("tag", [])
+            time.sleep(0.25)
+        except Exception:
+            fetched_artist_tags[artist_name] = []
+
+# Also pull in artist play counts from the period-based top_artists (50 per period)
+# as supplementary data — these cover more artists than the yearly top-10/50 seed.
+_cur_yr = str(datetime.now(tz=_tz_pac).year)
+_period_artist_plays = {}  # {artist: plays} for the best matching period
+for pdata in top_artists:
+    if pdata["period"] == "12month":
+        for a in pdata["artists"]:
+            _period_artist_plays[a["n"]] = a["c"]
 
 yearly_genres = {}
 for yr in set(list(yearly_genre_plays.keys()) + list(yearly_scrobbles.keys())):
@@ -402,11 +416,17 @@ for yr in set(list(yearly_genre_plays.keys()) + list(yearly_scrobbles.keys())):
     genre_total = sum(genre_data.values())
     yr_scrobbles = yearly_scrobbles.get(yr, 0)
     # If per-track genres cover less than 50% of the year's scrobbles,
-    # rebuild from artist-level plays (covers 100% of scrobbles)
+    # rebuild from artist-level plays. Merge yearly_artist_plays with
+    # period-based data for comprehensive coverage.
     if yr_scrobbles > 0 and genre_total < yr_scrobbles * 0.5:
         genre_data = {}
-        for artist_name, play_count in yearly_artist_plays.get(yr, {}).items():
-            # Get artist's top 3 genres, assign full play count to each
+        # Combine yearly artist plays with period data (for current year)
+        combined_artists = dict(yearly_artist_plays.get(yr, {}))
+        if yr == _cur_yr:
+            for artist_name, plays in _period_artist_plays.items():
+                if artist_name not in combined_artists:
+                    combined_artists[artist_name] = plays
+        for artist_name, play_count in combined_artists.items():
             if artist_name in fetched_artist_tags:
                 tags = fetched_artist_tags[artist_name]
             else:
@@ -456,7 +476,7 @@ def top_n_tracks(counter, n=50):
 
 lfm_yearly = sorted([{"yr": y, "s": yearly_scrobbles[y],
                        "a": len(yearly_artist_plays[y]), "al": len(yearly_album_plays[y]),
-                       "ta": top_n(yearly_artist_plays[y]), "tal": top_n_albums(yearly_album_plays[y]),
+                       "ta": top_n(yearly_artist_plays[y], 50), "tal": top_n_albums(yearly_album_plays[y]),
                        "tt": top_n_tracks(yearly_track_plays[y]),
                        "g": yearly_genres.get(y, [])}
                       for y in yearly_scrobbles], key=lambda x: x["yr"])
