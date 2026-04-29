@@ -200,7 +200,16 @@ if old_weekly and not _has_from:
 # Use the chart 'from' epoch as the canonical week identifier (timezone-agnostic).
 # Build a from-keyed dict so duplicate fetches replace rather than append.
 weekly_by_from = {w["from"]: w for w in old_weekly if w.get("from")}
-old_weekly_from_set = set(weekly_by_from.keys())
+
+# Track the highest chart epoch we've ever processed. This is the cutoff for
+# "new" charts — anything with from <= this has already been counted in the
+# seeded yearly/monthly aggregates. Using a single max epoch (instead of a set
+# of all fetched epochs) avoids the problem where the 52-entry weekly array
+# doesn't cover pre-current-year charts, causing 1000+ re-fetches and timeouts.
+_last_chart_from = existing.get("_last_chart_from", 0)
+if not _last_chart_from and weekly_by_from:
+    _last_chart_from = max(weekly_by_from.keys())
+print(f"  Last chart from: {_last_chart_from}")
 
 # Rebuild mutable aggregates from existing data
 yearly_scrobbles = defaultdict(int)
@@ -249,10 +258,10 @@ try:
                 new_charts.append(ch)
         print(f"  Migration: filtered to {len(new_charts)} {_migration_year} weeks (out of {len(chart_list)} total)")
     else:
-        # Fetch only charts whose 'from' epoch hasn't already been counted.
-        # This is timezone-safe (compares raw epochs) and prevents the duplicate-fetch
-        # bug that caused 52 copies of the same week in the weekly array.
-        new_charts = [ch for ch in chart_list if safe_int(ch["from"]) not in old_weekly_from_set]
+        # Fetch only charts newer than the highest epoch we've ever processed.
+        # This is timezone-safe (compares raw epochs) and prevents both the
+        # duplicate-fetch bug and the post-migration 1000+ chart re-fetch timeout.
+        new_charts = [ch for ch in chart_list if safe_int(ch["from"]) > _last_chart_from]
         print(f"  Total charts: {len(chart_list)}, New to fetch: {len(new_charts)}")
 
     for i, ch in enumerate(new_charts):
@@ -304,6 +313,10 @@ try:
             weekly_by_from[from_ts] = {"week": wk_date, "c": week_total, "from": from_ts}
             weekly_details[wk_date] = {"artists": wk_artists[:10], "albums": wk_albums[:10]}
 
+            # Update the high-water mark
+            if from_ts > _last_chart_from:
+                _last_chart_from = from_ts
+
             if (i + 1) % 10 == 0:
                 print(f"    Fetched {i+1}/{len(new_charts)} new weeks...")
             time.sleep(0.25)
@@ -311,10 +324,6 @@ try:
             pass
 except Exception as e:
     print(f"  Weekly chart error: {e}")
-
-# (Track backfill block removed — the migration check above wipes yearly/monthly
-#  for old-format data and the new_charts loop fetches all weeks fresh, so a
-#  separate track-only backfill is no longer needed.)
 
 # Keep only last 52 weeks of detail (sort by 'from' epoch, then drop oldest)
 weekly = sorted(weekly_by_from.values(), key=lambda x: x.get("from", 0), reverse=True)[:52]
@@ -467,6 +476,7 @@ output = {
     "weekly": weekly,
     "wd": weekly_details,
     "recent": recent,
+    "_last_chart_from": _last_chart_from,
 }
 
 with open("data/lastfm.json", "w") as f:
