@@ -504,6 +504,31 @@ for yr in set(list(yearly_genre_plays.keys()) + list(yearly_scrobbles.keys())):
     yearly_genres[yr] = [{"n": g, "c": c} for g, c in top]
 print(f"  Genres: {len(yearly_genres)} years, track cache: {len(_track_genres_cache)} entries ({_genre_api_calls} track API calls)")
 
+# Compute period-based genres from monthly_genre_plays (comprehensive, same source as yearly)
+# This replaces the old per-track computation from top-50 period tracks.
+_now = datetime.now(tz=_tz_pac)
+_all_months = sorted(monthly_genre_plays.keys())
+def _sum_months_genres(months):
+    combined = defaultdict(int)
+    for mo in months:
+        for g, c in monthly_genre_plays.get(mo, {}).items():
+            combined[g] += c
+    return [{"n": g, "c": c} for g, c in sorted(combined.items(), key=lambda x: x[1], reverse=True)[:15]]
+
+# Determine month ranges for each period
+_recent_3m = [mo for mo in _all_months if mo >= (_now - __import__('datetime').timedelta(days=90)).strftime("%Y-%m")]
+_recent_1m = [mo for mo in _all_months if mo >= (_now - __import__('datetime').timedelta(days=30)).strftime("%Y-%m")]
+_recent_12m = [mo for mo in _all_months if mo >= (_now - __import__('datetime').timedelta(days=365)).strftime("%Y-%m")]
+
+# Only override period genres if we have monthly genre data (i.e., rebuild has run)
+if monthly_genre_plays:
+    genres_by_period["overall"] = _sum_months_genres(_all_months) or genres_by_period.get("overall", [])
+    genres_by_period["12month"] = _sum_months_genres(_recent_12m) or genres_by_period.get("12month", [])
+    genres_by_period["3month"] = _sum_months_genres(_recent_3m) or genres_by_period.get("3month", [])
+    genres_by_period["1month"] = _sum_months_genres(_recent_1m) or genres_by_period.get("1month", [])
+    genres = genres_by_period.get("overall", [])
+    print(f"  Period genres: computed from monthly data ({len(_all_months)} months)")
+
 # Save track genres cache
 with open(_TRACK_GENRES_FILE, "w") as f:
     json.dump(_track_genres_cache, f, separators=(",", ":"))
