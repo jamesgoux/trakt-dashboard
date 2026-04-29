@@ -108,8 +108,8 @@ for pdata in top_artists:
             except Exception:
                 fetched_artist_tags[a["n"]] = []
 
-_genre_api_budget = 300  # max new track.gettoptags calls per run
 _genre_api_calls = 0
+_genre_time_limit = time.time() + 180  # 3-minute safety net; cache persists so next run continues
 
 def _get_track_genres(artist, track_name):
     """Get top 3 genre tags for a track. Cache → API → artist fallback."""
@@ -117,8 +117,8 @@ def _get_track_genres(artist, track_name):
     key = artist + "\t" + track_name
     if key in _track_genres_cache:
         return _track_genres_cache[key]
-    # Try API if within budget
-    if _genre_api_calls < _genre_api_budget:
+    # Try API (no budget cap — only a time limit as safeguard)
+    if time.time() < _genre_time_limit:
         try:
             data = api("track.gettoptags", artist=artist, track=track_name)
             tags = data.get("toptags", {}).get("tag", [])
@@ -139,9 +139,10 @@ def _get_track_genres(artist, track_name):
     return []
 
 def _compute_genres_from_tracks(track_plays):
-    """Given {artist\\ttrack: play_count}, return top 15 genres by scrobble count."""
+    """Given {artist\\ttrack: play_count}, return top 15 genres by scrobble count.
+    Processes ALL tracks (no cap) — every scrobble counts toward genres."""
     genre_counter = {}
-    for key, plays in sorted(track_plays.items(), key=lambda x: x[1], reverse=True)[:100]:
+    for key, plays in track_plays.items():
         parts = key.split("\t", 1)
         artist = parts[0]
         track_name = parts[1] if len(parts) > 1 else parts[0]
@@ -366,28 +367,23 @@ except Exception as e:
 print(f"  Recent tracks: {len(recent)}")
 
 # ── 4b. Per-year genres from per-track tags ──
-# First, ensure artist tags are fetched for each year's top artists so that
-# _get_track_genres has a working fallback when the per-track API budget runs out.
-# Without this, tracks by year-specific artists (e.g., kids' music) return []
-# and their plays don't count toward any genre.
+# First, ensure artist tags are fetched for ALL artists that appear in yearly data
+# so _get_track_genres always has an artist-level fallback. No budget cap — time
+# limit is the only safeguard, and fetched_artist_tags persists for the run.
 print("  Fetching artist tags for yearly genre fallback...")
-_artist_tag_budget = 50  # extra artist lookups allowed for yearly coverage
 _artist_tag_calls = 0
 for yr in sorted(yearly_artist_plays.keys()):
-    top_yr_artists = sorted(yearly_artist_plays[yr].items(), key=lambda x: x[1], reverse=True)[:30]
-    for artist_name, _ in top_yr_artists:
-        if artist_name not in fetched_artist_tags:
-            if _artist_tag_calls >= _artist_tag_budget:
-                break
+    for artist_name, _ in yearly_artist_plays[yr].items():
+        if artist_name not in fetched_artist_tags and time.time() < _genre_time_limit:
             try:
                 data = api("artist.gettoptags", artist=artist_name)
                 fetched_artist_tags[artist_name] = data.get("toptags", {}).get("tag", [])
                 _artist_tag_calls += 1
-                time.sleep(0.3)
+                time.sleep(0.25)
             except Exception:
                 fetched_artist_tags[artist_name] = []
                 _artist_tag_calls += 1
-print(f"  Artist tags: {len(fetched_artist_tags)} artists cached ({_artist_tag_calls} new lookups)")
+print(f"  Artist tags: {len(fetched_artist_tags)} artists cached ({_artist_tag_calls} new this run)")
 
 print("  Computing per-year genres...")
 yearly_genres = {}
