@@ -246,8 +246,13 @@ for y in existing.get("yearly", []):
         yearly_album_plays[y["yr"]][a["n"]] = a["c"]
     for t in y.get("tt", []):
         yearly_track_plays[y["yr"]][t["a"] + "\t" + t["n"]] = t["c"]
-    for g in y.get("g", []):
-        yearly_genre_plays[y["yr"]][g["n"]] = g["c"]
+    # Only seed genre data if genre rebuild is already complete.
+    # During rebuild, genres accumulate fresh from weekly track charts.
+    _grb = existing.get("_genre_rebuild_from", 0)
+    _lcf = existing.get("_last_chart_from", 0)
+    if _grb >= _lcf and _lcf > 0:
+        for g in y.get("g", []):
+            yearly_genre_plays[y["yr"]][g["n"]] = g["c"]
 for m in existing.get("monthly", []):
     monthly_scrobbles[m["m"]] = m["s"]
     for a in m.get("ta", []):
@@ -351,6 +356,58 @@ except Exception as e:
 weekly = sorted(weekly_by_from.values(), key=lambda x: x.get("from", 0), reverse=True)[:52]
 keep_weeks = set(w["week"] for w in weekly)
 weekly_details = {k: v for k, v in weekly_details.items() if k in keep_weeks}
+
+# ── 3b. Genre rebuild — progressive catch-up ──
+# When _genre_rebuild_from < _last_chart_from, genres haven't been computed from
+# all weekly charts yet. This loop fetches ONLY track charts (not artist/album)
+# for genre accumulation — 3x faster than the full chart loop. It processes as
+# many charts as time allows (~4 min budget), saves progress, and the next run
+# continues from where it left off. Full rebuild completes in 2-3 runs.
+_genre_rebuild_from = existing.get("_genre_rebuild_from", 0)
+if _genre_rebuild_from < _last_chart_from and _last_chart_from > 0:
+    _rebuild_deadline = time.time() + 240  # 4-minute budget
+    try:
+        if not chart_list:
+            charts_data = api("user.getweeklychartlist")
+            chart_list = charts_data.get("weeklychartlist", {}).get("chart", [])
+        rebuild_charts = [ch for ch in chart_list if safe_int(ch["from"]) > _genre_rebuild_from
+                          and safe_int(ch["from"]) <= _last_chart_from]
+        rebuild_charts.sort(key=lambda ch: safe_int(ch["from"]))
+        print(f"  Genre rebuild: {len(rebuild_charts)} charts to process (from {_genre_rebuild_from} to {_last_chart_from})")
+        _rebuild_count = 0
+        for ch in rebuild_charts:
+            if time.time() >= _rebuild_deadline:
+                print(f"    Genre rebuild: time limit hit after {_rebuild_count} charts, will continue next run")
+                break
+            try:
+                from_ts = safe_int(ch["from"])
+                dt = datetime.fromtimestamp(from_ts, tz=_tz_pac)
+                yr = dt.strftime("%Y")
+                mo = dt.strftime("%Y-%m")
+                wkt = api("user.getweeklytrackchart", **{"from": ch["from"], "to": ch["to"]})
+                for t in wkt.get("weeklytrackchart", {}).get("track", []):
+                    pc = int(t.get("playcount", 0))
+                    t_artist = t["artist"]["#text"]
+                    t_name = t["name"]
+                    for g in _get_track_genres(t_artist, t_name):
+                        yearly_genre_plays[yr][g] += pc
+                        monthly_genre_plays[mo][g] += pc
+                _genre_rebuild_from = from_ts
+                _rebuild_count += 1
+                if _rebuild_count % 50 == 0:
+                    print(f"    Genre rebuild: {_rebuild_count}/{len(rebuild_charts)} charts...")
+                time.sleep(0.2)
+            except Exception:
+                _genre_rebuild_from = safe_int(ch["from"])  # skip on error
+        if _genre_rebuild_from >= _last_chart_from:
+            print(f"  Genre rebuild: COMPLETE — all {_rebuild_count} charts processed")
+        else:
+            print(f"  Genre rebuild: {_rebuild_count} charts done, {len(rebuild_charts) - _rebuild_count} remaining")
+    except Exception as e:
+        print(f"  Genre rebuild error: {e}")
+else:
+    if _last_chart_from > 0:
+        print(f"  Genre rebuild: up to date")
 
 # ── 4. Recent tracks (always refresh, ~30 days) ──
 def top_n(counter, n=10):
@@ -552,6 +609,7 @@ output = {
     "wd": weekly_details,
     "recent": recent,
     "_last_chart_from": _last_chart_from,
+    "_genre_rebuild_from": _genre_rebuild_from,
 }
 
 with open("data/lastfm.json", "w") as f:
