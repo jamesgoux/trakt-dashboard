@@ -221,6 +221,10 @@ yearly_track_plays = defaultdict(lambda: defaultdict(int))
 monthly_artist_plays = defaultdict(lambda: defaultdict(int))
 monthly_album_plays = defaultdict(lambda: defaultdict(int))
 monthly_track_plays = defaultdict(lambda: defaultdict(int))
+# Genre counters — accumulated per-track during the weekly fetch loop so EVERY
+# scrobble is counted (not just the saved top-50 tracks).
+yearly_genre_plays = defaultdict(lambda: defaultdict(int))
+monthly_genre_plays = defaultdict(lambda: defaultdict(int))
 
 # Seed from existing yearly/monthly totals UNCONDITIONALLY.
 # The new_charts loop below only fetches charts whose 'from' epoch isn't already
@@ -233,6 +237,8 @@ for y in existing.get("yearly", []):
         yearly_album_plays[y["yr"]][a["n"]] = a["c"]
     for t in y.get("tt", []):
         yearly_track_plays[y["yr"]][t["a"] + "\t" + t["n"]] = t["c"]
+    for g in y.get("g", []):
+        yearly_genre_plays[y["yr"]][g["n"]] = g["c"]
 for m in existing.get("monthly", []):
     monthly_scrobbles[m["m"]] = m["s"]
     for a in m.get("ta", []):
@@ -299,14 +305,20 @@ try:
             except Exception:
                 pass
 
-            # Track chart (for per-year/month top tracks)
+            # Track chart (for per-year/month top tracks AND per-track genres)
             try:
                 wkt = api("user.getweeklytrackchart", **{"from": ch["from"], "to": ch["to"]})
                 for t in wkt.get("weeklytrackchart", {}).get("track", []):
                     pc = int(t.get("playcount", 0))
-                    key = t["artist"]["#text"] + "\t" + t["name"]
+                    t_artist = t["artist"]["#text"]
+                    t_name = t["name"]
+                    key = t_artist + "\t" + t_name
                     yearly_track_plays[yr][key] += pc
                     monthly_track_plays[mo][key] += pc
+                    # Accumulate genres for EVERY scrobble (not just top-50)
+                    for g in _get_track_genres(t_artist, t_name):
+                        yearly_genre_plays[yr][g] += pc
+                        monthly_genre_plays[mo][g] += pc
             except Exception:
                 pass
 
@@ -366,30 +378,45 @@ except Exception as e:
     print(f"  Recent tracks error: {e}")
 print(f"  Recent tracks: {len(recent)}")
 
-# ── 4b. Per-year genres from per-track tags ──
-# First, ensure artist tags are fetched for ALL artists that appear in yearly data
-# so _get_track_genres always has an artist-level fallback. No budget cap — time
-# limit is the only safeguard, and fetched_artist_tags persists for the run.
-print("  Fetching artist tags for yearly genre fallback...")
-_artist_tag_calls = 0
+# ── 4b. Per-year genres ──
+# Two sources: (1) yearly_genre_plays accumulated per-track during the weekly
+# fetch loop (comprehensive — every scrobble counted). (2) For years where the
+# weekly loop didn't run (0 new charts, seeded from previous top-50-only data),
+# fall back to artist-level genre computation from yearly_artist_plays which
+# covers 100% of scrobbles.
+print("  Computing per-year genres...")
+# Ensure artist tags exist for all yearly top artists (for fallback)
 for yr in sorted(yearly_artist_plays.keys()):
-    for artist_name, _ in yearly_artist_plays[yr].items():
+    for artist_name in list(yearly_artist_plays[yr].keys())[:50]:
         if artist_name not in fetched_artist_tags and time.time() < _genre_time_limit:
             try:
                 data = api("artist.gettoptags", artist=artist_name)
                 fetched_artist_tags[artist_name] = data.get("toptags", {}).get("tag", [])
-                _artist_tag_calls += 1
                 time.sleep(0.25)
             except Exception:
                 fetched_artist_tags[artist_name] = []
-                _artist_tag_calls += 1
-print(f"  Artist tags: {len(fetched_artist_tags)} artists cached ({_artist_tag_calls} new this run)")
 
-print("  Computing per-year genres...")
 yearly_genres = {}
-for yr in sorted(yearly_track_plays.keys()):
-    yearly_genres[yr] = _compute_genres_from_tracks(yearly_track_plays[yr])
-print(f"  Genres computed for {len(yearly_genres)} years, track genre cache: {len(_track_genres_cache)} entries ({_genre_api_calls} track API calls this run)")
+for yr in set(list(yearly_genre_plays.keys()) + list(yearly_scrobbles.keys())):
+    genre_data = yearly_genre_plays.get(yr, {})
+    genre_total = sum(genre_data.values())
+    yr_scrobbles = yearly_scrobbles.get(yr, 0)
+    # If per-track genres cover less than 50% of the year's scrobbles,
+    # rebuild from artist-level plays (covers 100% of scrobbles)
+    if yr_scrobbles > 0 and genre_total < yr_scrobbles * 0.5:
+        genre_data = {}
+        for artist_name, play_count in yearly_artist_plays.get(yr, {}).items():
+            # Get artist's top 3 genres, assign full play count to each
+            if artist_name in fetched_artist_tags:
+                tags = fetched_artist_tags[artist_name]
+            else:
+                tags = []
+            genres = [t["name"].lower() for t in tags[:5] if t["name"].lower() not in SKIP_TAGS][:3]
+            for g in genres:
+                genre_data[g] = genre_data.get(g, 0) + play_count
+    top = sorted(genre_data.items(), key=lambda x: x[1], reverse=True)[:15]
+    yearly_genres[yr] = [{"n": g, "c": c} for g, c in top]
+print(f"  Genres: {len(yearly_genres)} years, track cache: {len(_track_genres_cache)} entries ({_genre_api_calls} track API calls)")
 
 # Save track genres cache
 with open(_TRACK_GENRES_FILE, "w") as f:
