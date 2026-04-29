@@ -5,7 +5,7 @@ INCREMENTAL: Only fetches new weekly charts since last run.
 Full data is preserved and merged.
 """
 import json, os, sys, time
-import urllib.request
+import urllib.request, urllib.parse
 from datetime import datetime
 from collections import defaultdict
 from zoneinfo import ZoneInfo
@@ -34,8 +34,9 @@ def api(method, **params):
     params["api_key"] = LASTFM_API_KEY
     params["user"] = LASTFM_USER
     params["format"] = "json"
-    qs = "&".join(f"{k}={v}" for k, v in params.items())
-    url = f"{BASE}?method={method}&{qs}"
+    params["method"] = method
+    qs = urllib.parse.urlencode(params)
+    url = f"{BASE}?{qs}"
     req = urllib.request.Request(url, headers={"User-Agent": "Iris/1.0"})
     with urllib.request.urlopen(req, timeout=15) as resp:
         return json.loads(resp.read())
@@ -91,7 +92,15 @@ if os.path.exists(_TRACK_GENRES_FILE):
     try:
         with open(_TRACK_GENRES_FILE) as f:
             _track_genres_cache = json.load(f)
-        print(f"  Track genres cache: {len(_track_genres_cache)} entries loaded")
+        # One-time cache wipe: previous builds used non-URL-encoded API calls which
+        # returned errors for most tracks. Those tracks were never cached (returned []).
+        # Wipe the cache so ALL tracks get retried with proper URL encoding.
+        # Remove this block after one successful run.
+        if "_url_encoding_fix" not in _track_genres_cache:
+            print(f"  Track genres cache: wiping {len(_track_genres_cache)} entries for URL encoding fix")
+            _track_genres_cache = {"_url_encoding_fix": ["migrated"]}
+        else:
+            print(f"  Track genres cache: {len(_track_genres_cache) - 1} entries loaded")
     except Exception:
         pass
 
