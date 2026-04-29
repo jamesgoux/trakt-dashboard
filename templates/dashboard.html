@@ -7030,6 +7030,9 @@ function _crNavToEp(season,newEp){
 function _irisInjectWatch(type,opts){
   // type: 'movie' or 'episode'
   // opts: {slug, title, year, runtime, genres, tmdbId, season, episode, showSlug}
+  console.log('[_irisInjectWatch] CALLED',type,opts.title||opts.slug,'runtime='+opts.runtime);
+  // DEBUG: visual toast so user confirms injection fires
+  try{var _dbgT=document.createElement('div');_dbgT.style.cssText='position:fixed;top:env(safe-area-inset-top,0);left:50%;transform:translateX(-50%);z-index:999999;background:#059669;color:#fff;padding:8px 16px;border-radius:8px;font-size:12px;font-weight:600;pointer-events:none;opacity:1;transition:opacity .5s ease 2s';_dbgT.textContent='✓ Stats injected: '+(opts.title||opts.slug);document.body.appendChild(_dbgT);setTimeout(function(){_dbgT.style.opacity='0';setTimeout(function(){_dbgT.remove()},600)},2000)}catch(_e){}
   var yr=new Date().getFullYear().toString();
   var mo=new Date().getFullYear()+'-'+String(new Date().getMonth()+1).padStart(2,'0');
   var runtime=opts.runtime||0;
@@ -10112,7 +10115,7 @@ function renderStatus(){
   var hs_count=Object.keys(D.hs||{}).length;
   var ps_count=Object.keys(D.ps||{}).length;
   var el=document.getElementById('status');
-  el.innerHTML='<span>Actors: '+total_people+'</span><span>Headshots: '+hs_count+'</span><span>Posters: '+ps_count+'</span><span>Updated: __BUILD_TIME__</span><span>v67</span>';
+  el.innerHTML='<span>Actors: '+total_people+'</span><span>Headshots: '+hs_count+'</span><span>Posters: '+ps_count+'</span><span>Updated: __BUILD_TIME__</span><span>v68</span>';
 }
 
 function render(){
