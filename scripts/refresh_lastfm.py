@@ -139,7 +139,14 @@ def _get_track_genres(artist, track_name):
             time.sleep(0.25)
         except Exception:
             _genre_api_calls += 1
-    # Fallback: artist-level tags
+    # Fallback: artist-level tags (fetch on demand if not cached)
+    if artist not in fetched_artist_tags and time.time() < _genre_time_limit:
+        try:
+            adata = api("artist.gettoptags", artist=artist)
+            fetched_artist_tags[artist] = adata.get("toptags", {}).get("tag", [])
+            time.sleep(0.25)
+        except Exception:
+            fetched_artist_tags[artist] = []
     if artist in fetched_artist_tags:
         genres = [t["name"].lower() for t in fetched_artist_tags[artist][:5] if t["name"].lower() not in SKIP_TAGS][:3]
         if genres:
